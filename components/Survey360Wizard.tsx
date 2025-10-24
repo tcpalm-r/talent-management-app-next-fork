@@ -169,6 +169,59 @@ export default function Survey360Wizard({
 
           if (surveyError) throw surveyError;
 
+          // Ensure questions exist in database and get their UUIDs
+          const questionUUIDs: string[] = [];
+          for (const questionId of selectedQuestionIds) {
+            const questionData = getQuestionById(questionId);
+            if (!questionData) continue;
+
+            // Check if question exists, if not create it
+            let { data: existingQuestion, error: checkError } = await supabase
+              .from('feedback_360_questions')
+              .select('id')
+              .eq('question_text', questionData.text)
+              .single();
+
+            if (checkError && checkError.code !== 'PGRST116') {
+              // PGRST116 = no rows returned, which is fine
+              throw checkError;
+            }
+
+            if (!existingQuestion) {
+              // Create the question
+              const { data: newQuestion, error: createError } = await supabase
+                .from('feedback_360_questions')
+                .insert({
+                  question_text: questionData.text,
+                  category: 'general',
+                  is_default: true,
+                  is_active: true,
+                })
+                .select('id')
+                .single();
+
+              if (createError) throw createError;
+              questionUUIDs.push(newQuestion.id);
+            } else {
+              questionUUIDs.push(existingQuestion.id);
+            }
+          }
+
+          // Create survey questions with UUIDs
+          const questionsToInsert = questionUUIDs.map((questionUUID, index) => ({
+            survey_id: survey.id,
+            question_id: questionUUID,
+            question_order: index,
+          }));
+
+          if (questionsToInsert.length > 0) {
+            const { error: questionsError } = await supabase
+              .from('feedback_360_survey_questions')
+              .insert(questionsToInsert);
+
+            if (questionsError) throw questionsError;
+          }
+
           // Create reviewers
           const reviewersToInsert = raters
             .filter(r => r.name && r.email)
@@ -182,11 +235,38 @@ export default function Survey360Wizard({
             }));
 
           if (reviewersToInsert.length > 0) {
-            const { error: reviewersError } = await supabase
+            const { data: insertedReviewers, error: reviewersError } = await supabase
               .from('feedback_360_survey_reviewers')
-              .insert(reviewersToInsert);
+              .insert(reviewersToInsert)
+              .select();
 
             if (reviewersError) throw reviewersError;
+
+            // Send invitation emails to each reviewer
+            if (insertedReviewers && insertedReviewers.length > 0) {
+              const emailPromises = insertedReviewers.map(async (reviewer) => {
+                try {
+                  const response = await fetch('/api/send-survey-invitation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      surveyId: survey.id,
+                      reviewerId: reviewer.id,
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    const error = await response.json();
+                    console.error(`Failed to send email to ${reviewer.reviewer_email}:`, error);
+                  }
+                } catch (error) {
+                  console.error(`Error sending email to ${reviewer.reviewer_email}:`, error);
+                }
+              });
+
+              // Wait for all emails to be sent (don't block on failures)
+              await Promise.allSettled(emailPromises);
+            }
           }
 
           successCount++;
