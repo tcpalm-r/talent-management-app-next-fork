@@ -95,7 +95,7 @@ export default function Survey360Wizard({
       case 'competencies':
         return selectedQuestionIds.length > 0;
       case 'raters':
-        return raters.length >= 3;
+        return raters.length >= 1;
       case 'timeline':
         return !!dueDate;
       case 'privacy':
@@ -381,7 +381,7 @@ export default function Survey360Wizard({
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Raters</h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  Minimum 3 raters required. Diverse perspectives provide better insights.
+                  At least 1 rater required. Diverse perspectives provide better insights.
                 </p>
               </div>
 

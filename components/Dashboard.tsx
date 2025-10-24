@@ -743,17 +743,25 @@ export default function Dashboard({
   const loadEmployees = useCallback(async (): Promise<void> => {
     if (!organization?.id) return;
 
-    const { data, error } = await supabase
-      .from('employees')
-      .select(`
-        *,
-        department:departments(*),
-        assessment:assessments(*)
-      `)
-      .eq('organization_id', organization.id);
+    // Since employees is a VIEW, we can't use relationship syntax
+    // Fetch employees, departments, and assessments separately, then join in JS
+    const [employeesResult, departmentsResult, assessmentsResult] = await Promise.all([
+      supabase
+        .from('employees')
+        .select('*')
+        .eq('organization_id', organization.id),
+      supabase
+        .from('departments')
+        .select('*')
+        .eq('organization_id', organization.id),
+      supabase
+        .from('assessments')
+        .select('*')
+        .eq('organization_id', organization.id)
+    ]);
 
-    if (error) {
-      console.error('Error loading employees:', error);
+    if (employeesResult.error) {
+      console.error('Error loading employees:', employeesResult.error);
       notify({
         title: 'Unable to load team members',
         description: 'Check your connection or Supabase credentials and try again.',
@@ -762,7 +770,14 @@ export default function Dashboard({
       return;
     }
 
-    setEmployees(data || []);
+    // Join the data manually
+    const employeesWithRelations = (employeesResult.data || []).map(employee => ({
+      ...employee,
+      department: departmentsResult.data?.find(d => d.id === employee.department_id) || null,
+      assessment: assessmentsResult.data?.find(a => a.employee_id === employee.id) || null
+    }));
+
+    setEmployees(employeesWithRelations);
   }, [organization?.id, notify]);
 
   const loadDepartments = useCallback(async (): Promise<void> => {
