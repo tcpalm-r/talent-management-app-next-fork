@@ -1578,7 +1578,7 @@ export default function Dashboard({
       employeePlans={employeePlans}
     >
       <div className="min-h-screen bg-slate-50">
-      {/* Hero */}
+      {/* BETA: Header, stats, and navigation disabled for minimal UI
       <header className="relative overflow-hidden bg-gradient-to-br from-[#111827] via-[#1c2430] to-[#121a23]">
         <div
           className="pointer-events-none absolute inset-0 opacity-40"
@@ -1754,8 +1754,9 @@ export default function Dashboard({
           </div>
         </nav>
       )}
+      */}
 
-      {/* Main Content */}
+      {/* BETA: Main Content - Simple Employee Directory */}
       <main className="py-8">
         {loading && (
           <div className="text-center py-12">
@@ -1765,8 +1766,43 @@ export default function Dashboard({
         )}
 
         {!loading && (
-          <div className="space-y-8">
-            {/* BETA: Commented out welcome and team views for initial release
+          <div className={`${shellClass}`}>
+            {/* BETA: Simple Employee Directory */}
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">Employee Directory</h1>
+              <p className="mt-1 text-sm text-gray-600">Click on an employee card to view their assessments</p>
+            </div>
+
+            <PeopleDashboard
+              employees={employees}
+              employeePlans={employeePlans}
+              selectedDepartments={selectedDepartments}
+              onEmployeeClick={(employee) => {
+                setDetailModalEmployee(employee);
+                setIsDetailModalOpen(true);
+              }}
+              onAssess={(employee) => {
+                setDetailModalEmployee(employee);
+                setIsDetailModalOpen(true);
+              }}
+              onReassess={(employee) => {
+                setDetailModalEmployee(employee);
+                setIsDetailModalOpen(true);
+              }}
+              performanceReviews={performanceReviews}
+              focusedEmployees={focusedEmployees}
+              onTogglePin={(employeeId) => {
+                if (focusedEmployees.some(e => e.id === employeeId)) {
+                  unpinEmployee(employeeId);
+                } else {
+                  const employee = employees.find(e => e.id === employeeId);
+                  if (employee) pinEmployee(employee);
+                }
+              }}
+              compareMode={compareMode}
+            />
+
+            {/* BETA: All other views commented out for minimal UI
             {currentView === 'welcome' && (
               <ExecutiveWelcomeWizard
                 employees={employees}
@@ -2298,11 +2334,14 @@ export default function Dashboard({
                 </div>
               </div>
             )}
+            */}
           </div>
         )}
       </main>
 
+      {/* BETA: AI features disabled for minimal UI
       <UnifiedAICoach />
+      */}
 
       {draftTargetEmployee && (
         <AIDraftReviewModal
