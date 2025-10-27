@@ -191,7 +191,7 @@ export default function EmployeeCardUnified({
                 )}
               </div>
 
-              {/* Assessment badges */}
+              {/* BETA: Nine-box assessment badges disabled for beta (not implementing nine-box yet)
               {employee.assessment && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {employee.assessment.performance && (
@@ -202,6 +202,7 @@ export default function EmployeeCardUnified({
                   )}
                 </div>
               )}
+              */}
             </div>
           </div>
           {/* Meta badges */}
@@ -464,7 +465,7 @@ export default function EmployeeCardUnified({
             )}
           </div>
 
-          {/* Assessment badges */}
+          {/* BETA: Nine-box assessment badges disabled for beta (not implementing nine-box yet)
           {employee.assessment && (
             <div className="mt-2 flex flex-wrap gap-1">
               {employee.assessment.performance && (
@@ -475,6 +476,7 @@ export default function EmployeeCardUnified({
               )}
             </div>
           )}
+          */}
 
           {/* Performance Review Badges */}
           {employee.assessment && (hasManagerReview || hasSelfReview) && (
