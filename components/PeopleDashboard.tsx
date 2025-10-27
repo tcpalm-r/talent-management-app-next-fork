@@ -22,8 +22,8 @@ interface PeopleDashboardProps {
   activeDepartmentIds?: string[];
 }
 
-// BETA: Core assessment views - All Employees, Ideal Team Player, 360 Feedback, ITP Matrix, Performance Reviews
-type PeopleView = 'all' | 'team-player' | 'feedback360' | 'itp-matrix' | 'performance-review'; // | 'flight-risk' - Disabled for beta
+// BETA: Core assessment views - All Employees, Ideal Team Player, 360 Feedback, Performance Reviews
+type PeopleView = 'all' | 'team-player' | 'feedback360' | 'performance-review'; // | 'flight-risk' - Disabled for beta
 
 export default function PeopleDashboard({
   employees,
@@ -44,12 +44,11 @@ export default function PeopleDashboard({
     ? employees.filter(emp => emp.department_id && activeDepartmentIds.includes(emp.department_id))
     : employees;
 
-  // BETA: Core assessment tabs - showing all 5 main views
+  // BETA: Core assessment tabs - 4 main views
   const tabs = [
     { id: 'all', label: 'All Employees', icon: Users, tooltip: 'View all employee cards' },
     { id: 'team-player', label: 'Ideal Team Player', icon: Award, tooltip: 'View Ideal Team Player assessments' },
     { id: 'feedback360', label: '360 Feedback', icon: Users, tooltip: 'Anonymous 360-degree feedback from peers, managers, and reports' },
-    { id: 'itp-matrix', label: 'ITP Matrix', icon: Award, tooltip: 'Ideal Team Player self-assessment matrix' },
     { id: 'performance-review', label: 'Performance Reviews', icon: ClipboardList, tooltip: 'Manager and self performance reviews' },
     // { id: 'flight-risk', label: 'Flight Risk', icon: AlertTriangle }, // Disabled for beta
   ];
@@ -107,19 +106,6 @@ export default function PeopleDashboard({
               employees={scopedEmployees}
               departments={departments}
               organizationId={organizationId}
-            />
-          )}
-
-          {activeView === 'itp-matrix' && (
-            <IdealTeamPlayerDashboard
-              employees={scopedEmployees}
-              departments={departments}
-              employeePlans={employeePlans}
-              onPlansUpdate={onPlansUpdate}
-              onEmployeeUpdate={onEmployeeUpdate}
-              currentUserName={currentUserName}
-              performanceReviews={performanceReviews}
-              onReviewSave={onReviewSave}
             />
           )}
 
