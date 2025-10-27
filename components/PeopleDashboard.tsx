@@ -21,7 +21,8 @@ interface PeopleDashboardProps {
   activeDepartmentIds?: string[];
 }
 
-type PeopleView = 'all' | 'team-player' | 'flight-risk';
+// BETA: Simplified to show only All Employees and Ideal Team Player
+type PeopleView = 'all' | 'team-player'; // | 'flight-risk' - Disabled for beta
 
 export default function PeopleDashboard({
   employees,
@@ -42,10 +43,11 @@ export default function PeopleDashboard({
     ? employees.filter(emp => emp.department_id && activeDepartmentIds.includes(emp.department_id))
     : employees;
 
+  // BETA: Only showing All Employees and Ideal Team Player tabs
   const tabs = [
     { id: 'all', label: 'All Employees', icon: Users },
     { id: 'team-player', label: 'Ideal Team Player', icon: Award },
-    { id: 'flight-risk', label: 'Flight Risk', icon: AlertTriangle },
+    // { id: 'flight-risk', label: 'Flight Risk', icon: AlertTriangle }, // Disabled for beta
   ];
 
   return (
@@ -96,6 +98,7 @@ export default function PeopleDashboard({
             />
           )}
 
+          {/* BETA: Flight Risk view disabled for beta
           {activeView === 'flight-risk' && (
             <FlightRiskDashboard
               employees={scopedEmployees}
@@ -105,6 +108,7 @@ export default function PeopleDashboard({
               onEmployeeUpdate={onEmployeeUpdate}
             />
           )}
+          */}
         </div>
       </div>
     </div>
