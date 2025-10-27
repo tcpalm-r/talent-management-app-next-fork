@@ -16,7 +16,6 @@ import CalibrationDashboard from './CalibrationDashboard';
 import PlansDashboard from './PlansDashboard';
 import OnboardingDashboard from './OnboardingDashboard';
 import Feedback360Dashboard from './Feedback360Dashboard';
-import IdealTeamPlayerDashboard from './IdealTeamPlayerDashboard'; // BETA: ITP Matrix Self-Assessment
 import { NavigationTabs, useToast } from './unified';
 import type { PerformanceReview } from './PerformanceReviewModal';
 import AIHelperRibbon from './AIHelperRibbon';
@@ -49,10 +48,9 @@ interface DashboardProps {
   onRegisterNavigate?: (fn: ((view: string) => void) | null) => void;
 }
 
-// BETA VERSION: Simplified to show only 3 core assessment features
-type View = 'assessments'; // Simplified from: 'welcome' | 'team' | 'reviews' | 'insights' | 'settings'
+type View = 'welcome' | 'team' | 'reviews' | 'insights' | 'settings';
 type PeopleFilter = 'all' | 'assessed' | 'watchlist';
-type ProgramHubView = 'feedback360' | 'itp-matrix' | 'performance-review'; // Simplified from: 'development' | 'onboarding' | 'feedback360' | 'calibration' | 'workflow'
+type ProgramHubView = 'development' | 'onboarding' | 'feedback360' | 'calibration' | 'workflow';
 type CommandFocus = 'overview' | 'attention';
 
 export default function Dashboard({
@@ -78,10 +76,9 @@ export default function Dashboard({
   const shellClass = 'mx-auto w-full px-6 lg:px-8 xl:px-12 max-w-screen-2xl 2xl:px-16 2xl:max-w-[1700px]';
   const evaluateShellClass = 'mx-auto w-full px-6 lg:px-8 xl:px-12 max-w-screen-2xl 2xl:px-16 2xl:max-w-[1900px]';
 
-  // BETA: Start directly on assessments view, skip welcome wizard
-  const [currentView, setCurrentView] = useState<View>('assessments');
-  const [isFirstRun, setIsFirstRun] = useState<boolean>(false); // BETA: Disabled welcome wizard
-  const [checkingFirstRun, setCheckingFirstRun] = useState(false); // BETA: Disabled welcome wizard
+  const [currentView, setCurrentView] = useState<View>('team');
+  const [isFirstRun, setIsFirstRun] = useState<boolean>(true);
+  const [checkingFirstRun, setCheckingFirstRun] = useState(true);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
@@ -98,7 +95,7 @@ export default function Dashboard({
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [peopleFilter, setPeopleFilter] = useState<PeopleFilter>('all');
   const [locationFilter, setLocationFilter] = useState<string>('all');
-  const [programsView, setProgramsView] = useState<ProgramHubView>('feedback360'); // BETA: Start with 360 Feedback
+  const [programsView, setProgramsView] = useState<ProgramHubView>('development');
   const [commandFocus, setCommandFocus] = useState<CommandFocus>('overview');
   const [selectedEmployeesFor360, setSelectedEmployeesFor360] = useState<Employee[]>([]);
   const [is360WizardOpen, setIs360WizardOpen] = useState(false);
@@ -1714,21 +1711,13 @@ export default function Dashboard({
         })}
       </section>
 
-      {/* Navigation - BETA: Simplified to single "Assessments" view */}
+      {/* Navigation */}
       {!isFirstRun && !checkingFirstRun && (
         <nav className="border-b border-slate-200 bg-white">
           <div className={shellClass}>
             <div className="flex flex-wrap gap-2 py-3">
               <NavigationTabs
                 tabs={[
-                  {
-                    id: 'assessments',
-                    label: 'Assessments',
-                    icon: ClipboardList,
-                    domId: 'tab-assessments',
-                    tooltip: '360 Feedback, ITP Matrix, and Performance Reviews',
-                  },
-                  /* BETA: Commented out other tabs for initial release
                   {
                     id: 'team',
                     label: 'My Team',
@@ -1737,13 +1726,25 @@ export default function Dashboard({
                     tooltip: 'Track team member profiles and progress',
                   },
                   {
+                    id: 'reviews',
+                    label: 'Reviews & Plans',
+                    icon: FileText,
+                    domId: 'tab-reviews',
+                    tooltip: 'Performance reviews, development plans, and programs',
+                    count: planMetrics.totalFollowThrough || undefined,
+                    badge: planMetrics.totalFollowThrough > 0 ? (
+                      <span className="ml-1 text-[10px] text-blue-600">
+                        {planMetrics.missingPlans} plans · {planMetrics.pendingAck} acks
+                      </span>
+                    ) : undefined,
+                  },
+                  {
                     id: 'insights',
                     label: 'Insights',
                     icon: TrendingUp,
                     domId: 'tab-insights',
                     tooltip: 'Analytics, 9-box grid, and talent portfolio',
                   },
-                  */
                 ]}
                 activeTab={currentView}
                 onTabChange={(tabId) => changeView(tabId as View)}
@@ -1766,7 +1767,6 @@ export default function Dashboard({
 
         {!loading && (
           <div className="space-y-8">
-            {/* BETA: Commented out welcome and team views for initial release
             {currentView === 'welcome' && (
               <ExecutiveWelcomeWizard
                 employees={employees}
@@ -1778,7 +1778,7 @@ export default function Dashboard({
                 }}
                 onSkip={() => {
                   setIsFirstRun(false);
-                  changeView('assessments');
+                  changeView('team');
                 }}
               />
             )}
@@ -1808,87 +1808,21 @@ export default function Dashboard({
                 }}
               />
             )}
-            */}
 
-            {/* BETA: Main Assessments View - 360 Feedback, ITP Matrix, Performance Reviews */}
-            {currentView === 'assessments' && (
+            {currentView === 'reviews' && (
               <div className={`${shellClass} space-y-6`}>
                 <NavigationTabs
                   tabs={[
-                    { id: 'feedback360', label: '360 Feedback', icon: UsersIcon, tooltip: 'Anonymous 360-degree feedback from peers, managers, and reports' },
-                    { id: 'itp-matrix', label: 'ITP Matrix', icon: Award, tooltip: 'Ideal Team Player self-assessment matrix' },
-                    { id: 'performance-review', label: 'Performance Reviews', icon: ClipboardList, tooltip: 'Manager and self performance reviews' },
-                    /* BETA: Commented out for initial release
                     { id: 'development', label: 'Development Plans', icon: ClipboardList },
+                    { id: 'feedback360', label: '360 Feedback', icon: Users },
                     { id: 'onboarding', label: 'Onboarding', icon: UserPlus },
                     { id: 'calibration', label: 'Calibration', icon: GitBranch },
-                    */
                   ]}
                   activeTab={programsView}
                   onTabChange={(id) => setProgramsView(id as ProgramHubView)}
                   variant="underline"
                 />
 
-                {programsView === 'feedback360' && (
-                  <Feedback360Dashboard
-                    employees={employees}
-                    departments={departments}
-                    organizationId={organization.id}
-                    currentUserName={userProfile.full_name || userProfile.email || 'User'}
-                  />
-                )}
-
-                {programsView === 'itp-matrix' && (
-                  <IdealTeamPlayerDashboard
-                    employees={employees}
-                    departments={departments}
-                    onOpenDetailModal={(employee) => {
-                      setDetailModalEmployee(employee);
-                      setIsDetailModalOpen(true);
-                    }}
-                  />
-                )}
-
-                {programsView === 'performance-review' && (
-                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <div className="mb-6">
-                      <h2 className="text-lg font-semibold text-gray-900 mb-2">Performance Reviews</h2>
-                      <p className="text-sm text-gray-600">
-                        Conduct performance reviews for your team members. Click on an employee card to open their review.
-                      </p>
-                    </div>
-                    <PeopleDashboard
-                      employees={employees}
-                      employeePlans={employeePlans}
-                      selectedDepartments={selectedDepartments}
-                      onEmployeeClick={(employee) => {
-                        setDetailModalEmployee(employee);
-                        setIsDetailModalOpen(true);
-                      }}
-                      onAssess={(employee) => {
-                        setDetailModalEmployee(employee);
-                        setIsDetailModalOpen(true);
-                      }}
-                      onReassess={(employee) => {
-                        setDetailModalEmployee(employee);
-                        setIsDetailModalOpen(true);
-                      }}
-                      performanceReviews={performanceReviews}
-                      focusedEmployees={focusedEmployees}
-                      onTogglePin={(employeeId) => {
-                        if (focusedEmployees.some(e => e.id === employeeId)) {
-                          unpinEmployee(employeeId);
-                        } else {
-                          const employee = employees.find(e => e.id === employeeId);
-                          if (employee) pinEmployee(employee);
-                        }
-                      }}
-                      compareMode={compareMode}
-                    />
-                  </div>
-                )}
-
-                {/* BETA: Commented out for initial release
                 {programsView === 'development' && (
                   <PlansDashboard
                     employees={employees}
@@ -1899,6 +1833,15 @@ export default function Dashboard({
                       setPlanTargetEmployee(employee);
                       setIsPlanModalOpen(true);
                     }}
+                  />
+                )}
+
+                {programsView === 'feedback360' && (
+                  <Feedback360Dashboard
+                    employees={employees}
+                    departments={departments}
+                    organizationId={organization.id}
+                    currentUserName={userProfile.full_name || userProfile.email || 'User'}
                   />
                 )}
 
@@ -1918,7 +1861,6 @@ export default function Dashboard({
                     onEmployeeUpdate={loadEmployees}
                   />
                 )}
-                */}
               </div>
             )}
 
