@@ -58,8 +58,10 @@ export default function IdealTeamPlayerDashboard({
   const [filterCategory, setFilterCategory] = useState<'all' | 'assessed' | 'not-assessed'>('all');
   const [habitCompletions, setHabitCompletions] = useState<Record<string, boolean>>({});
 
-  // Calculate ITP scores for employees with reviews
-  const employeesWithScores = employees.map((employee) => {
+  // Calculate ITP scores for employees with reviews (sorted alphabetically)
+  const employeesWithScores = employees
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((employee) => {
     const reviews = performanceReviews[employee.id];
     const managerReview = reviews?.manager;
     const selfReview = reviews?.self;

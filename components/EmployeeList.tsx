@@ -40,12 +40,14 @@ export default function EmployeeList({
   const [selected360Employee, setSelected360Employee] = useState<Employee | null>(null);
   const [is360ModalOpen, setIs360ModalOpen] = useState(false);
 
-  const filteredEmployees = employees.filter(employee =>
-    employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.department?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEmployees = employees
+    .filter(employee =>
+      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.department?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const handleExport = async () => {
     try {

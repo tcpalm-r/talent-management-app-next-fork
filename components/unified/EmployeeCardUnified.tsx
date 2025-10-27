@@ -83,14 +83,9 @@ export default function EmployeeCardUnified({
       .slice(0, 2);
   };
 
-  // Get avatar color based on name hash (consistent across all cards)
-  const getAvatarColor = (name: string) => {
-    const colors = [
-      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
-      'bg-indigo-500', 'bg-yellow-500', 'bg-red-500', 'bg-teal-500'
-    ];
-    const hash = name.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-    return colors[hash % colors.length];
+  // BETA: All avatars use Sonance blue (bg-blue-600)
+  const getAvatarColor = (_name: string) => {
+    return 'bg-blue-600';
   };
 
   // Calculate plan progress
