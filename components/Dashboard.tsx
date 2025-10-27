@@ -1678,82 +1678,44 @@ export default function Dashboard({
         </div>
       </header>
 
-      {/* Employee Context Bar - shows pinned employees */}
+      {/* BETA: Disabled stats cards, breadcrumbs, and navigation for minimal UI
       <EmployeeContextBar />
-
-      {/* Breadcrumb Navigation - shows recent actions */}
       <BreadcrumbNav />
 
-      {/* Stats Snapshot */}
       <section className={`${shellClass} grid grid-cols-2 gap-4 py-6 sm:grid-cols-4`}>
         {heroStats.map((stat, index) => {
           const StatIcon = stat.icon;
           const background = index % 2 === 0 ? 'bg-[#f8f5f0]' : 'bg-[#f1f5f9]';
-
           return (
-            <button
-              key={stat.id}
-              type="button"
-              onClick={() => handleHeroMetricClick(stat)}
-              className={`group flex flex-col justify-between rounded-xl border border-slate-200/60 px-4 py-3 text-left text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${background}`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 group-hover:text-slate-700">
-                  {stat.label}
-                </div>
-                <StatIcon className="h-4 w-4 text-slate-400 group-hover:text-slate-500" />
-              </div>
-              <div className="mt-3 text-3xl font-semibold text-slate-900 group-hover:text-slate-950">
-                {stat.displayValue}
-              </div>
-              <div className="mt-2 text-xs text-slate-500 group-hover:text-slate-600">
-                {stat.helper}
-              </div>
+            <button key={stat.id} type="button" onClick={() => handleHeroMetricClick(stat)}>
+              <div>{stat.label}</div>
+              <div>{stat.displayValue}</div>
             </button>
           );
         })}
       </section>
 
-      {/* Navigation - BETA: Simplified to single "Assessments" view */}
-      {!isFirstRun && !checkingFirstRun && (
-        <nav className="border-b border-slate-200 bg-white">
-          <div className={shellClass}>
-            <div className="flex flex-wrap gap-2 py-3">
-              <NavigationTabs
-                tabs={[
-                  {
-                    id: 'assessments',
-                    label: 'Assessments',
-                    icon: ClipboardList,
-                    domId: 'tab-assessments',
-                    tooltip: '360 Feedback, ITP Matrix, and Performance Reviews',
-                  },
-                  /* BETA: Commented out other tabs for initial release
-                  {
-                    id: 'team',
-                    label: 'My Team',
-                    icon: Users,
-                    domId: 'tab-team',
-                    tooltip: 'Track team member profiles and progress',
-                  },
-                  {
-                    id: 'insights',
-                    label: 'Insights',
-                    icon: TrendingUp,
-                    domId: 'tab-insights',
-                    tooltip: 'Analytics, 9-box grid, and talent portfolio',
-                  },
-                  */
-                ]}
-                activeTab={currentView}
-                onTabChange={(tabId) => changeView(tabId as View)}
-                variant="pills"
-                className="flex-wrap"
-              />
-            </div>
+      <nav className="border-b border-slate-200 bg-white">
+        <div className={shellClass}>
+          <div className="flex flex-wrap gap-2 py-3">
+            <NavigationTabs
+              tabs={[
+                {
+                  id: 'assessments',
+                  label: 'Assessments',
+                  icon: ClipboardList,
+                  domId: 'tab-assessments',
+                  tooltip: '360 Feedback, ITP Matrix, and Performance Reviews',
+                },
+              ]}
+              activeTab={currentView}
+              onTabChange={(tabId) => changeView(tabId as View)}
+              variant="pills"
+              className="flex-wrap"
+            />
           </div>
-        </nav>
-      )}
+        </div>
+      </nav>
       */}
 
       {/* BETA: Main Content - Simple Employee Directory */}
