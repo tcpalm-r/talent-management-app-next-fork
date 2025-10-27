@@ -1784,51 +1784,7 @@ export default function Dashboard({
               />
             )}
 
-            {/* BETA: All other views commented out for minimal UI
-            {currentView === 'welcome' && (
-              <ExecutiveWelcomeWizard
-                employees={employees}
-                departments={departments}
-                currentUserName={userProfile.full_name || userProfile.email || 'there'}
-                onLaunch360s={(selectedEmployees) => {
-                  setSelectedEmployeesFor360(selectedEmployees);
-                  setIs360WizardOpen(true);
-                }}
-                onSkip={() => {
-                  setIsFirstRun(false);
-                  changeView('assessments');
-                }}
-              />
-            )}
-
-            {currentView === 'team' && (
-              <TeamProgressDashboard
-                employees={employees}
-                departments={departments}
-                organizationId={organization.id}
-                employeePlans={employeePlans}
-                performanceReviews={performanceReviews}
-                onOpenReviewModal={(employee) => {
-                  setDraftTargetEmployee(employee);
-                  setIsAIDraftModalOpen(true);
-                }}
-                onOpenPlanModal={(employee) => {
-                  setPlanTargetEmployee(employee);
-                  setIsPlanModalOpen(true);
-                }}
-                onOpen360Modal={(employee) => {
-                  setSelectedEmployeesFor360([employee]);
-                  setIs360WizardOpen(true);
-                }}
-                onOpenDetailModal={(employee) => {
-                  setDetailModalEmployee(employee);
-                  setIsDetailModalOpen(true);
-                }}
-              />
-            )}
-            */}
-
-            {/* BETA: Main Assessments View - 360 Feedback, ITP Matrix, Performance Reviews */}
+            {/* BETA: Old assessments view disabled - using new dashboard/directory structure
             {currentView === 'assessments' && (
               <div className={`${shellClass} space-y-6`}>
                 <NavigationTabs
