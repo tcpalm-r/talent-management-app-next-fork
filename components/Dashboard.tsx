@@ -1775,31 +1775,16 @@ export default function Dashboard({
 
             <PeopleDashboard
               employees={employees}
+              departments={departments}
               employeePlans={employeePlans}
-              selectedDepartments={selectedDepartments}
-              onEmployeeClick={(employee) => {
-                setDetailModalEmployee(employee);
-                setIsDetailModalOpen(true);
-              }}
-              onAssess={(employee) => {
-                setDetailModalEmployee(employee);
-                setIsDetailModalOpen(true);
-              }}
-              onReassess={(employee) => {
-                setDetailModalEmployee(employee);
-                setIsDetailModalOpen(true);
-              }}
+              onEmployeeUpdate={loadEmployees}
+              userRole={userProfile.role}
+              onPlansUpdate={setEmployeePlans}
+              currentUserName={userProfile.full_name || userProfile.email || 'User'}
               performanceReviews={performanceReviews}
-              focusedEmployees={focusedEmployees}
-              onTogglePin={(employeeId) => {
-                if (focusedEmployees.some(e => e.id === employeeId)) {
-                  unpinEmployee(employeeId);
-                } else {
-                  const employee = employees.find(e => e.id === employeeId);
-                  if (employee) pinEmployee(employee);
-                }
-              }}
-              compareMode={compareMode}
+              onReviewSave={handleReviewSave}
+              organizationId={organization.id}
+              activeDepartmentIds={selectedDepartments}
             />
 
             {/* BETA: All other views commented out for minimal UI
