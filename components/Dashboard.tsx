@@ -7,7 +7,7 @@ import { useQuickAction } from '../context/QuickActionContext';
 import { useEmployeeFocus } from '../context/EmployeeFocusContext';
 import UnifiedAICoach from './UnifiedAICoach';
 import { supabase } from '../lib/supabase';
-import type { User, Organization, Employee, Department, EmployeePlan, Performance, Potential } from '../types';
+import type { User, Organization, Employee, Department, EmployeePlan, Performance, Potential, UserRole } from '../types';
 import NineBoxGrid from './NineBoxGrid';
 import DepartmentSelector from './DepartmentSelector';
 import ReviewParserModal from './ReviewParserModal';
@@ -82,6 +82,10 @@ export default function Dashboard({
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isFirstRun, setIsFirstRun] = useState<boolean>(false); // BETA: Disabled welcome wizard
   const [checkingFirstRun, setCheckingFirstRun] = useState(false); // BETA: Disabled welcome wizard
+
+  // DEV: Role switcher for testing different user roles
+  const [roleOverride, setRoleOverride] = useState<UserRole | null>(null);
+  const effectiveUserProfile = roleOverride ? { ...userProfile, role: roleOverride } : userProfile;
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1731,7 +1735,61 @@ export default function Dashboard({
           <div className={`${shellClass}`}>
             {/* BETA: Main Navigation - Dashboard and Directory */}
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">Sonance 360 Review and Self Assessment</h1>
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-2xl font-bold text-gray-900">Sonance 360 Review and Self Assessment</h1>
+
+                {/* DEV: Role Switcher for testing */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 font-medium">Test as:</span>
+                    <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                      <button
+                        onClick={() => setRoleOverride('org_admin')}
+                        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                          effectiveUserProfile.role === 'org_admin'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-700 hover:bg-gray-200'
+                        }`}
+                        title="Organization Admin - full access"
+                      >
+                        Admin
+                      </button>
+                      <button
+                        onClick={() => setRoleOverride('department_manager')}
+                        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                          effectiveUserProfile.role === 'department_manager'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-700 hover:bg-gray-200'
+                        }`}
+                        title="Department Manager - manage team"
+                      >
+                        Leader
+                      </button>
+                      <button
+                        onClick={() => setRoleOverride('viewer')}
+                        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                          effectiveUserProfile.role === 'viewer'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-700 hover:bg-gray-200'
+                        }`}
+                        title="Viewer - read-only access"
+                      >
+                        User
+                      </button>
+                      {roleOverride && (
+                        <button
+                          onClick={() => setRoleOverride(null)}
+                          className="px-2 py-1 text-xs text-red-600 hover:text-red-700 font-medium"
+                          title="Reset to actual role"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-1 border-b border-gray-200">
                 <button
                   onClick={() => setCurrentView('dashboard')}
@@ -1773,7 +1831,7 @@ export default function Dashboard({
                 departments={departments}
                 employeePlans={employeePlans}
                 onEmployeeUpdate={loadEmployees}
-                userRole={userProfile.role}
+                userRole={effectiveUserProfile.role}
                 onPlansUpdate={setEmployeePlans}
                 currentUserName={userProfile.full_name || userProfile.email || 'User'}
                 performanceReviews={performanceReviews}
@@ -2174,7 +2232,7 @@ export default function Dashboard({
                     employees={peopleGridEmployees}
                     departments={departments}
                     onEmployeeUpdate={loadEmployees}
-                    userRole={userProfile.role}
+                    userRole={effectiveUserProfile.role}
                     selectedDepartments={selectedDepartments}
                     initialPlans={employeePlans}
                     onPlansUpdate={setEmployeePlans}
@@ -2189,7 +2247,7 @@ export default function Dashboard({
                   employees={peopleViewEmployees}
                   departments={scopedDepartments}
                   onEmployeeUpdate={loadEmployees}
-                  userRole={userProfile.role}
+                  userRole={effectiveUserProfile.role}
                   employeePlans={employeePlans}
                   onPlansUpdate={setEmployeePlans}
                   currentUserName={userProfile.full_name || userProfile.email}
