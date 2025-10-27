@@ -46,7 +46,7 @@ export default function PeopleDashboard({
 
   // BETA: Core assessment tabs - 4 main views
   const tabs = [
-    { id: 'all', label: 'All Employees', icon: Users, tooltip: 'View all employee cards' },
+    { id: 'all', label: 'Directory', icon: Users, tooltip: 'View all employee cards' },
     { id: 'team-player', label: 'Ideal Team Player', icon: Award, tooltip: 'View Ideal Team Player assessments' },
     { id: 'feedback360', label: '360 Feedback', icon: Users, tooltip: 'Anonymous 360-degree feedback from peers, managers, and reports' },
     { id: 'performance-review', label: 'Performance Reviews', icon: ClipboardList, tooltip: 'Manager and self performance reviews' },
