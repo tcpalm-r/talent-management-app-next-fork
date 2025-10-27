@@ -1815,7 +1815,7 @@ export default function Dashboard({
               <div className={`${shellClass} space-y-6`}>
                 <NavigationTabs
                   tabs={[
-                    { id: 'feedback360', label: '360 Feedback', icon: UsersIcon, tooltip: 'Anonymous 360-degree feedback from peers, managers, and reports' },
+                    { id: 'feedback360', label: '360 Feedback', icon: Users, tooltip: 'Anonymous 360-degree feedback from peers, managers, and reports' },
                     { id: 'itp-matrix', label: 'ITP Matrix', icon: Award, tooltip: 'Ideal Team Player self-assessment matrix' },
                     { id: 'performance-review', label: 'Performance Reviews', icon: ClipboardList, tooltip: 'Manager and self performance reviews' },
                     /* BETA: Commented out for initial release
