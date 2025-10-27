@@ -261,7 +261,7 @@ export default function SurveyCompletionPage() {
           {/* Instructions */}
           <div className="bg-blue-50 border-b border-blue-200 px-8 py-4">
             <p className="text-sm text-blue-900">
-              <strong>Instructions:</strong> Please rate each question on a scale of 1-5 and provide additional comments if you'd like. Your responses are confidential and will be aggregated with other feedback.
+              <strong>Instructions:</strong> Please rate each question on a scale of 1-5 and provide additional comments if you&apos;d like. Your responses are confidential and will be aggregated with other feedback.
             </p>
           </div>
 

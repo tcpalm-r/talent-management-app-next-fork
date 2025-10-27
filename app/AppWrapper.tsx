@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useUser } from '@auth0/nextjs-auth0/client';
 import { supabase } from '@/lib/supabase';
 import type { User as AppUser, Organization } from '@/types';
 import Dashboard from '@/components/Dashboard';
@@ -9,10 +10,14 @@ import { TalentAppProvider } from '@/context/TalentAppContext';
 // Fixed organization ID (no auth needed)
 const FIXED_ORG_ID = 'f8a8b8c8-d8e8-4f8f-8f8f-8f8f8f8f8f8f';
 
-// Mock user for components that expect one
-const mockUser = {
-  id: 'mock-user-123',
+// Check if auth is disabled (for local development)
+const AUTH_DISABLED = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
+
+// Mock user for development when auth is disabled
+const mockAuth0User = {
+  sub: 'mock-user-123',
   email: 'admin@test.com',
+  name: 'Admin User',
   user_metadata: { full_name: 'Admin User' }
 } as any;
 
@@ -25,7 +30,14 @@ const mockUserProfile: AppUser = {
 } as any;
 
 export default function AppWrapper() {
+  // Use Auth0 only if auth is not disabled
+  const auth0Data = useUser();
+  const { user: auth0User, error: auth0Error, isLoading: auth0Loading } = AUTH_DISABLED
+    ? { user: mockAuth0User, error: null, isLoading: false }
+    : auth0Data;
+
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [userProfile, setUserProfile] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<string>('');
@@ -45,8 +57,46 @@ export default function AppWrapper() {
   }, []);
 
   useEffect(() => {
-    loadOrganization();
-  }, []);
+    if (!auth0Loading) {
+      if (auth0User) {
+        loadUserDataAndOrganization();
+      } else {
+        // If auth is disabled, still load with mock user
+        if (AUTH_DISABLED) {
+          loadUserDataAndOrganization();
+        } else {
+          setLoading(false);
+        }
+      }
+    }
+  }, [auth0User, auth0Loading]);
+
+  const loadUserDataAndOrganization = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Use mock profile if auth is disabled, otherwise map Auth0 user
+      const profile: AppUser = AUTH_DISABLED
+        ? mockUserProfile
+        : {
+            id: auth0User!.sub!,
+            email: auth0User!.email!,
+            full_name: auth0User!.name || auth0User!.email!,
+            role: 'admin', // Default role - you can fetch this from your DB
+            organization_id: FIXED_ORG_ID
+          } as AppUser;
+
+      setUserProfile(profile);
+
+      // Load organization
+      await loadOrganization();
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load user data');
+      setLoading(false);
+    }
+  };
 
   const loadOrganization = async () => {
     try {
@@ -80,7 +130,8 @@ export default function AppWrapper() {
     }
   };
 
-  if (loading) {
+  // Show loading while Auth0 is initializing
+  if (auth0Loading || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Header Skeleton */}
@@ -116,6 +167,43 @@ export default function AppWrapper() {
             ))}
           </div>
         </main>
+      </div>
+    );
+  }
+
+  // Handle Auth0 errors (only if auth is not disabled)
+  if (auth0Error && !AUTH_DISABLED) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 max-w-lg w-full">
+          <div className="text-red-500 text-center mb-6">
+            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold text-center mb-3 text-gray-900">Authentication Error</h2>
+          <p className="text-sm text-gray-600 text-center mb-6">{auth0Error.message}</p>
+          <div className="flex justify-center">
+            <a href="/api/auth/login" className="btn-primary">
+              Try Again
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Require authentication (only if auth is not disabled)
+  if (!auth0User && !AUTH_DISABLED) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
+          <h2 className="text-lg font-semibold mb-2 text-gray-900">Authentication Required</h2>
+          <p className="text-sm text-gray-600 mb-6">Please sign in to access Sonance Talent Management.</p>
+          <a href="/api/auth/login" className="btn-primary">
+            Sign In
+          </a>
+        </div>
       </div>
     );
   }
@@ -183,8 +271,8 @@ export default function AppWrapper() {
     >
       <div className="min-h-screen bg-gray-50">
         <Dashboard
-          user={mockUser}
-          userProfile={mockUserProfile}
+          user={auth0User}
+          userProfile={userProfile!}
           organization={organization}
           onViewChange={setCurrentView}
           onDepartmentsChange={setSelectedDepartments}

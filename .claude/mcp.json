@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "supabase-talent-management": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-supabase",
+        "ynycbfyzbavbgxvniylt"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "your_token_here"
+      }
+    }
+  }
+}

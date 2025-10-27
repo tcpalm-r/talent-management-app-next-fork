@@ -1,0 +1,275 @@
+/**
+ * Authentication - Supabase Integration
+ *
+ * Synchronizes authenticated users with Supabase user_profiles table.
+ * Creates or updates user profiles based on AI Intranet authentication.
+ */
+
+import { supabaseAdmin } from './supabase-admin';
+import type { SessionUser, UserProfile } from './schema';
+
+// ============================================================================
+// USER PROFILE SYNCHRONIZATION
+// ============================================================================
+
+/**
+ * Sync authenticated user to Supabase user_profiles table
+ * Creates profile if it doesn't exist, updates if it does
+ */
+export async function syncUserProfile(sessionUser: SessionUser): Promise<UserProfile | null> {
+  try {
+    // Check if user exists
+    const { data: existingUser, error: fetchError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('*')
+      .eq('email', sessionUser.email)
+      .single();
+
+    const now = new Date().toISOString();
+
+    if (existingUser) {
+      // Update existing user
+      const { data: updatedUser, error: updateError } = await supabaseAdmin
+        .from('user_profiles')
+        .update({
+          full_name: sessionUser.full_name,
+          app_role: sessionUser.app_role,
+          app_permissions: sessionUser.app_permissions || {},
+          department: sessionUser.department || null,
+          title: sessionUser.title || null,
+          has_logged_in: true,
+          last_login_at: now,
+          updated_at: now,
+        })
+        .eq('email', sessionUser.email)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating user profile:', updateError);
+        return null;
+      }
+
+      return updatedUser as UserProfile;
+    } else {
+      // Create new user
+      const { data: newUser, error: createError } = await supabaseAdmin
+        .from('user_profiles')
+        .insert({
+          id: sessionUser.id,
+          email: sessionUser.email,
+          full_name: sessionUser.full_name,
+          app_role: sessionUser.app_role || 'user',
+          app_permissions: sessionUser.app_permissions || {},
+          app_access: true,
+          department: sessionUser.department || null,
+          title: sessionUser.title || null,
+          has_logged_in: true,
+          first_login_at: now,
+          last_login_at: now,
+          is_active: true,
+          created_at: now,
+          updated_at: now,
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Error creating user profile:', createError);
+        return null;
+      }
+
+      return newUser as UserProfile;
+    }
+  } catch (error) {
+    console.error('Error syncing user profile:', error);
+    return null;
+  }
+}
+
+/**
+ * Get user profile from Supabase by email
+ */
+export async function getUserProfileByEmail(email: string): Promise<UserProfile | null> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('user_profiles')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows returned
+        return null;
+      }
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+
+    return data as UserProfile;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return null;
+  }
+}
+
+/**
+ * Get user profile from Supabase by ID
+ */
+export async function getUserProfileById(id: string): Promise<UserProfile | null> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('user_profiles')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+
+    return data as UserProfile;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return null;
+  }
+}
+
+/**
+ * Convert UserProfile to SessionUser
+ */
+export function toSessionUser(profile: UserProfile): SessionUser {
+  return {
+    id: profile.id,
+    email: profile.email,
+    full_name: profile.full_name,
+    app_role: profile.app_role || 'user',
+    app_permissions: (profile.app_permissions as Record<string, any>) || {},
+    department: profile.department,
+    title: profile.title,
+  };
+}
+
+/**
+ * Check if user has app access
+ */
+export async function hasAppAccess(email: string): Promise<boolean> {
+  try {
+    const profile = await getUserProfileByEmail(email);
+    return profile?.app_access === true && profile?.is_active === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Update user's last login timestamp
+ */
+export async function updateLastLogin(email: string): Promise<void> {
+  try {
+    const now = new Date().toISOString();
+    await supabaseAdmin
+      .from('user_profiles')
+      .update({
+        last_login_at: now,
+        has_logged_in: true,
+      })
+      .eq('email', email);
+  } catch (error) {
+    console.error('Error updating last login:', error);
+  }
+}
+
+// ============================================================================
+// USER PERMISSIONS
+// ============================================================================
+
+/**
+ * Check if user has specific permission
+ */
+export async function checkPermission(
+  email: string,
+  permission: string
+): Promise<boolean> {
+  try {
+    const profile = await getUserProfileByEmail(email);
+    if (!profile) return false;
+
+    // Admins have all permissions
+    if (profile.app_role === 'admin') return true;
+
+    // Check specific permission
+    const permissions = profile.app_permissions as Record<string, any>;
+    return permissions?.[permission] === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if user has any of the specified roles
+ */
+export async function checkRole(email: string, ...roles: string[]): Promise<boolean> {
+  try {
+    const profile = await getUserProfileByEmail(email);
+    if (!profile) return false;
+
+    return roles.includes(profile.app_role || 'user');
+  } catch {
+    return false;
+  }
+}
+
+// ============================================================================
+// BULK OPERATIONS
+// ============================================================================
+
+/**
+ * Sync multiple users at once (for batch imports)
+ */
+export async function syncMultipleUsers(
+  users: SessionUser[]
+): Promise<{ success: number; failed: number }> {
+  let success = 0;
+  let failed = 0;
+
+  for (const user of users) {
+    const result = await syncUserProfile(user);
+    if (result) {
+      success++;
+    } else {
+      failed++;
+    }
+  }
+
+  return { success, failed };
+}
+
+/**
+ * Get all active users from Supabase
+ */
+export async function getAllActiveUsers(): Promise<UserProfile[]> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('user_profiles')
+      .select('*')
+      .eq('is_active', true)
+      .eq('app_access', true)
+      .order('full_name');
+
+    if (error) {
+      console.error('Error fetching active users:', error);
+      return [];
+    }
+
+    return (data as UserProfile[]) || [];
+  } catch (error) {
+    console.error('Error fetching active users:', error);
+    return [];
+  }
+}
