@@ -580,7 +580,7 @@ export default function EmployeeDetailModal({
             </button>
           </div>
 
-          {/* AI Coach Micro Panel - Contextual Suggestions */}
+          {/* BETA: AI Coach Micro Panel disabled for beta
           <div className="mt-4">
             <AICoachMicroPanel
               context="employee-detail-modal"
@@ -602,6 +602,7 @@ export default function EmployeeDetailModal({
               compact={true}
             />
           </div>
+          */}
         </div>
 
         {/* Simplified Horizontal Tabs */}

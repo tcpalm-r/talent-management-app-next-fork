@@ -320,12 +320,6 @@ export default function IdealTeamPlayerDashboard({
                 <p className="text-xs">Has common sense about people, understands group dynamics</p>
               </div>
             </div>
-            <div className="mt-4 flex items-center space-x-4 text-xs">
-              <span className="font-semibold">Click any employee card to:</span>
-              <span>• View detailed scores</span>
-              <span>• Complete ITP assessment</span>
-              <span>• Access performance reviews</span>
-            </div>
           </div>
         </div>
       </div>
