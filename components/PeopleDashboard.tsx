@@ -20,6 +20,7 @@ interface PeopleDashboardProps {
   onReviewSave: (review: PerformanceReview) => void;
   organizationId: string;
   activeDepartmentIds?: string[];
+  simpleMode?: boolean; // BETA: When true, hide tabs and show only employee list
 }
 
 // BETA: Core assessment views - All Employees, Ideal Team Player, 360 Feedback, Performance Reviews
@@ -37,12 +38,34 @@ export default function PeopleDashboard({
   onReviewSave,
   organizationId,
   activeDepartmentIds = [],
+  simpleMode = false,
 }: PeopleDashboardProps) {
   const [activeView, setActiveView] = useState<PeopleView>('all');
 
   const scopedEmployees = activeDepartmentIds.length > 0
     ? employees.filter(emp => emp.department_id && activeDepartmentIds.includes(emp.department_id))
     : employees;
+
+  // BETA: Simple mode - just show employee list without tabs
+  if (simpleMode) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+          <EmployeeList
+            employees={scopedEmployees}
+            departments={departments}
+            onEmployeeUpdate={onEmployeeUpdate}
+            userRole={userRole}
+            employeePlans={employeePlans}
+            onPlansUpdate={onPlansUpdate}
+            organizationId={organizationId}
+            performanceReviews={performanceReviews}
+            onReviewSave={onReviewSave}
+          />
+        </div>
+      </div>
+    );
+  }
 
   // BETA: Core assessment tabs - 4 main views
   const tabs = [

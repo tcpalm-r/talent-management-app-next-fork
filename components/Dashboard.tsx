@@ -49,8 +49,8 @@ interface DashboardProps {
   onRegisterNavigate?: (fn: ((view: string) => void) | null) => void;
 }
 
-// BETA VERSION: Simplified to show only 3 core assessment features
-type View = 'assessments'; // Simplified from: 'welcome' | 'team' | 'reviews' | 'insights' | 'settings'
+// BETA VERSION: Simplified to two main tabs: Dashboard and Directory
+type View = 'dashboard' | 'directory'; // Simplified from: 'welcome' | 'team' | 'reviews' | 'insights' | 'settings'
 type PeopleFilter = 'all' | 'assessed' | 'watchlist';
 type ProgramHubView = 'feedback360' | 'itp-matrix' | 'performance-review'; // Simplified from: 'development' | 'onboarding' | 'feedback360' | 'calibration' | 'workflow'
 type CommandFocus = 'overview' | 'attention';
@@ -78,8 +78,8 @@ export default function Dashboard({
   const shellClass = 'mx-auto w-full px-6 lg:px-8 xl:px-12 max-w-screen-2xl 2xl:px-16 2xl:max-w-[1700px]';
   const evaluateShellClass = 'mx-auto w-full px-6 lg:px-8 xl:px-12 max-w-screen-2xl 2xl:px-16 2xl:max-w-[1900px]';
 
-  // BETA: Start directly on assessments view, skip welcome wizard
-  const [currentView, setCurrentView] = useState<View>('assessments');
+  // BETA: Start on dashboard view
+  const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isFirstRun, setIsFirstRun] = useState<boolean>(false); // BETA: Disabled welcome wizard
   const [checkingFirstRun, setCheckingFirstRun] = useState(false); // BETA: Disabled welcome wizard
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -1729,24 +1729,60 @@ export default function Dashboard({
 
         {!loading && (
           <div className={`${shellClass}`}>
-            {/* BETA: Simple Employee Directory */}
+            {/* BETA: Main Navigation - Dashboard and Directory */}
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">Sonance 360 Review and Self Assessment</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">Sonance 360 Review and Self Assessment</h1>
+              <div className="flex gap-1 border-b border-gray-200">
+                <button
+                  onClick={() => setCurrentView('dashboard')}
+                  className={`px-4 py-2 font-medium text-sm transition-colors ${
+                    currentView === 'dashboard'
+                      ? 'text-blue-600 border-b-2 border-blue-600'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => setCurrentView('directory')}
+                  className={`px-4 py-2 font-medium text-sm transition-colors ${
+                    currentView === 'directory'
+                      ? 'text-blue-600 border-b-2 border-blue-600'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Directory
+                </button>
+              </div>
             </div>
 
-            <PeopleDashboard
-              employees={employees}
-              departments={departments}
-              employeePlans={employeePlans}
-              onEmployeeUpdate={loadEmployees}
-              userRole={userProfile.role}
-              onPlansUpdate={setEmployeePlans}
-              currentUserName={userProfile.full_name || userProfile.email || 'User'}
-              performanceReviews={performanceReviews}
-              onReviewSave={handleReviewSave}
-              organizationId={organization.id}
-              activeDepartmentIds={selectedDepartments}
-            />
+            {/* Dashboard View */}
+            {currentView === 'dashboard' && (
+              <Feedback360Dashboard
+                employees={employees}
+                departments={departments}
+                organizationId={organization.id}
+                currentUserName={userProfile.full_name || userProfile.email || 'User'}
+              />
+            )}
+
+            {/* Directory View */}
+            {currentView === 'directory' && (
+              <PeopleDashboard
+                employees={employees}
+                departments={departments}
+                employeePlans={employeePlans}
+                onEmployeeUpdate={loadEmployees}
+                userRole={userProfile.role}
+                onPlansUpdate={setEmployeePlans}
+                currentUserName={userProfile.full_name || userProfile.email || 'User'}
+                performanceReviews={performanceReviews}
+                onReviewSave={handleReviewSave}
+                organizationId={organization.id}
+                activeDepartmentIds={selectedDepartments}
+                simpleMode={true}
+              />
+            )}
 
             {/* BETA: All other views commented out for minimal UI
             {currentView === 'welcome' && (
