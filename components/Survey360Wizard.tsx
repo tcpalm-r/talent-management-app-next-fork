@@ -30,6 +30,7 @@ interface Survey360WizardProps {
   preselectedEmployees?: Employee[]; // Batch mode
   onSurveyCreated: () => void;
   employees: Employee[];
+  currentUser?: Employee; // Current logged-in user for tracking who created the survey
 }
 
 type WizardStep = 'who' | 'competencies' | 'raters' | 'timeline' | 'privacy' | 'preview';
@@ -72,6 +73,7 @@ export default function Survey360Wizard({
   preselectedEmployees,
   onSurveyCreated,
   employees,
+  currentUser,
 }: Survey360WizardProps) {
   const { notify } = useToast();
   const isBatchMode = !!preselectedEmployees && preselectedEmployees.length > 0;
@@ -84,9 +86,41 @@ export default function Survey360Wizard({
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [surveyTitle, setSurveyTitle] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [raterSearch, setRaterSearch] = useState('');
+  const [showRaterPicker, setShowRaterPicker] = useState<number | null>(null);
 
   const steps: WizardStep[] = ['who', 'competencies', 'raters', 'timeline', 'privacy', 'preview'];
   const currentStepIndex = steps.indexOf(currentStep);
+
+  // Filter employees based on search
+  const filteredEmployees = employees.filter(emp =>
+    emp.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+    emp.title?.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+    emp.email?.toLowerCase().includes(employeeSearch.toLowerCase())
+  );
+
+  // Filter employees for rater selection
+  const filteredRaterEmployees = employees.filter(emp => {
+    // Don't show the selected employee as a rater option
+    if (selectedEmployee && emp.id === selectedEmployee.id) return false;
+    // Apply search filter
+    if (raterSearch) {
+      return emp.name.toLowerCase().includes(raterSearch.toLowerCase()) ||
+             emp.title?.toLowerCase().includes(raterSearch.toLowerCase()) ||
+             emp.email?.toLowerCase().includes(raterSearch.toLowerCase());
+    }
+    return true;
+  });
+
+  const selectEmployeeAsRater = (employee: Employee, index: number) => {
+    const updated = [...raters];
+    updated[index].name = employee.name;
+    updated[index].email = employee.email || '';
+    setRaters(updated);
+    setShowRaterPicker(null);
+    setRaterSearch('');
+  };
 
   const canProceed = () => {
     switch (currentStep) {
@@ -162,7 +196,7 @@ export default function Survey360Wizard({
               survey_name: surveyTitle || `360° Feedback - ${employee.name}`,
               status: 'draft',
               due_date: dueDate,
-              created_by: 'current-user',
+              created_by: currentUser?.id || currentUser?.email || 'unknown',
             })
             .select()
             .single();
@@ -266,6 +300,12 @@ export default function Survey360Wizard({
 
               // Wait for all emails to be sent (don't block on failures)
               await Promise.allSettled(emailPromises);
+
+              // Update survey status to 'in_progress' after emails are sent
+              await supabase
+                .from('feedback_360_surveys')
+                .update({ status: 'in_progress' })
+                .eq('id', survey.id);
             }
           }
 
@@ -312,8 +352,8 @@ export default function Survey360Wizard({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/50 flex items-center justify-center p-4">
+      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="flex items-center gap-3">
@@ -372,8 +412,8 @@ export default function Survey360Wizard({
                 </p>
               </div>
 
-              {/* Templates */}
-              <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+              {/* Templates - Disabled for now */}
+              {/* <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
                 <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
                   Start with a Template
@@ -394,24 +434,42 @@ export default function Survey360Wizard({
                     </button>
                   ))}
                 </div>
+              </div> */}
+
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={employeeSearch}
+                  onChange={(e) => setEmployeeSearch(e.target.value)}
+                  placeholder="Search by name, title, or email..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
 
               {/* Employee Selection */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-                {employees.map(emp => (
-                  <button
-                    key={emp.id}
-                    onClick={() => setSelectedEmployee(emp)}
-                    className={`text-left p-4 rounded-lg border-2 transition-all ${
-                      selectedEmployee?.id === emp.id
-                        ? 'border-blue-500 bg-blue-50 shadow-md'
-                        : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                    }`}
-                  >
-                    <div className="font-semibold text-gray-900">{emp.name}</div>
-                    {emp.title && <div className="text-sm text-gray-600">{emp.title}</div>}
-                  </button>
-                ))}
+                {filteredEmployees.length > 0 ? (
+                  filteredEmployees.map(emp => (
+                    <button
+                      key={emp.id}
+                      onClick={() => setSelectedEmployee(emp)}
+                      className={`text-left p-4 rounded-lg border-2 transition-all ${
+                        selectedEmployee?.id === emp.id
+                          ? 'border-blue-500 bg-blue-50 shadow-md'
+                          : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                      }`}
+                    >
+                      <div className="font-semibold text-gray-900">{emp.name}</div>
+                      {emp.title && <div className="text-sm text-gray-600">{emp.title}</div>}
+                    </button>
+                  ))
+                ) : (
+                  <div className="col-span-2 text-center py-8 text-gray-500">
+                    No employees found matching "{employeeSearch}"
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -459,57 +517,137 @@ export default function Survey360Wizard({
           {currentStep === 'raters' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Raters</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  At least 1 rater required. Diverse perspectives provide better insights.
-                </p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">Add Raters</h3>
               </div>
 
               <div className="space-y-3">
                 {raters.map((rater, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
-                    <select
-                      value={rater.relationship}
-                      onChange={(e) => {
-                        const updated = [...raters];
-                        updated[index].relationship = e.target.value as ParticipantRelationship;
-                        setRaters(updated);
-                      }}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    >
-                      <option value="manager">Manager</option>
-                      <option value="peer">Peer</option>
-                      <option value="direct_report">Direct Report</option>
-                      <option value="cross_functional">Cross-Functional</option>
-                    </select>
-                    <input
-                      type="text"
-                      value={rater.name}
-                      onChange={(e) => {
-                        const updated = [...raters];
-                        updated[index].name = e.target.value;
-                        setRaters(updated);
-                      }}
-                      placeholder="Name"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                    <input
-                      type="email"
-                      value={rater.email}
-                      onChange={(e) => {
-                        const updated = [...raters];
-                        updated[index].email = e.target.value;
-                        setRaters(updated);
-                      }}
-                      placeholder="Email"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                    <button
-                      onClick={() => setRaters(raters.filter((_, i) => i !== index))}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                  <div key={index} className="relative">
+                    <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+                      <select
+                        value={rater.relationship}
+                        onChange={(e) => {
+                          const updated = [...raters];
+                          updated[index].relationship = e.target.value as ParticipantRelationship;
+                          setRaters(updated);
+                        }}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      >
+                        <option value="manager">Manager</option>
+                        <option value="peer">Peer</option>
+                        <option value="direct_report">Direct Report</option>
+                        <option value="cross_functional">Cross-Functional</option>
+                      </select>
+
+                      {/* Employee Selector Button or Input Fields */}
+                      {!rater.name && !rater.email ? (
+                        <div className="flex-1 relative">
+                          <div className="relative">
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              value={raterSearch}
+                              onChange={(e) => setRaterSearch(e.target.value)}
+                              onFocus={() => setShowRaterPicker(index)}
+                              placeholder="Search employees..."
+                              className="w-full pl-9 pr-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 flex items-center gap-2">
+                          <div className="flex-1 flex gap-2">
+                            <input
+                              type="text"
+                              value={rater.name}
+                              onChange={(e) => {
+                                const updated = [...raters];
+                                updated[index].name = e.target.value;
+                                setRaters(updated);
+                              }}
+                              placeholder="Name"
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                            <input
+                              type="email"
+                              value={rater.email}
+                              onChange={(e) => {
+                                const updated = [...raters];
+                                updated[index].email = e.target.value;
+                                setRaters(updated);
+                              }}
+                              placeholder="Email"
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            />
+                          </div>
+                          <button
+                            onClick={() => {
+                              setShowRaterPicker(index);
+                              setRaterSearch('');
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                            title="Select different employee"
+                          >
+                            <User className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => setRaters(raters.filter((_, i) => i !== index))}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        title="Remove rater"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Employee Picker Dropdown */}
+                    {showRaterPicker === index && (
+                      <>
+                        {/* Backdrop to close picker */}
+                        <div
+                          className="fixed inset-0 z-[9]"
+                          onClick={() => {
+                            setShowRaterPicker(null);
+                            setRaterSearch('');
+                          }}
+                        />
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-[60vh] overflow-y-auto">
+                          <div className="p-2">
+                            {filteredRaterEmployees.length > 0 ? (
+                              filteredRaterEmployees.slice(0, 20).map(emp => (
+                                <button
+                                  key={emp.id}
+                                  onClick={() => selectEmployeeAsRater(emp, index)}
+                                  className="w-full text-left p-3 hover:bg-blue-50 rounded-lg transition-colors"
+                                >
+                                  <div className="font-medium text-gray-900">{emp.name}</div>
+                                  <div className="text-sm text-gray-600">
+                                    {emp.title && <span>{emp.title}</span>}
+                                    {emp.title && emp.email && <span> • </span>}
+                                    {emp.email && <span>{emp.email}</span>}
+                                  </div>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="p-4 text-center text-sm text-gray-500">
+                                No employees found
+                              </div>
+                            )}
+                            <button
+                              onClick={() => {
+                                setShowRaterPicker(null);
+                                setRaterSearch('');
+                              }}
+                              className="w-full mt-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                              Enter manually instead
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>

@@ -13,13 +13,9 @@ import { analyzePerformanceReview } from '../lib/reviewAnalyzer';
 import { calculateActionItemStatus, calculatePlanProgress } from '../lib/actionItemGenerator';
 import ManagerNotes from './ManagerNotes';
 import OneOnOneModal from './OneOnOneModal';
-import PIPModal from './PIPModal';
-import SuccessionPlanningModal from './SuccessionPlanningModal';
-import EnhancedEmployeePlanModal from './EnhancedEmployeePlanModal';
 import RetentionPlanModal from './RetentionPlanModal';
-import PerformanceReviewModal, { type PerformanceReview } from './PerformanceReviewModal';
+import type { PerformanceReview } from '../lib/schema';
 import Survey360Wizard from './Survey360Wizard';
-import ReviewParserModal from './ReviewParserModal';
 import CriticalRoleSetupModal from './CriticalRoleSetupModal';
 import { useToast, EmployeeNameLink } from './unified';
 import JobDescriptionViewer from './JobDescriptionViewer';
@@ -109,17 +105,11 @@ export default function EmployeeDetailModal({
   const [managerNotes, setManagerNotes] = useState<ManagerNote[]>(employee.manager_notes || []);
   const [isOneOnOneModalOpen, setIsOneOnOneModalOpen] = useState(false);
   const [isEditingJobDescription, setIsEditingJobDescription] = useState(false);
-  const [isPIPModalOpen, setIsPIPModalOpen] = useState(false);
-  const [isSuccessionModalOpen, setIsSuccessionModalOpen] = useState(false);
-  const [isPerformanceReviewModalOpen, setIsPerformanceReviewModalOpen] = useState(false);
-  const [performanceReviewType, setPerformanceReviewType] = useState<'self' | 'manager'>(initialReviewType);
   const [performanceReviews, setPerformanceReviews] = useState<PerformanceReview[]>(() => {
     const record = performanceReviewRecord || {};
     return Object.values(record).filter(Boolean) as PerformanceReview[];
   });
-  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [isRetentionPlanModalOpen, setIsRetentionPlanModalOpen] = useState(false);
-  const [isReviewParserModalOpen, setIsReviewParserModalOpen] = useState(false);
   const [isCriticalRoleSetupOpen, setIsCriticalRoleSetupOpen] = useState(false);
   const [guidedProgress, setGuidedProgress] = useState<Record<string, boolean>>({});
 
@@ -209,8 +199,8 @@ export default function EmployeeDetailModal({
         id: 'create-plan',
         title: 'Personalize and publish the plan',
         description: 'Open the plan builder to customize objectives, owners, and due dates before sharing with the employee.',
-        actionLabel: 'Launch plan builder',
-        onAction: () => setIsPlanModalOpen(true),
+        actionLabel: 'Open plan tab',
+        onAction: () => activatePanel('plan'),
         panel: 'plan',
       });
     }
@@ -226,40 +216,19 @@ export default function EmployeeDetailModal({
         },
         panel: 'one-on-one',
       });
-
-      steps.push({
-        id: 'create-pip',
-        title: 'Document a formal improvement plan',
-        description: 'Capture expectations, milestones, and consequences in the PIP template so everyone understands the path forward.',
-        actionLabel: 'Launch PIP wizard',
-        onAction: () => {
-          setIsPIPModalOpen(true);
-        },
-        panel: 'pip',
-      });
     }
 
     if (potential === 'high') {
       steps.push({
         id: 'launch-360',
         title: 'Kick off a 360° feedback cycle',
-        description: 'Run a quick 360 survey to gather peer feedback that supports growth and succession planning.',
-        actionLabel: 'Start 360 survey',
+        description: 'Run a quick 360° survey to gather peer feedback that supports growth and succession planning.',
+        actionLabel: 'Start 360° survey',
         onAction: () => setIs360ModalOpen(true),
         panel: '360',
       });
     }
 
-    if (performance === 'high' && potential === 'high') {
-      steps.push({
-        id: 'succession',
-        title: 'Update succession pipeline',
-        description: 'Flag this person in the succession workspace and outline stretch assignments that accelerate readiness.',
-        actionLabel: 'Open succession tools',
-        onAction: () => setIsSuccessionModalOpen(true),
-        panel: 'succession',
-      });
-    }
 
     steps.push({
       id: 'log-manager-notes',
@@ -284,21 +253,12 @@ export default function EmployeeDetailModal({
     setCurrentPlan(employeePlan ?? null);
   }, [employeePlan]);
 
-  // Reset and auto-open performance review modal if initialTab is perf-review
+  // Reset when modal opens
   useEffect(() => {
     if (isOpen) {
       activatePanel(initialTab);
-      setPerformanceReviewType(initialReviewType);
-
-      if (initialTab === 'perf-review') {
-        setTimeout(() => {
-          setIsPerformanceReviewModalOpen(true);
-        }, 150);
-      } else {
-        setIsPerformanceReviewModalOpen(false);
-      }
     }
-  }, [initialTab, initialReviewType, isOpen, activatePanel]);
+  }, [initialTab, isOpen, activatePanel]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -856,13 +816,6 @@ export default function EmployeeDetailModal({
                             Designated Critical Role
                           </div>
                           <button
-                            onClick={() => setIsSuccessionModalOpen(true)}
-                            className="w-full text-xs font-semibold text-amber-700 bg-white hover:bg-amber-100 px-3 py-2 rounded-lg border border-amber-300 transition-colors flex items-center justify-center gap-2"
-                          >
-                            <TrendingUp className="h-4 w-4" />
-                            View Succession Plan
-                          </button>
-                          <button
                             onClick={() => {
                               if (onUpdateEmployee) {
                                 onUpdateEmployee({ ...employee, is_critical_role: false, critical_role_id: undefined });
@@ -1010,12 +963,11 @@ export default function EmployeeDetailModal({
                     onClick={() => {
                       setActiveTab('perf-review');
                       setActiveSubPanel('perf-review');
-                      setTimeout(() => setIsPerformanceReviewModalOpen(true), 100);
                     }}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
                   >
                     <PenSquare className="w-4 h-4" />
-                    Create New Review
+                    View Reviews
                   </button>
                 </div>
               </div>
@@ -1356,13 +1308,6 @@ export default function EmployeeDetailModal({
                   )}
 
               <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setIsPlanModalOpen(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 mt-4 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <PenSquare className="w-4 h-4" />
-                  Refresh or Edit Plan
-                </button>
                 {currentPlan?.plan_type === 'retention' && (
                   <button
                     onClick={() => setIsRetentionPlanModalOpen(true)}
@@ -1383,12 +1328,6 @@ export default function EmployeeDetailModal({
               </p>
               <div className="flex gap-3 justify-center">
                 <button
-                  onClick={() => setIsPlanModalOpen(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
-                >
-                  Create Development Plan
-                </button>
-                <button
                   onClick={() => setIsRetentionPlanModalOpen(true)}
                   className="px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-lg hover:from-amber-700 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
                 >
@@ -1406,7 +1345,7 @@ export default function EmployeeDetailModal({
             <div className="space-y-6">
               <div className="text-center py-12">
                 <UsersIcon className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">360-Degree Feedback</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">360° Feedback</h3>
                 <p className="text-sm text-gray-600 mb-6">
                   Gather multi-perspective insights from managers, peers, and direct reports.
                 </p>
@@ -1415,7 +1354,7 @@ export default function EmployeeDetailModal({
                   className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
                 >
                   <UsersIcon className="w-5 h-5 inline mr-2" />
-                  Launch 360 Survey
+                  Launch 360° Survey
                 </button>
               </div>
             </div>
@@ -1444,50 +1383,6 @@ export default function EmployeeDetailModal({
               >
                 <Calendar className="w-5 h-5" />
                 Manage One-on-One Meetings
-              </button>
-            </div>
-          )}
-
-          {/* PIP Tab */}
-          {activeTab === 'pip' && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="text-center mb-6">
-                <AlertTriangle className="w-16 h-16 text-red-600 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  Performance Improvement Plan
-                </h3>
-                <p className="text-gray-600 mb-6 max-w-md">
-                  Manage formal performance improvement plans with 30/60/90-day milestones, check-ins, and progress tracking
-                </p>
-              </div>
-              <button
-                onClick={() => setIsPIPModalOpen(true)}
-                className="px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all flex items-center gap-2"
-              >
-                <AlertTriangle className="w-5 h-5" />
-                Manage PIP
-              </button>
-            </div>
-          )}
-
-          {/* Succession Planning Tab */}
-          {activeTab === 'succession' && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="text-center mb-6">
-                <TrendingUp className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  Succession Planning
-                </h3>
-                <p className="text-gray-600 mb-6 max-w-md">
-                  View succession planning analytics, critical roles, and candidate readiness across your organization
-                </p>
-              </div>
-              <button
-                onClick={() => setIsSuccessionModalOpen(true)}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all flex items-center gap-2"
-              >
-                <TrendingUp className="w-5 h-5" />
-                Open Succession Planning
               </button>
             </div>
           )}
@@ -1612,40 +1507,6 @@ export default function EmployeeDetailModal({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mt-6">
-                  <button
-                    onClick={() => {
-                      setPerformanceReviewType('self');
-                      setIsPerformanceReviewModalOpen(true);
-                    }}
-                    className="group px-6 py-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl hover:from-green-600 hover:to-emerald-700 shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 flex flex-col items-center justify-center space-y-2 border-2 border-green-400"
-                  >
-                    <User className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                    <span className="text-lg">Self-Reflection</span>
-                    <span className="text-xs opacity-90">Complete self-assessment</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setPerformanceReviewType('manager');
-                      setIsPerformanceReviewModalOpen(true);
-                    }}
-                    className="group px-6 py-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-600 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 flex flex-col items-center justify-center space-y-2 border-2 border-blue-400"
-                  >
-                    <UsersIcon className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                    <span className="text-lg">Manager Review</span>
-                    <span className="text-xs opacity-90">Assess team member performance</span>
-                  </button>
-
-                  <button
-                    onClick={() => setIsReviewParserModalOpen(true)}
-                    className="group px-6 py-6 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold rounded-xl hover:from-purple-600 hover:to-pink-700 shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 flex flex-col items-center justify-center space-y-2 border-2 border-purple-400"
-                  >
-                    <Upload className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                    <span className="text-lg">Ingest</span>
-                    <span className="text-xs opacity-90">Import existing review</span>
-                  </button>
-                </div>
 
                 <div className="mt-6 bg-white/80 rounded-lg p-4 border-2 border-indigo-200">
                   <h4 className="text-sm font-bold text-gray-900 mb-2 flex items-center">
@@ -1845,30 +1706,6 @@ export default function EmployeeDetailModal({
         currentUserId="mock-manager-123"
       />
 
-      {/* PIP Modal */}
-      <PIPModal
-        isOpen={isPIPModalOpen}
-        onClose={() => setIsPIPModalOpen(false)}
-        employee={employee}
-        organizationId={employee.organization_id}
-        currentUserName="Current Manager"
-        currentUserId="mock-manager-123"
-        performanceReviews={performanceReviews}
-      />
-
-      <EnhancedEmployeePlanModal
-        isOpen={isPlanModalOpen}
-        onClose={() => setIsPlanModalOpen(false)}
-        employee={employee}
-        department={department}
-        onSave={(plan) => {
-          setCurrentPlan(plan);
-          onSavePlan?.(plan);
-        }}
-        existingPlan={currentPlan ?? undefined}
-        performanceReviews={performanceReviews}
-      />
-
       <RetentionPlanModal
         isOpen={isRetentionPlanModalOpen}
         onClose={() => setIsRetentionPlanModalOpen(false)}
@@ -1888,53 +1725,6 @@ export default function EmployeeDetailModal({
         preselectedEmployee={employee}
         onSurveyCreated={() => setIs360ModalOpen(false)}
         employees={availableEmployees}
-      />
-
-      {/* Succession Planning Modal */}
-      <SuccessionPlanningModal
-        isOpen={isSuccessionModalOpen}
-        onClose={() => setIsSuccessionModalOpen(false)}
-        organizationId={employee.organization_id}
-        currentUserName="Current Manager"
-      />
-
-      {/* Performance Review Modal */}
-      <PerformanceReviewModal
-        isOpen={isPerformanceReviewModalOpen}
-        onClose={() => setIsPerformanceReviewModalOpen(false)}
-        employee={employee}
-        reviewType={performanceReviewType}
-        currentUserName="Current Manager"
-        existingReview={performanceReviews.find(r => r.review_type === performanceReviewType)}
-        onSave={(review) => {
-          setPerformanceReviews(prev => {
-            const next = [...prev];
-            const existingIndex = next.findIndex(r => r.id === review.id);
-            if (existingIndex >= 0) {
-              next[existingIndex] = review;
-            } else {
-              next.push(review);
-            }
-            return next;
-          });
-          onReviewSave?.(review);
-        }}
-      />
-
-      {/* Review Parser Modal - for ingesting existing reviews */}
-      <ReviewParserModal
-        isOpen={isReviewParserModalOpen}
-        onClose={() => setIsReviewParserModalOpen(false)}
-        departments={department ? [department] : []}
-        onEmployeeCreated={() => {
-          notify({
-            title: 'Review ingested',
-            description: 'Parsed reviews will soon improve this view. Manual linking is still required for now.',
-            variant: 'info',
-          });
-          setIsReviewParserModalOpen(false);
-          // TODO: Convert parsed review data to PerformanceReview format and add to performanceReviews
-        }}
       />
 
       {/* Critical Role Setup Modal */}
@@ -1959,8 +1749,6 @@ export default function EmployeeDetailModal({
             variant: 'success',
           });
           setIsCriticalRoleSetupOpen(false);
-          // Optionally open succession planning modal
-          setTimeout(() => setIsSuccessionModalOpen(true), 500);
         }}
       />
     </div>

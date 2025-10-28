@@ -5,7 +5,6 @@ import { MoreVertical, User, MapPin, Mail, FileText, ClipboardList, MessageSquar
 import type { Employee, Department } from '../../types';
 import { PerformanceBadge, PotentialBadge, DepartmentBadge, StatusBadge, ProgressBadge } from './BadgeSystem';
 import { useEmployeeFocus } from '../../context/EmployeeFocusContext';
-import WorkflowProgressWidget from '../WorkflowProgressWidget';
 import EmployeeNameLink from './EmployeeNameLink';
 
 interface EmployeeCardUnifiedProps {
@@ -504,11 +503,6 @@ export default function EmployeeCardUnified({
               </div>
             </div>
           )}
-
-          {/* Workflow Progress - shows overall talent cycle progress */}
-          <div className="mt-3">
-            <WorkflowProgressWidget employeeId={employee.id} variant="compact" />
-          </div>
         </div>
 
         {/* Action buttons - shows for assessed employees */}

@@ -48,7 +48,7 @@ export default function EmployeeModalNavigation({
       icon: ClipboardList,
       items: [
         { id: 'perf-review', label: 'Reviews & ITP', icon: ClipboardList, badge: reviewCount, onClick: () => onItemClick('perf-review') },
-        { id: '360', label: '360 Feedback', icon: UsersIcon, onClick: () => onItemClick('360') },
+        { id: '360', label: '360° Feedback', icon: UsersIcon, onClick: () => onItemClick('360') },
       ],
     },
     {

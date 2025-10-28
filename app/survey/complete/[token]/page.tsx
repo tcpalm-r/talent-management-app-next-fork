@@ -179,6 +179,25 @@ export default function SurveyCompletionPage() {
 
       if (updateError) throw updateError;
 
+      // Update survey status to 'in_progress' if first reviewer completing
+      const { data: allReviewers } = await supabase
+        .from('feedback_360_survey_reviewers')
+        .select('status')
+        .eq('survey_id', survey.id);
+
+      if (allReviewers) {
+        const completedCount = allReviewers.filter(r => r.status === 'completed').length;
+
+        // Update to 'in_progress' if at least one reviewer completed
+        // Note: Status stays 'in_progress' until creator manually completes with AI analysis
+        if (completedCount > 0) {
+          await supabase
+            .from('feedback_360_surveys')
+            .update({ status: 'in_progress' })
+            .eq('id', survey.id);
+        }
+      }
+
       setSuccess(true);
     } catch (err: any) {
       console.error('Error submitting survey:', err);

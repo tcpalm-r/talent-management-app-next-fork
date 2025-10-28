@@ -1,6 +1,7 @@
 export type Performance = 'low' | 'medium' | 'high';
 export type Potential = 'low' | 'medium' | 'high';
 export type UserRole = 'org_admin' | 'department_manager' | 'viewer';
+export type EmployeeRole = 'admin' | 'leader' | 'user';
 
 export interface Organization {
   id: string;
@@ -54,6 +55,7 @@ export interface Employee {
   manager_name: string | null;
   title: string | null;
   location: string | null;
+  role?: EmployeeRole; // For 360 dashboard permissions
   created_at: string;
   updated_at: string;
   assessment?: Assessment;
@@ -61,13 +63,13 @@ export interface Employee {
   one_on_one_meetings?: OneOnOneMeetingWithDetails[];
   is_critical_role?: boolean;
   critical_role_id?: string;
-  
+
   // Job Description fields
   job_description?: string;
   key_responsibilities?: string[];
   required_skills?: string[];
   preferred_qualifications?: string;
-  
+
   // Org hierarchy
   reports_to_id?: string;
   reports_to?: Employee; // Manager (populated via join)

@@ -423,7 +423,7 @@ function generateSuggestions(
     suggestions.push({
       id: 'launch-360s',
       category: 'quick-win',
-      title: `Launch 360 reviews for ${needs360.length} team member${needs360.length !== 1 ? 's' : ''}`,
+      title: `Launch 360° reviews for ${needs360.length} team member${needs360.length !== 1 ? 's' : ''}`,
       description: 'Get multi-source feedback to inform talent decisions',
       estimatedMinutes: 10,
       priority: 9 + needs360.length * 2,
@@ -440,7 +440,7 @@ function generateSuggestions(
     suggestions.push({
       id: 'review-360-feedback',
       category: 'analyze',
-      title: `Review 360 feedback for ${completed360s.length} team member${completed360s.length !== 1 ? 's' : ''}`,
+      title: `Review 360° feedback for ${completed360s.length} team member${completed360s.length !== 1 ? 's' : ''}`,
       description: 'Analyze multi-source feedback and update profiles',
       estimatedMinutes: 30,
       priority: 10,
@@ -457,7 +457,7 @@ function generateSuggestions(
     suggestions.push({
       id: 'build-context-while-waiting',
       category: 'build-context',
-      title: `Add context while ${pending360s.length} 360 review${pending360s.length !== 1 ? 's are' : ' is'} pending`,
+      title: `Add context while ${pending360s.length} 360° review${pending360s.length !== 1 ? 's are' : ' is'} pending`,
       description: 'Complete reviews and plans to be ready when feedback arrives',
       estimatedMinutes: 25,
       priority: 5,

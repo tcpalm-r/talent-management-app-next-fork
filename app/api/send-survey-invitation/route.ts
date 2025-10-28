@@ -22,7 +22,7 @@ const getSupabaseClient = () => {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { surveyId, reviewerId } = body;
+    const { surveyId, reviewerId, isReminder } = body;
 
     if (!surveyId || !reviewerId) {
       return NextResponse.json(
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const [surveyResult, reviewerResult] = await Promise.all([
       supabase
         .from('feedback_360_surveys')
-        .select('*, employee:user_profiles!feedback_360_surveys_employee_id_fkey(full_name, email)')
+        .select('*')
         .eq('id', surveyId)
         .single(),
       supabase
@@ -47,6 +47,17 @@ export async function POST(request: Request) {
         .eq('id', reviewerId)
         .single(),
     ]);
+
+    // Fetch employee details separately from employees view
+    let employeeData = null;
+    if (surveyResult.data?.employee_id) {
+      const { data: empData } = await supabase
+        .from('employees' as any)
+        .select('name, email')
+        .eq('id', surveyResult.data.employee_id)
+        .single();
+      employeeData = empData;
+    }
 
     if (surveyResult.error || !surveyResult.data) {
       return NextResponse.json(
@@ -62,32 +73,45 @@ export async function POST(request: Request) {
       );
     }
 
-    const survey = surveyResult.data;
+    const survey = { ...surveyResult.data, employee: employeeData };
     const reviewer = reviewerResult.data;
 
     // Generate survey URL with access token
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
     const surveyUrl = `${baseUrl}/survey/complete/${reviewer.access_token}`;
 
-    // Format due date
-    const dueDate = survey.due_date
-      ? new Date(survey.due_date).toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        })
-      : 'No deadline specified';
+    // Format due date and calculate days remaining
+    let dueDate = 'No deadline specified';
+    let daysRemaining = null;
+    if (survey.due_date) {
+      const dueDateTime = new Date(survey.due_date);
+      dueDate = dueDateTime.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+
+      // Calculate days remaining
+      const now = new Date();
+      const timeDiff = dueDateTime.getTime() - now.getTime();
+      daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+    }
 
     // Send email using Resend
     console.log('Sending email to:', reviewer.reviewer_email);
     console.log('From:', process.env.RESEND_FROM_EMAIL);
-    console.log('Employee name:', survey.employee?.full_name);
+    console.log('Employee data:', survey.employee);
+
+    // Build subject line
+    const subject = isReminder && daysRemaining !== null
+      ? `Reminder: 360° Feedback Due in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} - ${survey.employee?.name || 'Team Member'}`
+      : `360° Feedback Request for ${survey.employee?.name || 'Team Member'}`;
 
     const emailResult = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'feedback@yourdomain.com',
       to: reviewer.reviewer_email,
-      subject: `360° Feedback Request for ${survey.employee?.full_name || 'Team Member'}`,
+      subject,
       html: `
 <!DOCTYPE html>
 <html>
@@ -98,14 +122,25 @@ export async function POST(request: Request) {
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 28px;">360° Feedback Request</h1>
+    <h1 style="color: white; margin: 0; font-size: 28px;">${isReminder ? '⏰ Reminder: ' : ''}360° Feedback Request</h1>
   </div>
 
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
     <p style="font-size: 16px; margin-bottom: 20px;">Hi ${reviewer.reviewer_name || 'there'},</p>
 
+    ${isReminder && daysRemaining !== null ? `
+    <div style="background: ${daysRemaining <= 3 ? '#fee2e2' : '#fef3c7'}; border-left: 4px solid ${daysRemaining <= 3 ? '#dc2626' : '#f59e0b'}; padding: 15px; margin: 25px 0;">
+      <p style="margin: 0; color: ${daysRemaining <= 3 ? '#7f1d1d' : '#78350f'}; font-weight: 600; font-size: 18px;">
+        ⏰ ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} left to complete this survey!
+      </p>
+      <p style="margin: 5px 0 0 0; color: ${daysRemaining <= 3 ? '#991b1b' : '#92400e'}; font-size: 14px;">
+        Please take a few minutes to complete your feedback before the deadline.
+      </p>
+    </div>
+    ` : ''}
+
     <p style="font-size: 16px; margin-bottom: 20px;">
-      You've been selected to provide 360° feedback for <strong>${survey.employee.full_name}</strong>.
+      ${isReminder ? 'This is a friendly reminder that you have' : 'You\'ve been selected to provide'} 360° feedback for <strong>${survey.employee?.name || 'a team member'}</strong>.
       Your honest and constructive feedback will help them grow professionally.
     </p>
 

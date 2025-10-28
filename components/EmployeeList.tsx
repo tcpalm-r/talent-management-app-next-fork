@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { Download, Search, User } from 'lucide-react';
 import type { Employee, Department, UserRole } from '../types';
-import type { PerformanceReview } from './PerformanceReviewModal';
+import type { PerformanceReview } from '../lib/schema';
 import EmployeeDetailModal from './EmployeeDetailModal';
-import EnhancedEmployeePlanModal from './EnhancedEmployeePlanModal';
 import Quick360Modal from './Quick360Modal';
 import { EmployeeCardUnified, EmptyState } from './unified';
 
@@ -35,8 +34,6 @@ export default function EmployeeList({
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailInitialTab, setDetailInitialTab] = useState<'details' | 'review' | 'plan' | '360' | 'notes' | 'one-on-one' | 'pip' | 'succession' | 'perf-review'>('details');
   const [detailReviewType, setDetailReviewType] = useState<'manager' | 'self'>('manager');
-  const [planTargetEmployee, setPlanTargetEmployee] = useState<Employee | null>(null);
-  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [selected360Employee, setSelected360Employee] = useState<Employee | null>(null);
   const [is360ModalOpen, setIs360ModalOpen] = useState(false);
 
@@ -78,25 +75,6 @@ export default function EmployeeList({
       };
       onPlansUpdate(updatedPlans);
     }
-  };
-
-  const handleOpenPlan = (employee: Employee) => {
-    setPlanTargetEmployee(employee);
-    setIsPlanModalOpen(true);
-  };
-
-  const handleOpenManagerReview = (employee: Employee) => {
-    setSelectedEmployee(employee);
-    setDetailInitialTab('perf-review');
-    setDetailReviewType('manager');
-    setIsDetailModalOpen(true);
-  };
-
-  const handleOpenSelfReview = (employee: Employee) => {
-    setSelectedEmployee(employee);
-    setDetailInitialTab('perf-review');
-    setDetailReviewType('self');
-    setIsDetailModalOpen(true);
   };
 
   const handleOpen360 = (employee: Employee) => {
@@ -161,9 +139,6 @@ export default function EmployeeList({
                 enableDrag={false}
                 onCardClick={handleEmployeeClick}
                 employeePlan={employeePlans[employee.id]}
-                onOpenPlan={handleOpenPlan}
-                onOpenManagerReview={handleOpenManagerReview}
-                onOpenSelfReview={handleOpenSelfReview}
                 onOpen360={handleOpen360}
               />
             ))}
@@ -190,29 +165,6 @@ export default function EmployeeList({
           onUpdateEmployee={() => {
             onEmployeeUpdate();
           }}
-        />
-      )}
-
-      {planTargetEmployee && (
-        <EnhancedEmployeePlanModal
-          isOpen={isPlanModalOpen}
-          onClose={() => {
-            setIsPlanModalOpen(false);
-            setPlanTargetEmployee(null);
-          }}
-          employee={planTargetEmployee}
-          department={departments.find(d => d.id === planTargetEmployee.department_id)}
-          onSave={(plan) => {
-            if (onPlansUpdate) {
-              const updatedPlans = {
-                ...employeePlans,
-                [planTargetEmployee.id]: plan,
-              };
-              onPlansUpdate(updatedPlans);
-            }
-          }}
-          existingPlan={employeePlans[planTargetEmployee.id]}
-          performanceReviews={getReviewArray(planTargetEmployee.id)}
         />
       )}
 
