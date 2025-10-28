@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   X,
   ChevronRight,
@@ -11,6 +11,7 @@ import {
   Eye,
   Send,
   Sparkles,
+  Search,
 } from 'lucide-react';
 import type { Employee, Survey360, ParticipantRelationship } from '../types';
 import { useToast } from './unified';
@@ -33,7 +34,7 @@ interface Survey360WizardProps {
   currentUser?: Employee; // Current logged-in user for tracking who created the survey
 }
 
-type WizardStep = 'who' | 'competencies' | 'raters' | 'timeline' | 'privacy' | 'preview';
+type WizardStep = 'who' | 'competencies' | 'raters' | 'timeline' | 'preview';
 
 interface Rater {
   name: string;
@@ -80,7 +81,18 @@ export default function Survey360Wizard({
   const [currentStep, setCurrentStep] = useState<WizardStep>(isBatchMode ? 'competencies' : 'who');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>(preselectedEmployee);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>(DEFAULT_QUESTION_IDS);
+
+  // Required questions (admin-only editable)
+  const [requiredQuestions, setRequiredQuestions] = useState<string[]>([
+    'What are this employee\'s key strengths?',
+    'What areas could this employee improve?',
+    'How effectively does this employee collaborate with others?'
+  ]);
+
+  // Custom questions (any creator can add)
+  const [customQuestions, setCustomQuestions] = useState<string[]>([]);
+  const [newCustomQuestion, setNewCustomQuestion] = useState('');
+
   const [raters, setRaters] = useState<Rater[]>([]);
   const [dueDate, setDueDate] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(true);
@@ -90,8 +102,38 @@ export default function Survey360Wizard({
   const [raterSearch, setRaterSearch] = useState('');
   const [showRaterPicker, setShowRaterPicker] = useState<number | null>(null);
 
-  const steps: WizardStep[] = ['who', 'competencies', 'raters', 'timeline', 'privacy', 'preview'];
+  const isAdmin = currentUser?.role === 'admin';
+
+  const steps: WizardStep[] = ['who', 'competencies', 'raters', 'timeline', 'preview'];
   const currentStepIndex = steps.indexOf(currentStep);
+
+  // Reset wizard state
+  const resetWizard = () => {
+    setCurrentStep(isBatchMode ? 'competencies' : 'who');
+    setSelectedEmployee(preselectedEmployee);
+    setSelectedTemplate(null);
+    setRequiredQuestions([
+      'What are this employee\'s key strengths?',
+      'What areas could this employee improve?',
+      'How effectively does this employee collaborate with others?'
+    ]);
+    setCustomQuestions([]);
+    setNewCustomQuestion('');
+    setRaters([]);
+    setDueDate('');
+    setIsAnonymous(true);
+    setSurveyTitle('');
+    setEmployeeSearch('');
+    setRaterSearch('');
+    setShowRaterPicker(null);
+  };
+
+  // Reset wizard state when opened
+  useEffect(() => {
+    if (isOpen) {
+      resetWizard();
+    }
+  }, [isOpen]);
 
   // Filter employees based on search
   const filteredEmployees = employees.filter(emp =>
@@ -127,13 +169,11 @@ export default function Survey360Wizard({
       case 'who':
         return isBatchMode || !!selectedEmployee;
       case 'competencies':
-        return selectedQuestionIds.length > 0;
+        return requiredQuestions.length === 3 && requiredQuestions.every(q => q.trim().length > 0);
       case 'raters':
         return raters.length >= 1;
       case 'timeline':
         return !!dueDate;
-      case 'privacy':
-        return true;
       case 'preview':
         return true;
       default:
@@ -151,6 +191,104 @@ export default function Survey360Wizard({
     if (currentStepIndex > 0) {
       setCurrentStep(steps[currentStepIndex - 1]);
     }
+  };
+
+  const handleClose = async () => {
+    // Only save draft if there's meaningful progress and we're not on the last step
+    const hasProgress = selectedEmployee && currentStepIndex < steps.length - 1;
+
+    if (hasProgress) {
+      try {
+        // Create draft survey
+        const { data: survey, error: surveyError } = await supabase
+          .from('feedback_360_surveys')
+          .insert({
+            employee_id: selectedEmployee.id,
+            survey_name: surveyTitle || `360° Feedback - ${selectedEmployee.name}`,
+            status: 'draft',
+            due_date: dueDate || null,
+            created_by: currentUser?.id || currentUser?.email || 'unknown',
+          })
+          .select()
+          .single();
+
+        if (surveyError) throw surveyError;
+
+        // Save questions if any are filled
+        const allQuestions = [...requiredQuestions.filter(q => q.trim()), ...customQuestions];
+        if (allQuestions.length > 0) {
+          const questionUUIDs: string[] = [];
+
+          for (const questionText of allQuestions) {
+            let { data: existingQuestion } = await supabase
+              .from('feedback_360_questions')
+              .select('id')
+              .eq('question_text', questionText)
+              .single();
+
+            if (!existingQuestion) {
+              const { data: newQuestion } = await supabase
+                .from('feedback_360_questions')
+                .insert({
+                  question_text: questionText,
+                  category: 'general',
+                  is_default: false,
+                  is_active: true,
+                })
+                .select('id')
+                .single();
+
+              if (newQuestion) questionUUIDs.push(newQuestion.id);
+            } else {
+              questionUUIDs.push(existingQuestion.id);
+            }
+          }
+
+          if (questionUUIDs.length > 0) {
+            const questionsToInsert = questionUUIDs.map((questionUUID, index) => ({
+              survey_id: survey.id,
+              question_id: questionUUID,
+              question_order: index,
+            }));
+
+            await supabase
+              .from('feedback_360_survey_questions')
+              .insert(questionsToInsert);
+          }
+        }
+
+        // Save raters if any are added
+        const validRaters = raters.filter(r => r.name && r.email);
+        if (validRaters.length > 0) {
+          const reviewersToInsert = validRaters.map(r => ({
+            survey_id: survey.id,
+            reviewer_name: r.name,
+            reviewer_email: r.email,
+            relationship: r.relationship,
+            status: 'pending',
+            access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          }));
+
+          await supabase
+            .from('feedback_360_survey_reviewers')
+            .insert(reviewersToInsert);
+        }
+
+        notify({
+          title: 'Draft saved',
+          description: 'Your review has been saved as a draft.',
+          variant: 'success',
+        });
+
+        // Refresh the survey list to show the new draft
+        onSurveyCreated();
+      } catch (error) {
+        console.error('Error saving draft:', error);
+        // Don't show error notification, just close silently
+      }
+    }
+
+    onClose();
   };
 
   const applyTemplate = (templateId: string) => {
@@ -203,17 +341,16 @@ export default function Survey360Wizard({
 
           if (surveyError) throw surveyError;
 
-          // Ensure questions exist in database and get their UUIDs
+          // Combine required and custom questions
+          const allQuestions = [...requiredQuestions, ...customQuestions];
           const questionUUIDs: string[] = [];
-          for (const questionId of selectedQuestionIds) {
-            const questionData = getQuestionById(questionId);
-            if (!questionData) continue;
 
+          for (const questionText of allQuestions) {
             // Check if question exists, if not create it
             let { data: existingQuestion, error: checkError } = await supabase
               .from('feedback_360_questions')
               .select('id')
-              .eq('question_text', questionData.text)
+              .eq('question_text', questionText)
               .single();
 
             if (checkError && checkError.code !== 'PGRST116') {
@@ -226,9 +363,9 @@ export default function Survey360Wizard({
               const { data: newQuestion, error: createError } = await supabase
                 .from('feedback_360_questions')
                 .insert({
-                  question_text: questionData.text,
+                  question_text: questionText,
                   category: 'general',
-                  is_default: true,
+                  is_default: false,
                   is_active: true,
                 })
                 .select('id')
@@ -276,9 +413,10 @@ export default function Survey360Wizard({
 
             if (reviewersError) throw reviewersError;
 
-            // Send invitation emails to each reviewer
+            // Send invitation emails to each reviewer (with delay to avoid rate limiting)
             if (insertedReviewers && insertedReviewers.length > 0) {
-              const emailPromises = insertedReviewers.map(async (reviewer) => {
+              for (let i = 0; i < insertedReviewers.length; i++) {
+                const reviewer = insertedReviewers[i];
                 try {
                   const response = await fetch('/api/send-survey-invitation', {
                     method: 'POST',
@@ -293,13 +431,15 @@ export default function Survey360Wizard({
                     const error = await response.json();
                     console.error(`Failed to send email to ${reviewer.reviewer_email}:`, error);
                   }
+
+                  // Add 600ms delay between emails to respect rate limit (2 per second)
+                  if (i < insertedReviewers.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 600));
+                  }
                 } catch (error) {
                   console.error(`Error sending email to ${reviewer.reviewer_email}:`, error);
                 }
-              });
-
-              // Wait for all emails to be sent (don't block on failures)
-              await Promise.allSettled(emailPromises);
+              }
 
               // Update survey status to 'in_progress' after emails are sent
               await supabase
@@ -320,8 +460,8 @@ export default function Survey360Wizard({
         notify({
           title: '360 Reviews Launched',
           description: isBatchMode 
-            ? `Successfully created ${successCount} 360° survey${successCount > 1 ? 's' : ''}. Add context while you wait for feedback!`
-            : `360° survey for ${employeesToProcess[0].name} created with ${raters.length} raters.`,
+            ? `Successfully created ${successCount} 360° review${successCount > 1 ? 's' : ''}. Add context while you wait for feedback!`
+            : `360° review for ${employeesToProcess[0].name} created with ${raters.length} raters.`,
           variant: 'success',
           durationMs: 8000,
         });
@@ -329,8 +469,8 @@ export default function Survey360Wizard({
 
       if (failCount > 0) {
         notify({
-          title: 'Some Surveys Failed',
-          description: `${failCount} survey${failCount > 1 ? 's' : ''} could not be created. Please try again.`,
+          title: 'Some Reviews Failed',
+          description: `${failCount} review${failCount > 1 ? 's' : ''} could not be created. Please try again.`,
           variant: 'warning',
         });
       }
@@ -341,7 +481,7 @@ export default function Survey360Wizard({
       console.error('Error creating surveys:', error);
       notify({
         title: 'Creation Failed',
-        description: 'Failed to create 360° surveys. Please try again.',
+        description: 'Failed to create 360° reviews. Please try again.',
         variant: 'error',
       });
     } finally {
@@ -353,7 +493,7 @@ export default function Survey360Wizard({
 
   return (
     <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/50 flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
+      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl min-h-[600px] max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="flex items-center gap-3">
@@ -362,14 +502,18 @@ export default function Survey360Wizard({
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">
-                {isBatchMode ? `Create 360° Surveys for ${preselectedEmployees.length} Team Members` : 'Create 360° Survey'}
+                {isBatchMode
+                  ? `Create 360° Reviews for ${preselectedEmployees.length} Team Members`
+                  : selectedEmployee
+                    ? `360° Review - ${selectedEmployee.name}`
+                    : 'Create 360° Review'}
               </h2>
               <p className="text-sm text-gray-600">
                 Step {currentStepIndex + 1} of {steps.length}: {currentStep.replace('-', ' ')}
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -406,7 +550,7 @@ export default function Survey360Wizard({
           {currentStep === 'who' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Who is this survey for?</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Who is this review for?</h3>
                 <p className="text-sm text-gray-600 mb-4">
                   Select the employee who will receive 360° feedback
                 </p>
@@ -449,20 +593,20 @@ export default function Survey360Wizard({
               </div>
 
               {/* Employee Selection */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-80 overflow-y-auto">
                 {filteredEmployees.length > 0 ? (
                   filteredEmployees.map(emp => (
                     <button
                       key={emp.id}
                       onClick={() => setSelectedEmployee(emp)}
-                      className={`text-left p-4 rounded-lg border-2 transition-all ${
+                      className={`text-left p-2.5 rounded-lg border-2 transition-all ${
                         selectedEmployee?.id === emp.id
                           ? 'border-blue-500 bg-blue-50 shadow-md'
                           : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
                       }`}
                     >
-                      <div className="font-semibold text-gray-900">{emp.name}</div>
-                      {emp.title && <div className="text-sm text-gray-600">{emp.title}</div>}
+                      <div className="font-semibold text-sm text-gray-900">{emp.name}</div>
+                      {emp.title && <div className="text-xs text-gray-600">{emp.title}</div>}
                     </button>
                   ))
                 ) : (
@@ -474,41 +618,98 @@ export default function Survey360Wizard({
             </div>
           )}
 
-          {/* Step 2: Competencies */}
+          {/* Step 2: Questions */}
           {currentStep === 'competencies' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Select Competencies to Assess</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {selectedEmployee ? `360° Review - ${selectedEmployee.name}` : 'Review Questions'}
+                </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  Choose {selectedQuestionIds.length} questions from our library or add custom ones
+                  Configure the questions that reviewers will answer
                 </p>
               </div>
 
-              <div className="space-y-3">
-                {Object.entries(getQuestionsByCategory()).map(([category, questions]) => (
-                  <div key={category} className="border border-gray-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-gray-900 mb-2">{category}</h4>
-                    <div className="space-y-2">
-                      {questions.map(q => (
-                        <label key={q.id} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={selectedQuestionIds.includes(q.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedQuestionIds([...selectedQuestionIds, q.id]);
-                              } else {
-                                setSelectedQuestionIds(selectedQuestionIds.filter(id => id !== q.id));
-                              }
-                            }}
-                            className="mt-1"
-                          />
-                          <span className="text-sm text-gray-700">{q.text}</span>
-                        </label>
-                      ))}
-                    </div>
+              {/* Required Questions */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-gray-900">Required Questions</h4>
+                  {isAdmin && (
+                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">Admin Only</span>
+                  )}
+                </div>
+
+                {requiredQuestions.map((question, index) => (
+                  <div key={index} className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Question {index + 1} <span className="text-red-500">*</span>
+                    </label>
+                    {isAdmin ? (
+                      <textarea
+                        value={question}
+                        onChange={(e) => {
+                          const updated = [...requiredQuestions];
+                          updated[index] = e.target.value;
+                          setRequiredQuestions(updated);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        rows={2}
+                        placeholder="Enter question..."
+                      />
+                    ) : (
+                      <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700">
+                        {question}
+                      </div>
+                    )}
                   </div>
                 ))}
+              </div>
+
+              {/* Custom Questions */}
+              <div className="space-y-4 pt-4 border-t border-gray-200">
+                <h4 className="font-semibold text-gray-900">Custom Questions (Optional)</h4>
+
+                {customQuestions.length > 0 && (
+                  <div className="space-y-3">
+                    {customQuestions.map((question, index) => (
+                      <div key={index} className="flex items-start gap-2">
+                        <div className="flex-1 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700">
+                          {question}
+                        </div>
+                        <button
+                          onClick={() => {
+                            setCustomQuestions(customQuestions.filter((_, i) => i !== index));
+                          }}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <textarea
+                    value={newCustomQuestion}
+                    onChange={(e) => setNewCustomQuestion(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={2}
+                    placeholder="Add a custom question..."
+                  />
+                  <button
+                    onClick={() => {
+                      if (newCustomQuestion.trim()) {
+                        setCustomQuestions([...customQuestions, newCustomQuestion.trim()]);
+                        setNewCustomQuestion('');
+                      }
+                    }}
+                    disabled={!newCustomQuestion.trim()}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Add Question
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -517,7 +718,9 @@ export default function Survey360Wizard({
           {currentStep === 'raters' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Add Raters</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                  {selectedEmployee ? `360° Review - ${selectedEmployee.name}` : 'Add Raters'}
+                </h3>
               </div>
 
               <div className="space-y-3">
@@ -613,20 +816,20 @@ export default function Survey360Wizard({
                             setRaterSearch('');
                           }}
                         />
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-[60vh] overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
                           <div className="p-2">
                             {filteredRaterEmployees.length > 0 ? (
                               filteredRaterEmployees.slice(0, 20).map(emp => (
                                 <button
                                   key={emp.id}
                                   onClick={() => selectEmployeeAsRater(emp, index)}
-                                  className="w-full text-left p-3 hover:bg-blue-50 rounded-lg transition-colors"
+                                  className="w-full text-left p-2 hover:bg-blue-50 rounded-lg transition-colors"
                                 >
-                                  <div className="font-medium text-gray-900">{emp.name}</div>
-                                  <div className="text-sm text-gray-600">
+                                  <div className="font-medium text-sm text-gray-900">{emp.name}</div>
+                                  <div className="text-xs text-gray-600">
                                     {emp.title && <span>{emp.title}</span>}
                                     {emp.title && emp.email && <span> • </span>}
-                                    {emp.email && <span>{emp.email}</span>}
+                                    {emp.email && <span className="truncate">{emp.email}</span>}
                                   </div>
                                 </button>
                               ))
@@ -668,7 +871,9 @@ export default function Survey360Wizard({
           {currentStep === 'timeline' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Set Timeline</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {selectedEmployee ? `360° Review - ${selectedEmployee.name}` : 'Set Timeline'}
+                </h3>
                 <p className="text-sm text-gray-600 mb-4">When should raters complete their feedback?</p>
               </div>
 
@@ -691,45 +896,13 @@ export default function Survey360Wizard({
             </div>
           )}
 
-          {/* Step 5: Privacy */}
-          {currentStep === 'privacy' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Privacy Settings</h3>
-                <p className="text-sm text-gray-600 mb-4">Control how feedback is shared</p>
-              </div>
-
-              <label className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                <input
-                  type="checkbox"
-                  checked={isAnonymous}
-                  onChange={(e) => setIsAnonymous(e.target.checked)}
-                  className="mt-1"
-                />
-                <div>
-                  <div className="font-semibold text-gray-900">Anonymous Feedback</div>
-                  <div className="text-sm text-gray-600 mt-1">
-                    Rater identities are hidden to encourage honest feedback. Manager feedback is always attributed.
-                  </div>
-                </div>
-              </label>
-
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <div className="flex items-start gap-2">
-                  <Shield className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-amber-900">
-                    <strong>Privacy Note:</strong> Individual responses are aggregated. Only themes and patterns are shared, never individual comments unless from manager.
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 6: Preview */}
+          {/* Step 5: Preview */}
           {currentStep === 'preview' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Review & Launch</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {selectedEmployee ? `360° Review - ${selectedEmployee.name}` : 'Review & Launch'}
+                </h3>
                 <p className="text-sm text-gray-600 mb-4">Confirm details before sending</p>
               </div>
 
@@ -741,15 +914,16 @@ export default function Survey360Wizard({
                 </div>
 
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div className="text-sm text-gray-600 mb-2">Questions ({selectedQuestionIds.length})</div>
+                  <div className="text-sm text-gray-600 mb-2">
+                    Questions ({requiredQuestions.length + customQuestions.length})
+                  </div>
                   <ul className="space-y-1 text-sm text-gray-700">
-                    {selectedQuestionIds.slice(0, 3).map(id => {
-                      const q = getQuestionById(id);
-                      return q ? <li key={id}>• {q.text}</li> : null;
-                    })}
-                    {selectedQuestionIds.length > 3 && (
-                      <li className="text-gray-500">... and {selectedQuestionIds.length - 3} more</li>
-                    )}
+                    {requiredQuestions.map((q, i) => (
+                      <li key={`req-${i}`}>• {q}</li>
+                    ))}
+                    {customQuestions.map((q, i) => (
+                      <li key={`custom-${i}`} className="text-blue-700">• {q}</li>
+                    ))}
                   </ul>
                 </div>
 
@@ -785,7 +959,7 @@ export default function Survey360Wizard({
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
           <button
-            onClick={currentStepIndex === 0 ? onClose : handleBack}
+            onClick={currentStepIndex === 0 ? handleClose : handleBack}
             className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -812,7 +986,7 @@ export default function Survey360Wizard({
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  Launch Survey
+                  Launch Review
                 </>
               )}
             </button>

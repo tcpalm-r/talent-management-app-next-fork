@@ -617,7 +617,7 @@ export default function Feedback360Dashboard({
         <div>
           <h2 className="text-2xl font-bold text-gray-900 flex items-center">
             <MessageSquare className="w-7 h-7 mr-2 text-blue-600" />
-            {(currentUser?.name || currentUserName)}'s 360° Reviews
+            Welcome, {currentUser?.name || currentUserName}!
           </h2>
           <p className="text-gray-600 mt-1">Create and manage multi-source feedback reviews</p>
         </div>
@@ -779,7 +779,9 @@ export default function Feedback360Dashboard({
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center flex-wrap gap-2 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{survey.survey_name}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        360° Review - {survey.employee?.name || 'Unknown Employee'}
+                      </h3>
                       {getStatusBadge(survey.status)}
 
                       {/* Relationship badges */}
