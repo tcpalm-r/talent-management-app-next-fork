@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import type { User, Organization, Employee, Department } from '../types';
 import PeopleDashboard from './PeopleDashboard';
 import Feedback360Dashboard from './Feedback360Dashboard';
+import AdminSettings from './AdminSettings';
 
 interface DashboardProps {
   user: SupabaseUser;
@@ -18,7 +19,7 @@ interface DashboardProps {
   onRegisterNavigate?: (fn: ((view: string) => void) | null) => void;
 }
 
-type View = '360-feedback' | 'directory';
+type View = '360-feedback' | 'directory' | 'admin-settings';
 
 export default function Dashboard({
   user: _user,
@@ -56,6 +57,13 @@ export default function Dashboard({
     const userEmail = employeeOverride || userProfile.email;
     return employees.find(e => e.email === userEmail);
   }, [employees, userProfile.email, employeeOverride]);
+
+  // Redirect from admin settings if user is no longer admin
+  useEffect(() => {
+    if (currentView === 'admin-settings' && currentUserEmployee?.role !== 'admin') {
+      setCurrentView('360-feedback');
+    }
+  }, [currentUserEmployee?.role, currentView]);
 
   const changeView = useCallback((view: View) => {
     setCurrentView(view);
@@ -206,8 +214,8 @@ export default function Dashboard({
               <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold text-gray-900">Sonance 360° Review Tool</h1>
 
-                {isDevelopment && currentView === '360-feedback' && (
-                  <div className="flex items-center gap-2">
+                {isDevelopment && (
+                  <div className={`flex items-center gap-2 ${currentView === '360-feedback' ? '' : 'invisible'}`}>
                     <span className="text-xs text-gray-500 font-medium">Test as:</span>
                     <div className="flex gap-1 bg-blue-50 border border-blue-200 p-1 rounded-lg">
                       <button
@@ -324,6 +332,18 @@ export default function Dashboard({
                 >
                   Directory
                 </button>
+                {currentUserEmployee?.role === 'admin' && (
+                  <button
+                    onClick={() => changeView('admin-settings')}
+                    className={`px-4 py-2 font-medium text-sm transition-colors ${
+                      currentView === 'admin-settings'
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Admin Settings
+                  </button>
+                )}
               </div>
             </div>
 
@@ -352,6 +372,10 @@ export default function Dashboard({
                 activeDepartmentIds={selectedDepartments}
                 simpleMode={true}
               />
+            )}
+
+            {currentView === 'admin-settings' && (
+              <AdminSettings />
             )}
 
           </div>

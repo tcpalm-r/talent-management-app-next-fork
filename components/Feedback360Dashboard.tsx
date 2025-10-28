@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Send, CheckCircle, Clock, XCircle, Users, X, AlertTriangle, Sparkles, ChevronLeft } from 'lucide-react';
+import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Employee, Department } from '../types';
 import Survey360Wizard from './Survey360Wizard';
@@ -605,7 +605,7 @@ export default function Feedback360Dashboard({
       draft: Clock,
       in_progress: MessageSquare,
       completed: CheckCircle,
-      finalized: XCircle
+      finalized: ArrowDownCircle
     };
     const labels = {
       draft: 'Draft',
@@ -624,7 +624,7 @@ export default function Feedback360Dashboard({
   };
 
   return (
-    <div className="space-y-6">
+    <div>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -647,7 +647,7 @@ export default function Feedback360Dashboard({
       </div>
 
       {/* Pipeline Stats with Risk Flags */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-6">
         <button
           onClick={() => setFilterStatus('all')}
           className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
@@ -659,7 +659,6 @@ export default function Feedback360Dashboard({
               <p className="text-sm text-gray-600">Total</p>
               <p className="text-2xl font-bold text-gray-900">{surveys.length}</p>
             </div>
-            <Users className="w-8 h-8 text-gray-400" />
           </div>
         </button>
 
@@ -731,19 +730,19 @@ export default function Feedback360Dashboard({
               <p className="text-sm text-purple-700">Finalized</p>
               <p className="text-2xl font-bold text-purple-900">{stats.finalized}</p>
             </div>
-            <XCircle className="w-8 h-8 text-purple-400" />
+            <ArrowDownCircle className="w-8 h-8 text-purple-400" />
           </div>
         </button>
       </div>
 
       {/* Reviews List */}
       {loading ? (
-        <div className="text-center py-12">
+        <div className="text-center py-12 mt-6">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-2 text-gray-600">Loading reviews...</p>
         </div>
       ) : filteredSurveys.length === 0 ? (
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-12">
+        <div className="bg-white rounded-lg shadow border border-gray-200 p-12 mt-6">
           <div className="text-center mb-8">
             <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -771,7 +770,7 @@ export default function Feedback360Dashboard({
 
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 mt-6">
           {filteredSurveys.map((survey) => {
             // Determine user's relationship to this survey
             const isCreator = survey.created_by === currentUser?.id || survey.created_by === currentUser?.email;
@@ -795,7 +794,6 @@ export default function Feedback360Dashboard({
                       <h3 className="text-lg font-semibold text-gray-900">
                         360° Review - {survey.employee?.name || 'Unknown Employee'}
                       </h3>
-                      {getStatusBadge(survey.status)}
 
                       {/* Relationship badges */}
                       {isCreator && (
@@ -891,8 +889,14 @@ export default function Feedback360Dashboard({
                     </div>
                   )}
                 </div>
-                {survey.status === 'active' && (survey.completed_count ?? 0) !== (survey.reviewers_count ?? 0) && (
-                  <div className="flex space-x-2 ml-4 flex-shrink-0">
+
+                {/* Right side: Status badge and actions */}
+                <div className="ml-4 flex flex-col items-end gap-2">
+                  {/* Status badge */}
+                  {getStatusBadge(survey.status)}
+
+                  {/* Remind button */}
+                  {survey.status === 'active' && (survey.completed_count ?? 0) !== (survey.reviewers_count ?? 0) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -903,8 +907,8 @@ export default function Feedback360Dashboard({
                       <Send className="w-4 h-4 mr-1" />
                       Remind
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           );
