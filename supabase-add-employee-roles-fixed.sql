@@ -48,9 +48,12 @@ DO $$
 DECLARE
   org_id UUID := 'f8a8b8c8-d8e8-4f8f-8f8f-8f8f8f8f8f8f'::uuid;
   admin_id UUID;
-  leader_id UUID;
+  leader1_id UUID;
+  leader2_id UUID;
   user1_id UUID;
   user2_id UUID;
+  user3_id UUID;
+  user4_id UUID;
 BEGIN
   -- Create admin test user
   INSERT INTO user_profiles (
@@ -61,7 +64,7 @@ BEGIN
     employee_number,
     is_active
   ) VALUES (
-    'Admin User [TEST]',
+    'Admin [TEST]',
     'admin.test@example.com',
     'Chief People Officer',
     'admin',
@@ -70,11 +73,51 @@ BEGIN
   )
   ON CONFLICT (email) DO UPDATE
   SET role = 'admin',
+      full_name = 'Admin [TEST]',
       title = 'Chief People Officer',
       employee_number = 'EMP-ADMIN-TEST'
   RETURNING id INTO admin_id;
 
-  -- Create leader test user
+  -- Migrate old leader email to new format if needed
+  UPDATE user_profiles
+  SET email = 'leader1.test@example.com',
+      full_name = 'Leader 1 [TEST]',
+      role = 'leader',
+      title = 'Engineering Manager',
+      employee_number = 'EMP-LEADER1-TEST',
+      manager_id = admin_id
+  WHERE email = 'leader.test@example.com'
+  RETURNING id INTO leader1_id;
+
+  -- Create leader 1 test user (only if migration didn't happen)
+  IF leader1_id IS NULL THEN
+    INSERT INTO user_profiles (
+      full_name,
+      email,
+      title,
+      role,
+      employee_number,
+      manager_id,
+      is_active
+    ) VALUES (
+      'Leader 1 [TEST]',
+      'leader1.test@example.com',
+      'Engineering Manager',
+      'leader',
+      'EMP-LEADER1-TEST',
+      admin_id,
+      true
+    )
+    ON CONFLICT (email) DO UPDATE
+    SET role = 'leader',
+        full_name = 'Leader 1 [TEST]',
+        title = 'Engineering Manager',
+        employee_number = 'EMP-LEADER1-TEST',
+        manager_id = admin_id
+    RETURNING id INTO leader1_id;
+  END IF;
+
+  -- Create leader 2 test user
   INSERT INTO user_profiles (
     full_name,
     email,
@@ -84,22 +127,23 @@ BEGIN
     manager_id,
     is_active
   ) VALUES (
-    'Leader User [TEST]',
-    'leader.test@example.com',
-    'Engineering Manager',
+    'Leader 2 [TEST]',
+    'leader2.test@example.com',
+    'Product Manager',
     'leader',
-    'EMP-LEADER-TEST',
+    'EMP-LEADER2-TEST',
     admin_id,
     true
   )
   ON CONFLICT (email) DO UPDATE
   SET role = 'leader',
-      title = 'Engineering Manager',
-      employee_number = 'EMP-LEADER-TEST',
+      full_name = 'Leader 2 [TEST]',
+      title = 'Product Manager',
+      employee_number = 'EMP-LEADER2-TEST',
       manager_id = admin_id
-  RETURNING id INTO leader_id;
+  RETURNING id INTO leader2_id;
 
-  -- Create first regular user (reports to leader)
+  -- Create user 1 (reports to leader 1)
   INSERT INTO user_profiles (
     full_name,
     email,
@@ -109,22 +153,23 @@ BEGIN
     manager_id,
     is_active
   ) VALUES (
-    'User One [TEST]',
+    'User 1 [TEST]',
     'user1.test@example.com',
     'Senior Software Engineer',
     'user',
     'EMP-USER1-TEST',
-    leader_id,
+    leader1_id,
     true
   )
   ON CONFLICT (email) DO UPDATE
   SET role = 'user',
+      full_name = 'User 1 [TEST]',
       title = 'Senior Software Engineer',
       employee_number = 'EMP-USER1-TEST',
-      manager_id = leader_id
+      manager_id = leader1_id
   RETURNING id INTO user1_id;
 
-  -- Create second regular user (reports to leader)
+  -- Create user 2 (reports to leader 1)
   INSERT INTO user_profiles (
     full_name,
     email,
@@ -134,26 +179,82 @@ BEGIN
     manager_id,
     is_active
   ) VALUES (
-    'User Two [TEST]',
+    'User 2 [TEST]',
     'user2.test@example.com',
     'Software Engineer',
     'user',
     'EMP-USER2-TEST',
-    leader_id,
+    leader1_id,
     true
   )
   ON CONFLICT (email) DO UPDATE
   SET role = 'user',
+      full_name = 'User 2 [TEST]',
       title = 'Software Engineer',
       employee_number = 'EMP-USER2-TEST',
-      manager_id = leader_id
+      manager_id = leader1_id
   RETURNING id INTO user2_id;
+
+  -- Create user 3 (reports to leader 2)
+  INSERT INTO user_profiles (
+    full_name,
+    email,
+    title,
+    role,
+    employee_number,
+    manager_id,
+    is_active
+  ) VALUES (
+    'User 3 [TEST]',
+    'user3.test@example.com',
+    'Product Designer',
+    'user',
+    'EMP-USER3-TEST',
+    leader2_id,
+    true
+  )
+  ON CONFLICT (email) DO UPDATE
+  SET role = 'user',
+      full_name = 'User 3 [TEST]',
+      title = 'Product Designer',
+      employee_number = 'EMP-USER3-TEST',
+      manager_id = leader2_id
+  RETURNING id INTO user3_id;
+
+  -- Create user 4 (reports to leader 2)
+  INSERT INTO user_profiles (
+    full_name,
+    email,
+    title,
+    role,
+    employee_number,
+    manager_id,
+    is_active
+  ) VALUES (
+    'User 4 [TEST]',
+    'user4.test@example.com',
+    'Junior Product Designer',
+    'user',
+    'EMP-USER4-TEST',
+    leader2_id,
+    true
+  )
+  ON CONFLICT (email) DO UPDATE
+  SET role = 'user',
+      full_name = 'User 4 [TEST]',
+      title = 'Junior Product Designer',
+      employee_number = 'EMP-USER4-TEST',
+      manager_id = leader2_id
+  RETURNING id INTO user4_id;
 
   RAISE NOTICE 'Test users created/updated successfully';
   RAISE NOTICE 'Admin ID: %', admin_id;
-  RAISE NOTICE 'Leader ID: %', leader_id;
+  RAISE NOTICE 'Leader 1 ID: %', leader1_id;
+  RAISE NOTICE 'Leader 2 ID: %', leader2_id;
   RAISE NOTICE 'User 1 ID: %', user1_id;
   RAISE NOTICE 'User 2 ID: %', user2_id;
+  RAISE NOTICE 'User 3 ID: %', user3_id;
+  RAISE NOTICE 'User 4 ID: %', user4_id;
 END $$;
 
 -- Step 6: Refresh the materialized view to include new data

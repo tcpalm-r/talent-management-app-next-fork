@@ -39,7 +39,7 @@ export default function SurveyCompletionPage() {
   const [reviewer, setReviewer] = useState<Reviewer | null>(null);
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [responses, setResponses] = useState<Record<string, { rating: number; text: string }>>({});
+  const [responses, setResponses] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadSurveyData();
@@ -123,9 +123,9 @@ export default function SurveyCompletionPage() {
       setQuestions(loadedQuestions);
 
       // Initialize responses
-      const initialResponses: Record<string, { rating: number; text: string }> = {};
+      const initialResponses: Record<string, string> = {};
       loadedQuestions.forEach((q: Question) => {
-        initialResponses[q.id] = { rating: 0, text: '' };
+        initialResponses[q.id] = '';
       });
       setResponses(initialResponses);
 
@@ -142,10 +142,10 @@ export default function SurveyCompletionPage() {
 
     if (!reviewer || !survey) return;
 
-    // Validate all questions have ratings
-    const allRated = Object.values(responses).every(r => r.rating > 0);
-    if (!allRated) {
-      setError('Please provide a rating for all questions.');
+    // Validate all questions have responses
+    const allAnswered = Object.values(responses).every(r => r.trim().length > 0);
+    if (!allAnswered) {
+      setError('Please provide a response for all questions.');
       return;
     }
 
@@ -158,8 +158,7 @@ export default function SurveyCompletionPage() {
         survey_id: survey.id,
         question_id: questionId,
         reviewer_email: reviewer.reviewer_email,
-        rating: response.rating,
-        response_text: response.text || null,
+        response_text: response,
       }));
 
       const { error: insertError } = await supabase
@@ -206,13 +205,10 @@ export default function SurveyCompletionPage() {
     }
   };
 
-  const updateResponse = (questionId: string, field: 'rating' | 'text', value: any) => {
+  const updateResponse = (questionId: string, value: string) => {
     setResponses(prev => ({
       ...prev,
-      [questionId]: {
-        ...prev[questionId],
-        [field]: value,
-      },
+      [questionId]: value,
     }));
   };
 
@@ -280,7 +276,7 @@ export default function SurveyCompletionPage() {
           {/* Instructions */}
           <div className="bg-blue-50 border-b border-blue-200 px-8 py-4">
             <p className="text-sm text-blue-900">
-              <strong>Instructions:</strong> Please rate each question on a scale of 1-5 and provide additional comments if you&apos;d like. Your responses are confidential and will be aggregated with other feedback.
+              <strong>Instructions:</strong> Please provide thoughtful responses to each question. Your feedback is confidential and will be aggregated with other responses.
             </p>
           </div>
 
@@ -295,48 +291,22 @@ export default function SurveyCompletionPage() {
                         {index + 1}
                       </span>
                       <div className="flex-1">
-                        <p className="text-gray-900 font-medium">{question.question_text}</p>
-                        {question.category && (
-                          <p className="text-xs text-gray-500 mt-1">Category: {question.category}</p>
-                        )}
+                        <p className="text-gray-900 font-medium">
+                          {question.question_text} <span className="text-red-500">*</span>
+                        </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Rating */}
-                  <div className="mb-4 ml-11">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Rating (1 = Strongly Disagree, 5 = Strongly Agree)
-                    </label>
-                    <div className="flex gap-2">
-                      {[1, 2, 3, 4, 5].map(rating => (
-                        <button
-                          key={rating}
-                          type="button"
-                          onClick={() => updateResponse(question.id, 'rating', rating)}
-                          className={`flex-1 py-3 px-4 rounded-lg border-2 font-semibold transition-all ${
-                            responses[question.id]?.rating === rating
-                              ? 'border-blue-600 bg-blue-600 text-white shadow-md'
-                              : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300'
-                          }`}
-                        >
-                          {rating}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Comment */}
+                  {/* Response */}
                   <div className="ml-11">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Additional Comments (Optional)
-                    </label>
                     <textarea
-                      value={responses[question.id]?.text || ''}
-                      onChange={(e) => updateResponse(question.id, 'text', e.target.value)}
-                      rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Share specific examples or suggestions..."
+                      value={responses[question.id] || ''}
+                      onChange={(e) => updateResponse(question.id, e.target.value)}
+                      rows={4}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      placeholder="Please provide specific examples and thoughtful feedback..."
+                      required
                     />
                   </div>
                 </div>

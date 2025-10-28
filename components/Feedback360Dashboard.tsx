@@ -63,7 +63,7 @@ export default function Feedback360Dashboard({
 
   useEffect(() => {
     loadSurveys();
-  }, [organizationId]);
+  }, [organizationId, currentUser?.id]);
 
   const loadSurveys = async () => {
     setLoading(true);
@@ -72,7 +72,7 @@ export default function Feedback360Dashboard({
         .from('feedback_360_surveys')
         .select(`
           *,
-          reviewers:feedback_360_survey_reviewers(id, status, reviewer_email)
+          reviewers:feedback_360_survey_reviewers(id, status, reviewer_email, access_token)
         `)
         .order('created_at', { ascending: false });
 
@@ -108,44 +108,57 @@ export default function Feedback360Dashboard({
             .map(e => e.id);
 
           enhancedSurveys = enhancedSurveys.filter((survey: any) => {
-            // Survey created by the leader
-            if (survey.created_by === currentUser.id || survey.created_by === currentUser.email) return true;
+            // Survey created by the leader (must match exactly)
+            const isCreator = survey.created_by && (
+              survey.created_by === currentUser.id ||
+              survey.created_by === currentUser.email
+            );
+            if (isCreator) return true;
 
             // Survey about the leader themselves
-            if (survey.employee_id === currentUser.id) return true;
+            if (survey.employee_id && survey.employee_id === currentUser.id) return true;
 
             // Survey where leader is a reviewer
-            const isReviewer = survey.reviewers?.some((r: any) =>
-              r.reviewer_email === currentUser.email
+            const isReviewer = currentUser.email && survey.reviewers?.some((r: any) =>
+              r.reviewer_email && r.reviewer_email.toLowerCase() === currentUser.email.toLowerCase()
             );
             if (isReviewer) return true;
 
             // Survey about a direct report
-            if (directReportIds.includes(survey.employee_id)) return true;
+            if (survey.employee_id && directReportIds.includes(survey.employee_id)) return true;
 
             return false;
           });
         } else {
-          // Regular users can see:
+          // Regular users can see ONLY:
           // 1. Surveys they created
           // 2. Surveys where they are the subject (employee_id matches)
           // 3. Surveys where they are a reviewer
           enhancedSurveys = enhancedSurveys.filter((survey: any) => {
-            // Survey created by the user
-            if (survey.created_by === currentUser.id || survey.created_by === currentUser.email) return true;
+            // Survey created by the user (must match exactly)
+            const isCreator = survey.created_by && (
+              survey.created_by === currentUser.id ||
+              survey.created_by === currentUser.email
+            );
+            if (isCreator) return true;
 
             // Survey about the user themselves
-            if (survey.employee_id === currentUser.id) return true;
+            const isReviewee = survey.employee_id && survey.employee_id === currentUser.id;
+            if (isReviewee) return true;
 
-            // Survey where user is a reviewer
-            const isReviewer = survey.reviewers?.some((r: any) =>
-              r.reviewer_email === currentUser.email
+            // Survey where user is a reviewer (check email match)
+            const isReviewer = currentUser.email && survey.reviewers?.some((r: any) =>
+              r.reviewer_email && r.reviewer_email.toLowerCase() === currentUser.email.toLowerCase()
             );
             if (isReviewer) return true;
 
+            // If none of the above, explicitly exclude
             return false;
           });
         }
+      } else {
+        // If no currentUser, show nothing for safety
+        enhancedSurveys = [];
       }
 
       setSurveys(enhancedSurveys);
@@ -801,6 +814,26 @@ export default function Feedback360Dashboard({
                         </span>
                       )}
                     </div>
+
+                    {/* Complete Review Button for Reviewers */}
+                    {isReviewer && (() => {
+                      const myReviewerRecord = survey.reviewers?.find((r: any) =>
+                        r.reviewer_email === currentUser?.email
+                      );
+                      const isCompleted = myReviewerRecord?.status === 'completed';
+
+                      return !isCompleted && myReviewerRecord?.access_token ? (
+                        <a
+                          href={`/survey/complete/${myReviewerRecord.access_token}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg mb-3"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Complete Individual Review
+                        </a>
+                      ) : null;
+                    })()}
+
                   <div className="flex items-center text-sm text-gray-600 mb-3">
                     <Users className="w-4 h-4 mr-1" />
                     <span className="font-medium">{survey.employee?.name || 'Unknown Employee'}</span>

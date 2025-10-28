@@ -217,20 +217,31 @@ export default function Dashboard({
                             ? 'bg-blue-600 text-white shadow-sm'
                             : 'text-gray-700 hover:bg-blue-100'
                         }`}
-                        title="Admin User [TEST] - can see ALL reviews"
+                        title="Admin [TEST] - can see ALL reviews"
                       >
                         Admin
                       </button>
                       <button
-                        onClick={() => setEmployeeOverride('leader.test@example.com')}
+                        onClick={() => setEmployeeOverride('leader1.test@example.com')}
                         className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                          employeeOverride === 'leader.test@example.com'
+                          employeeOverride === 'leader1.test@example.com'
                             ? 'bg-blue-600 text-white shadow-sm'
                             : 'text-gray-700 hover:bg-blue-100'
                         }`}
-                        title="Leader User [TEST] - can see own + direct reports"
+                        title="Leader 1 [TEST] - can see own + direct reports (User 1, User 2)"
                       >
-                        Leader
+                        Leader 1
+                      </button>
+                      <button
+                        onClick={() => setEmployeeOverride('leader2.test@example.com')}
+                        className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                          employeeOverride === 'leader2.test@example.com'
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-gray-700 hover:bg-blue-100'
+                        }`}
+                        title="Leader 2 [TEST] - can see own + direct reports (User 3, User 4)"
+                      >
+                        Leader 2
                       </button>
                       <button
                         onClick={() => setEmployeeOverride('user1.test@example.com')}
@@ -239,7 +250,7 @@ export default function Dashboard({
                             ? 'bg-blue-600 text-white shadow-sm'
                             : 'text-gray-700 hover:bg-blue-100'
                         }`}
-                        title="User One [TEST] - can see own reviews only"
+                        title="User 1 [TEST] - can see own reviews only"
                       >
                         User 1
                       </button>
@@ -250,9 +261,31 @@ export default function Dashboard({
                             ? 'bg-blue-600 text-white shadow-sm'
                             : 'text-gray-700 hover:bg-blue-100'
                         }`}
-                        title="User Two [TEST] - can see own reviews only"
+                        title="User 2 [TEST] - can see own reviews only"
                       >
                         User 2
+                      </button>
+                      <button
+                        onClick={() => setEmployeeOverride('user3.test@example.com')}
+                        className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                          employeeOverride === 'user3.test@example.com'
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-gray-700 hover:bg-blue-100'
+                        }`}
+                        title="User 3 [TEST] - can see own reviews only"
+                      >
+                        User 3
+                      </button>
+                      <button
+                        onClick={() => setEmployeeOverride('user4.test@example.com')}
+                        className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                          employeeOverride === 'user4.test@example.com'
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-gray-700 hover:bg-blue-100'
+                        }`}
+                        title="User 4 [TEST] - can see own reviews only"
+                      >
+                        User 4
                       </button>
                       <button
                         onClick={() => setEmployeeOverride(null)}
