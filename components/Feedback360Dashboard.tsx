@@ -67,6 +67,7 @@ export default function Feedback360Dashboard({
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
   const [showRawData, setShowRawData] = useState(false);
   const [rawSurveyData, setRawSurveyData] = useState<any>(null);
+  const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
 
   useEffect(() => {
     loadSurveys();
@@ -301,8 +302,17 @@ export default function Feedback360Dashboard({
     }
   };
 
-  const completeSurveyWithAI = async () => {
+  const completeSurveyWithAI = async (proceedWithIncomplete: boolean = false) => {
     if (!selectedSurvey) return;
+
+    // Check if all reviewers have completed
+    const allCompleted = (selectedSurvey.completed_count ?? 0) === (selectedSurvey.reviewers_count ?? 0);
+
+    // If not all completed and user hasn't confirmed, show warning
+    if (!allCompleted && !proceedWithIncomplete) {
+      setShowIncompleteWarning(true);
+      return;
+    }
 
     setIsGeneratingAnalysis(true);
     try {
@@ -336,6 +346,8 @@ export default function Feedback360Dashboard({
         description: 'AI analysis generated successfully',
         variant: 'success',
       });
+
+      setShowIncompleteWarning(false);
     } catch (error: any) {
       console.error('Error completing survey:', error);
       notify({
@@ -434,21 +446,17 @@ export default function Feedback360Dashboard({
         .select('id, reviewer_name, reviewer_email, relationship, status')
         .eq('survey_id', surveyId);
 
-      // Fetch survey questions separately
+      // Fetch survey questions with question details in one query
       const { data: surveyQuestions } = await supabase
         .from('feedback_360_survey_questions')
-        .select('id, question_id, question_text')
+        .select(`
+          id,
+          question_id,
+          question_order,
+          question:feedback_360_questions(id, question_text, category)
+        `)
         .eq('survey_id', surveyId)
         .order('question_order');
-
-      // Fetch question details for each survey question
-      const questionIds = (surveyQuestions || []).map((q: any) => q.question_id);
-      const { data: questionDetails } = questionIds.length > 0
-        ? await supabase
-            .from('feedback_360_questions')
-            .select('id, question, category')
-            .in('id', questionIds)
-        : { data: [] };
 
       // Fetch responses separately
       const { data: responses } = await supabase
@@ -461,13 +469,11 @@ export default function Feedback360Dashboard({
         ...survey,
         employee: employee || null,
         reviewers: reviewers || [],
-        questions: (surveyQuestions || []).map((sq: any) => ({
-          ...sq,
-          question: (questionDetails || []).find((qd: any) => qd.id === sq.question_id),
-        })),
+        questions: surveyQuestions || [],
         responses: (responses || []).map((r: any) => ({
           ...r,
           reviewer: (reviewers || []).find((rev: any) => rev.reviewer_email === r.reviewer_email),
+          question: (surveyQuestions || []).find((sq: any) => sq.question_id === r.question_id)?.question,
         })),
       };
 
@@ -1089,9 +1095,16 @@ export default function Feedback360Dashboard({
                       );
                       const isCompleted = myReviewerRecord?.status === 'completed';
 
-                      return !isCompleted && myReviewerRecord?.access_token ? (
+                      return isCompleted ? (
+                        <div className="inline-flex items-center px-4 py-2 bg-green-50 border border-green-200 rounded-lg mb-3">
+                          <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                          <span className="text-sm font-medium text-green-900">Review completed</span>
+                        </div>
+                      ) : myReviewerRecord?.access_token ? (
                         <a
                           href={`/survey/complete/${myReviewerRecord.access_token}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
                           className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg mb-3"
                         >
@@ -1272,7 +1285,7 @@ export default function Feedback360Dashboard({
                     </div>
                   ) : (
                     <button
-                      onClick={() => window.location.href = `/survey/complete/${selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.access_token}`}
+                      onClick={() => window.open(`/survey/complete/${selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.access_token}`, '_blank')}
                       className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                     >
                       <CheckCircle className="w-4 h-4" />
@@ -1581,12 +1594,11 @@ export default function Feedback360Dashboard({
                       Send Reminders
                     </button>
                   )}
-                  {/* Complete with AI for in_progress when all completed */}
+                  {/* Complete with AI for in_progress when at least 2 reviewers completed */}
                   {selectedSurvey.status === 'in_progress' &&
-                   (selectedSurvey.completed_count ?? 0) === (selectedSurvey.reviewers_count ?? 0) &&
-                   (selectedSurvey.reviewers_count ?? 0) > 0 && (
+                   (selectedSurvey.completed_count ?? 0) >= 2 && (
                     <button
-                      onClick={completeSurveyWithAI}
+                      onClick={() => completeSurveyWithAI()}
                       disabled={isGeneratingAnalysis}
                       className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-medium flex items-center disabled:opacity-50"
                     >
@@ -1825,51 +1837,6 @@ export default function Feedback360Dashboard({
                 </div>
               )}
 
-              {/* Sentiment by Relationship */}
-              {surveyResults.sentiment_by_relationship && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Sentiment by Relationship</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {(() => {
-                      const validRelationships = ['manager', 'peer', 'direct_report', 'cross_functional'];
-                      const relationshipLabels: Record<string, string> = {
-                        manager: 'Manager',
-                        peer: 'Peer',
-                        direct_report: 'Direct Report',
-                        cross_functional: 'Cross-Functional'
-                      };
-
-                      return validRelationships.map((relationship) => {
-                        const score = surveyResults.sentiment_by_relationship[relationship];
-                        const hasReviewers = score !== undefined && score !== null;
-
-                        return (
-                          <div key={relationship} className="bg-gray-50 rounded-lg p-3 text-center">
-                            <p className="text-xs text-gray-600 mb-1">{relationshipLabels[relationship]}</p>
-                            {hasReviewers ? (
-                              <>
-                                <p className="text-2xl font-bold text-gray-900">{(score * 100).toFixed(0)}%</p>
-                                <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                                  <div
-                                    className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all"
-                                    style={{ width: `${score * 100}%` }}
-                                  />
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <p className="text-sm text-gray-500 mt-2">No reviewers</p>
-                                <div className="mt-2 w-full bg-gray-200 rounded-full h-2"></div>
-                              </>
-                            )}
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                </div>
-              )}
-
               {/* Consensus & Outliers */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {surveyResults.consensus_areas && surveyResults.consensus_areas.length > 0 && (
@@ -2085,34 +2052,72 @@ export default function Feedback360Dashboard({
                 </div>
               </div>
 
-              {/* Raw Responses */}
+              {/* Raw Responses - Grouped by Reviewer */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">All Responses</h3>
-                <div className="space-y-4">
-                  {rawSurveyData.responses?.map((response: any) => (
-                    <div key={response.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">
-                            {response.reviewer?.reviewer_name || 'Anonymous'}
-                          </p>
-                          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
-                            {response.reviewer?.relationship || 'Unknown'}
-                          </span>
+                <h3 className="font-semibold text-gray-900 mb-3">Responses by Reviewer</h3>
+                <div className="space-y-6">
+                  {(() => {
+                    // Group responses by reviewer email
+                    const groupedByReviewer: Record<string, any[]> = {};
+                    (rawSurveyData.responses || []).forEach((response: any) => {
+                      const email = response.reviewer_email;
+                      if (!groupedByReviewer[email]) {
+                        groupedByReviewer[email] = [];
+                      }
+                      groupedByReviewer[email].push(response);
+                    });
+
+                    return Object.entries(groupedByReviewer).map(([email, reviewerResponses]: [string, any[]]) => {
+                      const reviewer = reviewerResponses[0]?.reviewer;
+                      return (
+                        <div key={email} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                          {/* Reviewer Header */}
+                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-gray-900">{reviewer?.reviewer_name || email}</p>
+                                <p className="text-sm text-gray-600">{email}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded">
+                                  {reviewer?.relationship || 'Unknown'}
+                                </span>
+                                <span className={`px-2 py-1 text-xs font-medium rounded ${
+                                  reviewer?.status === 'completed'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-yellow-100 text-yellow-700'
+                                }`}>
+                                  {reviewer?.status || 'Unknown'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Reviewer's Responses */}
+                          <div className="p-4 space-y-4">
+                            {reviewerResponses.map((response: any, idx: number) => (
+                              <div key={response.id} className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
+                                <p className="text-xs font-semibold text-gray-500 mb-1">Question {idx + 1}</p>
+                                <p className="text-sm font-medium text-gray-900 mb-2">
+                                  {response.question?.question_text || 'Question not found'}
+                                </p>
+                                {response.rating !== null && (
+                                  <p className="text-xs text-gray-600 mb-2">
+                                    <span className="font-medium">Rating:</span> {response.rating}/5
+                                  </p>
+                                )}
+                                {response.response_text && (
+                                  <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
+                                    {response.response_text}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-3">
-                        <p className="text-sm text-gray-600 mb-1">Question:</p>
-                        <p className="text-sm font-medium text-gray-900 mb-2">
-                          {rawSurveyData.questions?.find((q: any) => q.id === response.question_id)?.question_text || 'Question not found'}
-                        </p>
-                        <p className="text-sm text-gray-600 mb-1">Response:</p>
-                        <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded">
-                          {response.response_text}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             </div>
@@ -2127,6 +2132,50 @@ export default function Feedback360Dashboard({
                 className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Incomplete Reviewers Warning Dialog */}
+      {showIncompleteWarning && selectedSurvey && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Not All Reviewers Completed</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Only {selectedSurvey.completed_count}/{selectedSurvey.reviewers_count} reviewers have completed their feedback.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                <p className="text-sm text-gray-700">
+                  You can still generate AI analysis with {selectedSurvey.completed_count} completed review(s), but the results may be incomplete. Are you sure you want to proceed?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowIncompleteWarning(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => completeSurveyWithAI(true)}
+                disabled={isGeneratingAnalysis}
+                className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                {isGeneratingAnalysis ? 'Generating...' : 'Proceed & Generate Analysis'}
               </button>
             </div>
           </div>

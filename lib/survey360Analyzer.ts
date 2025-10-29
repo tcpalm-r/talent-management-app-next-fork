@@ -57,9 +57,7 @@ IMPORTANT: Respond ONLY with valid JSON. Do not include any explanatory text bef
     {
       "theme": "Concise theme name (e.g., 'Strong Communication Skills')",
       "sentiment": "very_positive" | "positive" | "mixed" | "needs_work" | "critical",
-      "frequency": <number of participants who mentioned this>,
-      "supporting_evidence": ["Synthesized summary of feedback (NO direct quotes)", "Another paraphrased observation"],
-      "relationships_mentioned": ["manager", "peer", "direct_report"]
+      "supporting_evidence": ["Synthesized summary of feedback (NO direct quotes)", "Another paraphrased observation"]
     }
   ],
   "overall_strengths": [
@@ -75,10 +73,7 @@ IMPORTANT: Respond ONLY with valid JSON. Do not include any explanatory text bef
     "Another specific action to take"
   ],
   "sentiment_by_relationship": {
-    "manager": 0.85,
-    "peer": 0.78,
-    "direct_report": 0.92,
-    "cross_functional": 0.80
+    "overall": 0.82
   },
   "key_insights": [
     "Important pattern or insight from the data",
@@ -94,30 +89,39 @@ IMPORTANT: Respond ONLY with valid JSON. Do not include any explanatory text bef
   ]
 }
 
-CRITICAL - ANONYMITY REQUIREMENTS:
+CRITICAL - ANONYMITY & AGGREGATION REQUIREMENTS:
 - NEVER include direct quotes or verbatim text from responses
-- ALWAYS paraphrase and synthesize feedback across multiple sources
-- Use general attributions (e.g., "Multiple reviewers noted...", "Feedback consistently indicated...")
-- Combine similar feedback from different sources into synthesized observations
+- ALWAYS paraphrase and synthesize feedback across ALL sources (never separated by relationship type)
+- NEVER mention specific relationship types like "manager specifically noted" or "direct reports said"
+- NEVER provide counts or breakdowns by relationship type (e.g., "mentioned by 6 managers and 4 peers")
+- Use only general, aggregated attributions:
+  * "Feedback consistently indicated..."
+  * "Multiple reviewers noted..."
+  * "A common theme across feedback..."
+  * "Many shared perspective..."
+  * "Several mentioned..."
+  * "A unique perspective was..."
+- Combine ALL feedback into unified, anonymized observations regardless of reviewer relationship
+- The sentiment_by_relationship field should ONLY contain an "overall" score (0-1) representing the aggregate sentiment across all reviewers
 
 ANALYSIS GUIDELINES:
-1. **Themes**: Identify 5-8 major themes. Look for patterns across responses.
-2. **Supporting Evidence**: Paraphrase and synthesize feedback (NO direct quotes). Combine observations from multiple reviewers.
+1. **Themes**: Identify 5-8 major themes. Look for patterns across all responses combined.
+2. **Supporting Evidence**: Paraphrase and synthesize feedback (NO direct quotes). Combine observations from all reviewers into unified statements.
 3. **Sentiment Classification**: Use constructive language:
-   - "very_positive": Exceptional strengths with unanimous praise
-   - "positive": Clear strengths recognized by multiple reviewers
+   - "very_positive": Exceptional strengths with strong consensus
+   - "positive": Clear strengths recognized widely
    - "mixed": Balance of positive and constructive feedback
    - "needs_work": Areas requiring attention and development
    - "critical": Serious concerns requiring immediate action
-4. **Sentiment Scores by Relationship**: Rate 0-1 (0=critical concerns, 0.5=mixed, 1=very positive) based on overall tone and content. ONLY analyze these four relationship types: "manager", "peer", "direct_report", and "cross_functional". Do not include "self" or "other" categories.
-5. **Strengths**: List 3-5 clear strengths mentioned by multiple participants. Synthesize, don't quote.
-6. **Development Areas**: Identify 3-5 areas for growth with consensus. Use paraphrased summaries and constructive language.
+4. **Overall Sentiment Score**: Provide a single 0-1 score representing aggregate sentiment. Do NOT break down by relationship type.
+5. **Strengths**: List 3-5 clear strengths. Synthesize feedback from all sources into unified statements.
+6. **Development Areas**: Identify 3-5 areas for growth. Use paraphrased, aggregated summaries.
 7. **Recommendations**: Provide 4-6 specific, actionable steps based on synthesized feedback.
-8. **Key Insights**: Surface 3-5 important patterns or observations. Focus on trends, not individual comments.
-9. **Consensus**: Highlight areas where 70%+ of participants agree.
-10. **Outliers**: Note any unique perspectives that differ from majority (paraphrase only).
+8. **Key Insights**: Surface 3-5 important patterns or observations from all feedback combined.
+9. **Consensus**: Highlight areas where there is broad agreement.
+10. **Outliers**: Note any unique or contrasting perspectives, but do NOT attribute to specific relationship types.
 
-Focus on being balanced, specific, and actionable. Maintain strict anonymity by paraphrasing all feedback.`;
+ABSOLUTELY MAINTAIN STRICT ANONYMITY: Never reveal who said what, how many people in each role responded, or any breakdown by relationship type.`;
 
   try {
     const response = await anthropic.messages.create({

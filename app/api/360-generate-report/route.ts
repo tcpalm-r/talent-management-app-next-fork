@@ -261,6 +261,8 @@ export async function POST(req: NextRequest) {
         outlier_opinions: analysisResult.outlier_opinions,
         generated_at: analysisResult.generated_at,
         generated_by: analysisResult.generated_by,
+      }, {
+        onConflict: 'survey_id'
       })
       .select()
       .single();
