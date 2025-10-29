@@ -22,64 +22,29 @@ export async function middleware(request: NextRequest) {
   // Check if route requires authentication
   const requiresAuth = isProtectedRoute(pathname);
 
-  // Dev bypass mode - check environment variable at runtime (not build time)
-  const authDisabled = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
-
-  // Dev bypass mode - allow all requests with mock user
-  if (authDisabled) {
-    const response = NextResponse.next();
-
-    // Add AI Intranet configuration headers
-    response.headers.set('x-ai-intranet-url', aiIntranetUrl);
-    response.headers.set('x-app-id', process.env.APP_ID || '');
-    response.headers.set('x-local-testing-mode', localTestingMode ? 'true' : 'false');
-    response.headers.set('x-auth-disabled', 'true');
-
-    // Set mock user cookie for dev mode (for ALL routes when auth is disabled)
-    const authenticatedResponse = createAuthenticatedResponse(response, MOCK_USER);
-
-    // Also set a flag cookie so client-side code knows auth is disabled
-    authenticatedResponse.cookies.set('x-auth-disabled', 'true', {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: SESSION_DURATION / 1000,
-      path: '/',
-    });
-
-    return authenticatedResponse;
-  }
-
-  // Production mode - validate authentication
-  if (requiresAuth) {
-    const user = await getAuthenticatedUser(request);
-
-    if (!user) {
-      // Redirect to unauthorized page
-      return NextResponse.redirect(new URL('/unauthorized', request.url));
-    }
-
-    // User is authenticated - continue with user data
-    const response = NextResponse.next();
-
-    // Add AI Intranet configuration headers
-    response.headers.set('x-ai-intranet-url', aiIntranetUrl);
-    response.headers.set('x-app-id', process.env.APP_ID || '');
-    response.headers.set('x-local-testing-mode', localTestingMode ? 'true' : 'false');
-    response.headers.set('x-user-email', user.email);
-    response.headers.set('x-user-role', user.app_role);
-
-    // Refresh user cookie
-    return createAuthenticatedResponse(response, user);
-  }
-
-  // Public route - no auth required
+  // For demo/deployment mode - always use mock user (enables sharing with coworkers)
+  // In production deployment, we want everyone to access the demo with mock auth
   const response = NextResponse.next();
+
+  // Add AI Intranet configuration headers
   response.headers.set('x-ai-intranet-url', aiIntranetUrl);
   response.headers.set('x-app-id', process.env.APP_ID || '');
   response.headers.set('x-local-testing-mode', localTestingMode ? 'true' : 'false');
+  response.headers.set('x-auth-disabled', 'true');
 
-  return response;
+  // Always inject mock user for all requests (demo mode)
+  const authenticatedResponse = createAuthenticatedResponse(response, MOCK_USER);
+
+  // Also set a flag cookie so client-side code knows auth is disabled
+  authenticatedResponse.cookies.set('x-auth-disabled', 'true', {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: SESSION_DURATION / 1000,
+    path: '/',
+  });
+
+  return authenticatedResponse;
 }
 
 // Configure which routes the middleware should run on
