@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import {
-  AUTH_DISABLED,
   MOCK_USER,
   getAuthenticatedUser,
   isProtectedRoute,
@@ -22,8 +21,11 @@ export async function middleware(request: NextRequest) {
   // Check if route requires authentication
   const requiresAuth = isProtectedRoute(pathname);
 
+  // Dev bypass mode - check environment variable at runtime (not build time)
+  const authDisabled = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
+
   // Dev bypass mode - allow all requests with mock user
-  if (AUTH_DISABLED) {
+  if (authDisabled) {
     const response = NextResponse.next();
 
     // Add AI Intranet configuration headers
