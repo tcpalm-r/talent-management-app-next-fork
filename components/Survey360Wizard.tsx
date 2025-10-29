@@ -557,7 +557,7 @@ export default function Survey360Wizard({
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center w-full">
             {steps.map((step, index) => (
-              <React.Fragment key={step}>
+              <div key={step} className="flex items-center" style={{ flex: index < steps.length - 1 ? '1' : '0' }}>
                 <div
                   className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold flex-shrink-0 ${
                     index <= currentStepIndex
@@ -574,7 +574,7 @@ export default function Survey360Wizard({
                     }`}
                   />
                 )}
-              </React.Fragment>
+              </div>
             ))}
           </div>
         </div>
