@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
+import { MOCK_USER } from '@/lib/auth';
 import type { User as AppUser, Organization } from '@/types';
 import Dashboard from '@/components/Dashboard';
 import { TalentAppProvider } from '@/context/TalentAppContext';
@@ -35,9 +36,9 @@ export default function AppWrapper() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && (user || MOCK_USER)) {
       loadUserDataAndOrganization();
-    } else if (!authLoading && !user) {
+    } else if (!authLoading && !user && !MOCK_USER) {
       setLoading(false);
     }
   }, [user, authLoading]);
@@ -47,12 +48,15 @@ export default function AppWrapper() {
       setLoading(true);
       setError(null);
 
+      // Use actual user or mock user for development
+      const currentUser = user || MOCK_USER;
+
       // Map SessionUser to AppUser format
       const profile: AppUser = {
-        id: user!.id,
-        email: user!.email,
-        full_name: user!.full_name,
-        role: user!.app_role as any, // Map app_role to role
+        id: currentUser.id,
+        email: currentUser.email,
+        full_name: currentUser.full_name,
+        role: currentUser.app_role as any, // Map app_role to role
         organization_id: FIXED_ORG_ID
       } as AppUser;
 
@@ -153,8 +157,11 @@ export default function AppWrapper() {
     );
   }
 
-  // Require authentication
-  if (!user && !authLoading) {
+  // Use mock user if no user is authenticated (for development/demo)
+  const activeUser = user || MOCK_USER;
+
+  // Show error if actually no user and not loading
+  if (!activeUser && !authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
