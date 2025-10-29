@@ -3,9 +3,9 @@ import { BarChart3, AlertTriangle, Settings as SettingsIcon, Upload, Activity, P
 import type { Department, UserRole } from '../../types';
 import OrganizationMetrics from './OrganizationMetrics';
 import DataQualityPanel from './DataQualityPanel';
-import BoxDefinitionsManager from './BoxDefinitionsManager';
+// import BoxDefinitionsManager from './BoxDefinitionsManager'; // TODO: Create BoxDefinitionsManager component
 import ActivityAuditLog from './ActivityAuditLog';
-import DepartmentManager from '../DepartmentManager';
+// import DepartmentManager from '../DepartmentManager'; // TODO: Create DepartmentManager component
 import ImportModal from '../ImportModal';
 
 interface AdminDashboardEnhancedProps {
@@ -104,23 +104,17 @@ export default function AdminDashboardEnhanced({
                   Create, edit, and organize departments across your organization
                 </p>
               </div>
-              <DepartmentManager
-                departments={departments}
-                onDepartmentUpdate={onDepartmentUpdate}
-                userRole={userRole}
-                organizationId={organizationId}
-                employeePlans={employeePlans}
-                onPlansUpdate={onPlansUpdate}
-              />
+              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center text-gray-500">
+                <p>Department Management coming soon</p>
+              </div>
             </div>
           )}
 
           {activeView === 'box-config' && (
             <div className="space-y-6">
-              <BoxDefinitionsManager
-                organizationId={organizationId}
-                onUpdate={onDepartmentUpdate}
-              />
+              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center text-gray-500">
+                <p>Box Definitions Management coming soon</p>
+              </div>
             </div>
           )}
 

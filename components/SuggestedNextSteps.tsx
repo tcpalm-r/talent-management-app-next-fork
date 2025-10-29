@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Zap, Palette, BarChart3, ChevronDown, ChevronRight, CheckCircle, Clock, ArrowRight } from 'lucide-react';
 import type { Employee, EmployeePlan } from '../types';
-import type { PerformanceReview } from './PerformanceReviewModal';
+// import type { PerformanceReview } from './PerformanceReviewModal'; // TODO: Fix import path
 
 interface EmployeeProgress {
   employee: Employee;

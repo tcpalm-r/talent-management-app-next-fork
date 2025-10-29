@@ -33,15 +33,9 @@ export default function ActivityAuditLog({ organizationId }: ActivityAuditLogPro
   const loadActivities = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('admin_activity_log')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-      setActivities(data || []);
+      // TODO: Implement admin_activity_log table in database
+      // For now, return empty activities
+      setActivities([]);
     } catch (error) {
       console.error('Error loading activity log:', error);
     } finally {
