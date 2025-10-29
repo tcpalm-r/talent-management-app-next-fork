@@ -554,12 +554,12 @@ export default function Survey360Wizard({
         </div>
 
         {/* Progress Bar */}
-        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+          <div className="flex items-center w-full">
             {steps.map((step, index) => (
-              <div key={step} className="flex items-center flex-1">
+              <React.Fragment key={step}>
                 <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${
+                  className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold flex-shrink-0 ${
                     index <= currentStepIndex
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-500'
@@ -569,12 +569,12 @@ export default function Survey360Wizard({
                 </div>
                 {index < steps.length - 1 && (
                   <div
-                    className={`flex-1 h-1 mx-2 rounded ${
+                    className={`flex-1 h-1 mx-3 rounded ${
                       index < currentStepIndex ? 'bg-blue-600' : 'bg-gray-200'
                     }`}
                   />
                 )}
-              </div>
+              </React.Fragment>
             ))}
           </div>
         </div>
