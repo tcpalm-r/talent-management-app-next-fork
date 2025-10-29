@@ -75,13 +75,8 @@ export default function Feedback360CreateModal({
 
   const loadQuestionTemplates = async () => {
     try {
-      const { data, error } = await supabase
-        .from('feedback_360_question_templates')
-        .select('*')
-        .order('category, question_text');
-
-      if (error) throw error;
-      setQuestionTemplates(data || []);
+      // TODO: Replace with actual database query once feedback_360_question_templates table is created
+      setQuestionTemplates([]);
     } catch (error) {
       console.error('Error loading question templates:', error);
     }
