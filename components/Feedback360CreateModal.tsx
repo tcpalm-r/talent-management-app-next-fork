@@ -311,7 +311,7 @@ export default function Feedback360CreateModal({
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 className="font-semibold text-blue-900 mb-2">💡 Quick Start Tips</h3>
                 <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• Click "Add Suggested" to quickly add 3 questions from each category</li>
+                  <li>• Click &quot;Add Suggested&quot; to quickly add 3 questions from each category</li>
                   <li>• Expand categories to browse all available questions</li>
                   <li>• Aim for 15-25 questions for a comprehensive yet manageable survey</li>
                 </ul>
@@ -497,7 +497,7 @@ export default function Feedback360CreateModal({
                 <div className="text-center py-8 text-gray-500">
                   <Users className="w-12 h-12 mx-auto mb-2 text-gray-400" />
                   <p>No reviewers added yet</p>
-                  <p className="text-sm mt-1">Click "Add Reviewer" to get started</p>
+                  <p className="text-sm mt-1">Click &quot;Add Reviewer&quot; to get started</p>
                 </div>
               )}
             </div>
@@ -509,7 +509,7 @@ export default function Feedback360CreateModal({
               <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-6">
                 <h3 className="font-bold text-green-900 text-lg mb-2">✅ Ready to Send!</h3>
                 <p className="text-green-700">
-                  Review your survey details below and click "Send Survey" to notify all reviewers.
+                  Review your survey details below and click &quot;Send Survey&quot; to notify all reviewers.
                 </p>
               </div>
 

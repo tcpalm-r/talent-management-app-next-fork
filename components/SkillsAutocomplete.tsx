@@ -179,7 +179,7 @@ export default function SkillsAutocomplete({
                 <div className="flex items-center gap-2">
                   <Plus className="w-4 h-4 text-blue-600" />
                   <span className="font-medium text-blue-900">
-                    Add "{inputValue.trim()}" as custom skill
+                    Add &quot;{inputValue.trim()}&quot; as custom skill
                   </span>
                 </div>
               </button>

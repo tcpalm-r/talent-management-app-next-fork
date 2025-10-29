@@ -88,7 +88,7 @@ export default function Survey360Wizard({
 
   // Required questions (admin-only editable)
   const [requiredQuestions, setRequiredQuestions] = useState<string[]>([
-    'What are this employee\'s key strengths?',
+    'What are this employee&apos;s key strengths?',
     'What areas could this employee improve?',
     'How effectively does this employee collaborate with others?'
   ]);
@@ -992,7 +992,7 @@ export default function Survey360Wizard({
                   ))
                 ) : (
                   <div className="col-span-2 text-center py-8 text-gray-500">
-                    No employees found matching "{employeeSearch}"
+                    No employees found matching &quot;{employeeSearch}&quot;
                   </div>
                 )}
               </div>

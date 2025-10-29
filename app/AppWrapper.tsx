@@ -72,25 +72,16 @@ export default function AppWrapper() {
       setLoading(true);
       setError(null);
 
-      // Load organization - first try to get any organization
-      const { data: allOrgs, error: listError } = await supabase
-        .from('organizations')
-        .select('*');
-
-      console.log('All organizations:', allOrgs);
-
-      if (listError) {
-        throw new Error(`Organization query failed: ${listError.message}`);
-      }
-
-      // Find our specific organization
-      const org = allOrgs?.find(o => o.id === FIXED_ORG_ID) || allOrgs?.[0];
-
-      if (!org) {
-        throw new Error(`No organization found. Available: ${allOrgs?.map(o => o.id).join(', ')}`);
-      }
-
-      setOrganization(org);
+      // TODO: Load organization from database once organizations table is created
+      // For now, use a default organization object
+      const now = new Date().toISOString();
+      const defaultOrg = {
+        id: FIXED_ORG_ID,
+        name: 'Default Organization',
+        created_at: now,
+        updated_at: now,
+      };
+      setOrganization(defaultOrg);
     } catch (error) {
       console.error('Error loading organization:', error);
       setError(error instanceof Error ? error.message : 'Failed to load organization');

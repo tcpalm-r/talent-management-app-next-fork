@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { analyzeSurvey360Responses } from '@/lib/survey360Analyzer';
 import type { Database } from '@/types/supabase';
+import type { ParticipantRelationship } from '@/types';
 
 /**
  * API Route: /api/360-generate-report
@@ -133,11 +134,9 @@ export async function POST(req: NextRequest) {
     // STEP 5: Fetch employee details for context
     // ========================================================================
 
-    const { data: employee, error: employeeError } = await supabase
-      .from('employees')
-      .select('name, email, title')
-      .eq('id', survey.employee_id)
-      .single();
+    // TODO: Fix employee query once 'employees' materialized view is properly set up
+    // For now, use survey data directly
+    const employee: { name?: string; email?: string } | null = null;
 
     // Employee is optional - survey might reference a user not in employees view
 
@@ -146,18 +145,27 @@ export async function POST(req: NextRequest) {
     // ========================================================================
 
     // Map reviewers to participants format with relationship field
-    const participants = reviewers.map(reviewer => ({
-      id: reviewer.id,
-      survey_id: reviewer.survey_id,
-      participant_name: reviewer.reviewer_name || 'Anonymous',
-      participant_email: reviewer.reviewer_email,
-      relationship: (reviewer.relationship || 'peer') as 'manager' | 'peer' | 'direct_report' | 'self' | 'other',
-      status: reviewer.status as 'pending' | 'in_progress' | 'completed',
-      access_token: reviewer.access_token || '',
-      invited_at: reviewer.invited_at || reviewer.created_at || new Date().toISOString(),
-      completed_at: reviewer.completed_at || undefined,
-      created_at: reviewer.created_at || new Date().toISOString(),
-    }));
+    const participants = reviewers.map(reviewer => {
+      // Normalize relationship value to valid ParticipantRelationship
+      let relationship: ParticipantRelationship = 'peer';
+      const rel = (reviewer.relationship || 'peer').toLowerCase();
+      if (['manager', 'peer', 'direct_report', 'cross_functional'].includes(rel)) {
+        relationship = rel as ParticipantRelationship;
+      }
+
+      return {
+        id: reviewer.id,
+        survey_id: reviewer.survey_id,
+        participant_name: reviewer.reviewer_name || 'Anonymous',
+        participant_email: reviewer.reviewer_email,
+        relationship,
+        status: reviewer.status as 'pending' | 'in_progress' | 'completed',
+        access_token: reviewer.access_token || '',
+        invited_at: reviewer.invited_at || reviewer.created_at || new Date().toISOString(),
+        completed_at: reviewer.completed_at || undefined,
+        created_at: reviewer.created_at || new Date().toISOString(),
+      };
+    });
 
     // Map survey questions to SurveyQuestion format
     const questions = (surveyQuestions || []).map(sq => {
@@ -211,8 +219,8 @@ export async function POST(req: NextRequest) {
       id: survey.id,
       organization_id: undefined, // Not in DB schema
       employee_id: survey.employee_id,
-      employee_name: employee?.name || 'Unknown Employee',
-      employee_email: employee?.email || '',
+      employee_name: 'Unknown Employee', // TODO: populate from employee when available
+      employee_email: '', // TODO: populate from employee when available
       status: survey.status as 'draft' | 'active' | 'completed' | 'closed',
       created_by: survey.created_by,
       survey_name: survey.survey_name || 'Untitled Survey',

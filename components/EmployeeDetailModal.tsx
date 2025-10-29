@@ -1103,7 +1103,7 @@ export default function EmployeeDetailModal({
 
                     <div className="bg-white rounded-lg p-4 border border-green-200">
                       <p className="text-sm text-gray-600 font-medium mb-2">✅ Development plan created with {analysisResult?.actionItems?.length || 0} action items</p>
-                      <p className="text-xs text-gray-500">Switch to the "Development Plan" tab to view and manage the plan.</p>
+                      <p className="text-xs text-gray-500">Switch to the &quot;Development Plan&quot; tab to view and manage the plan.</p>
                     </div>
 
                   {analysisResult?.recommendations && analysisResult.recommendations.length > 0 && (
@@ -1324,7 +1324,7 @@ export default function EmployeeDetailModal({
               <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Development Plan</h3>
               <p className="text-sm text-gray-600 mb-6">
-                This employee doesn't have a development plan yet.
+                This employee doesn&apos;t have a development plan yet.
               </p>
               <div className="flex gap-3 justify-center">
                 <button
@@ -1514,11 +1514,11 @@ export default function EmployeeDetailModal({
                     What's Included:
                   </h4>
                   <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
-                    <li>Accomplishments, Impact & OKRs</li>
-                    <li>Growth & Development Areas</li>
-                    <li>Support & Feedback Needs</li>
+                    <li>Accomplishments, Impact &amp; OKRs</li>
+                    <li>Growth &amp; Development Areas</li>
+                    <li>Support &amp; Feedback Needs</li>
                     <li><strong>Ideal Team Player Matrix</strong> (Humble, Hungry, Smart) with detailed 12-behavior scoring</li>
-                    <li>Performance Summary & Additional Comments</li>
+                    <li>Performance Summary &amp; Additional Comments</li>
                   </ul>
                 </div>
               </div>

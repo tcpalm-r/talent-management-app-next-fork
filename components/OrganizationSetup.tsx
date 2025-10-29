@@ -84,7 +84,7 @@ export default function OrganizationSetup({
             Set up your organization
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Let's create your organization to get started with talent assessment
+            Let&apos;s create your organization to get started with talent assessment
           </p>
         </div>
 
@@ -135,7 +135,7 @@ export default function OrganizationSetup({
             Welcome, <strong>{user.email}</strong>
           </p>
           <p className="mt-1">
-            You'll be set up as the organization administrator
+            You&apos;ll be set up as the organization administrator
           </p>
         </div>
       </div>

@@ -173,7 +173,7 @@ export default function CriticalRoleSetupModal({
                 {!hasEmergencyBackup && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <p className="text-sm text-gray-600">
-                      You can skip this step and add an emergency backup later. However, it's recommended to identify one as soon as possible.
+                      You can skip this step and add an emergency backup later. However, it&apos;s recommended to identify one as soon as possible.
                     </p>
                   </div>
                 )}
@@ -190,7 +190,7 @@ export default function CriticalRoleSetupModal({
                   <div>
                     <h3 className="font-semibold text-blue-900 mb-1">Identify Potential Successors</h3>
                     <p className="text-sm text-blue-800">
-                      Select 1-3 employees who could potentially fill this role in the future. These are people you'll develop as successors.
+                      Select 1-3 employees who could potentially fill this role in the future. These are people you&apos;ll develop as successors.
                     </p>
                   </div>
                 </div>
@@ -262,7 +262,7 @@ export default function CriticalRoleSetupModal({
                   <div>
                     <h3 className="font-semibold text-purple-900 mb-1">Succession Development Plan</h3>
                     <p className="text-sm text-purple-800">
-                      Define how you'll develop the selected successors and key responsibilities they need to master.
+                      Define how you&apos;ll develop the selected successors and key responsibilities they need to master.
                     </p>
                   </div>
                 </div>

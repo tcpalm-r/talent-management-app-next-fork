@@ -335,7 +335,7 @@ export default function ManagerNotes({
               <Bell className="w-12 h-12 text-gray-400 mx-auto mb-3" />
               <p className="text-sm text-gray-600 font-medium">No feedback yet</p>
               <p className="text-xs text-gray-500 mt-1">
-                Your manager hasn't shared any feedback requiring acknowledgment
+                Your manager hasn&apos;t shared any feedback requiring acknowledgment
               </p>
             </>
           ) : (
@@ -508,7 +508,7 @@ export default function ManagerNotes({
           <div>
             <p className="text-xs font-semibold text-blue-900">Pro Tip</p>
             <p className="text-xs text-blue-800 mt-1">
-              Use "Formal Concern" for important feedback that requires employee acknowledgment. This creates a documented trail and ensures they've received the feedback.
+              Use &quot;Formal Concern&quot; for important feedback that requires employee acknowledgment. This creates a documented trail and ensures they&apos;ve received the feedback.
             </p>
           </div>
         </div>
