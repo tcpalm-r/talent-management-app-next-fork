@@ -1209,6 +1209,7 @@ export default function Feedback360Dashboard({
       {/* Review Details Modal */}
       {isDetailsModalOpen && selectedSurvey && (() => {
         const isCreator = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
+        const isSubject = selectedSurvey.employee_id === currentUser?.id;
         const isReviewer = selectedSurvey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
         const userCompletedReview = isReviewer && selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.status === 'completed';
 
@@ -1258,24 +1259,26 @@ export default function Feedback360Dashboard({
                   </h4>
                 </div>
 
-                {/* Completion Message or Button */}
-                {userCompletedReview ? (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm font-medium text-green-900">
-                        Your input towards the review is already complete. Thank you!
-                      </p>
+                {/* Completion Message or Button - Only for reviewers, not for subject */}
+                {isReviewer && !isSubject && (
+                  userCompletedReview ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm font-medium text-green-900">
+                          Your input towards the review is already complete. Thank you!
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => window.location.href = `/survey/complete/${selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.access_token}`}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    Complete your review
-                  </button>
+                  ) : (
+                    <button
+                      onClick={() => window.location.href = `/survey/complete/${selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.access_token}`}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Complete your review
+                    </button>
+                  )
                 )}
 
                 {/* Close button */}
