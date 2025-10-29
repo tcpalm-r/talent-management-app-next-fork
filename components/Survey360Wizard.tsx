@@ -113,11 +113,7 @@ export default function Survey360Wizard({
     setCurrentStep(isBatchMode ? 'competencies' : 'who');
     setSelectedEmployee(preselectedEmployee);
     setSelectedTemplate(null);
-    setRequiredQuestions([
-      'What are this employee\'s key strengths?',
-      'What areas could this employee improve?',
-      'How effectively does this employee collaborate with others?'
-    ]);
+    // Don't reset requiredQuestions - they are loaded from API and should persist
     setCustomQuestions([]);
     setNewCustomQuestion('');
     setRaters([]);
@@ -128,6 +124,34 @@ export default function Survey360Wizard({
     setRaterSearch('');
     setShowRaterPicker(null);
   };
+
+  // Load default questions from API
+  useEffect(() => {
+    const loadDefaultQuestions = async () => {
+      try {
+        const response = await fetch('/api/360-default-questions');
+        if (response.ok) {
+          const data = await response.json();
+          // Load the 3 default questions
+          const defaultQuestionTexts = data.defaultQuestionIds
+            .map((id: string) => {
+              const question = data.allQuestions.find((q: any) => q.id === id);
+              return question?.question || '';
+            })
+            .filter((q: string) => q.trim().length > 0)
+            .slice(0, 3);
+
+          if (defaultQuestionTexts.length === 3) {
+            setRequiredQuestions(defaultQuestionTexts);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading default questions:', error);
+      }
+    };
+
+    loadDefaultQuestions();
+  }, []);
 
   // Reset wizard state when opened
   useEffect(() => {
@@ -636,7 +660,7 @@ export default function Survey360Wizard({
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-gray-900">Required Questions</h4>
                   {isAdmin && (
-                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">Admin Only</span>
+                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">Set in Admin Settings</span>
                   )}
                 </div>
 
@@ -645,23 +669,9 @@ export default function Survey360Wizard({
                     <label className="text-sm font-medium text-gray-700">
                       Question {index + 1} <span className="text-red-500">*</span>
                     </label>
-                    {isAdmin ? (
-                      <textarea
-                        value={question}
-                        onChange={(e) => {
-                          const updated = [...requiredQuestions];
-                          updated[index] = e.target.value;
-                          setRequiredQuestions(updated);
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        rows={2}
-                        placeholder="Enter question..."
-                      />
-                    ) : (
-                      <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700">
-                        {question}
-                      </div>
-                    )}
+                    <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700">
+                      {question}
+                    </div>
                   </div>
                 ))}
               </div>

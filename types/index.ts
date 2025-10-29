@@ -244,10 +244,10 @@ export interface ImportPreview {
 
 // 360 Survey Types
 export type Survey360Status = 'draft' | 'active' | 'completed' | 'closed';
-export type ParticipantRelationship = 'manager' | 'peer' | 'direct_report' | 'self' | 'other';
+export type ParticipantRelationship = 'manager' | 'peer' | 'direct_report' | 'cross_functional';
 export type ParticipantStatus = 'pending' | 'in_progress' | 'completed';
 export type QuestionType = 'rating' | 'text' | 'multiple_choice';
-export type SentimentType = 'positive' | 'neutral' | 'negative' | 'mixed';
+export type SentimentType = 'very_positive' | 'positive' | 'mixed' | 'needs_work' | 'critical';
 
 export interface SurveyQuestion {
   id: string;
@@ -273,6 +273,7 @@ export interface Survey360 {
   due_date: string | null;
   sent_at?: string | null;
   completed_at?: string | null;
+  flagged_for_admin?: boolean; // Flag for admin review
   created_at: string;
   updated_at: string;
 }
@@ -305,7 +306,7 @@ export interface ThemeAnalysis {
   theme: string;
   sentiment: SentimentType;
   frequency: number; // How many participants mentioned this
-  supporting_quotes: string[];
+  supporting_evidence: string[]; // Paraphrased/synthesized observations (NOT direct quotes)
   relationships_mentioned: ParticipantRelationship[];
 }
 

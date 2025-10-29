@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle } from 'lucide-react';
+import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Employee, Department } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import { useToast } from './unified';
+import { exportReportAsPDF } from '../lib/exportReport';
 
 interface Feedback360DashboardProps {
   employees: Employee[];
@@ -47,7 +48,7 @@ export default function Feedback360Dashboard({
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'in_progress' | 'completed' | 'finalized'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'in_progress' | 'completed' | 'needs_review' | 'finalized'>('all');
   const [preselectedEmployee, setPreselectedEmployee] = useState<Employee | undefined>(undefined);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -60,10 +61,54 @@ export default function Feedback360Dashboard({
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
   const [surveyResults, setSurveyResults] = useState<any>(null);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  const [showRawData, setShowRawData] = useState(false);
+  const [rawSurveyData, setRawSurveyData] = useState<any>(null);
 
   useEffect(() => {
     loadSurveys();
   }, [organizationId, currentUser?.id]);
+
+  // Helper functions to track viewed surveys in localStorage
+  const getViewedSurveys = (): Set<string> => {
+    if (typeof window === 'undefined') return new Set();
+    const stored = localStorage.getItem(`viewed_360_surveys_${currentUser?.id}`);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  };
+
+  const markSurveyAsViewed = (surveyId: string) => {
+    if (typeof window === 'undefined') return;
+    const viewed = getViewedSurveys();
+    viewed.add(surveyId);
+    localStorage.setItem(`viewed_360_surveys_${currentUser?.id}`, JSON.stringify([...viewed]));
+  };
+
+  const hasSurveyBeenViewed = (surveyId: string): boolean => {
+    return getViewedSurveys().has(surveyId);
+  };
+
+  // Function to load and display survey results
+  const loadAndShowResults = async (survey: Survey) => {
+    try {
+      const response = await fetch(`/api/360-generate-report?survey_id=${survey.id}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load report');
+      }
+
+      setSelectedSurvey(survey);
+      setSurveyResults(data.report);
+      setIsResultsModalOpen(true);
+      markSurveyAsViewed(survey.id);
+    } catch (error: any) {
+      console.error('Error loading survey results:', error);
+      notify({
+        title: 'Error',
+        description: error.message || 'Failed to load review results',
+        variant: 'error',
+      });
+    }
+  };
 
   const loadSurveys = async () => {
     setLoading(true);
@@ -251,40 +296,41 @@ export default function Feedback360Dashboard({
 
     setIsGeneratingAnalysis(true);
     try {
-      // Fetch all responses for this survey
-      const { data: responses, error: responsesError } = await supabase
-        .from('feedback_360_responses')
-        .select('*, question:feedback_360_questions(question_text, category)')
-        .eq('survey_id', selectedSurvey.id);
+      // Call the API to generate AI analysis report
+      const response = await fetch('/api/360-generate-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          survey_id: selectedSurvey.id,
+        }),
+      });
 
-      if (responsesError) throw responsesError;
+      const data = await response.json();
 
-      // TODO: Generate AI analysis (placeholder for now)
-      const analysis = {
-        summary: 'Overall performance demonstrates strong technical skills with opportunities for growth in leadership.',
-        strengths: ['Strong technical expertise', 'Excellent collaboration', 'Proactive problem-solving'],
-        areasForImprovement: ['Communication clarity', 'Delegation skills', 'Time management'],
-        responses,
-      };
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate AI analysis');
+      }
 
-      // Update survey status to completed
-      const { error: updateError } = await supabase
-        .from('feedback_360_surveys')
-        .update({ status: 'completed' })
-        .eq('id', selectedSurvey.id);
-
-      if (updateError) throw updateError;
-
-      // Store results and open results modal
-      setSurveyResults(analysis);
+      // Store the generated report and open results modal
+      setSurveyResults(data.report);
       setIsDetailsModalOpen(false);
       setIsResultsModalOpen(true);
-      loadSurveys();
-    } catch (error) {
+
+      // Reload surveys to update status
+      await loadSurveys();
+
+      notify({
+        title: 'Success',
+        description: 'AI analysis generated successfully',
+        variant: 'success',
+      });
+    } catch (error: any) {
       console.error('Error completing survey:', error);
       notify({
         title: 'Error',
-        description: 'Failed to generate AI analysis',
+        description: error.message || 'Failed to generate AI analysis',
         variant: 'error',
       });
     } finally {
@@ -325,10 +371,10 @@ export default function Feedback360Dashboard({
 
   const sendToHR = async (surveyId: string) => {
     try {
-      // Update survey status to finalized
+      // Flag the survey for admin review and keep status as completed
       const { error } = await supabase
         .from('feedback_360_surveys')
-        .update({ status: 'finalized' })
+        .update({ flagged_for_admin: true })
         .eq('id', surveyId);
 
       if (error) {
@@ -336,36 +382,158 @@ export default function Feedback360Dashboard({
         throw error;
       }
 
-      // TODO: Create notification for HR admins or send email
-
       notify({
-        title: 'Sent to HR',
-        description: 'Review results have been submitted to HR for review.',
+        title: 'Flagged for Admin Review',
+        description: 'This review has been flagged for admin attention.',
         variant: 'success',
       });
 
       setIsResultsModalOpen(false);
       loadSurveys();
     } catch (error) {
-      console.error('Error sending to HR:', error);
+      console.error('Error flagging for admin:', error);
       notify({
         title: 'Error',
-        description: 'Failed to send review to HR',
+        description: 'Failed to flag review for admin',
         variant: 'error',
       });
     }
   };
 
-  const sendBackward = async (surveyId: string) => {
-    if (!confirm('Are you sure you want to send this review back to In Progress? This will discard the current AI analysis.')) {
+  const loadRawSurveyData = async (surveyId: string) => {
+    try {
+      // Fetch survey with all responses
+      const { data, error } = await supabase
+        .from('feedback_360_surveys')
+        .select(`
+          *,
+          employee:user_profiles!feedback_360_surveys_employee_id_fkey(id, full_name, email, title),
+          reviewers:feedback_360_survey_reviewers(
+            id,
+            reviewer_name,
+            reviewer_email,
+            relationship,
+            status
+          ),
+          questions:feedback_360_survey_questions(
+            id,
+            question_id,
+            question_text,
+            question:feedback_360_questions(id, question, category)
+          ),
+          responses:feedback_360_responses(
+            id,
+            reviewer_id,
+            question_id,
+            response_text,
+            reviewer:feedback_360_survey_reviewers(reviewer_name, relationship)
+          )
+        `)
+        .eq('id', surveyId)
+        .single();
+
+      if (error) throw error;
+
+      setRawSurveyData(data);
+      setShowRawData(true);
+    } catch (error) {
+      console.error('Error loading raw survey data:', error);
+      notify({
+        title: 'Error',
+        description: 'Failed to load raw survey data',
+        variant: 'error',
+      });
+    }
+  };
+
+  const reanalyzeSurvey = async (surveyId: string, tone: 'standard' | 'softer' = 'standard') => {
+    setIsGeneratingAnalysis(true);
+    try {
+      const response = await fetch('/api/360-generate-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ survey_id: surveyId, tone }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to reanalyze survey');
+      }
+
+      setSurveyResults(data.report);
+      notify({
+        title: 'Analysis Complete',
+        description: tone === 'softer'
+          ? 'Survey has been reanalyzed with a softer tone'
+          : 'Survey has been reanalyzed',
+        variant: 'success',
+      });
+    } catch (error: any) {
+      console.error('Error reanalyzing survey:', error);
+      notify({
+        title: 'Error',
+        description: error.message || 'Failed to reanalyze survey',
+        variant: 'error',
+      });
+    } finally {
+      setIsGeneratingAnalysis(false);
+    }
+  };
+
+  const sendBackward = async (surveyId: string, currentStatus?: string) => {
+    const status = currentStatus || selectedSurvey?.status;
+
+    // Determine target status and confirmation message based on current status
+    let targetStatus: string;
+    let confirmMessage: string;
+    let successMessage: string;
+    let deleteParticipants = false;
+
+    if (status === 'finalized') {
+      targetStatus = 'completed';
+      confirmMessage = 'Are you sure you want to reopen this finalized review? It will be moved back to Completed status.';
+      successMessage = 'The review has been moved back to Completed status.';
+    } else if (status === 'completed') {
+      targetStatus = 'in_progress';
+      confirmMessage = 'Are you sure you want to send this review back to In Progress? This will discard the current AI analysis.';
+      successMessage = 'The review has been moved back to In Progress status.';
+    } else if (status === 'in_progress') {
+      targetStatus = 'draft';
+      confirmMessage = 'Are you sure you want to send this review back to Draft? Reviewers who click their survey links will see a message that this survey has been scrapped.';
+      successMessage = 'The review has been moved back to Draft status. Survey links will show a cancellation message.';
+      deleteParticipants = false;
+    } else {
+      notify({
+        title: 'Error',
+        description: 'Cannot send backward from this status',
+        variant: 'error',
+      });
+      return;
+    }
+
+    if (!confirm(confirmMessage)) {
       return;
     }
 
     try {
-      // Update survey status back to in_progress
+      // If going back to draft, delete all participants first (this breaks their survey links)
+      if (deleteParticipants) {
+        const { error: deleteError } = await supabase
+          .from('feedback_360_reviewers')
+          .delete()
+          .eq('survey_id', surveyId);
+
+        if (deleteError) {
+          console.error('Error deleting participants:', deleteError);
+          throw deleteError;
+        }
+      }
+
+      // Update survey status
       const { error } = await supabase
         .from('feedback_360_surveys')
-        .update({ status: 'in_progress' })
+        .update({ status: targetStatus })
         .eq('id', surveyId);
 
       if (error) {
@@ -376,7 +544,7 @@ export default function Feedback360Dashboard({
 
       notify({
         title: 'Review sent backward',
-        description: 'The review has been moved back to In Progress status.',
+        description: successMessage,
         variant: 'success',
       });
 
@@ -577,12 +745,15 @@ export default function Feedback360Dashboard({
 
   const filteredSurveys = filterStatus === 'all'
     ? surveys
+    : filterStatus === 'needs_review'
+    ? surveys.filter(s => s.flagged_for_admin === true)
     : surveys.filter(s => s.status === filterStatus);
 
   const stats = {
     draft: surveys.filter(s => s.status === 'draft').length,
     in_progress: surveys.filter(s => s.status === 'in_progress').length,
     completed: surveys.filter(s => s.status === 'completed').length,
+    needs_review: surveys.filter(s => s.flagged_for_admin === true).length,
     finalized: surveys.filter(s => s.status === 'finalized').length,
   };
 
@@ -594,7 +765,17 @@ export default function Feedback360Dashboard({
     return responseRate < 0.5 && daysUntilDue <= 3 && daysUntilDue > 0;
   });
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, flaggedForAdmin?: boolean) => {
+    // Show "Needs Review" badge for flagged surveys (admin only)
+    if (flaggedForAdmin && currentUser?.role === 'admin') {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300">
+          <AlertTriangle className="w-3 h-3 mr-1" />
+          Needs Review
+        </span>
+      );
+    }
+
     const styles = {
       draft: 'bg-gray-100 text-gray-700 border-gray-300',
       in_progress: 'bg-yellow-100 text-yellow-700 border-yellow-300',
@@ -647,7 +828,11 @@ export default function Feedback360Dashboard({
       </div>
 
       {/* Pipeline Stats with Risk Flags */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-6">
+      <div className={`grid gap-4 mt-6 ${
+        currentUser?.role === 'admin'
+          ? 'grid-cols-3 lg:grid-cols-6'
+          : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'
+      }`}>
         <button
           onClick={() => setFilterStatus('all')}
           className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
@@ -717,6 +902,26 @@ export default function Feedback360Dashboard({
           </div>
         </button>
 
+        {/* Needs Review - Admin Only */}
+        {currentUser?.role === 'admin' && (
+          <button
+            onClick={() => setFilterStatus('needs_review')}
+            className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
+              filterStatus === 'needs_review'
+                ? 'border-red-500 bg-red-50'
+                : 'bg-white border-red-200 hover:bg-red-50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-red-700">Needs Review</p>
+                <p className="text-2xl font-bold text-red-900">{stats.needs_review}</p>
+              </div>
+              <AlertTriangle className="w-8 h-8 text-red-400" />
+            </div>
+          </button>
+        )}
+
         <button
           onClick={() => setFilterStatus('finalized')}
           className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
@@ -750,6 +955,8 @@ export default function Feedback360Dashboard({
                 ? 'No reviews yet'
                 : filterStatus === 'draft'
                 ? 'No review drafts'
+                : filterStatus === 'needs_review'
+                ? 'No reviews need admin review'
                 : `No reviews ${filterStatus === 'in_progress' ? 'in progress' : filterStatus}`}
             </h3>
             {filterStatus === 'all' && (
@@ -784,8 +991,13 @@ export default function Feedback360Dashboard({
                 key={survey.id}
                 className="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => {
-                  setSelectedSurvey(survey);
-                  setIsDetailsModalOpen(true);
+                  // If it's a completed survey that has been viewed before, go straight to results
+                  if (survey.status === 'completed' && hasSurveyBeenViewed(survey.id)) {
+                    loadAndShowResults(survey);
+                  } else {
+                    setSelectedSurvey(survey);
+                    setIsDetailsModalOpen(true);
+                  }
                 }}
               >
                 <div className="flex items-start justify-between">
@@ -893,7 +1105,7 @@ export default function Feedback360Dashboard({
                 {/* Right side: Status badge and actions */}
                 <div className="ml-4 flex flex-col items-end gap-2">
                   {/* Status badge */}
-                  {getStatusBadge(survey.status)}
+                  {getStatusBadge(survey.status, survey.flagged_for_admin)}
 
                   {/* Remind button */}
                   {survey.status === 'active' && (survey.completed_count ?? 0) !== (survey.reviewers_count ?? 0) && (
@@ -1000,7 +1212,7 @@ export default function Feedback360Dashboard({
                         <span className="ml-2 text-sm text-gray-600">• {selectedSurvey.employee.title}</span>
                       )}
                     </div>
-                    {getStatusBadge(selectedSurvey.status)}
+                    {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin)}
                   </div>
                   <div className="flex items-center gap-6">
                     {selectedSurvey.due_date && (
@@ -1147,7 +1359,20 @@ export default function Feedback360Dashboard({
 
               {/* Actions */}
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                <div className="space-x-2">
+                <div>
+                  {/* Send Backward - Always on left, always grey */}
+                  {(selectedSurvey.status === 'in_progress' || selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (
+                    <button
+                      onClick={() => sendBackward(selectedSurvey.id, selectedSurvey.status)}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium flex items-center"
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-2" />
+                      Send Backward
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {/* Send Reminders for in_progress when not all completed */}
                   {selectedSurvey.status === 'in_progress' &&
                    (selectedSurvey.completed_count ?? 0) !== (selectedSurvey.reviewers_count ?? 0) && (
                     <button
@@ -1158,80 +1383,42 @@ export default function Feedback360Dashboard({
                       Send Reminders
                     </button>
                   )}
+                  {/* Complete with AI for in_progress when all completed */}
+                  {selectedSurvey.status === 'in_progress' &&
+                   (selectedSurvey.completed_count ?? 0) === (selectedSurvey.reviewers_count ?? 0) &&
+                   (selectedSurvey.reviewers_count ?? 0) > 0 && (
+                    <button
+                      onClick={completeSurveyWithAI}
+                      disabled={isGeneratingAnalysis}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-medium flex items-center disabled:opacity-50"
+                    >
+                      {isGeneratingAnalysis ? (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
+                          Generating Analysis...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Complete Review with AI Analysis
+                        </>
+                      )}
+                    </button>
+                  )}
+                  {/* View Completed Review for completed status */}
                   {selectedSurvey.status === 'completed' && (
                     <button
-                      onClick={() => sendBackward(selectedSurvey.id)}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium flex items-center"
+                      onClick={() => {
+                        setIsDetailsModalOpen(false);
+                        loadAndShowResults(selectedSurvey);
+                      }}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-medium flex items-center"
                     >
-                      <ChevronLeft className="w-4 h-4 mr-2" />
-                      Send Backward
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      View Completed Review
                     </button>
                   )}
                 </div>
-                {selectedSurvey.status === 'in_progress' &&
-                 (selectedSurvey.completed_count ?? 0) === (selectedSurvey.reviewers_count ?? 0) &&
-                 (selectedSurvey.reviewers_count ?? 0) > 0 && (
-                  <button
-                    onClick={completeSurveyWithAI}
-                    disabled={isGeneratingAnalysis}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-medium flex items-center disabled:opacity-50"
-                  >
-                    {isGeneratingAnalysis ? (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
-                        Generating Analysis...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Complete Review with AI Analysis
-                      </>
-                    )}
-                  </button>
-                )}
-                {selectedSurvey.status === 'completed' && (
-                  <button
-                    onClick={async () => {
-                      // Reload the analysis and open results modal
-                      try {
-                        const { data: responses, error } = await supabase
-                          .from('feedback_360_responses')
-                          .select('*, question:feedback_360_questions(question_text, category)')
-                          .eq('survey_id', selectedSurvey.id);
-
-                        if (error) throw error;
-
-                        const analysis = {
-                          summary: 'Overall performance demonstrates strong technical skills with opportunities for growth in leadership.',
-                          strengths: ['Strong technical expertise', 'Excellent collaboration', 'Proactive problem-solving'],
-                          areasForImprovement: ['Communication clarity', 'Delegation skills', 'Time management'],
-                          responses,
-                        };
-
-                        setSurveyResults(analysis);
-                        setIsDetailsModalOpen(false);
-                        setIsResultsModalOpen(true);
-                      } catch (error) {
-                        console.error('Error loading survey results:', error);
-                        notify({
-                          title: 'Error',
-                          description: 'Failed to load review results',
-                          variant: 'error',
-                        });
-                      }
-                    }}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-medium flex items-center"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    View Completed Review
-                  </button>
-                )}
-                {selectedSurvey.status === 'finalized' && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <CheckCircle className="w-4 h-4 mr-2 text-purple-600" />
-                    <span>Review finalized</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -1241,12 +1428,398 @@ export default function Feedback360Dashboard({
       {/* Review Results Modal */}
       {isResultsModalOpen && surveyResults && selectedSurvey && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
+          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Review Results & AI Analysis</h2>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">360° Review Results & AI Analysis</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Generated by {surveyResults.generated_by || 'Claude AI'} on {new Date(surveyResults.generated_at || Date.now()).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const reportData = {
+                          survey_name: selectedSurvey.survey_name || 'Untitled Survey',
+                          employee_name: selectedSurvey.employee?.name || 'Unknown',
+                          generated_by: surveyResults.generated_by,
+                          generated_at: surveyResults.generated_at,
+                          themes: surveyResults.themes,
+                          overall_strengths: surveyResults.overall_strengths,
+                          development_areas: surveyResults.development_areas,
+                          recommendations: surveyResults.recommendations,
+                          key_insights: surveyResults.key_insights,
+                          sentiment_by_relationship: surveyResults.sentiment_by_relationship,
+                          consensus_areas: surveyResults.consensus_areas,
+                          outlier_opinions: surveyResults.outlier_opinions
+                        };
+
+                        const filename = await exportReportAsPDF(reportData);
+                        notify({
+                          title: 'Success',
+                          description: `Report exported as ${filename}`,
+                          variant: 'success',
+                        });
+                      } catch (error) {
+                        console.error('Error exporting PDF:', error);
+                        notify({
+                          title: 'Error',
+                          description: 'Failed to export PDF',
+                          variant: 'error',
+                        });
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export PDF
+                  </button>
+                  <button
+                    onClick={() => setIsResultsModalOpen(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Review Info */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{selectedSurvey.survey_name}</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Employee:</span>
+                    <span className="ml-2 font-medium text-gray-900">{selectedSurvey.employee?.name || 'Unknown'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Reviewers:</span>
+                    <span className="ml-2 font-medium text-gray-900">
+                      {selectedSurvey.completed_count} of {selectedSurvey.reviewers_count} completed
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key Themes */}
+              {surveyResults.themes && surveyResults.themes.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Sparkles className="w-5 h-5 text-purple-600" />
+                    <h4 className="text-lg font-semibold text-gray-900">Key Themes</h4>
+                  </div>
+                  <div className="space-y-3">
+                    {surveyResults.themes.map((theme: any, idx: number) => (
+                      <div key={idx} className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors">
+                        <div className="flex items-start justify-between mb-2">
+                          <h5 className="font-medium text-gray-900">{theme.theme}</h5>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            theme.sentiment === 'very_positive' ? 'bg-emerald-100 text-emerald-700' :
+                            theme.sentiment === 'positive' ? 'bg-green-100 text-green-700' :
+                            theme.sentiment === 'mixed' ? 'bg-yellow-100 text-yellow-700' :
+                            theme.sentiment === 'needs_work' ? 'bg-orange-100 text-orange-700' :
+                            theme.sentiment === 'critical' ? 'bg-red-100 text-red-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {theme.sentiment === 'very_positive' ? 'Very Positive' :
+                             theme.sentiment === 'positive' ? 'Positive' :
+                             theme.sentiment === 'mixed' ? 'Mixed' :
+                             theme.sentiment === 'needs_work' ? 'Needs Work' :
+                             theme.sentiment === 'critical' ? 'Critical' :
+                             theme.sentiment}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-2">
+                          Mentioned by {theme.frequency} reviewer{theme.frequency !== 1 ? 's' : ''}
+                          {theme.relationships_mentioned && theme.relationships_mentioned.length > 0 && (
+                            <span> ({theme.relationships_mentioned.join(', ')})</span>
+                          )}
+                        </p>
+                        {theme.supporting_evidence && theme.supporting_evidence.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {theme.supporting_evidence.map((evidence: string, qIdx: number) => (
+                              <p key={qIdx} className="text-sm text-gray-600 pl-3 border-l-2 border-gray-300">
+                                {evidence}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Strengths */}
+              {surveyResults.overall_strengths && surveyResults.overall_strengths.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    Key Strengths
+                  </h4>
+                  <ul className="space-y-2">
+                    {surveyResults.overall_strengths.map((strength: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="text-green-600 mt-1">•</span>
+                        <span className="text-gray-700">{strength}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Development Areas */}
+              {surveyResults.development_areas && surveyResults.development_areas.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    Development Areas
+                  </h4>
+                  <ul className="space-y-2">
+                    {surveyResults.development_areas.map((area: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="text-amber-600 mt-1">•</span>
+                        <span className="text-gray-700">{area}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {surveyResults.recommendations && surveyResults.recommendations.length > 0 && (
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-blue-600" />
+                    Recommended Actions
+                  </h4>
+                  <ul className="space-y-2">
+                    {surveyResults.recommendations.map((rec: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="text-blue-600 mt-1">{idx + 1}.</span>
+                        <span className="text-gray-700">{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Key Insights */}
+              {surveyResults.key_insights && surveyResults.key_insights.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-purple-600" />
+                    Key Insights
+                  </h4>
+                  <ul className="space-y-2">
+                    {surveyResults.key_insights.map((insight: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="text-purple-600 mt-1">💡</span>
+                        <span className="text-gray-700">{insight}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Sentiment by Relationship */}
+              {surveyResults.sentiment_by_relationship && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Sentiment by Relationship</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {(() => {
+                      const validRelationships = ['manager', 'peer', 'direct_report', 'cross_functional'];
+                      const relationshipLabels: Record<string, string> = {
+                        manager: 'Manager',
+                        peer: 'Peer',
+                        direct_report: 'Direct Report',
+                        cross_functional: 'Cross-Functional'
+                      };
+
+                      return validRelationships.map((relationship) => {
+                        const score = surveyResults.sentiment_by_relationship[relationship];
+                        const hasReviewers = score !== undefined && score !== null;
+
+                        return (
+                          <div key={relationship} className="bg-gray-50 rounded-lg p-3 text-center">
+                            <p className="text-xs text-gray-600 mb-1">{relationshipLabels[relationship]}</p>
+                            {hasReviewers ? (
+                              <>
+                                <p className="text-2xl font-bold text-gray-900">{(score * 100).toFixed(0)}%</p>
+                                <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                                  <div
+                                    className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all"
+                                    style={{ width: `${score * 100}%` }}
+                                  />
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-sm text-gray-500 mt-2">No reviewers</p>
+                                <div className="mt-2 w-full bg-gray-200 rounded-full h-2"></div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* Consensus & Outliers */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {surveyResults.consensus_areas && surveyResults.consensus_areas.length > 0 && (
+                  <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      Strong Consensus
+                    </h4>
+                    <ul className="space-y-1 text-sm">
+                      {surveyResults.consensus_areas.map((area: string, idx: number) => (
+                        <li key={idx} className="text-gray-700">• {area}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {surveyResults.outlier_opinions && surveyResults.outlier_opinions.length > 0 && (
+                  <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600" />
+                      Unique Perspectives
+                    </h4>
+                    <ul className="space-y-1 text-sm">
+                      {surveyResults.outlier_opinions.map((opinion: string, idx: number) => (
+                        <li key={idx} className="text-gray-700">• {opinion}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Actions Footer - Anchored at bottom */}
+            <div className="border-t border-gray-200 bg-white p-6">
+              {/* Admin viewing flagged survey - special controls */}
+              {currentUser?.role === 'admin' && selectedSurvey.flagged_for_admin ? (
+                <div className="space-y-4">
+                  {/* Top row: Admin tools */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => loadRawSurveyData(selectedSurvey.id)}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center"
+                      >
+                        <AlertTriangle className="w-4 h-4 mr-2" />
+                        View Raw Data
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => reanalyzeSurvey(selectedSurvey.id, 'standard')}
+                          disabled={isGeneratingAnalysis}
+                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center disabled:opacity-50"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          {isGeneratingAnalysis ? 'Analyzing...' : 'Reanalyze'}
+                        </button>
+                        <button
+                          onClick={() => reanalyzeSurvey(selectedSurvey.id, 'softer')}
+                          disabled={isGeneratingAnalysis}
+                          className="px-4 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-200 transition-colors font-medium flex items-center disabled:opacity-50"
+                        >
+                          Reanalyze (Softer Tone)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Bottom row: Standard actions */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => sendBackward(selectedSurvey.id, 'completed')}
+                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium flex items-center"
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-2" />
+                      Send Backward
+                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setIsResultsModalOpen(false)}
+                        className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                      >
+                        Close
+                      </button>
+                      <button
+                        onClick={() => finalizeSurvey(selectedSurvey.id)}
+                        className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Finalize
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Normal footer for non-admin or non-flagged surveys */
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => sendBackward(selectedSurvey.id, 'completed')}
+                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium flex items-center"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-2" />
+                    Send Backward
+                  </button>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setIsResultsModalOpen(false)}
+                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={() => sendToHR(selectedSurvey.id)}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors font-medium flex items-center"
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      Send to HR for Review
+                    </button>
+                    <button
+                      onClick={() => finalizeSurvey(selectedSurvey.id)}
+                      className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Finalize
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Raw Data Modal */}
+      {showRawData && rawSurveyData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Raw Survey Data</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {rawSurveyData.employee?.full_name} • {rawSurveyData.responses?.length || 0} responses
+                  </p>
+                </div>
                 <button
-                  onClick={() => setIsResultsModalOpen(false)}
+                  onClick={() => {
+                    setShowRawData(false);
+                    setRawSurveyData(null);
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-6 h-6" />
@@ -1254,76 +1827,107 @@ export default function Feedback360Dashboard({
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Review Info */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{selectedSurvey.survey_name}</h3>
-                <p className="text-sm text-gray-600">
-                  Employee: <strong>{selectedSurvey.employee?.name || 'Unknown'}</strong>
-                </p>
-                <p className="text-sm text-gray-600">
-                  Reviewers: {selectedSurvey.completed_count} of {selectedSurvey.reviewers_count} completed
-                </p>
-              </div>
-
-              {/* AI Analysis Summary */}
-              <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="w-5 h-5 text-purple-600" />
-                  <h4 className="text-lg font-semibold text-gray-900">AI Analysis Summary</h4>
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Survey Info */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-900 mb-3">Survey Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Survey Name:</span>
+                    <span className="ml-2 font-medium text-gray-900">{rawSurveyData.survey_name}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Status:</span>
+                    <span className="ml-2 font-medium text-gray-900">{rawSurveyData.status}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Created:</span>
+                    <span className="ml-2 font-medium text-gray-900">
+                      {new Date(rawSurveyData.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Reviewers:</span>
+                    <span className="ml-2 font-medium text-gray-900">
+                      {rawSurveyData.reviewers?.length || 0}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-gray-700 leading-relaxed">{surveyResults.summary}</p>
               </div>
 
-              {/* Strengths */}
+              {/* Reviewers */}
               <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  Key Strengths
-                </h4>
-                <ul className="space-y-2">
-                  {surveyResults.strengths.map((strength: string, idx: number) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="text-green-600 mt-1">•</span>
-                      <span className="text-gray-700">{strength}</span>
-                    </li>
+                <h3 className="font-semibold text-gray-900 mb-3">Reviewers</h3>
+                <div className="space-y-2">
+                  {rawSurveyData.reviewers?.map((reviewer: any) => (
+                    <div key={reviewer.id} className="bg-white border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">{reviewer.reviewer_name}</p>
+                          <p className="text-sm text-gray-600">{reviewer.reviewer_email}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded">
+                            {reviewer.relationship}
+                          </span>
+                          <span className={`px-2 py-1 text-xs font-medium rounded ${
+                            reviewer.status === 'completed'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {reviewer.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
 
-              {/* Areas for Improvement */}
+              {/* Raw Responses */}
               <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-600" />
-                  Areas for Improvement
-                </h4>
-                <ul className="space-y-2">
-                  {surveyResults.areasForImprovement.map((area: string, idx: number) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="text-amber-600 mt-1">•</span>
-                      <span className="text-gray-700">{area}</span>
-                    </li>
+                <h3 className="font-semibold text-gray-900 mb-3">All Responses</h3>
+                <div className="space-y-4">
+                  {rawSurveyData.responses?.map((response: any) => (
+                    <div key={response.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {response.reviewer?.reviewer_name || 'Anonymous'}
+                          </p>
+                          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
+                            {response.reviewer?.relationship || 'Unknown'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <p className="text-sm text-gray-600 mb-1">Question:</p>
+                        <p className="text-sm font-medium text-gray-900 mb-2">
+                          {rawSurveyData.questions?.find((q: any) => q.id === response.question_id)?.question_text || 'Question not found'}
+                        </p>
+                        <p className="text-sm text-gray-600 mb-1">Response:</p>
+                        <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded">
+                          {response.response_text}
+                        </p>
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
+            </div>
 
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => finalizeSurvey(selectedSurvey.id)}
-                  className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Finalize
-                </button>
-                <button
-                  onClick={() => sendToHR(selectedSurvey.id)}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors font-medium flex items-center"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  Send to HR for Review
-                </button>
-              </div>
+            {/* Footer */}
+            <div className="border-t border-gray-200 bg-white p-6">
+              <button
+                onClick={() => {
+                  setShowRawData(false);
+                  setRawSurveyData(null);
+                }}
+                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

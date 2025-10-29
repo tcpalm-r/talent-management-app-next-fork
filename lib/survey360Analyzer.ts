@@ -19,6 +19,7 @@ interface AnalysisInput {
   responses: Survey360Response[];
   participants: Survey360Participant[];
   questions: SurveyQuestion[];
+  tone?: 'standard' | 'softer';
 }
 
 /**
@@ -28,12 +29,16 @@ interface AnalysisInput {
 export async function analyzeSurvey360Responses(
   input: AnalysisInput
 ): Promise<Omit<Survey360Report, 'id' | 'created_at' | 'updated_at'>> {
-  const { survey, responses, participants, questions } = input;
+  const { survey, responses, participants, questions, tone = 'standard' } = input;
 
   // Prepare structured data for AI analysis
   const structuredResponses = prepareResponsesForAnalysis(responses, participants, questions);
 
-  const prompt = `You are an expert organizational psychologist specializing in 360-degree feedback analysis. Analyze these survey responses to identify themes, patterns, and actionable insights.
+  const toneGuidance = tone === 'softer'
+    ? '\n\nTONE GUIDANCE: Use a supportive and constructive tone. Frame challenges as growth opportunities. Balance criticism with encouragement. Focus on potential and progress rather than deficiencies. Use phrases like "opportunity to enhance" rather than "weakness" or "needs improvement".'
+    : '';
+
+  const prompt = `You are an expert organizational psychologist specializing in 360-degree feedback analysis. Analyze these survey responses to identify themes, patterns, and actionable insights.${toneGuidance}
 
 EMPLOYEE BEING REVIEWED: ${survey.employee_name}
 SURVEY TITLE: ${survey.survey_title}
@@ -45,15 +50,15 @@ ${questions.map((q, i) => `${i + 1}. ${q.question} (${q.type})`).join('\n')}
 RESPONSES BY RELATIONSHIP TYPE:
 ${structuredResponses}
 
-Please provide a comprehensive analysis in the following JSON format:
+IMPORTANT: Respond ONLY with valid JSON. Do not include any explanatory text before or after the JSON object. Return exactly this structure:
 
 {
   "themes": [
     {
       "theme": "Concise theme name (e.g., 'Strong Communication Skills')",
-      "sentiment": "positive" | "neutral" | "negative" | "mixed",
+      "sentiment": "very_positive" | "positive" | "mixed" | "needs_work" | "critical",
       "frequency": <number of participants who mentioned this>,
-      "supporting_quotes": ["anonymized quote 1", "anonymized quote 2"],
+      "supporting_evidence": ["Synthesized summary of feedback (NO direct quotes)", "Another paraphrased observation"],
       "relationships_mentioned": ["manager", "peer", "direct_report"]
     }
   ],
@@ -73,8 +78,7 @@ Please provide a comprehensive analysis in the following JSON format:
     "manager": 0.85,
     "peer": 0.78,
     "direct_report": 0.92,
-    "self": 0.70,
-    "other": 0.80
+    "cross_functional": 0.80
   },
   "key_insights": [
     "Important pattern or insight from the data",
@@ -90,18 +94,30 @@ Please provide a comprehensive analysis in the following JSON format:
   ]
 }
 
+CRITICAL - ANONYMITY REQUIREMENTS:
+- NEVER include direct quotes or verbatim text from responses
+- ALWAYS paraphrase and synthesize feedback across multiple sources
+- Use general attributions (e.g., "Multiple reviewers noted...", "Feedback consistently indicated...")
+- Combine similar feedback from different sources into synthesized observations
+
 ANALYSIS GUIDELINES:
 1. **Themes**: Identify 5-8 major themes. Look for patterns across responses.
-2. **Supporting Quotes**: Anonymize quotes (e.g., "A peer noted..." instead of names). Include 2-3 quotes per theme.
-3. **Sentiment Scores**: Rate 0-1 (0=very negative, 0.5=neutral, 1=very positive) based on tone and content.
-4. **Strengths**: List 3-5 clear strengths mentioned by multiple participants.
-5. **Development Areas**: Identify 3-5 areas for growth with consensus.
-6. **Recommendations**: Provide 4-6 specific, actionable steps.
-7. **Key Insights**: Surface 3-5 important patterns or observations.
-8. **Consensus**: Highlight areas where 70%+ of participants agree.
-9. **Outliers**: Note any unique perspectives that differ from majority.
+2. **Supporting Evidence**: Paraphrase and synthesize feedback (NO direct quotes). Combine observations from multiple reviewers.
+3. **Sentiment Classification**: Use constructive language:
+   - "very_positive": Exceptional strengths with unanimous praise
+   - "positive": Clear strengths recognized by multiple reviewers
+   - "mixed": Balance of positive and constructive feedback
+   - "needs_work": Areas requiring attention and development
+   - "critical": Serious concerns requiring immediate action
+4. **Sentiment Scores by Relationship**: Rate 0-1 (0=critical concerns, 0.5=mixed, 1=very positive) based on overall tone and content. ONLY analyze these four relationship types: "manager", "peer", "direct_report", and "cross_functional". Do not include "self" or "other" categories.
+5. **Strengths**: List 3-5 clear strengths mentioned by multiple participants. Synthesize, don't quote.
+6. **Development Areas**: Identify 3-5 areas for growth with consensus. Use paraphrased summaries and constructive language.
+7. **Recommendations**: Provide 4-6 specific, actionable steps based on synthesized feedback.
+8. **Key Insights**: Surface 3-5 important patterns or observations. Focus on trends, not individual comments.
+9. **Consensus**: Highlight areas where 70%+ of participants agree.
+10. **Outliers**: Note any unique perspectives that differ from majority (paraphrase only).
 
-Focus on being balanced, specific, and actionable. Provide concrete evidence for claims.`;
+Focus on being balanced, specific, and actionable. Maintain strict anonymity by paraphrasing all feedback.`;
 
   try {
     const response = await anthropic.messages.create({
@@ -121,12 +137,19 @@ Focus on being balanced, specific, and actionable. Provide concrete evidence for
       throw new Error('Unexpected response type from Claude');
     }
 
-    // Extract JSON from response (handle code blocks)
+    // Extract JSON from response (handle code blocks and surrounding text)
     let jsonText = content.text.trim();
-    if (jsonText.startsWith('```json')) {
-      jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
-    } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/```\n?/g, '').replace(/```\n?$/g, '');
+
+    // Try to find JSON in code blocks first
+    const jsonBlockMatch = jsonText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+    if (jsonBlockMatch) {
+      jsonText = jsonBlockMatch[1];
+    } else {
+      // Try to find raw JSON object (look for outermost braces)
+      const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonText = jsonMatch[0];
+      }
     }
 
     const analysis = JSON.parse(jsonText);
@@ -216,8 +239,7 @@ function generateFallbackAnalysis(input: AnalysisInput): Omit<Survey360Report, '
     manager: 0,
     peer: 0,
     direct_report: 0,
-    self: 0,
-    other: 0,
+    cross_functional: 0,
   };
 
   const participantMap = new Map(participants.map(p => [p.id, p]));
@@ -253,9 +275,9 @@ function generateFallbackAnalysis(input: AnalysisInput): Omit<Survey360Report, '
     themes: [
       {
         theme: 'Overall Performance',
-        sentiment: 'positive',
+        sentiment: 'mixed',
         frequency: responses.length,
-        supporting_quotes: ['Survey responses collected successfully'],
+        supporting_evidence: ['Survey responses collected successfully - detailed AI analysis unavailable'],
         relationships_mentioned: Object.keys(relationshipCounts) as ParticipantRelationship[],
       },
     ],
