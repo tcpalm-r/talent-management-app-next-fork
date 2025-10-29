@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Target, UserPlus } from 'lucide-react';
 import type { Employee, Department, EmployeePlan } from '../types';
 // import PlansDashboard from './PlansDashboard'; // TODO: Create PlansDashboard component
-import OnboardingDashboard from './OnboardingDashboard';
+// import OnboardingDashboard from './OnboardingDashboard'; // TODO: Create OnboardingDashboard component
 import { NavigationTabs } from './unified';
 
 interface DevelopmentDashboardProps {
@@ -67,11 +67,9 @@ export default function DevelopmentDashboard({
           )}
 
           {activeView === 'onboarding' && (
-            <OnboardingDashboard
-              employees={scopedEmployees}
-              departments={scopedDepartments}
-              onEmployeeClick={onEmployeeClick}
-            />
+            <div className="text-center py-12 text-gray-500">
+              <p>Onboarding dashboard coming soon.</p>
+            </div>
           )}
         </div>
       </div>
