@@ -13,6 +13,7 @@ import {
   Send,
   Sparkles,
   Search,
+  Trash2,
 } from 'lucide-react';
 import type { Employee, Survey360, ParticipantRelationship } from '../types';
 import { useToast } from './unified';
@@ -33,6 +34,7 @@ interface Survey360WizardProps {
   onSurveyCreated: () => void;
   employees: Employee[];
   currentUser?: Employee; // Current logged-in user for tracking who created the survey
+  draftSurvey?: any; // Optional: Draft survey to edit
 }
 
 type WizardStep = 'who' | 'competencies' | 'raters' | 'timeline' | 'preview';
@@ -76,10 +78,11 @@ export default function Survey360Wizard({
   onSurveyCreated,
   employees,
   currentUser,
+  draftSurvey,
 }: Survey360WizardProps) {
   const { notify } = useToast();
   const isBatchMode = !!preselectedEmployees && preselectedEmployees.length > 0;
-  const [currentStep, setCurrentStep] = useState<WizardStep>(isBatchMode ? 'competencies' : 'who');
+  const [currentStep, setCurrentStep] = useState<WizardStep>(draftSurvey ? 'preview' : (isBatchMode ? 'competencies' : 'who'));
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>(preselectedEmployee);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
@@ -163,12 +166,85 @@ export default function Survey360Wizard({
     loadDefaultQuestions();
   }, []);
 
-  // Reset wizard state when opened
+  // Reset wizard state when opened (but not if editing a draft)
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !draftSurvey) {
       resetWizard();
     }
-  }, [isOpen]);
+  }, [isOpen, draftSurvey]);
+
+  // Load draft survey data when editing an existing draft
+  useEffect(() => {
+    const loadDraftSurveyData = async () => {
+      if (!isOpen || !draftSurvey) return;
+
+      try {
+        // Set the employee
+        const employee = employees.find(e => e.id === draftSurvey.employee_id);
+        if (employee) {
+          setSelectedEmployee(employee);
+        }
+
+        // Load survey questions
+        const { data: surveyQuestions } = await supabase
+          .from('feedback_360_survey_questions')
+          .select('*, feedback_360_questions(question_text, category)')
+          .eq('survey_id', draftSurvey.id)
+          .order('question_order', { ascending: true });
+
+        if (surveyQuestions && surveyQuestions.length > 0) {
+          const allQuestions: string[] = surveyQuestions
+            .map((sq: any) => sq.feedback_360_questions?.question_text || '')
+            .filter((text: string) => text.trim().length > 0);
+
+          if (allQuestions.length > 0) {
+            // First 3 questions are required, rest are custom
+            const required = allQuestions.slice(0, 3);
+            const custom = allQuestions.slice(3);
+
+            if (required.length > 0) {
+              setRequiredQuestions(required);
+            }
+            if (custom.length > 0) {
+              setCustomQuestions(custom);
+            }
+          }
+        }
+
+        // Load reviewers
+        const { data: reviewers } = await supabase
+          .from('feedback_360_survey_reviewers')
+          .select('*')
+          .eq('survey_id', draftSurvey.id);
+
+        if (reviewers) {
+          setRaters(reviewers.map((r: any) => ({
+            name: r.reviewer_name,
+            email: r.reviewer_email,
+            relationship: r.relationship,
+          })));
+        }
+
+        // Set other fields
+        setSurveyTitle(draftSurvey.survey_name || '');
+        if (draftSurvey.due_date) {
+          // Format date to yyyy-MM-dd for the input field
+          const dateObj = new Date(draftSurvey.due_date);
+          const formattedDate = dateObj.toISOString().split('T')[0];
+          setDueDate(formattedDate);
+        }
+        setIsAnonymous(draftSurvey.is_anonymous !== false);
+
+        // Note: currentStep is already set to 'preview' in useState initialization
+        // No need to set it here - the useEffect for loadDraftSurveyData loads the data
+        // and the preview step will display it
+      } catch (error) {
+        console.error('Error loading draft survey data:', error);
+      }
+    };
+
+    loadDraftSurveyData();
+  }, [isOpen, draftSurvey, employees]);
 
   // Filter employees based on search
   const filteredEmployees = employees.filter(emp =>
@@ -229,6 +305,12 @@ export default function Survey360Wizard({
   };
 
   const handleClose = async () => {
+    // Skip auto-save if we're editing an existing draft (user will click "Launch" to save changes)
+    if (draftSurvey) {
+      onClose();
+      return;
+    }
+
     // Only save draft if there's meaningful progress and we're not on the last step
     const hasProgress = selectedEmployee && currentStepIndex < steps.length - 1;
 
@@ -326,6 +408,58 @@ export default function Survey360Wizard({
     onClose();
   };
 
+  const handleDeleteDraft = async () => {
+    if (!draftSurvey) return;
+
+    if (!confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // Delete survey questions
+      await supabase
+        .from('feedback_360_survey_questions')
+        .delete()
+        .eq('survey_id', draftSurvey.id);
+
+      // Delete survey reviewers
+      await supabase
+        .from('feedback_360_survey_reviewers')
+        .delete()
+        .eq('survey_id', draftSurvey.id);
+
+      // Delete survey responses if any
+      await supabase
+        .from('feedback_360_responses')
+        .delete()
+        .eq('survey_id', draftSurvey.id);
+
+      // Delete the survey itself
+      const { error } = await supabase
+        .from('feedback_360_surveys')
+        .delete()
+        .eq('id', draftSurvey.id);
+
+      if (error) throw error;
+
+      notify({
+        title: 'Draft deleted',
+        description: 'The review draft has been permanently deleted.',
+        variant: 'success',
+      });
+
+      onSurveyCreated();
+      onClose();
+    } catch (error) {
+      console.error('Error deleting draft:', error);
+      notify({
+        title: 'Error',
+        description: 'Failed to delete the draft.',
+        variant: 'error',
+      });
+    }
+  };
+
   const applyTemplate = (templateId: string) => {
     const template = SURVEY_TEMPLATES.find(t => t.id === templateId);
     if (!template) return;
@@ -359,25 +493,46 @@ export default function Survey360Wizard({
       let successCount = 0;
       let failCount = 0;
 
-      for (const employee of employeesToProcess) {
+      // If editing a draft, work with just that draft
+      if (draftSurvey) {
         try {
-          // Create survey
-          const { data: survey, error: surveyError } = await supabase
-            .from('feedback_360_surveys')
-            .insert({
-              employee_id: employee.id,
-              survey_name: surveyTitle || `360° Feedback - ${employee.name}`,
-              status: 'draft',
-              due_date: dueDate,
-              created_by: currentUser?.id || currentUser?.email || 'unknown',
-            })
-            .select()
-            .single();
+          console.log('[DRAFT UPDATE] Starting draft update for survey:', draftSurvey.id);
 
-          if (surveyError) throw surveyError;
+          // Delete existing questions (but keep reviewers so they can be re-launched)
+          console.log('[DRAFT UPDATE] Deleting existing questions...');
+          const { error: deleteQuestionsError } = await supabase
+            .from('feedback_360_survey_questions')
+            .delete()
+            .eq('survey_id', draftSurvey.id);
+
+          if (deleteQuestionsError) {
+            console.error('[DRAFT UPDATE] Error deleting questions:', deleteQuestionsError);
+            throw deleteQuestionsError;
+          }
+          console.log('[DRAFT UPDATE] Questions deleted successfully');
+
+          // Update survey with new data
+          console.log('[DRAFT UPDATE] Updating survey with new data:', { surveyTitle, dueDate });
+          const { error: updateError } = await supabase
+            .from('feedback_360_surveys')
+            .update({
+              survey_name: surveyTitle || `360° Feedback - ${selectedEmployee?.name}`,
+              due_date: dueDate,
+            })
+            .eq('id', draftSurvey.id);
+
+          if (updateError) {
+            console.error('[DRAFT UPDATE] Error updating survey:', updateError);
+            throw updateError;
+          }
+          console.log('[DRAFT UPDATE] Survey updated successfully');
+
+          // Use the draft survey ID
+          const survey = draftSurvey;
 
           // Combine required and custom questions
           const allQuestions = [...requiredQuestions, ...customQuestions];
+          console.log('[DRAFT UPDATE] All questions to add:', allQuestions);
           const questionUUIDs: string[] = [];
 
           for (const questionText of allQuestions) {
@@ -390,11 +545,13 @@ export default function Survey360Wizard({
 
             if (checkError && checkError.code !== 'PGRST116') {
               // PGRST116 = no rows returned, which is fine
+              console.error('[DRAFT UPDATE] Error checking question:', checkError);
               throw checkError;
             }
 
             if (!existingQuestion) {
               // Create the question
+              console.log('[DRAFT UPDATE] Creating new question:', questionText);
               const { data: newQuestion, error: createError } = await supabase
                 .from('feedback_360_questions')
                 .insert({
@@ -406,12 +563,18 @@ export default function Survey360Wizard({
                 .select('id')
                 .single();
 
-              if (createError) throw createError;
+              if (createError) {
+                console.error('[DRAFT UPDATE] Error creating question:', createError);
+                throw createError;
+              }
               questionUUIDs.push(newQuestion.id);
             } else {
+              console.log('[DRAFT UPDATE] Question already exists:', existingQuestion.id);
               questionUUIDs.push(existingQuestion.id);
             }
           }
+
+          console.log('[DRAFT UPDATE] Question UUIDs:', questionUUIDs);
 
           // Create survey questions with UUIDs
           const questionsToInsert = questionUUIDs.map((questionUUID, index) => ({
@@ -421,12 +584,30 @@ export default function Survey360Wizard({
           }));
 
           if (questionsToInsert.length > 0) {
+            console.log('[DRAFT UPDATE] Inserting survey questions:', questionsToInsert);
             const { error: questionsError } = await supabase
               .from('feedback_360_survey_questions')
               .insert(questionsToInsert);
 
-            if (questionsError) throw questionsError;
+            if (questionsError) {
+              console.error('[DRAFT UPDATE] Error inserting survey questions:', questionsError);
+              throw questionsError;
+            }
+            console.log('[DRAFT UPDATE] Survey questions inserted successfully');
           }
+
+          // Delete existing reviewers before inserting new ones
+          console.log('[DRAFT UPDATE] Deleting existing reviewers...');
+          const { error: deleteReviewersError } = await supabase
+            .from('feedback_360_survey_reviewers')
+            .delete()
+            .eq('survey_id', survey.id);
+
+          if (deleteReviewersError) {
+            console.error('[DRAFT UPDATE] Error deleting existing reviewers:', deleteReviewersError);
+            throw deleteReviewersError;
+          }
+          console.log('[DRAFT UPDATE] Existing reviewers deleted successfully');
 
           // Create reviewers
           const reviewersToInsert = raters
@@ -440,13 +621,26 @@ export default function Survey360Wizard({
               access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             }));
 
+          console.log('[DRAFT UPDATE] Reviewers to insert:', reviewersToInsert);
+
           if (reviewersToInsert.length > 0) {
+            console.log('[DRAFT UPDATE] Attempting to insert reviewers...');
             const { data: insertedReviewers, error: reviewersError } = await supabase
               .from('feedback_360_survey_reviewers')
               .insert(reviewersToInsert)
               .select();
 
-            if (reviewersError) throw reviewersError;
+            if (reviewersError) {
+              console.error('[DRAFT UPDATE] ERROR inserting reviewers (409 likely):', {
+                error: reviewersError,
+                status: reviewersError.status,
+                code: reviewersError.code,
+                message: reviewersError.message,
+                details: reviewersError.details,
+              });
+              throw reviewersError;
+            }
+            console.log('[DRAFT UPDATE] Reviewers inserted successfully:', insertedReviewers);
 
             // Send invitation emails to each reviewer (with delay to avoid rate limiting)
             if (insertedReviewers && insertedReviewers.length > 0) {
@@ -484,10 +678,152 @@ export default function Survey360Wizard({
             }
           }
 
+          console.log('[DRAFT UPDATE] Draft survey update completed successfully');
           successCount++;
-        } catch (error) {
-          console.error(`Error creating survey for ${employee.name}:`, error);
+        } catch (error: any) {
+          console.error('[DRAFT UPDATE] FINAL ERROR updating draft survey:', {
+            error,
+            message: error?.message,
+            code: error?.code,
+            status: error?.status,
+            details: error?.details,
+            errorMsg: error?.message,
+            toString: error?.toString(),
+          });
           failCount++;
+        }
+      } else {
+        // Create new surveys (original logic)
+        for (const employee of employeesToProcess) {
+          try {
+            // Create survey
+            const { data: survey, error: surveyError } = await supabase
+              .from('feedback_360_surveys')
+              .insert({
+                employee_id: employee.id,
+                survey_name: surveyTitle || `360° Feedback - ${employee.name}`,
+                status: 'draft',
+                due_date: dueDate,
+                created_by: currentUser?.id || currentUser?.email || 'unknown',
+              })
+              .select()
+              .single();
+
+            if (surveyError) throw surveyError;
+
+            // Combine required and custom questions
+            const allQuestions = [...requiredQuestions, ...customQuestions];
+            const questionUUIDs: string[] = [];
+
+            for (const questionText of allQuestions) {
+              // Check if question exists, if not create it
+              let { data: existingQuestion, error: checkError } = await supabase
+                .from('feedback_360_questions')
+                .select('id')
+                .eq('question_text', questionText)
+                .single();
+
+              if (checkError && checkError.code !== 'PGRST116') {
+                // PGRST116 = no rows returned, which is fine
+                throw checkError;
+              }
+
+              if (!existingQuestion) {
+                // Create the question
+                const { data: newQuestion, error: createError } = await supabase
+                  .from('feedback_360_questions')
+                  .insert({
+                    question_text: questionText,
+                    category: 'general',
+                    is_default: false,
+                    is_active: true,
+                  })
+                  .select('id')
+                  .single();
+
+                if (createError) throw createError;
+                questionUUIDs.push(newQuestion.id);
+              } else {
+                questionUUIDs.push(existingQuestion.id);
+              }
+            }
+
+            // Create survey questions with UUIDs
+            const questionsToInsert = questionUUIDs.map((questionUUID, index) => ({
+              survey_id: survey.id,
+              question_id: questionUUID,
+              question_order: index,
+            }));
+
+            if (questionsToInsert.length > 0) {
+              const { error: questionsError } = await supabase
+                .from('feedback_360_survey_questions')
+                .insert(questionsToInsert);
+
+              if (questionsError) throw questionsError;
+            }
+
+            // Create reviewers
+            const reviewersToInsert = raters
+              .filter(r => r.name && r.email)
+              .map(r => ({
+                survey_id: survey.id,
+                reviewer_name: r.name,
+                reviewer_email: r.email,
+                relationship: r.relationship,
+                status: 'pending',
+                access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              }));
+
+            if (reviewersToInsert.length > 0) {
+              const { data: insertedReviewers, error: reviewersError } = await supabase
+                .from('feedback_360_survey_reviewers')
+                .insert(reviewersToInsert)
+                .select();
+
+              if (reviewersError) throw reviewersError;
+
+              // Send invitation emails to each reviewer (with delay to avoid rate limiting)
+              if (insertedReviewers && insertedReviewers.length > 0) {
+                for (let i = 0; i < insertedReviewers.length; i++) {
+                  const reviewer = insertedReviewers[i];
+                  try {
+                    const response = await fetch('/api/send-survey-invitation', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        surveyId: survey.id,
+                        reviewerId: reviewer.id,
+                      }),
+                    });
+
+                    if (!response.ok) {
+                      const error = await response.json();
+                      console.error(`Failed to send email to ${reviewer.reviewer_email}:`, error);
+                    }
+
+                    // Add 600ms delay between emails to respect rate limit (2 per second)
+                    if (i < insertedReviewers.length - 1) {
+                      await new Promise(resolve => setTimeout(resolve, 600));
+                    }
+                  } catch (error) {
+                    console.error(`Error sending email to ${reviewer.reviewer_email}:`, error);
+                  }
+                }
+
+                // Update survey status to 'in_progress' after emails are sent
+                await supabase
+                  .from('feedback_360_surveys')
+                  .update({ status: 'in_progress' })
+                  .eq('id', survey.id);
+              }
+            }
+
+            successCount++;
+          } catch (error) {
+            console.error(`Error creating survey for ${employee.name}:`, error);
+            failCount++;
+          }
         }
       }
 
@@ -548,9 +884,19 @@ export default function Survey360Wizard({
               </p>
             </div>
           </div>
-          <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {draftSurvey && (
+              <button
+                onClick={handleDeleteDraft}
+                className="px-4 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm font-medium"
+              >
+                Delete
+              </button>
+            )}
+            <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Progress Bar */}
@@ -963,13 +1309,6 @@ export default function Survey360Wizard({
                   <div className="text-sm text-gray-600 mb-1">Due Date</div>
                   <div className="font-semibold text-gray-900">
                     {new Date(dueDate).toLocaleDateString()}
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div className="text-sm text-gray-600 mb-1">Privacy</div>
-                  <div className="font-semibold text-gray-900">
-                    {isAnonymous ? 'Anonymous (recommended)' : 'Non-anonymous'}
                   </div>
                 </div>
               </div>

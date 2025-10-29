@@ -48,6 +48,7 @@ export default function Feedback360Dashboard({
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [editingDraftSurvey, setEditingDraftSurvey] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'in_progress' | 'completed' | 'needs_review' | 'finalized'>('all');
   const [preselectedEmployee, setPreselectedEmployee] = useState<Employee | undefined>(undefined);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
@@ -57,6 +58,9 @@ export default function Feedback360Dashboard({
   const [newReviewerName, setNewReviewerName] = useState('');
   const [newReviewerEmail, setNewReviewerEmail] = useState('');
   const [newReviewerRelationship, setNewReviewerRelationship] = useState('peer');
+  const [selectedReviewerEmployee, setSelectedReviewerEmployee] = useState<Employee | null>(null);
+  const [reviewerSearch, setReviewerSearch] = useState('');
+  const [showReviewerPicker, setShowReviewerPicker] = useState(false);
   const [remindedReviewers, setRemindedReviewers] = useState<Set<string>>(new Set());
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
   const [surveyResults, setSurveyResults] = useState<any>(null);
@@ -144,9 +148,9 @@ export default function Feedback360Dashboard({
           // No filtering needed
         } else if (userRole === 'leader') {
           // Leaders can see:
-          // 1. Surveys they created
+          // 1. Surveys they created (including drafts)
           // 2. Surveys where they are the subject (employee_id matches)
-          // 3. Surveys where they are a reviewer
+          // 3. Surveys where they are a reviewer (but NOT if draft - those are creator-only)
           // 4. Surveys for their direct reports
           const directReportIds = employees
             .filter(e => e.reports_to_id === currentUser.id)
@@ -159,6 +163,9 @@ export default function Feedback360Dashboard({
               survey.created_by === currentUser.email
             );
             if (isCreator) return true;
+
+            // Draft surveys should only be visible to their creator
+            if (survey.status === 'draft') return false;
 
             // Survey about the leader themselves
             if (survey.employee_id && survey.employee_id === currentUser.id) return true;
@@ -176,9 +183,9 @@ export default function Feedback360Dashboard({
           });
         } else {
           // Regular users can see ONLY:
-          // 1. Surveys they created
+          // 1. Surveys they created (including drafts)
           // 2. Surveys where they are the subject (employee_id matches)
-          // 3. Surveys where they are a reviewer
+          // 3. Surveys where they are a reviewer (but NOT if draft - those are creator-only)
           enhancedSurveys = enhancedSurveys.filter((survey: any) => {
             // Survey created by the user (must match exactly)
             const isCreator = survey.created_by && (
@@ -186,6 +193,9 @@ export default function Feedback360Dashboard({
               survey.created_by === currentUser.email
             );
             if (isCreator) return true;
+
+            // Draft surveys should only be visible to their creator
+            if (survey.status === 'draft') return false;
 
             // Survey about the user themselves
             const isReviewee = survey.employee_id && survey.employee_id === currentUser.id;
@@ -527,8 +537,8 @@ export default function Feedback360Dashboard({
       successMessage = 'The review has been moved back to In Progress status.';
     } else if (status === 'in_progress') {
       targetStatus = 'draft';
-      confirmMessage = 'Are you sure you want to send this review back to Draft? Reviewers who click their survey links will see a message that this survey has been scrapped.';
-      successMessage = 'The review has been moved back to Draft status. Survey links will show a cancellation message.';
+      confirmMessage = 'Are you sure you want to send this review back to Draft? Reviewer access links will be invalidated and it will only be visible to you for editing.';
+      successMessage = 'The review has been moved back to Draft status. You can edit and relaunch it whenever you\'re ready.';
       deleteParticipants = false;
     } else {
       notify({
@@ -547,7 +557,7 @@ export default function Feedback360Dashboard({
       // If going back to draft, delete all participants first (this breaks their survey links)
       if (deleteParticipants) {
         const { error: deleteError } = await supabase
-          .from('feedback_360_reviewers')
+          .from('feedback_360_survey_reviewers')
           .delete()
           .eq('survey_id', surveyId);
 
@@ -665,11 +675,23 @@ export default function Feedback360Dashboard({
     }
   };
 
+  // Filter employees for reviewer picker (exclude the survey subject)
+  const filteredReviewerEmployees = employees
+    .filter(emp => emp.id !== selectedSurvey?.employee_id) // Exclude the survey subject
+    .filter(emp => {
+      const searchLower = reviewerSearch.toLowerCase();
+      return (
+        emp.name?.toLowerCase().includes(searchLower) ||
+        emp.title?.toLowerCase().includes(searchLower) ||
+        emp.email?.toLowerCase().includes(searchLower)
+      );
+    });
+
   const addReviewer = async () => {
-    if (!newReviewerName || !newReviewerEmail || !selectedSurvey) {
+    if (!selectedReviewerEmployee || !selectedSurvey) {
       notify({
         title: 'Missing information',
-        description: 'Please provide reviewer name and email.',
+        description: 'Please select an employee as a reviewer.',
         variant: 'error',
       });
       return;
@@ -680,8 +702,8 @@ export default function Feedback360Dashboard({
         .from('feedback_360_survey_reviewers')
         .insert({
           survey_id: selectedSurvey.id,
-          reviewer_name: newReviewerName,
-          reviewer_email: newReviewerEmail,
+          reviewer_name: selectedReviewerEmployee.name,
+          reviewer_email: selectedReviewerEmployee.email,
           relationship: newReviewerRelationship,
           status: 'pending',
           access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -747,6 +769,9 @@ export default function Feedback360Dashboard({
       setNewReviewerName('');
       setNewReviewerEmail('');
       setNewReviewerRelationship('peer');
+      setSelectedReviewerEmployee(null);
+      setReviewerSearch('');
+      setShowReviewerPicker(false);
       setIsAddingReviewer(false);
 
       // Refresh data
@@ -829,7 +854,7 @@ export default function Feedback360Dashboard({
         {labels[status as keyof typeof labels] || status}
       </span>
     );
-  };
+  }
 
   return (
     <div>
@@ -1018,10 +1043,15 @@ export default function Feedback360Dashboard({
                 key={survey.id}
                 className="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => {
-                  // If it's a completed survey that has been viewed before, go straight to results
-                  if (survey.status === 'completed' && hasSurveyBeenViewed(survey.id)) {
+                  // If it's a draft and user is the creator, open wizard to edit/launch
+                  if (survey.status === 'draft' && isCreator) {
+                    setEditingDraftSurvey(survey);
+                    setIsWizardOpen(true);
+                  } else if (survey.status === 'completed' && hasSurveyBeenViewed(survey.id)) {
+                    // If it's a completed survey that has been viewed before, go straight to results
                     loadAndShowResults(survey);
                   } else {
+                    // Open details modal for other statuses
                     setSelectedSurvey(survey);
                     setIsDetailsModalOpen(true);
                   }
@@ -1042,7 +1072,7 @@ export default function Feedback360Dashboard({
                       )}
                       {isReviewee && (
                         <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 border border-purple-300 rounded">
-                          Reviewee
+                          Subject
                         </span>
                       )}
                       {isReviewer && (
@@ -1066,7 +1096,7 @@ export default function Feedback360Dashboard({
                           className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg mb-3"
                         >
                           <CheckCircle className="w-4 h-4 mr-2" />
-                          Complete Individual Review
+                          Complete your review
                         </a>
                       ) : null;
                     })()}
@@ -1161,6 +1191,7 @@ export default function Feedback360Dashboard({
         onClose={() => {
           setIsWizardOpen(false);
           setPreselectedEmployee(undefined);
+          setEditingDraftSurvey(null);
         }}
         organizationId={organizationId}
         preselectedEmployee={preselectedEmployee}
@@ -1168,14 +1199,102 @@ export default function Feedback360Dashboard({
           loadSurveys();
           setIsWizardOpen(false);
           setPreselectedEmployee(undefined);
+          setEditingDraftSurvey(null);
         }}
         employees={employees}
         currentUser={currentUser}
+        draftSurvey={editingDraftSurvey}
       />
 
       {/* Review Details Modal */}
-      {isDetailsModalOpen && selectedSurvey && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {isDetailsModalOpen && selectedSurvey && (() => {
+        const isCreator = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
+        const isReviewer = selectedSurvey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
+        const userCompletedReview = isReviewer && selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.status === 'completed';
+
+        if (!isCreator) {
+          // Read-only view for reviewers and subject
+          return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6">
+                {/* Review Overview - Read Only */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Users className="w-4 h-4 mr-2 text-gray-500" />
+                      <span className="text-sm text-gray-600">Employee:</span>
+                      <span className="ml-2 text-sm font-semibold text-gray-900">
+                        {selectedSurvey.employee?.name || 'Unknown'}
+                      </span>
+                      {selectedSurvey.employee?.title && (
+                        <span className="ml-2 text-sm text-gray-600">• {selectedSurvey.employee.title}</span>
+                      )}
+                    </div>
+                    {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin)}
+                  </div>
+                  <div className="flex items-center gap-6">
+                    {selectedSurvey.due_date && (
+                      <div className="flex items-center">
+                        <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                        <span className="text-sm text-gray-600">Due Date:</span>
+                        <span className="ml-2 text-sm font-semibold text-gray-900">
+                          {new Date(selectedSurvey.due_date).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center">
+                      <span className="text-sm text-gray-600">Created:</span>
+                      <span className="ml-2 text-sm text-gray-900">
+                        {new Date(selectedSurvey.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reviewers Progress */}
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                    Reviewers ({selectedSurvey.completed_count}/{selectedSurvey.reviewers_count} completed)
+                  </h4>
+                </div>
+
+                {/* Completion Message or Button */}
+                {userCompletedReview ? (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm font-medium text-green-900">
+                        Your input towards the review is already complete. Thank you!
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => window.location.href = `/survey/complete/${selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.access_token}`}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Complete your review
+                  </button>
+                )}
+
+                {/* Close button */}
+                <div className="flex justify-end pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => setIsDetailsModalOpen(false)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // Creator view - full management interface
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
               <div className="flex items-center justify-between">
@@ -1267,6 +1386,7 @@ export default function Feedback360Dashboard({
                   <h4 className="text-sm font-semibold text-gray-900">
                     Reviewers ({selectedSurvey.completed_count}/{selectedSurvey.reviewers_count} completed)
                   </h4>
+                  {isCreator && (
                   <button
                     onClick={() => setIsAddingReviewer(!isAddingReviewer)}
                     className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-1"
@@ -1274,26 +1394,12 @@ export default function Feedback360Dashboard({
                     <Plus className="w-4 h-4" />
                     Add Reviewer
                   </button>
+                  )}
                 </div>
 
                 {isAddingReviewer && (
-                  <div className="bg-blue-50 rounded-lg p-4 mb-3 space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        placeholder="Reviewer name"
-                        value={newReviewerName}
-                        onChange={(e) => setNewReviewerName(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      />
-                      <input
-                        type="email"
-                        placeholder="Reviewer email"
-                        value={newReviewerEmail}
-                        onChange={(e) => setNewReviewerEmail(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      />
-                    </div>
+                  <div className="bg-blue-50 rounded-lg p-4 mb-3 space-y-3 relative">
+                    {/* Relationship dropdown */}
                     <select
                       value={newReviewerRelationship}
                       onChange={(e) => setNewReviewerRelationship(e.target.value)}
@@ -1304,6 +1410,64 @@ export default function Feedback360Dashboard({
                       <option value="direct_report">Direct Report</option>
                       <option value="cross_functional">Cross-Functional</option>
                     </select>
+
+                    {/* Employee search and picker */}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search employees..."
+                        value={reviewerSearch}
+                        onChange={(e) => {
+                          setReviewerSearch(e.target.value);
+                          setShowReviewerPicker(true);
+                        }}
+                        onFocus={() => setShowReviewerPicker(true)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      />
+
+                      {/* Employee cards dropdown */}
+                      {showReviewerPicker && (
+                        <>
+                          <div className="fixed inset-0 z-[8]" onClick={() => setShowReviewerPicker(false)} />
+                          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
+                            <div className="p-2">
+                              {filteredReviewerEmployees.length > 0 ? (
+                                filteredReviewerEmployees.slice(0, 20).map(emp => (
+                                  <button
+                                    key={emp.id}
+                                    onClick={() => {
+                                      setSelectedReviewerEmployee(emp);
+                                      setReviewerSearch('');
+                                      setShowReviewerPicker(false);
+                                    }}
+                                    className="w-full text-left px-3 py-2 hover:bg-blue-50 rounded-lg transition-colors border-b border-gray-100 last:border-b-0"
+                                  >
+                                    <div className="font-medium text-sm text-gray-900">{emp.name}</div>
+                                    <div className="text-xs text-gray-600">
+                                      {emp.title && <span>{emp.title}</span>}
+                                      {emp.title && emp.email && <span> • </span>}
+                                      {emp.email && <span className="truncate">{emp.email}</span>}
+                                    </div>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="p-4 text-center text-sm text-gray-500">No employees found</div>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Selected employee display */}
+                    {selectedReviewerEmployee && (
+                      <div className="px-3 py-2 bg-white border border-gray-300 rounded-lg">
+                        <div className="font-medium text-sm text-gray-900">{selectedReviewerEmployee.name}</div>
+                        <div className="text-xs text-gray-600">{selectedReviewerEmployee.email}</div>
+                      </div>
+                    )}
+
+                    {/* Action buttons */}
                     <div className="flex gap-2">
                       <button
                         onClick={addReviewer}
@@ -1314,8 +1478,9 @@ export default function Feedback360Dashboard({
                       <button
                         onClick={() => {
                           setIsAddingReviewer(false);
-                          setNewReviewerName('');
-                          setNewReviewerEmail('');
+                          setSelectedReviewerEmployee(null);
+                          setReviewerSearch('');
+                          setShowReviewerPicker(false);
                           setNewReviewerRelationship('peer');
                         }}
                         className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
@@ -1352,6 +1517,7 @@ export default function Feedback360Dashboard({
                             {reviewer.reviewer_email} • {reviewer.relationship}
                           </div>
                         </div>
+                        {isCreator && (
                         <div className="flex items-center gap-2">
                           {reviewer.status !== 'completed' && (
                             remindedReviewers.has(reviewer.id) ? (
@@ -1378,13 +1544,15 @@ export default function Feedback360Dashboard({
                             <X className="w-4 h-4" />
                           </button>
                         </div>
+                        )}
                       </div>
                     ))
                   )}
                 </div>
               </div>
 
-              {/* Actions */}
+              {/* Actions - Only visible to creator */}
+              {isCreator && (
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                 <div>
                   {/* Send Backward - Always on left, always grey */}
@@ -1447,10 +1615,12 @@ export default function Feedback360Dashboard({
                   )}
                 </div>
               </div>
+              )}
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Review Results Modal */}
       {isResultsModalOpen && surveyResults && selectedSurvey && (
