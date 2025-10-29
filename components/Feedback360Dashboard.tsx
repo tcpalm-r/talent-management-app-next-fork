@@ -422,6 +422,37 @@ export default function Feedback360Dashboard({
     }
   };
 
+  const resolveNeedsReview = async (surveyId: string) => {
+    try {
+      // Clear the admin review flag
+      const { error } = await supabase
+        .from('feedback_360_surveys')
+        .update({ flagged_for_admin: false })
+        .eq('id', surveyId);
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      notify({
+        title: 'Review Resolved',
+        description: 'The "Needs Review" tag has been removed.',
+        variant: 'success',
+      });
+
+      setIsResultsModalOpen(false);
+      loadSurveys();
+    } catch (error) {
+      console.error('Error resolving review:', error);
+      notify({
+        title: 'Error',
+        description: 'Failed to resolve review',
+        variant: 'error',
+      });
+    }
+  };
+
   const loadRawSurveyData = async (surveyId: string) => {
     try {
       // Fetch survey data
@@ -1899,6 +1930,13 @@ export default function Feedback360Dashboard({
                           className="px-4 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-200 transition-colors font-medium flex items-center disabled:opacity-50"
                         >
                           Reanalyze (Softer Tone)
+                        </button>
+                        <button
+                          onClick={() => resolveNeedsReview(selectedSurvey.id)}
+                          className="px-4 py-2 bg-green-100 text-green-700 border border-green-300 rounded-lg hover:bg-green-200 transition-colors font-medium flex items-center"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Resolve Review
                         </button>
                       </div>
                     </div>
