@@ -120,7 +120,7 @@ export default function SurveyCompletionPage() {
         id: surveyData.id,
         survey_name: surveyData.survey_name || 'Untitled Survey',
         employee_name: surveyData.employee?.full_name || 'Unknown Employee',
-        due_date: surveyData.due_date,
+        due_date: surveyData.due_date || '',
       });
 
       // Load survey questions
