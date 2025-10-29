@@ -443,7 +443,7 @@ export default function Feedback360Dashboard({
       // Fetch responses separately
       const { data: responses } = await supabase
         .from('feedback_360_responses')
-        .select('id, reviewer_id, question_id, response_text, rating')
+        .select('id, reviewer_email, question_id, response_text, rating')
         .eq('survey_id', surveyId);
 
       // Combine the data
@@ -457,7 +457,7 @@ export default function Feedback360Dashboard({
         })),
         responses: (responses || []).map((r: any) => ({
           ...r,
-          reviewer: (reviewers || []).find((rev: any) => rev.id === r.reviewer_id),
+          reviewer: (reviewers || []).find((rev: any) => rev.reviewer_email === r.reviewer_email),
         })),
       };
 
