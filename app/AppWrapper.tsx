@@ -36,12 +36,11 @@ export default function AppWrapper() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && (user || MOCK_USER)) {
+    if (!authLoading) {
+      // Always load with actual user or mock user for dev
       loadUserDataAndOrganization();
-    } else if (!authLoading && !user && !MOCK_USER) {
-      setLoading(false);
     }
-  }, [user, authLoading]);
+  }, [authLoading]);
 
   const loadUserDataAndOrganization = async () => {
     try {
