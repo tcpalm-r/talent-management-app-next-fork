@@ -63,10 +63,16 @@ export default function SurveyCompletionPage() {
         return;
       }
 
-      setReviewer(reviewerData);
+      // Ensure reviewer_name has a value
+      const safeReviewerData = {
+        ...reviewerData,
+        reviewer_name: reviewerData.reviewer_name || 'Reviewer'
+      };
+
+      setReviewer(safeReviewerData);
 
       // Check if already completed
-      if (reviewerData.status === 'completed') {
+      if (safeReviewerData.status === 'completed') {
         setSuccess(true);
         setLoading(false);
         return;
