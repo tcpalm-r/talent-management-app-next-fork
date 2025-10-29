@@ -402,39 +402,66 @@ export default function Feedback360Dashboard({
 
   const loadRawSurveyData = async (surveyId: string) => {
     try {
-      // Fetch survey with all responses
-      const { data, error } = await supabase
+      // Fetch survey data
+      const { data: survey, error: surveyError } = await supabase
         .from('feedback_360_surveys')
-        .select(`
-          *,
-          employee:user_profiles!feedback_360_surveys_employee_id_fkey(id, full_name, email, title),
-          reviewers:feedback_360_survey_reviewers(
-            id,
-            reviewer_name,
-            reviewer_email,
-            relationship,
-            status
-          ),
-          questions:feedback_360_survey_questions(
-            id,
-            question_id,
-            question_text,
-            question:feedback_360_questions(id, question, category)
-          ),
-          responses:feedback_360_responses(
-            id,
-            reviewer_id,
-            question_id,
-            response_text,
-            reviewer:feedback_360_survey_reviewers(reviewer_name, relationship)
-          )
-        `)
+        .select('*')
         .eq('id', surveyId)
         .single();
 
-      if (error) throw error;
+      if (surveyError) throw surveyError;
 
-      setRawSurveyData(data);
+      // Fetch employee data separately
+      const { data: employee } = await supabase
+        .from('user_profiles')
+        .select('id, full_name, email, title')
+        .eq('id', survey.employee_id)
+        .single();
+
+      // Fetch reviewers separately
+      const { data: reviewers } = await supabase
+        .from('feedback_360_survey_reviewers')
+        .select('id, reviewer_name, reviewer_email, relationship, status')
+        .eq('survey_id', surveyId);
+
+      // Fetch survey questions separately
+      const { data: surveyQuestions } = await supabase
+        .from('feedback_360_survey_questions')
+        .select('id, question_id, question_text')
+        .eq('survey_id', surveyId)
+        .order('question_order');
+
+      // Fetch question details for each survey question
+      const questionIds = (surveyQuestions || []).map((q: any) => q.question_id);
+      const { data: questionDetails } = questionIds.length > 0
+        ? await supabase
+            .from('feedback_360_questions')
+            .select('id, question, category')
+            .in('id', questionIds)
+        : { data: [] };
+
+      // Fetch responses separately
+      const { data: responses } = await supabase
+        .from('feedback_360_responses')
+        .select('id, reviewer_id, question_id, response_text, rating')
+        .eq('survey_id', surveyId);
+
+      // Combine the data
+      const rawData = {
+        ...survey,
+        employee: employee || null,
+        reviewers: reviewers || [],
+        questions: (surveyQuestions || []).map((sq: any) => ({
+          ...sq,
+          question: (questionDetails || []).find((qd: any) => qd.id === sq.question_id),
+        })),
+        responses: (responses || []).map((r: any) => ({
+          ...r,
+          reviewer: (reviewers || []).find((rev: any) => rev.id === r.reviewer_id),
+        })),
+      };
+
+      setRawSurveyData(rawData);
       setShowRawData(true);
     } catch (error) {
       console.error('Error loading raw survey data:', error);

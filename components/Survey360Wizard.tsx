@@ -133,10 +133,20 @@ export default function Survey360Wizard({
         if (response.ok) {
           const data = await response.json();
           // Load the 3 default questions
+          // Use customQuestions if allQuestions is not available
+          const questionBank = data.allQuestions || [];
+          const customQuestions = data.customQuestions || {};
+
           const defaultQuestionTexts = data.defaultQuestionIds
             .map((id: string) => {
-              const question = data.allQuestions.find((q: any) => q.id === id);
-              return question?.question || '';
+              // Try to find in question bank first
+              const question = questionBank.find((q: any) => q.id === id);
+              if (question?.question) return question.question;
+
+              // Otherwise check custom questions
+              if (customQuestions[id]) return customQuestions[id];
+
+              return '';
             })
             .filter((q: string) => q.trim().length > 0)
             .slice(0, 3);

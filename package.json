@@ -12,7 +12,8 @@
     "lint": "next lint",
     "setup-mcp": "node scripts/setup-mcp.js",
     "verify-db": "node scripts/verify-supabase.js",
-    "mcp": "node scripts/smart-supabase-mcp.js"
+    "mcp": "node scripts/smart-supabase-mcp.js",
+    "generate-test-360": "npx ts-node scripts/generate-test-360-data.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",
@@ -25,6 +26,7 @@
     "drizzle-orm": "^0.44.5",
     "drizzle-zod": "^0.8.3",
     "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.3",
     "jszip": "^3.10.1",
     "lucide-react": "^0.546.0",
     "next": "14.2.33",
@@ -36,6 +38,7 @@
     "reactflow": "^11.11.4",
     "resend": "^6.2.2",
     "tailwind-merge": "^3.3.1",
+    "uuid": "^13.0.0",
     "zod": "^4.1.11"
   },
   "devDependencies": {
@@ -43,6 +46,7 @@
     "@types/papaparse": "^5.3.16",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/uuid": "^10.0.0",
     "dotenv": "^17.2.3",
     "eslint": "^8",
     "eslint-config-next": "14.2.33",

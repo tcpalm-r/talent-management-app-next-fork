@@ -176,6 +176,68 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback_360_reports: {
+        Row: {
+          consensus_areas: string[]
+          created_at: string | null
+          development_areas: string[]
+          generated_at: string
+          generated_by: string
+          id: string
+          key_insights: string[]
+          manager_notes: string | null
+          outlier_opinions: string[]
+          overall_strengths: string[]
+          recommendations: string[]
+          sentiment_by_relationship: Json
+          survey_id: string
+          themes: Json
+          updated_at: string | null
+        }
+        Insert: {
+          consensus_areas?: string[]
+          created_at?: string | null
+          development_areas?: string[]
+          generated_at: string
+          generated_by: string
+          id?: string
+          key_insights?: string[]
+          manager_notes?: string | null
+          outlier_opinions?: string[]
+          overall_strengths?: string[]
+          recommendations?: string[]
+          sentiment_by_relationship?: Json
+          survey_id: string
+          themes?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          consensus_areas?: string[]
+          created_at?: string | null
+          development_areas?: string[]
+          generated_at?: string
+          generated_by?: string
+          id?: string
+          key_insights?: string[]
+          manager_notes?: string | null
+          outlier_opinions?: string[]
+          overall_strengths?: string[]
+          recommendations?: string[]
+          sentiment_by_relationship?: Json
+          survey_id?: string
+          themes?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_360_reports_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_360_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedback_360_responses: {
         Row: {
           created_at: string | null
@@ -288,6 +350,7 @@ export type Database = {
           invited_at: string | null
           last_reminder_at: string | null
           last_reminder_sent_at: string | null
+          relationship: string
           reminder_count: number | null
           reviewer_email: string
           reviewer_name: string | null
@@ -305,6 +368,7 @@ export type Database = {
           invited_at?: string | null
           last_reminder_at?: string | null
           last_reminder_sent_at?: string | null
+          relationship?: string
           reminder_count?: number | null
           reviewer_email: string
           reviewer_name?: string | null
@@ -322,6 +386,7 @@ export type Database = {
           invited_at?: string | null
           last_reminder_at?: string | null
           last_reminder_sent_at?: string | null
+          relationship?: string
           reminder_count?: number | null
           reviewer_email?: string
           reviewer_name?: string | null

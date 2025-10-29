@@ -86,12 +86,26 @@ export default function SurveyCompletionPage() {
       // Load survey details with employee name
       const { data: surveyData, error: surveyError } = await supabase
         .from('feedback_360_surveys')
-        .select('id, survey_name, due_date, employee:user_profiles!feedback_360_surveys_employee_id_fkey(full_name)')
+        .select('id, survey_name, due_date, status, sent_at, employee:user_profiles!feedback_360_surveys_employee_id_fkey(full_name)')
         .eq('id', reviewerData.survey_id)
         .single();
 
       if (surveyError || !surveyData) {
         setError('Survey not found. Please contact your HR department.');
+        setLoading(false);
+        return;
+      }
+
+      // Check if survey was cancelled (sent but then moved back to draft)
+      if (surveyData.status === 'draft' && surveyData.sent_at) {
+        setError('The creator of this survey has decided to scrap this review draft.');
+        setLoading(false);
+        return;
+      }
+
+      // Check if survey is not active
+      if (surveyData.status !== 'in_progress') {
+        setError('This survey is no longer active.');
         setLoading(false);
         return;
       }
