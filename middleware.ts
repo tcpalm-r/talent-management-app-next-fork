@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
     response.headers.set('x-local-testing-mode', localTestingMode ? 'true' : 'false');
     response.headers.set('x-auth-disabled', 'true');
 
-    // Set mock user cookie for dev mode
+    // Set mock user cookie for dev mode (for ALL routes when auth is disabled)
     return createAuthenticatedResponse(response, MOCK_USER);
   }
 
