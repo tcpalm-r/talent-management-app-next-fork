@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Target, UserPlus } from 'lucide-react';
 import type { Employee, Department, EmployeePlan } from '../types';
-import PlansDashboard from './PlansDashboard';
+// import PlansDashboard from './PlansDashboard'; // TODO: Create PlansDashboard component
 import OnboardingDashboard from './OnboardingDashboard';
 import { NavigationTabs } from './unified';
 
@@ -61,13 +61,9 @@ export default function DevelopmentDashboard({
           )}
 
           {activeView === 'plans' && (
-            <PlansDashboard
-              employees={scopedEmployees}
-              departments={scopedDepartments}
-              employeePlans={employeePlans}
-              onEmployeeClick={onEmployeeClick}
-              onOpenPlanModal={onOpenPlanModal}
-            />
+            <div className="text-center py-12 text-gray-500">
+              <p>Development Plans dashboard coming soon.</p>
+            </div>
           )}
 
           {activeView === 'onboarding' && (
