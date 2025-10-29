@@ -189,6 +189,7 @@ export function clearAuthCookies(response: NextResponse): NextResponse {
  */
 export function isProtectedRoute(pathname: string): boolean {
   const publicRoutes = [
+    '/',  // Home page - allow access with AUTH_DISABLED
     '/unauthorized',
     '/api/auth/validate-token',
     '/survey/complete', // Public survey completion
