@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import {
   MOCK_USER,
+  SESSION_DURATION,
   getAuthenticatedUser,
   isProtectedRoute,
   createAuthenticatedResponse,
@@ -35,7 +36,18 @@ export async function middleware(request: NextRequest) {
     response.headers.set('x-auth-disabled', 'true');
 
     // Set mock user cookie for dev mode (for ALL routes when auth is disabled)
-    return createAuthenticatedResponse(response, MOCK_USER);
+    const authenticatedResponse = createAuthenticatedResponse(response, MOCK_USER);
+
+    // Also set a flag cookie so client-side code knows auth is disabled
+    authenticatedResponse.cookies.set('x-auth-disabled', 'true', {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: SESSION_DURATION / 1000,
+      path: '/',
+    });
+
+    return authenticatedResponse;
   }
 
   // Production mode - validate authentication

@@ -272,15 +272,17 @@ export async function exchangeAIIntranetToken(
 export function getClientUser(): SessionUser | null {
   if (typeof window === 'undefined') return null;
 
-  // Dev bypass mode - check at runtime
-  const authDisabledRuntime = localStorage.getItem('auth-disabled') === 'true' ||
-                              document.documentElement.getAttribute('data-auth-disabled') === 'true';
+  // Dev bypass mode - check for auth-disabled cookie set by middleware
+  const cookies = document.cookie.split(';');
+  const authDisabledCookie = cookies
+    .find(c => c.trim().startsWith('x-auth-disabled='))
+    ?.split('=')[1];
 
-  if (authDisabledRuntime || AUTH_DISABLED) {
+  if (authDisabledCookie === 'true') {
     return MOCK_USER;
   }
 
-  const cookies = document.cookie.split(';');
+  // Also check for the user cookie
   const userCookie = cookies
     .find(c => c.trim().startsWith(`${USER_COOKIE}=`))
     ?.split('=')[1];
