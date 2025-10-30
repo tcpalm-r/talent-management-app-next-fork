@@ -1,6 +1,6 @@
 /* @ts-nocheck */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Mail, MapPin, Briefcase, Building2, User, Calendar, FileText, Sparkles, Loader2, CheckCircle, Circle, AlertCircle, Users as UsersIcon, Lock, AlertTriangle, TrendingUp, ClipboardList, Award, PenSquare, Upload, Shield, FileCode, Check, Minus } from 'lucide-react';
+import { X, Mail, MapPin, Briefcase, Building2, User, Calendar, FileText, Sparkles, Loader2, CheckCircle, Circle, AlertCircle, Users as UsersIcon, Lock, AlertTriangle, TrendingUp, ClipboardList, Award, PenSquare, Upload, Shield, FileCode, Check, Minus, Eye } from 'lucide-react';
 import type {
   Employee,
   Department,
@@ -23,6 +23,7 @@ import JobDescriptionViewer from './JobDescriptionViewer';
 import JobDescriptionEditor from './JobDescriptionEditor';
 import { AICoachMicroPanel, getEmployeeModalSuggestions } from './AICoachMicroPanel';
 import { useUnifiedAICoach } from '../context/UnifiedAICoachContext';
+import { supabase } from '../lib/supabase';
 
 // Simplified navigation structure
 type PanelKey = 'overview' | 'performance' | 'development' | 'notes' | 'advanced'
@@ -115,10 +116,61 @@ export default function EmployeeDetailModal({
   const [isRetentionPlanModalOpen, setIsRetentionPlanModalOpen] = useState(false);
   const [isCriticalRoleSetupOpen, setIsCriticalRoleSetupOpen] = useState(false);
   const [guidedProgress, setGuidedProgress] = useState<Record<string, boolean>>({});
+  const [completed360Surveys, setCompleted360Surveys] = useState<any[]>([]);
+  const [loadingCompleted360, setLoadingCompleted360] = useState(false);
+  const [selectedCompletedSurvey, setSelectedCompletedSurvey] = useState<any>(null);
+  const [completedSurveyResults, setCompletedSurveyResults] = useState<any>(null);
 
   useEffect(() => {
     analysisResultRef.current = analysisResult;
   }, [analysisResult]);
+
+  // Load completed 360 surveys for this employee
+  useEffect(() => {
+    if (activeTab === '360' && isOpen) {
+      loadCompletedSurveys();
+    }
+  }, [activeTab, isOpen, employee.id]);
+
+  const loadCompletedSurveys = async () => {
+    setLoadingCompleted360(true);
+    try {
+      const { data, error } = await supabase
+        .from('feedback_360_surveys')
+        .select('*')
+        .eq('employee_id', employee.id)
+        .in('status', ['completed', 'finalized'])
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCompleted360Surveys(data || []);
+    } catch (error) {
+      console.error('Error loading completed 360 surveys:', error);
+    } finally {
+      setLoadingCompleted360(false);
+    }
+  };
+
+  const loadSurveyResults = async (survey: any) => {
+    try {
+      const response = await fetch(`/api/360-generate-report?survey_id=${survey.id}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load report');
+      }
+
+      setSelectedCompletedSurvey(survey);
+      setCompletedSurveyResults(data.report);
+    } catch (error: any) {
+      console.error('Error loading survey results:', error);
+      notify({
+        title: 'Error',
+        description: error.message || 'Failed to load review results',
+        variant: 'error',
+      });
+    }
+  };
 
   // Set modal context for AI Coach when modal opens/closes
   useEffect(() => {
@@ -1354,7 +1406,8 @@ export default function EmployeeDetailModal({
           {/* 360 Feedback Tab */}
           {activeTab === '360' && (
             <div className="space-y-6">
-              <div className="text-center py-12">
+              {/* Create New Survey Section */}
+              <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
                 <UsersIcon className="w-16 h-16 text-purple-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">360° Feedback</h3>
                 <p className="text-sm text-gray-600 mb-6">
@@ -1368,6 +1421,39 @@ export default function EmployeeDetailModal({
                   Launch 360° Survey
                 </button>
               </div>
+
+              {/* Completed Reviews Section */}
+              {loadingCompleted360 ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+                </div>
+              ) : completed360Surveys.length > 0 ? (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Completed Reviews</h3>
+                  <div className="space-y-3">
+                    {completed360Surveys.map((survey) => (
+                      <div
+                        key={survey.id}
+                        className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900">{survey.survey_name || '360° Review'}</p>
+                          <p className="text-sm text-gray-600">
+                            {survey.status === 'finalized' ? 'Finalized' : 'Completed'} • {new Date(survey.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => loadSurveyResults(survey)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View Results
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -1638,6 +1724,106 @@ export default function EmployeeDetailModal({
         employees={availableEmployees}
         currentUser={currentUser}
       />
+
+      {/* Completed Survey Results Modal */}
+      {selectedCompletedSurvey && completedSurveyResults && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto my-8">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">{selectedCompletedSurvey.survey_name || '360° Review'}</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {new Date(selectedCompletedSurvey.created_at).toLocaleDateString()}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedCompletedSurvey(null);
+                  setCompletedSurveyResults(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-8">
+              {/* Themes */}
+              {completedSurveyResults.themes && completedSurveyResults.themes.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Themes</h3>
+                  <div className="space-y-3">
+                    {completedSurveyResults.themes.map((theme: any, idx: number) => (
+                      <div key={idx} className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-sm text-gray-700">{theme}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Strengths */}
+              {completedSurveyResults.overall_strengths && completedSurveyResults.overall_strengths.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Strengths</h3>
+                  <div className="space-y-2">
+                    {completedSurveyResults.overall_strengths.map((strength: string, idx: number) => (
+                      <div key={idx} className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-gray-700">{strength}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Development Areas */}
+              {completedSurveyResults.development_areas && completedSurveyResults.development_areas.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Areas for Development</h3>
+                  <div className="space-y-2">
+                    {completedSurveyResults.development_areas.map((area: string, idx: number) => (
+                      <div key={idx} className="flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-gray-700">{area}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {completedSurveyResults.recommendations && completedSurveyResults.recommendations.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Recommendations</h3>
+                  <div className="space-y-3">
+                    {completedSurveyResults.recommendations.map((rec: string, idx: number) => (
+                      <div key={idx} className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                        <p className="text-sm text-gray-700">{rec}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 p-6 flex justify-end bg-gray-50">
+              <button
+                onClick={() => {
+                  setSelectedCompletedSurvey(null);
+                  setCompletedSurveyResults(null);
+                }}
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Critical Role Setup Modal */}
       <CriticalRoleSetupModal

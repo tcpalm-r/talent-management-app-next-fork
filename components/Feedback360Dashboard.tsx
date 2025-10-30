@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download } from 'lucide-react';
+import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Employee, Department } from '../types';
 import Survey360Wizard from './Survey360Wizard';
@@ -1261,6 +1261,8 @@ export default function Feedback360Dashboard({
 
         if (!canManage) {
           // Read-only view for reviewers and subject
+          // If finalized, subject can see the complete review results
+          const canSeeResults = isSubject && selectedSurvey.status === 'finalized';
           return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6">
@@ -1298,12 +1300,25 @@ export default function Feedback360Dashboard({
                   </div>
                 </div>
 
+                {/* View Results Button - For finalized reviews */}
+                {canSeeResults && (
+                  <button
+                    onClick={() => loadAndShowResults(selectedSurvey)}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                  >
+                    <Eye className="w-4 h-4" />
+                    View Complete Review
+                  </button>
+                )}
+
                 {/* Reviewers Progress */}
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                    Reviewers ({selectedSurvey.completed_count}/{selectedSurvey.reviewers_count} completed)
-                  </h4>
-                </div>
+                {!canSeeResults && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                      Reviewers ({selectedSurvey.completed_count}/{selectedSurvey.reviewers_count} completed)
+                    </h4>
+                  </div>
+                )}
 
                 {/* Completion Message or Button - Only for reviewers, not for subject */}
                 {isReviewer && !isSubject && (
@@ -1648,8 +1663,8 @@ export default function Feedback360Dashboard({
                       )}
                     </button>
                   )}
-                  {/* View Completed Review for completed status */}
-                  {selectedSurvey.status === 'completed' && (
+                  {/* View Completed Review for completed or finalized status */}
+                  {(selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (
                     <button
                       onClick={() => {
                         setIsDetailsModalOpen(false);
@@ -1658,7 +1673,7 @@ export default function Feedback360Dashboard({
                       className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-medium flex items-center"
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
-                      View Completed Review
+                      View Review Results
                     </button>
                   )}
                 </div>
