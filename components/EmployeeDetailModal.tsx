@@ -1406,54 +1406,105 @@ export default function EmployeeDetailModal({
           {/* 360 Feedback Tab */}
           {activeTab === '360' && (
             <div className="space-y-6">
-              {/* Completed Reviews Section */}
+              {/* Most Recent Completed Review */}
               {loadingCompleted360 ? (
                 <div className="text-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
                 </div>
-              ) : completed360Surveys.length > 0 ? (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Completed Reviews</h3>
-                  <div className="space-y-3">
-                    {completed360Surveys.map((survey) => (
-                      <div
-                        key={survey.id}
-                        className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
-                      >
+              ) : completed360Surveys.length > 0 ? (() => {
+                const sortedSurveys = [...completed360Surveys].sort((a, b) =>
+                  new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                );
+                const mostRecent = sortedSurveys[0];
+                const archived = sortedSurveys.slice(1);
+
+                return (
+                  <>
+                    {/* Most Recent Review - Highlighted */}
+                    <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-lg hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-gray-900">{survey.survey_name || '360° Review'}</p>
-                          <p className="text-sm text-gray-600">
-                            {survey.status === 'finalized' ? 'Finalized' : 'Completed'} • {new Date(survey.created_at).toLocaleDateString()}
+                          <p className="text-sm font-medium text-blue-700 mb-1">Most Recent Review</p>
+                          <p className="font-medium text-gray-900">{mostRecent.survey_name || '360° Review'}</p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {mostRecent.status === 'finalized' ? 'Finalized' : 'Completed'} • {new Date(mostRecent.created_at).toLocaleDateString()}
                           </p>
                         </div>
                         <button
-                          onClick={() => loadSurveyResults(survey)}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+                          onClick={() => loadSurveyResults(mostRecent)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2 whitespace-nowrap ml-4"
                         >
                           <Eye className="w-4 h-4" />
                           View Results
                         </button>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+                    </div>
 
-              {/* Create New Survey Section */}
-              <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                <UsersIcon className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">360° Feedback</h3>
-                <p className="text-sm text-gray-600 mb-6">
-                  Gather multi-perspective insights from managers, peers, and direct reports.
-                </p>
-                <button
-                  onClick={() => setIs360ModalOpen(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
-                >
-                  <UsersIcon className="w-5 h-5 inline mr-2" />
-                  Launch 360° Survey
-                </button>
-              </div>
+                    {/* Create New Survey Section */}
+                    <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                      <UsersIcon className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">360° Feedback</h3>
+                      <p className="text-sm text-gray-600 mb-6">
+                        Gather multi-perspective insights from managers, peers, and direct reports.
+                      </p>
+                      <button
+                        onClick={() => setIs360ModalOpen(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
+                      >
+                        <UsersIcon className="w-5 h-5 inline mr-2" />
+                        Launch 360° Survey
+                      </button>
+                    </div>
+
+                    {/* Reviews Archive */}
+                    {archived.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Reviews Archive</h3>
+                        <div className="space-y-3">
+                          {archived.map((survey) => (
+                            <div
+                              key={survey.id}
+                              className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                            >
+                              <div>
+                                <p className="font-medium text-gray-900">{survey.survey_name || '360° Review'}</p>
+                                <p className="text-sm text-gray-600">
+                                  {survey.status === 'finalized' ? 'Finalized' : 'Completed'} • {new Date(survey.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => loadSurveyResults(survey)}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+                              >
+                                <Eye className="w-4 h-4" />
+                                View Results
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })() : null}
+
+              {/* Create New Survey Section (when no completed reviews) */}
+              {!loadingCompleted360 && completed360Surveys.length === 0 && (
+                <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                  <UsersIcon className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">360° Feedback</h3>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Gather multi-perspective insights from managers, peers, and direct reports.
+                  </p>
+                  <button
+                    onClick={() => setIs360ModalOpen(true)}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
+                  >
+                    <UsersIcon className="w-5 h-5 inline mr-2" />
+                    Launch 360° Survey
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
