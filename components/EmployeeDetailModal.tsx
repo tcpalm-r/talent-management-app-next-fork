@@ -731,17 +731,6 @@ export default function EmployeeDetailModal({
               >
                 <Icon className="w-4 h-4" />
                 <span>{item.label}</span>
-                
-                {/* Content Indicators */}
-                {item.badge && item.badge > 0 ? (
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.badgeClass ?? 'bg-gray-800 text-white'}`}>
-                    {item.badge}
-                  </span>
-                ) : item.hasContent ? (
-                  <Check className={`w-3.5 h-3.5 ${isActive ? 'text-white/80' : 'text-green-600'}`} />
-                ) : (
-                  <Minus className={`w-3.5 h-3.5 ${isActive ? 'text-white/40' : 'text-gray-400'}`} />
-                )}
               </button>
             );
           })}
