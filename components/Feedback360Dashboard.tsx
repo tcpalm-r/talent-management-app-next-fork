@@ -1106,12 +1106,12 @@ export default function Feedback360Dashboard({
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center flex-wrap gap-2 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 leading-tight">
                         360° Review -
                         <Avatar
                           name={survey.employee?.name}
                           picture={survey.employee?.picture}
-                          size="sm"
+                          size="xs"
                         />
                         {survey.employee?.name || 'Unknown Employee'}
                       </h3>
@@ -1377,12 +1377,12 @@ export default function Feedback360Dashboard({
           <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 leading-tight">
                   360° Review -
                   <Avatar
                     name={selectedSurvey.employee?.name}
                     picture={selectedSurvey.employee?.picture}
-                    size="sm"
+                    size="xs"
                   />
                   {selectedSurvey.employee?.name || 'Unknown'}
                 </h2>

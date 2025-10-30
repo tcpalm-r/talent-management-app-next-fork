@@ -1110,13 +1110,13 @@ export default function Survey360Wizard({
           {currentStep === 'competencies' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2 leading-tight">
                   360° Review -
                   {selectedEmployee && (
                     <Avatar
                       name={selectedEmployee.name}
                       picture={selectedEmployee.picture}
-                      size="sm"
+                      size="xs"
                     />
                   )}
                   {selectedEmployee ? selectedEmployee.name : 'Review Questions'}
@@ -1200,13 +1200,13 @@ export default function Survey360Wizard({
           {currentStep === 'raters' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2 leading-tight">
                   360° Review -
                   {selectedEmployee && (
                     <Avatar
                       name={selectedEmployee.name}
                       picture={selectedEmployee.picture}
-                      size="sm"
+                      size="xs"
                     />
                   )}
                   {selectedEmployee ? selectedEmployee.name : 'Add Raters'}
@@ -1368,13 +1368,13 @@ export default function Survey360Wizard({
           {currentStep === 'timeline' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2 leading-tight">
                   360° Review -
                   {selectedEmployee && (
                     <Avatar
                       name={selectedEmployee.name}
                       picture={selectedEmployee.picture}
-                      size="sm"
+                      size="xs"
                     />
                   )}
                   {selectedEmployee ? selectedEmployee.name : 'Set Timeline'}
@@ -1405,13 +1405,13 @@ export default function Survey360Wizard({
           {currentStep === 'preview' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2 leading-tight">
                   360° Review -
                   {selectedEmployee && (
                     <Avatar
                       name={selectedEmployee.name}
                       picture={selectedEmployee.picture}
-                      size="sm"
+                      size="xs"
                     />
                   )}
                   {selectedEmployee ? selectedEmployee.name : 'Review & Launch'}
