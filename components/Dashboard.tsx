@@ -217,7 +217,7 @@ export default function Dashboard({
           <div className={`${shellClass}`}>
             <div className="mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold text-gray-900">Sonance 360° Review Tool</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Sonance Talent Management</h1>
 
                 {isDevelopment && (
                   <div className={`flex items-center gap-2 ${currentView === '360-feedback' ? '' : 'invisible'}`}>
@@ -325,7 +325,7 @@ export default function Dashboard({
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  Dashboard
+                  360° Reviews
                 </button>
                 <button
                   onClick={() => changeView('directory')}
@@ -335,7 +335,7 @@ export default function Dashboard({
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  Directory
+                  People
                 </button>
                 {currentUserEmployee?.role === 'admin' && (
                   <button
