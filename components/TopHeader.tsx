@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, MoreVertical } from 'lucide-react';
+import { MoreVertical } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Avatar from './Avatar';
 
@@ -39,16 +39,11 @@ export default function TopHeader({ userProfile, onMenuOpen }: TopHeaderProps) {
           <h1 className="text-xl font-bold text-gray-900">Sonance Talent Management</h1>
         </div>
 
-        {/* Search Bar */}
-        <div className="flex-1 max-w-sm">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
-            />
-          </div>
+        {/* Ask AI Button */}
+        <div className="flex-1 flex justify-center">
+          <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
+            Ask AI
+          </button>
         </div>
 
         {/* Right Section */}
