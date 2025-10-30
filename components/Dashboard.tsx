@@ -6,6 +6,8 @@ import type { User, Organization, Employee, Department } from '../types';
 import PeopleDashboard from './PeopleDashboard';
 import Feedback360Dashboard from './Feedback360Dashboard';
 import AdminSettings from './AdminSettings';
+import Sidebar from './Sidebar';
+import TopHeader from './TopHeader';
 
 interface DashboardProps {
   user: SupabaseUser;
@@ -229,32 +231,58 @@ export default function Dashboard({
     });
   };
 
+  // Get the title based on current view
+  const getViewTitle = () => {
+    switch (currentView) {
+      case 'directory':
+        return 'Talent Directory';
+      case '360-feedback':
+        return '360° Feedback Reviews';
+      case 'admin-settings':
+        return 'Admin Settings';
+      default:
+        return 'Talent Management';
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="py-8">
-        {loading && (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-3 text-sm text-gray-600">Loading...</p>
-          </div>
-        )}
+    <div className="h-screen flex flex-col bg-white">
+      {/* Top Header */}
+      <TopHeader
+        title={getViewTitle()}
+        userProfile={userProfile}
+      />
 
-        {!loading && (
-          <div className={`${shellClass}`}>
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold text-gray-900">Sonance Talent Management</h1>
+      {/* Main Content with Sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <Sidebar currentView={currentView} onViewChange={changeView} />
 
-                {isDevelopment && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 font-medium">Test as:</span>
-                    <div className="flex gap-1 bg-blue-50 border border-blue-200 p-1 rounded-lg">
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-auto">
+          {loading && (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-3 text-sm text-gray-600">Loading...</p>
+              </div>
+            </div>
+          )}
+
+          {!loading && (
+            <div className={`${shellClass} py-8`}>
+              {/* Dev Test User Switcher */}
+              {isDevelopment && (
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-gray-600 font-medium">Test as:</span>
+                    <div className="flex gap-1 flex-wrap">
                       <button
                         onClick={() => setEmployeeOverride('admin.test@example.com')}
                         className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                           employeeOverride === 'admin.test@example.com'
                             ? 'bg-blue-600 text-white shadow-sm'
-                            : 'text-gray-700 hover:bg-blue-100'
+                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
                         }`}
                         title="Admin [TEST] - can see ALL reviews"
                       >
@@ -265,9 +293,9 @@ export default function Dashboard({
                         className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                           employeeOverride === 'leader1.test@example.com'
                             ? 'bg-blue-600 text-white shadow-sm'
-                            : 'text-gray-700 hover:bg-blue-100'
+                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
                         }`}
-                        title="Leader 1 [TEST] - can see own + direct reports (User 1, User 2)"
+                        title="Leader 1 [TEST] - can see own + direct reports"
                       >
                         Leader 1
                       </button>
@@ -276,9 +304,9 @@ export default function Dashboard({
                         className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                           employeeOverride === 'leader2.test@example.com'
                             ? 'bg-blue-600 text-white shadow-sm'
-                            : 'text-gray-700 hover:bg-blue-100'
+                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
                         }`}
-                        title="Leader 2 [TEST] - can see own + direct reports (User 3, User 4)"
+                        title="Leader 2 [TEST] - can see own + direct reports"
                       >
                         Leader 2
                       </button>
@@ -287,9 +315,9 @@ export default function Dashboard({
                         className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                           employeeOverride === 'user1.test@example.com'
                             ? 'bg-blue-600 text-white shadow-sm'
-                            : 'text-gray-700 hover:bg-blue-100'
+                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
                         }`}
-                        title="User 1 [TEST] - can see own reviews only"
+                        title="User 1 [TEST]"
                       >
                         User 1
                       </button>
@@ -298,9 +326,9 @@ export default function Dashboard({
                         className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                           employeeOverride === 'user2.test@example.com'
                             ? 'bg-blue-600 text-white shadow-sm'
-                            : 'text-gray-700 hover:bg-blue-100'
+                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
                         }`}
-                        title="User 2 [TEST] - can see own reviews only"
+                        title="User 2 [TEST]"
                       >
                         User 2
                       </button>
@@ -309,9 +337,9 @@ export default function Dashboard({
                         className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                           employeeOverride === 'user3.test@example.com'
                             ? 'bg-blue-600 text-white shadow-sm'
-                            : 'text-gray-700 hover:bg-blue-100'
+                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
                         }`}
-                        title="User 3 [TEST] - can see own reviews only"
+                        title="User 3 [TEST]"
                       >
                         User 3
                       </button>
@@ -320,9 +348,9 @@ export default function Dashboard({
                         className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                           employeeOverride === 'user4.test@example.com'
                             ? 'bg-blue-600 text-white shadow-sm'
-                            : 'text-gray-700 hover:bg-blue-100'
+                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
                         }`}
-                        title="User 4 [TEST] - can see own reviews only"
+                        title="User 4 [TEST]"
                       >
                         User 4
                       </button>
@@ -331,7 +359,7 @@ export default function Dashboard({
                         className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                           employeeOverride === null
                             ? 'bg-blue-600 text-white shadow-sm'
-                            : 'text-gray-700 hover:bg-blue-100'
+                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
                         }`}
                         title="Use actual logged-in user"
                       >
@@ -339,81 +367,46 @@ export default function Dashboard({
                       </button>
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              <div className="flex gap-1 border-b border-gray-200">
-                <button
-                  onClick={() => changeView('directory')}
-                  className={`px-4 py-2 font-medium text-sm transition-colors ${
-                    currentView === 'directory'
-                      ? 'text-blue-600 border-b-2 border-blue-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Talent
-                </button>
-                <button
-                  onClick={() => changeView('360-feedback')}
-                  className={`px-4 py-2 font-medium text-sm transition-colors ${
-                    currentView === '360-feedback'
-                      ? 'text-blue-600 border-b-2 border-blue-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  360° Reviews
-                </button>
-                {currentUserEmployee?.role === 'admin' && (
-                  <button
-                    onClick={() => changeView('admin-settings')}
-                    className={`px-4 py-2 font-medium text-sm transition-colors ${
-                      currentView === 'admin-settings'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    Admin Settings
-                  </button>
-                )}
-              </div>
+              {/* View Content */}
+              {currentView === '360-feedback' && (
+                <Feedback360Dashboard
+                  employees={employees}
+                  departments={departments}
+                  organizationId={organization.id}
+                  currentUserName={userProfile.full_name || userProfile.email || 'User'}
+                  currentUser={currentUserEmployee}
+                />
+              )}
+
+              {currentView === 'directory' && (
+                <PeopleDashboard
+                  employees={employees}
+                  departments={departments}
+                  employeePlans={employeePlans}
+                  onEmployeeUpdate={loadEmployees}
+                  userRole={userProfile.role}
+                  onPlansUpdate={setEmployeePlans}
+                  currentUserName={userProfile.full_name || userProfile.email || 'User'}
+                  performanceReviews={performanceReviews}
+                  onReviewSave={handleReviewSave}
+                  organizationId={organization.id}
+                  activeDepartmentIds={selectedDepartments}
+                  simpleMode={true}
+                  currentUser={currentUserEmployee}
+                  finalizedSurveys={finalizedSurveys}
+                />
+              )}
+
+              {currentView === 'admin-settings' && (
+                <AdminSettings />
+              )}
             </div>
-
-            {currentView === '360-feedback' && (
-              <Feedback360Dashboard
-                employees={employees}
-                departments={departments}
-                organizationId={organization.id}
-                currentUserName={userProfile.full_name || userProfile.email || 'User'}
-                currentUser={currentUserEmployee}
-              />
-            )}
-
-            {currentView === 'directory' && (
-              <PeopleDashboard
-                employees={employees}
-                departments={departments}
-                employeePlans={employeePlans}
-                onEmployeeUpdate={loadEmployees}
-                userRole={userProfile.role}
-                onPlansUpdate={setEmployeePlans}
-                currentUserName={userProfile.full_name || userProfile.email || 'User'}
-                performanceReviews={performanceReviews}
-                onReviewSave={handleReviewSave}
-                organizationId={organization.id}
-                activeDepartmentIds={selectedDepartments}
-                simpleMode={true}
-                currentUser={currentUserEmployee}
-                finalizedSurveys={finalizedSurveys}
-              />
-            )}
-
-            {currentView === 'admin-settings' && (
-              <AdminSettings />
-            )}
-
-          </div>
-        )}
-      </main>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
