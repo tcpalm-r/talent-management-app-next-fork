@@ -645,13 +645,39 @@ export default function EmployeeDetailModal({
               hasContent: true, // Always has basic details
             },
             {
+              key: 'job-description',
+              label: 'Job Description',
+              icon: FileCode,
+              activeClass: 'bg-indigo-600 text-white shadow-md',
+              inactiveClass: 'bg-white text-gray-700 hover:bg-indigo-50 border border-gray-200',
+              hasContent: hasJobDescription,
+            },
+            {
+              key: '360',
+              label: '360',
+              icon: UsersIcon,
+              activeClass: 'bg-purple-600 text-white shadow-md',
+              inactiveClass: 'bg-white text-gray-700 hover:bg-purple-50 border border-gray-200',
+              hasContent: has360,
+            },
+            {
               key: 'perf-review',
-              label: 'Review & ITP',
+              label: 'ITP Self-assessment',
               icon: ClipboardList,
               activeClass: 'bg-indigo-600 text-white shadow-md',
               inactiveClass: 'bg-white text-gray-700 hover:bg-indigo-50 border border-gray-200',
               hasContent: performanceReviews.length > 0,
               badge: performanceReviews.length,
+              badgeClass: 'bg-green-500 text-white',
+            },
+            {
+              key: 'one-on-one',
+              label: '1:1',
+              icon: Calendar,
+              activeClass: 'bg-green-600 text-white shadow-md',
+              inactiveClass: 'bg-white text-gray-700 hover:bg-green-50 border border-gray-200',
+              hasContent: hasOneOnOnes,
+              badge: employee.one_on_one_meetings?.length || 0,
               badgeClass: 'bg-green-500 text-white',
             },
             {
@@ -663,22 +689,12 @@ export default function EmployeeDetailModal({
               hasContent: hasPlan,
             },
             {
-              key: '360',
-              label: '360',
-              icon: UsersIcon,
-              activeClass: 'bg-purple-600 text-white shadow-md',
-              inactiveClass: 'bg-white text-gray-700 hover:bg-purple-50 border border-gray-200',
-              hasContent: has360,
-            },
-            {
-              key: 'one-on-one',
-              label: '1-on-1',
-              icon: Calendar,
-              activeClass: 'bg-green-600 text-white shadow-md',
-              inactiveClass: 'bg-white text-gray-700 hover:bg-green-50 border border-gray-200',
-              hasContent: hasOneOnOnes,
-              badge: employee.one_on_one_meetings?.length || 0,
-              badgeClass: 'bg-green-500 text-white',
+              key: 'notes',
+              label: 'Notes',
+              icon: PenSquare,
+              activeClass: 'bg-cyan-600 text-white shadow-md',
+              inactiveClass: 'bg-white text-gray-700 hover:bg-cyan-50 border border-gray-200',
+              hasContent: true, // Always available
             },
             {
               key: 'pip',
@@ -695,30 +711,6 @@ export default function EmployeeDetailModal({
               activeClass: 'bg-teal-600 text-white shadow-md',
               inactiveClass: 'bg-white text-gray-700 hover:bg-teal-50 border border-gray-200',
               hasContent: isInSuccession,
-            },
-            {
-              key: 'ingest',
-              label: 'Ingest',
-              icon: Sparkles,
-              activeClass: 'bg-pink-600 text-white shadow-md',
-              inactiveClass: 'bg-white text-gray-700 hover:bg-pink-50 border border-gray-200',
-              hasContent: true, // AI tool - always available
-            },
-            {
-              key: 'job-description',
-              label: 'Job Description',
-              icon: FileCode,
-              activeClass: 'bg-indigo-600 text-white shadow-md',
-              inactiveClass: 'bg-white text-gray-700 hover:bg-indigo-50 border border-gray-200',
-              hasContent: hasJobDescription,
-            },
-            {
-              key: 'notes',
-              label: 'Notes',
-              icon: PenSquare,
-              activeClass: 'bg-cyan-600 text-white shadow-md',
-              inactiveClass: 'bg-white text-gray-700 hover:bg-cyan-50 border border-gray-200',
-              hasContent: true, // Always available
             },
           ];
           })().map((item) => {
