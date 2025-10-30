@@ -57,6 +57,9 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('[Auth0 Callback] Exchanging code for tokens...');
+    console.log('[Auth0 Callback] Token endpoint:', `${auth0IssuerUrl}/oauth/token`);
+    console.log('[Auth0 Callback] Client ID:', clientId);
+    console.log('[Auth0 Callback] Redirect URI:', `${baseUrl}/api/auth/callback`);
 
     const tokenResponse = await fetch(`${auth0IssuerUrl}/oauth/token`, {
       method: 'POST',
@@ -71,9 +74,18 @@ export async function GET(request: NextRequest) {
       }),
     });
 
+    console.log('[Auth0 Callback] Token response status:', tokenResponse.status);
+
     if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.json();
-      console.error('[Auth0 Callback] Token exchange failed:', errorData);
+      const errorText = await tokenResponse.text();
+      console.error('[Auth0 Callback] Token exchange failed with status', tokenResponse.status);
+      console.error('[Auth0 Callback] Error response body:', errorText);
+      try {
+        const errorData = JSON.parse(errorText);
+        console.error('[Auth0 Callback] Parsed error:', errorData);
+      } catch (e) {
+        console.error('[Auth0 Callback] Could not parse error response');
+      }
       return NextResponse.redirect(new URL('/unauthorized', request.nextUrl.origin));
     }
 
@@ -81,7 +93,9 @@ export async function GET(request: NextRequest) {
     const idToken = tokenData.id_token;
     const accessToken = tokenData.access_token;
 
-    console.log('[Auth0 Callback] Tokens received');
+    console.log('[Auth0 Callback] Tokens received successfully');
+    console.log('[Auth0 Callback] ID token length:', idToken?.length);
+    console.log('[Auth0 Callback] Access token length:', accessToken?.length);
 
     // Decode ID token to get user info
     const idTokenPayload = decodeJWT(idToken);
@@ -104,24 +118,31 @@ export async function GET(request: NextRequest) {
     const picture = idTokenPayload.picture;
 
     // Check if user exists in Supabase
-    console.log('[Auth0 Callback] Looking up user in Supabase...');
+    console.log('[Auth0 Callback] Looking up user in Supabase with email:', email);
     const { data: existingUser, error: lookupError } = await supabase
       .from('user_profiles')
       .select('*')
       .eq('email', email)
       .single();
 
+    console.log('[Auth0 Callback] Lookup result:', { existingUser: !!existingUser, error: lookupError?.code });
+
     let user = existingUser;
 
     if (lookupError && lookupError.code !== 'PGRST116') {
       // PGRST116 means no rows found, which is expected for new users
-      console.error('[Auth0 Callback] Error looking up user:', lookupError);
+      console.error('[Auth0 Callback] Error looking up user - unexpected error:', lookupError.code, lookupError.message);
       return NextResponse.redirect(new URL('/unauthorized', request.nextUrl.origin));
     }
 
     if (!user) {
       // User doesn't exist - create them
       console.log('[Auth0 Callback] User not found, creating new user...');
+      console.log('[Auth0 Callback] User data to insert:', {
+        auth0_id: auth0Id,
+        email: email,
+        full_name: fullName,
+      });
 
       const { data: newUser, error: createError } = await supabase
         .from('user_profiles')
@@ -149,15 +170,26 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (createError) {
-        console.error('[Auth0 Callback] Error creating user:', createError);
+        console.error('[Auth0 Callback] Error creating user:', {
+          code: createError.code,
+          message: createError.message,
+          details: createError.details,
+        });
         return NextResponse.redirect(new URL('/unauthorized', request.nextUrl.origin));
       }
 
       user = newUser;
-      console.log('[Auth0 Callback] New user created:', email);
+      console.log('[Auth0 Callback] New user created successfully:', {
+        id: user.id,
+        email: user.email,
+      });
     } else {
       // User exists - update last login
-      console.log('[Auth0 Callback] User found, updating last login...');
+      console.log('[Auth0 Callback] User found in Supabase:', {
+        id: user.id,
+        email: user.email,
+      });
+      console.log('[Auth0 Callback] Updating last login...');
 
       const { error: updateError } = await supabase
         .from('user_profiles')
@@ -169,6 +201,8 @@ export async function GET(request: NextRequest) {
 
       if (updateError) {
         console.error('[Auth0 Callback] Error updating user:', updateError);
+      } else {
+        console.log('[Auth0 Callback] Last login updated successfully');
       }
     }
 

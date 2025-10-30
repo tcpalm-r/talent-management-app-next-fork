@@ -48,7 +48,12 @@ export async function GET(request: NextRequest) {
     authorizeUrl.searchParams.set('scope', 'openid profile email');
     authorizeUrl.searchParams.set('redirect_uri', redirectUri);
 
-    console.log('[Auth0 Login] Redirecting to:', authorizeUrl.toString());
+    console.log('[Auth0 Login] Building authorize URL');
+    console.log('[Auth0 Login] Auth0 Domain:', auth0Domain);
+    console.log('[Auth0 Login] Client ID:', clientId);
+    console.log('[Auth0 Login] Redirect URI:', redirectUri);
+    console.log('[Auth0 Login] Full URL:', authorizeUrl.toString());
+    console.log('[Auth0 Login] Redirecting user to Auth0...');
 
     return NextResponse.redirect(authorizeUrl);
   } catch (error) {
