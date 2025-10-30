@@ -351,7 +351,7 @@ export default function Dashboard({
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  People
+                  Talent
                 </button>
                 <button
                   onClick={() => changeView('360-feedback')}
