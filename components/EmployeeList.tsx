@@ -164,12 +164,6 @@ export default function EmployeeList({
                     </div>
                   </div>
 
-                  {/* Email */}
-                  <div className="mb-4 pb-4 border-b border-gray-100">
-                    <p className="text-xs text-gray-500 mb-1">Email</p>
-                    <p className="text-sm text-gray-900 truncate">{employee.email || 'N/A'}</p>
-                  </div>
-
                   {/* 360 Review Checkbox */}
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-600">360 Review Completed</span>
