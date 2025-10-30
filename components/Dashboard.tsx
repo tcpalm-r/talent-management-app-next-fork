@@ -318,16 +318,6 @@ export default function Dashboard({
 
               <div className="flex gap-1 border-b border-gray-200">
                 <button
-                  onClick={() => changeView('360-feedback')}
-                  className={`px-4 py-2 font-medium text-sm transition-colors ${
-                    currentView === '360-feedback'
-                      ? 'text-blue-600 border-b-2 border-blue-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  360° Reviews
-                </button>
-                <button
                   onClick={() => changeView('directory')}
                   className={`px-4 py-2 font-medium text-sm transition-colors ${
                     currentView === 'directory'
@@ -336,6 +326,16 @@ export default function Dashboard({
                   }`}
                 >
                   People
+                </button>
+                <button
+                  onClick={() => changeView('360-feedback')}
+                  className={`px-4 py-2 font-medium text-sm transition-colors ${
+                    currentView === '360-feedback'
+                      ? 'text-blue-600 border-b-2 border-blue-600'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  360° Reviews
                 </button>
                 {currentUserEmployee?.role === 'admin' && (
                   <button
