@@ -3,8 +3,8 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Sonance 360° Review Tool",
-  description: "360° Feedback Review and Management Platform",
+  title: "Sonance Talent Management",
+  description: "Talent Management and 360° Feedback Review Platform",
 };
 
 export default function RootLayout({

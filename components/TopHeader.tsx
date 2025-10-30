@@ -36,7 +36,7 @@ export default function TopHeader({ userProfile, onMenuOpen }: TopHeaderProps) {
       <div className="h-16 px-6 flex items-center justify-between gap-4">
         {/* Logo/Brand */}
         <div className="flex-shrink-0 min-w-0">
-          <h1 className="text-xl font-bold text-gray-900">Sonance</h1>
+          <h1 className="text-xl font-bold text-gray-900">Sonance Talent Management</h1>
         </div>
 
         {/* Search Bar */}
