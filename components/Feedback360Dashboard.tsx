@@ -3,6 +3,7 @@ import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle,
 import { supabase } from '../lib/supabase';
 import type { Employee, Department } from '../types';
 import Survey360Wizard from './Survey360Wizard';
+import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
 import { useToast } from './unified';
 import { exportReportAsPDF } from '../lib/exportReport';
 
@@ -68,6 +69,7 @@ export default function Feedback360Dashboard({
   const [showRawData, setShowRawData] = useState(false);
   const [rawSurveyData, setRawSurveyData] = useState<any>(null);
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
   useEffect(() => {
     loadSurveys();
@@ -899,14 +901,17 @@ export default function Feedback360Dashboard({
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-            <MessageSquare className="w-7 h-7 mr-2 text-blue-600" />
-            Welcome, {currentUser?.name || currentUserName}!
-          </h2>
-          <p className="text-gray-600 mt-1">Create and manage multi-source feedback reviews</p>
-        </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            setIsAIModalOpen(true);
+          }}
+          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center gap-2"
+          title="Create survey with AI assistance"
+        >
+          <Sparkles className="w-4 h-4" />
+          Create with AI
+        </button>
         <button
           onClick={() => {
             setPreselectedEmployee(undefined);
@@ -2226,6 +2231,31 @@ export default function Feedback360Dashboard({
           </div>
         </div>
       )}
+
+      {/* Create with AI Modal */}
+      <CreateWithAIModal
+        isOpen={isAIModalOpen}
+        onClose={() => setIsAIModalOpen(false)}
+        organizationId={organizationId}
+        employees={employees}
+        onSurveyCreated={() => {
+          setIsAIModalOpen(false);
+          loadSurveys();
+        }}
+      />
+
+      {/* Survey 360 Wizard Modal */}
+      <Survey360Wizard
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        organizationId={organizationId}
+        employees={employees}
+        preselectedEmployee={preselectedEmployee}
+        onSurveyCreated={() => {
+          setIsWizardOpen(false);
+          loadSurveys();
+        }}
+      />
     </div>
   );
 }

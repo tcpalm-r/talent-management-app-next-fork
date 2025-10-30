@@ -24,6 +24,21 @@ export function middleware(request: NextRequest) {
 
   console.log('[Middleware] Route requires auth:', requiresAuth);
 
+  // Check if authentication is disabled (mock auth mode)
+  const authDisabled = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
+  console.log('[Middleware] Auth disabled (mock mode):', authDisabled);
+
+  // If auth is disabled, automatically authenticate with mock user
+  if (authDisabled) {
+    console.log('[Middleware] Mock auth enabled, using mock user:', MOCK_USER.full_name);
+    const authenticatedResponse = createAuthenticatedResponse(response, MOCK_USER);
+    authenticatedResponse.headers.set('x-ai-intranet-url', aiIntranetUrl);
+    authenticatedResponse.headers.set('x-app-id', process.env.APP_ID || '');
+    authenticatedResponse.headers.set('x-local-testing-mode', localTestingMode ? 'true' : 'false');
+    authenticatedResponse.headers.set('x-auth-disabled', 'true');
+    return authenticatedResponse;
+  }
+
   // Add AI Intranet configuration headers
   response.headers.set('x-ai-intranet-url', aiIntranetUrl);
   response.headers.set('x-app-id', process.env.APP_ID || '');

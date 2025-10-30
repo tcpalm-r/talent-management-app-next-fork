@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { MOCK_USER } from '@/lib/auth';
 import type { User as AppUser, Organization } from '@/types';
 import Dashboard from '@/components/Dashboard';
-import UserSwitcher from '@/components/UserSwitcher';
 import { TalentAppProvider } from '@/context/TalentAppContext';
 
 // Fixed organization ID (no auth needed)
@@ -246,34 +244,6 @@ export default function AppWrapper() {
       onNavigateToView={handleNavigateToView}
     >
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex justify-between items-center">
-              <h1 className="text-xl font-bold text-gray-900">Sonance Talent Management</h1>
-              <div className="flex items-center gap-4">
-                {user && (
-                  <>
-                    <UserSwitcher currentUser={{
-                      id: user.id,
-                      full_name: user.full_name,
-                      email: user.email,
-                    }} />
-                    <button
-                      onClick={() => window.location.href = '/api/auth/logout'}
-                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
-                      title="Logout"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span className="hidden sm:inline">Logout</span>
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
-
         <Dashboard
           user={user as any}
           userProfile={userProfile!}
