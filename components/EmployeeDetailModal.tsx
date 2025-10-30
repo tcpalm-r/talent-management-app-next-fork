@@ -631,7 +631,8 @@ export default function EmployeeDetailModal({
             const hasPlan = Boolean(currentPlan);
             const hasJobDescription = Boolean(employee.job_description || (employee.key_responsibilities && employee.key_responsibilities.length > 0));
             const hasOneOnOnes = Boolean(employee.one_on_one_meetings && employee.one_on_one_meetings.length > 0);
-            const has360 = false; // Would check 360 feedback when available
+            const has360 = Boolean(completed360Surveys && completed360Surveys.length > 0);
+            const hasNotes = Boolean(employee.notes || employee.manager_notes);
             const isPIP = false; // Would check if employee has active PIP
             const isInSuccession = Boolean(employee.is_critical_role || employee.critical_role_id);
             
@@ -694,7 +695,7 @@ export default function EmployeeDetailModal({
               icon: PenSquare,
               activeClass: 'bg-cyan-600 text-white shadow-md',
               inactiveClass: 'bg-white text-gray-700 hover:bg-cyan-50 border border-gray-200',
-              hasContent: true, // Always available
+              hasContent: hasNotes,
             },
             {
               key: 'pip',
