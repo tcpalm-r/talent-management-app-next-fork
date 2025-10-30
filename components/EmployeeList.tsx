@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, Search, User } from 'lucide-react';
+import { Download, Search, User, Check } from 'lucide-react';
 import type { Employee, Department, UserRole } from '../types';
 import type { PerformanceReview } from '../lib/schema';
 import EmployeeDetailModal from './EmployeeDetailModal';
@@ -131,19 +131,69 @@ export default function EmployeeList({
             description={employees.length === 0 ? 'Import employees to get started with assessments.' : undefined}
           />
         ) : (
-          <div className="space-y-4">
-            {filteredEmployees.map((employee) => (
-              <EmployeeCardUnified
-                key={employee.id}
-                employee={employee}
-                department={departments.find(d => d.id === employee.department_id)}
-                variant="list"
-                enableDrag={false}
-                onCardClick={handleEmployeeClick}
-                employeePlan={employeePlans[employee.id]}
-                onOpen360={handleOpen360}
-              />
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredEmployees.map((employee) => {
+              const dept = departments.find(d => d.id === employee.department_id);
+              const initials = employee.name
+                .split(' ')
+                .map(n => n[0])
+                .join('')
+                .toUpperCase();
+
+              // Check if employee has done a 360 review this year
+              const has360Review = employee.completed_360_survey_count && employee.completed_360_survey_count > 0;
+
+              return (
+                <div
+                  key={employee.id}
+                  onClick={() => handleEmployeeClick(employee)}
+                  className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-lg transition-shadow cursor-pointer"
+                >
+                  {/* Header with name and avatar */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold text-sm flex-shrink-0">
+                        {initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 truncate">{employee.name}</h3>
+                        <p className="text-sm text-gray-600 truncate">{employee.title || 'No title'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="mb-3 pb-3 border-b border-gray-100">
+                    <p className="text-xs text-gray-500 mb-1">Email</p>
+                    <p className="text-sm text-gray-900 truncate">{employee.email || 'N/A'}</p>
+                  </div>
+
+                  {/* Manager */}
+                  <div className="mb-3 pb-3 border-b border-gray-100">
+                    <p className="text-xs text-gray-500 mb-1">Manager</p>
+                    <p className="text-sm text-gray-900 truncate">{employee.manager_id ? 'Assigned' : 'Unassigned'}</p>
+                  </div>
+
+                  {/* Department */}
+                  <div className="mb-4 pb-4 border-b border-gray-100">
+                    <p className="text-xs text-gray-500 mb-1">Department</p>
+                    <p className="text-sm text-gray-900 truncate">{dept?.name || 'No department'}</p>
+                  </div>
+
+                  {/* 360 Review Checkbox */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">360 Review Completed</span>
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                      has360Review
+                        ? 'bg-green-500 border-green-500'
+                        : 'border-gray-300 bg-white'
+                    }`}>
+                      {has360Review && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
