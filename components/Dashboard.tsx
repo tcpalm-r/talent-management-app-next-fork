@@ -231,25 +231,10 @@ export default function Dashboard({
     });
   };
 
-  // Get the title based on current view
-  const getViewTitle = () => {
-    switch (currentView) {
-      case 'directory':
-        return 'Talent Directory';
-      case '360-feedback':
-        return '360° Feedback Reviews';
-      case 'admin-settings':
-        return 'Admin Settings';
-      default:
-        return 'Talent Management';
-    }
-  };
-
   return (
     <div className="h-screen flex flex-col bg-white">
       {/* Top Header */}
       <TopHeader
-        title={getViewTitle()}
         userProfile={userProfile}
       />
 

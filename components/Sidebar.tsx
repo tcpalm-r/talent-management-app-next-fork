@@ -18,11 +18,6 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-      {/* Logo/Brand */}
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h1 className="text-xl font-bold text-gray-900">Sonance</h1>
-      </div>
-
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-2">
         {navItems.map((item) => {

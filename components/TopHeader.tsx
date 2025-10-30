@@ -5,12 +5,11 @@ import { useState, useRef, useEffect } from 'react';
 import Avatar from './Avatar';
 
 interface TopHeaderProps {
-  title: string;
   userProfile: any;
   onMenuOpen?: () => void;
 }
 
-export default function TopHeader({ title, userProfile, onMenuOpen }: TopHeaderProps) {
+export default function TopHeader({ userProfile, onMenuOpen }: TopHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -35,9 +34,9 @@ export default function TopHeader({ title, userProfile, onMenuOpen }: TopHeaderP
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
       <div className="h-16 px-6 flex items-center justify-between gap-4">
-        {/* Title */}
+        {/* Logo/Brand */}
         <div className="flex-shrink-0 min-w-0">
-          <h2 className="text-lg font-semibold text-gray-900 truncate">{title}</h2>
+          <h1 className="text-xl font-bold text-gray-900">Sonance</h1>
         </div>
 
         {/* Search Bar */}
