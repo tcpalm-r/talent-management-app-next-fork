@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreVertical } from 'lucide-react';
+import { MoreVertical, Sparkles } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Avatar from './Avatar';
 
@@ -33,18 +33,17 @@ export default function TopHeader({ userProfile, onMenuOpen }: TopHeaderProps) {
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
-      <div className="h-16 px-6 flex items-center justify-between gap-4">
+      <div className="h-16 px-6 flex items-center justify-between gap-4 relative">
         {/* Logo/Brand */}
         <div className="flex-shrink-0 min-w-0">
           <h1 className="text-xl font-bold text-gray-900">Sonance Talent Management</h1>
         </div>
 
-        {/* Ask AI Button */}
-        <div className="flex-1 flex justify-center">
-          <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
-            Ask AI
-          </button>
-        </div>
+        {/* Ask AI Button - Centered Absolutely */}
+        <button className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-sm font-medium transition-colors">
+          <Sparkles className="w-4 h-4" />
+          Ask AI
+        </button>
 
         {/* Right Section */}
         <div className="flex items-center gap-3 flex-shrink-0">
