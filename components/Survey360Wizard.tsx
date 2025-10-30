@@ -24,6 +24,7 @@ import {
   getQuestionById,
   getQuestionsByCategory,
 } from '../lib/feedback360QuestionBank';
+import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
 
 interface Survey360WizardProps {
   isOpen: boolean;
@@ -98,6 +99,8 @@ export default function Survey360Wizard({
   const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>(preselectedEmployee);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [shouldAutoLaunch, setShouldAutoLaunch] = useState(false);
 
   // Required questions (admin-only editable)
   const [requiredQuestions, setRequiredQuestions] = useState<string[]>([
@@ -141,6 +144,59 @@ export default function Survey360Wizard({
     setEmployeeSearch('');
     setRaterSearch('');
     setShowRaterPicker(null);
+  };
+
+  // Handle AI modal completion
+  const handleAIModalComplete = (data: ParsedSurveyData) => {
+    console.log('[Survey360Wizard.handleAIModalComplete] Called with data:', data);
+
+    // Find employee by name if the AI-parsed name differs from current selection
+    if (data.employeeName) {
+      console.log('[Survey360Wizard.handleAIModalComplete] Looking for employee:', data.employeeName);
+      const matchedEmployee = employees.find(
+        emp => emp.name.toLowerCase() === data.employeeName.toLowerCase()
+      );
+      if (matchedEmployee) {
+        console.log('[Survey360Wizard.handleAIModalComplete] Found matching employee:', matchedEmployee);
+        setSelectedEmployee(matchedEmployee);
+      } else {
+        console.log('[Survey360Wizard.handleAIModalComplete] No matching employee found');
+      }
+    }
+
+    // Apply questions - combine with existing required questions if user hasn't changed them
+    // or replace if AI provided custom questions
+    if (data.questions && data.questions.length > 0) {
+      console.log('[Survey360Wizard.handleAIModalComplete] Setting custom questions:', data.questions);
+      setCustomQuestions(data.questions);
+    }
+
+    // Apply raters
+    if (data.raters && data.raters.length > 0) {
+      console.log('[Survey360Wizard.handleAIModalComplete] Setting raters:', data.raters);
+      setRaters(data.raters);
+    }
+
+    // Apply due date
+    if (data.dueDate) {
+      console.log('[Survey360Wizard.handleAIModalComplete] Setting due date:', data.dueDate);
+      setDueDate(data.dueDate);
+    }
+
+    // Apply survey title if provided
+    if (data.surveyTitle) {
+      console.log('[Survey360Wizard.handleAIModalComplete] Setting survey title:', data.surveyTitle);
+      setSurveyTitle(data.surveyTitle);
+    }
+
+    // Move to preview step and flag for auto-launch
+    console.log('[Survey360Wizard.handleAIModalComplete] Moving to preview step and setting auto-launch flag');
+    setCurrentStep('preview');
+    setShouldAutoLaunch(true);
+
+    // Close AI modal
+    setIsAIModalOpen(false);
+    console.log('[Survey360Wizard.handleAIModalComplete] Closed AI modal');
   };
 
   // Load default questions from API
@@ -260,6 +316,23 @@ export default function Survey360Wizard({
 
     loadDraftSurveyData();
   }, [isOpen, draftSurvey, employees]);
+
+  // Auto-launch survey when AI modal completes
+  useEffect(() => {
+    if (shouldAutoLaunch && currentStep === 'preview' && selectedEmployee) {
+      // Small delay to ensure state updates are complete
+      const timer = setTimeout(() => {
+        // Trigger the launch by calling handleCreateSurveys directly
+        // This is a workaround to auto-launch after AI modal completes
+        const launchBtn = document.querySelector('[data-launch-button]') as HTMLButtonElement;
+        if (launchBtn) {
+          launchBtn.click();
+        }
+        setShouldAutoLaunch(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldAutoLaunch, currentStep, selectedEmployee]);
 
   // Filter employees based on search
   const filteredEmployees = employees.filter(emp =>
@@ -900,6 +973,17 @@ export default function Survey360Wizard({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                console.log('[Survey360Wizard] "Create with AI" button clicked');
+                setIsAIModalOpen(true);
+              }}
+              className="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded hover:from-purple-700 hover:to-indigo-700 transition-colors text-sm font-medium flex items-center gap-2"
+              title="Create survey with AI assistance"
+            >
+              <Sparkles className="w-4 h-4" />
+              Create with AI
+            </button>
             {draftSurvey && (
               <button
                 onClick={handleDeleteDraft}
@@ -1352,6 +1436,7 @@ export default function Survey360Wizard({
             </button>
           ) : (
             <button
+              data-launch-button
               onClick={handleCreate}
               disabled={isCreating || !canProceed()}
               className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50"
@@ -1371,6 +1456,16 @@ export default function Survey360Wizard({
     </div>
   );
 
-  return typeof window !== 'undefined' ? createPortal(modalContent, document.body) : null;
+  return typeof window !== 'undefined' ? createPortal(
+    <>
+      {modalContent}
+      <CreateWithAIModal
+        isOpen={isAIModalOpen}
+        onClose={() => setIsAIModalOpen(false)}
+        onComplete={handleAIModalComplete}
+      />
+    </>,
+    document.body
+  ) : null;
 }
 

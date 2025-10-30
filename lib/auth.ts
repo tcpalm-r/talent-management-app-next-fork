@@ -192,8 +192,11 @@ export function clearAuthCookies(response: NextResponse): NextResponse {
 export function isProtectedRoute(pathname: string): boolean {
   const publicRoutes = [
     '/unauthorized',
+    '/login',                    // Login page
+    '/api/auth',                 // All Auth0 routes (login, callback, logout, me)
     '/api/auth/validate-token',
-    '/survey/complete', // Public survey completion
+    '/api/debug',                // Debug endpoints
+    '/survey/complete',          // Public survey completion
   ];
 
   // Check if route starts with any public route

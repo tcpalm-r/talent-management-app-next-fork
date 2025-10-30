@@ -3,48 +3,76 @@ import type { NextRequest } from 'next/server';
 import {
   MOCK_USER,
   SESSION_DURATION,
-  getAuthenticatedUser,
   isProtectedRoute,
   createAuthenticatedResponse,
 } from './lib/auth';
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Get environment mode from env variable
-  const localTestingMode = process.env.LOCAL_TESTING_MODE === 'true';
+  console.log('[Middleware] Processing request to:', pathname);
 
-  // Set AI Intranet URL based on mode
+  // Get AI Intranet configuration
+  const localTestingMode = process.env.LOCAL_TESTING_MODE === 'true';
   const aiIntranetUrl = localTestingMode
     ? process.env.AI_INTRANET_URL_LOCAL || 'http://localhost:3001'
     : process.env.AI_INTRANET_URL_PROD || 'https://aiintranet.sonance.com';
 
   // Check if route requires authentication
   const requiresAuth = isProtectedRoute(pathname);
-
-  // For demo/deployment mode - always use mock user (enables sharing with coworkers)
-  // In production deployment, we want everyone to access the demo with mock auth
   const response = NextResponse.next();
+
+  console.log('[Middleware] Route requires auth:', requiresAuth);
 
   // Add AI Intranet configuration headers
   response.headers.set('x-ai-intranet-url', aiIntranetUrl);
   response.headers.set('x-app-id', process.env.APP_ID || '');
   response.headers.set('x-local-testing-mode', localTestingMode ? 'true' : 'false');
-  response.headers.set('x-auth-disabled', 'true');
 
-  // Always inject mock user for all requests (demo mode)
-  const authenticatedResponse = createAuthenticatedResponse(response, MOCK_USER);
+  // Check if user has Auth0 session cookies set by the callback handler
+  // The auth0 SDK automatically sets session cookies, we just need to check if they exist
+  const auth0SessionCookie = request.cookies.get('appSession')?.value;
+  console.log('[Middleware] Auth0 session cookie present:', !!auth0SessionCookie);
 
-  // Also set a flag cookie so client-side code knows auth is disabled
-  authenticatedResponse.cookies.set('x-auth-disabled', 'true', {
-    httpOnly: false,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: SESSION_DURATION / 1000,
-    path: '/',
-  });
+  // Check if there's a switched user (for dev/testing)
+  const switchedUserCookie = request.cookies.get('x-switched-user')?.value;
+  console.log('[Middleware] Switched user cookie present:', !!switchedUserCookie);
 
-  return authenticatedResponse;
+  // If there's a switched user, use that
+  if (switchedUserCookie) {
+    try {
+      const sessionUser = JSON.parse(decodeURIComponent(switchedUserCookie));
+      console.log('[Middleware] Using switched user:', sessionUser.full_name);
+      const authenticatedResponse = createAuthenticatedResponse(response, sessionUser);
+      authenticatedResponse.headers.set('x-auth-disabled', 'false');
+      return authenticatedResponse;
+    } catch (error) {
+      console.error('[Middleware] Error parsing switched user cookie:', error);
+      // Fall through to check auth0 session
+    }
+  }
+
+  // If Auth0 session exists, middleware will pass through
+  // The actual user data is set via the Auth0 callback and stored in cookies
+  // Client-side auth hooks handle fetching the actual user data
+  if (auth0SessionCookie) {
+    console.log('[Middleware] Auth0 session found, passing through');
+    response.headers.set('x-auth-disabled', 'false');
+    return response;
+  }
+
+  // Not authenticated - check if route requires auth
+  if (requiresAuth) {
+    console.log('[Middleware] No session and route requires auth, redirecting to login');
+    // Redirect to login
+    const loginUrl = new URL('/api/auth/login', request.nextUrl.origin);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Public route
+  console.log('[Middleware] Public route, allowing access');
+  response.headers.set('x-auth-disabled', 'false');
+  return response;
 }
 
 // Configure which routes the middleware should run on

@@ -43,25 +43,34 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       setError(null);
+      console.log('[UserContext] Starting fetchUser');
 
       // Try to get user from cookie first
       const cookieUser = getClientUser();
       if (cookieUser) {
+        console.log('[UserContext] User found in cookie:', cookieUser.email);
         setUser(cookieUser);
         setLoading(false);
         return;
       }
 
+      console.log('[UserContext] No cookie user, fetching from /api/auth/me');
       // Fetch from API
       const response = await fetch('/api/auth/me');
+      console.log('[UserContext] /api/auth/me response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('[UserContext] /api/auth/me response data:', data);
         setUser(data.user || null);
       } else {
+        console.warn('[UserContext] /api/auth/me failed with status:', response.status);
+        const errorText = await response.text();
+        console.warn('[UserContext] /api/auth/me error response:', errorText);
         setUser(null);
       }
     } catch (err) {
-      console.error('Error fetching user:', err);
+      console.error('[UserContext] Error fetching user:', err);
       setError('Failed to load user');
       setUser(null);
     } finally {

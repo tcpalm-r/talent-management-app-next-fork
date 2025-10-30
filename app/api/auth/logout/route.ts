@@ -1,26 +1,31 @@
+import { NextRequest, NextResponse } from 'next/server';
+
 /**
  * POST /api/auth/logout
- *
- * Logs out the current user by clearing auth cookies.
+ * Clears Auth0 session and redirects to logout URL
  */
-
-import { NextResponse } from 'next/server';
-import { clearAuthCookies } from '@/lib/auth';
-
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const response = NextResponse.json({
-      success: true,
-      message: 'Logged out successfully',
-    });
+    console.log('[Auth0 Logout] Processing logout');
 
-    // Clear auth cookies
-    return clearAuthCookies(response);
+    // Clear cookies
+    const response = NextResponse.redirect(new URL('/', request.nextUrl.origin));
+    response.cookies.delete('appSession');
+
+    // TODO: Call Auth0 logout endpoint
+    // returnTo should be configured in Auth0 dashboard
+
+    console.log('[Auth0 Logout] Logged out successfully');
+    return response;
   } catch (error) {
-    console.error('Error in /api/auth/logout:', error);
+    console.error('[Auth0 Logout] Error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Logout failed' },
       { status: 500 }
     );
   }
+}
+
+export async function GET(request: NextRequest) {
+  return POST(request);
 }

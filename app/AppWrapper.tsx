@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { MOCK_USER } from '@/lib/auth';
 import type { User as AppUser, Organization } from '@/types';
 import Dashboard from '@/components/Dashboard';
+import UserSwitcher from '@/components/UserSwitcher';
 import { TalentAppProvider } from '@/context/TalentAppContext';
 
 // Fixed organization ID (no auth needed)
@@ -36,8 +38,10 @@ export default function AppWrapper() {
   }, []);
 
   useEffect(() => {
+    console.log('[AppWrapper] Auth loading state changed:', { authLoading, user: user?.email });
     if (!authLoading) {
       // Always load with actual user or mock user for dev
+      console.log('[AppWrapper] Loading user data and organization');
       loadUserDataAndOrganization();
     }
   }, [authLoading]);
@@ -46,9 +50,11 @@ export default function AppWrapper() {
     try {
       setLoading(true);
       setError(null);
+      console.log('[AppWrapper] loadUserDataAndOrganization called');
 
       // Use actual user or mock user for development
       const currentUser = user || MOCK_USER;
+      console.log('[AppWrapper] Current user:', { id: currentUser.id, email: currentUser.email });
 
       // Map SessionUser to AppUser format
       const profile: AppUser = {
@@ -60,11 +66,13 @@ export default function AppWrapper() {
       } as AppUser;
 
       setUserProfile(profile);
+      console.log('[AppWrapper] User profile set');
 
       // Load organization
       await loadOrganization();
+      console.log('[AppWrapper] Organization loaded');
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.error('[AppWrapper] Error loading user data:', error);
       setError(error instanceof Error ? error.message : 'Failed to load user data');
       setLoading(false);
     }
@@ -72,6 +80,7 @@ export default function AppWrapper() {
 
   const loadOrganization = async () => {
     try {
+      console.log('[AppWrapper] loadOrganization called');
       setLoading(true);
       setError(null);
 
@@ -84,9 +93,10 @@ export default function AppWrapper() {
         created_at: now,
         updated_at: now,
       };
+      console.log('[AppWrapper] Setting default organization:', defaultOrg);
       setOrganization(defaultOrg);
     } catch (error) {
-      console.error('Error loading organization:', error);
+      console.error('[AppWrapper] Error loading organization:', error);
       setError(error instanceof Error ? error.message : 'Failed to load organization');
     } finally {
       setLoading(false);
@@ -236,6 +246,34 @@ export default function AppWrapper() {
       onNavigateToView={handleNavigateToView}
     >
       <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex justify-between items-center">
+              <h1 className="text-xl font-bold text-gray-900">Sonance Talent Management</h1>
+              <div className="flex items-center gap-4">
+                {user && (
+                  <>
+                    <UserSwitcher currentUser={{
+                      id: user.id,
+                      full_name: user.full_name,
+                      email: user.email,
+                    }} />
+                    <button
+                      onClick={() => window.location.href = '/api/auth/logout'}
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                      title="Logout"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span className="hidden sm:inline">Logout</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
         <Dashboard
           user={user as any}
           userProfile={userProfile!}

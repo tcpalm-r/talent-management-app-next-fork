@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../../lib/supabase';
-import { CheckCircle, AlertCircle, Send, Loader } from 'lucide-react';
+import { CheckCircle, AlertCircle, Send, Loader, Sparkles } from 'lucide-react';
+import SurveyAIAssistant from '../../../../components/SurveyAIAssistant';
 
 interface Question {
   id: string;
@@ -35,6 +36,7 @@ export default function SurveyCompletionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
 
   const [reviewer, setReviewer] = useState<Reviewer | null>(null);
   const [survey, setSurvey] = useState<Survey | null>(null);
@@ -155,6 +157,12 @@ export default function SurveyCompletionPage() {
       setError('An unexpected error occurred. Please try again later.');
       setLoading(false);
     }
+  };
+
+  const handleAIAssistantComplete = (parsedResponses: { [questionId: string]: string }) => {
+    console.log('[SurveyCompletionPage] AI Assistant completed with responses:', parsedResponses);
+    setResponses(parsedResponses);
+    setIsAIAssistantOpen(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -281,16 +289,32 @@ export default function SurveyCompletionPage() {
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-white">
-            <h1 className="text-3xl font-bold mb-2">360° Feedback Survey</h1>
-            <p className="text-blue-100">
-              Providing feedback for <strong>{survey?.employee_name}</strong>
-            </p>
-            {survey?.due_date && (
-              <p className="text-sm text-blue-200 mt-2">
-                Due: {new Date(survey.due_date).toLocaleDateString()}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-white flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">360° Feedback Survey</h1>
+              <p className="text-blue-100">
+                Providing feedback for <strong>{survey?.employee_name}</strong>
               </p>
-            )}
+              {survey?.due_date && (
+                <p className="text-sm text-blue-200 mt-2">
+                  Due: {new Date(survey.due_date).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+            {/* AI Assistant Button in Header */}
+            <button
+              type="button"
+              onClick={() => {
+                console.log('[SurveyCompletionPage] Opening AI Assistant');
+                setIsAIAssistantOpen(true);
+              }}
+              disabled={submitting}
+              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap ml-4"
+              title="Use AI to help fill in responses"
+            >
+              <Sparkles className="w-4 h-4" />
+              Use AI for responses
+            </button>
           </div>
 
           {/* Instructions */}
@@ -361,6 +385,17 @@ export default function SurveyCompletionPage() {
           <p>🔒 Your responses are confidential and will be aggregated to protect your anonymity.</p>
         </div>
       </div>
+
+      {/* AI Response Assistant Modal */}
+      <SurveyAIAssistant
+        isOpen={isAIAssistantOpen}
+        onClose={() => setIsAIAssistantOpen(false)}
+        questions={questions.map((q) => ({
+          id: q.id,
+          text: q.question_text,
+        }))}
+        onComplete={handleAIAssistantComplete}
+      />
     </div>
   );
 }
