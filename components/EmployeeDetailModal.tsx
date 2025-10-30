@@ -637,6 +637,14 @@ export default function EmployeeDetailModal({
             
             return [
             {
+              key: 'details',
+              label: 'Details',
+              icon: User,
+              activeClass: 'bg-gray-600 text-white shadow-md',
+              inactiveClass: 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200',
+              hasContent: true, // Always has basic details
+            },
+            {
               key: 'perf-review',
               label: 'Review & ITP',
               icon: ClipboardList,
@@ -703,14 +711,6 @@ export default function EmployeeDetailModal({
               activeClass: 'bg-indigo-600 text-white shadow-md',
               inactiveClass: 'bg-white text-gray-700 hover:bg-indigo-50 border border-gray-200',
               hasContent: hasJobDescription,
-            },
-            {
-              key: 'details',
-              label: 'Details',
-              icon: User,
-              activeClass: 'bg-gray-600 text-white shadow-md',
-              inactiveClass: 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200',
-              hasContent: true, // Always has basic details
             },
           ];
           })().map((item) => {
