@@ -18,6 +18,7 @@ import {
 import type { Employee, Survey360, ParticipantRelationship } from '../types';
 import { useToast } from './unified';
 import { supabase } from '../lib/supabase';
+import Avatar from './Avatar';
 import {
   QUESTION_LIBRARY,
   DEFAULT_QUESTION_IDS,
@@ -1079,14 +1080,21 @@ export default function Survey360Wizard({
                     <button
                       key={emp.id}
                       onClick={() => setSelectedEmployee(emp)}
-                      className={`text-left p-2.5 rounded-lg border-2 transition-all ${
+                      className={`text-left p-2.5 rounded-lg border-2 transition-all flex items-center gap-2 ${
                         selectedEmployee?.id === emp.id
                           ? 'border-blue-500 bg-blue-50 shadow-md'
                           : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
                       }`}
                     >
-                      <div className="font-semibold text-sm text-gray-900">{emp.name}</div>
-                      {emp.title && <div className="text-xs text-gray-600">{emp.title}</div>}
+                      <Avatar
+                        name={emp.name}
+                        picture={emp.picture}
+                        size="sm"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm text-gray-900">{emp.name}</div>
+                        {emp.title && <div className="text-xs text-gray-600">{emp.title}</div>}
+                      </div>
                     </button>
                   ))
                 ) : (
@@ -1289,13 +1297,20 @@ export default function Survey360Wizard({
                                 <button
                                   key={emp.id}
                                   onClick={() => selectEmployeeAsRater(emp, index)}
-                                  className="w-full text-left p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                                  className="w-full text-left p-2 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-2"
                                 >
-                                  <div className="font-medium text-sm text-gray-900">{emp.name}</div>
-                                  <div className="text-xs text-gray-600">
-                                    {emp.title && <span>{emp.title}</span>}
-                                    {emp.title && emp.email && <span> • </span>}
-                                    {emp.email && <span className="truncate">{emp.email}</span>}
+                                  <Avatar
+                                    name={emp.name}
+                                    picture={emp.picture}
+                                    size="sm"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-sm text-gray-900">{emp.name}</div>
+                                    <div className="text-xs text-gray-600">
+                                      {emp.title && <span>{emp.title}</span>}
+                                      {emp.title && emp.email && <span> • </span>}
+                                      {emp.email && <span className="truncate">{emp.email}</span>}
+                                    </div>
                                   </div>
                                 </button>
                               ))
@@ -1374,9 +1389,18 @@ export default function Survey360Wizard({
 
               <div className="space-y-4">
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div className="text-sm text-gray-600 mb-1">Employee</div>
-                  <div className="font-semibold text-gray-900">{selectedEmployee?.name}</div>
-                  <div className="text-sm text-gray-600">{selectedEmployee?.title}</div>
+                  <div className="text-sm text-gray-600 mb-2">Employee</div>
+                  <div className="flex items-center gap-3">
+                    <Avatar
+                      name={selectedEmployee?.name}
+                      picture={selectedEmployee?.picture}
+                      size="md"
+                    />
+                    <div>
+                      <div className="font-semibold text-gray-900">{selectedEmployee?.name}</div>
+                      <div className="text-sm text-gray-600">{selectedEmployee?.title}</div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
@@ -1395,10 +1419,15 @@ export default function Survey360Wizard({
 
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <div className="text-sm text-gray-600 mb-2">Raters ({raters.length})</div>
-                  <ul className="space-y-1 text-sm text-gray-700">
+                  <ul className="space-y-2 text-sm text-gray-700">
                     {raters.map((r, i) => (
-                      <li key={i}>
-                        • {r.name || 'Pending'} ({r.relationship})
+                      <li key={i} className="flex items-center gap-2">
+                        <Avatar
+                          name={r.name}
+                          picture={undefined}
+                          size="sm"
+                        />
+                        <span>{r.name || 'Pending'} ({r.relationship})</span>
                       </li>
                     ))}
                   </ul>

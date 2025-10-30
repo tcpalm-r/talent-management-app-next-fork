@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import type { Employee, Department } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
+import Avatar from './Avatar';
 import { useToast } from './unified';
 import { exportReportAsPDF } from '../lib/exportReport';
 
@@ -904,16 +905,6 @@ export default function Feedback360Dashboard({
       <div className="flex items-center gap-2">
         <button
           onClick={() => {
-            setIsAIModalOpen(true);
-          }}
-          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center gap-2"
-          title="Create survey with AI assistance"
-        >
-          <Sparkles className="w-4 h-4" />
-          Create with AI
-        </button>
-        <button
-          onClick={() => {
             setPreselectedEmployee(undefined);
             setIsWizardOpen(true);
           }}
@@ -921,6 +912,16 @@ export default function Feedback360Dashboard({
         >
           <Sparkles className="w-4 h-4 mr-2" />
           Create 360° Review
+        </button>
+        <button
+          onClick={() => {
+            setIsAIModalOpen(true);
+          }}
+          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center gap-2"
+          title="Create survey with AI assistance"
+        >
+          <Sparkles className="w-4 h-4" />
+          Create with AI
         </button>
       </div>
 
@@ -1105,9 +1106,16 @@ export default function Feedback360Dashboard({
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center flex-wrap gap-2 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        360° Review - {survey.employee?.name || 'Unknown Employee'}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <Avatar
+                          name={survey.employee?.name}
+                          picture={survey.employee?.picture}
+                          size="sm"
+                        />
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          360° Review - {survey.employee?.name || 'Unknown Employee'}
+                        </h3>
+                      </div>
 
                       {/* Relationship badges */}
                       {isCreator && (
@@ -1499,13 +1507,20 @@ export default function Feedback360Dashboard({
                                       setReviewerSearch('');
                                       setShowReviewerPicker(false);
                                     }}
-                                    className="w-full text-left px-3 py-2 hover:bg-blue-50 rounded-lg transition-colors border-b border-gray-100 last:border-b-0"
+                                    className="w-full text-left px-3 py-2 hover:bg-blue-50 rounded-lg transition-colors border-b border-gray-100 last:border-b-0 flex items-center gap-2"
                                   >
-                                    <div className="font-medium text-sm text-gray-900">{emp.name}</div>
-                                    <div className="text-xs text-gray-600">
-                                      {emp.title && <span>{emp.title}</span>}
-                                      {emp.title && emp.email && <span> • </span>}
-                                      {emp.email && <span className="truncate">{emp.email}</span>}
+                                    <Avatar
+                                      name={emp.name}
+                                      picture={emp.picture}
+                                      size="sm"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium text-sm text-gray-900">{emp.name}</div>
+                                      <div className="text-xs text-gray-600">
+                                        {emp.title && <span>{emp.title}</span>}
+                                        {emp.title && emp.email && <span> • </span>}
+                                        {emp.email && <span className="truncate">{emp.email}</span>}
+                                      </div>
                                     </div>
                                   </button>
                                 ))
@@ -1520,9 +1535,16 @@ export default function Feedback360Dashboard({
 
                     {/* Selected employee display */}
                     {selectedReviewerEmployee && (
-                      <div className="px-3 py-2 bg-white border border-gray-300 rounded-lg">
-                        <div className="font-medium text-sm text-gray-900">{selectedReviewerEmployee.name}</div>
-                        <div className="text-xs text-gray-600">{selectedReviewerEmployee.email}</div>
+                      <div className="px-3 py-2 bg-white border border-gray-300 rounded-lg flex items-center gap-2">
+                        <Avatar
+                          name={selectedReviewerEmployee.name}
+                          picture={selectedReviewerEmployee.picture}
+                          size="sm"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm text-gray-900">{selectedReviewerEmployee.name}</div>
+                          <div className="text-xs text-gray-600">{selectedReviewerEmployee.email}</div>
+                        </div>
                       </div>
                     )}
 
@@ -1561,6 +1583,11 @@ export default function Feedback360Dashboard({
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
+                            <Avatar
+                              name={reviewer.reviewer_name}
+                              picture={undefined}
+                              size="sm"
+                            />
                             <span className="font-medium text-gray-900 text-sm">{reviewer.reviewer_name}</span>
                             <span className={`px-2 py-0.5 text-xs rounded ${
                               reviewer.status === 'completed'

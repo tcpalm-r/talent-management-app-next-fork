@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Search, Plus, Trash2, ChevronDown, ChevronRight, Mail, Users, Calendar, Send, Save } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import Avatar from './Avatar';
 import type { Employee, Department } from '../types';
 
 interface Feedback360CreateModalProps {
@@ -512,9 +513,16 @@ export default function Feedback360CreateModal({
                 <div className="bg-white border border-gray-200 rounded-lg p-4">
                   <h4 className="font-semibold text-gray-900 mb-3">Survey Details</h4>
                   <div className="space-y-2 text-sm">
-                    <div className="flex">
+                    <div className="flex items-center">
                       <span className="text-gray-600 w-32">Employee:</span>
-                      <span className="font-medium text-gray-900">{selectedEmployee?.name}</span>
+                      <div className="flex items-center gap-2">
+                        <Avatar
+                          name={selectedEmployee?.name}
+                          picture={selectedEmployee?.picture}
+                          size="sm"
+                        />
+                        <span className="font-medium text-gray-900">{selectedEmployee?.name}</span>
+                      </div>
                     </div>
                     <div className="flex">
                       <span className="text-gray-600 w-32">Survey Name:</span>
@@ -559,8 +567,12 @@ export default function Feedback360CreateModal({
                   <h4 className="font-semibold text-gray-900 mb-3">Reviewers</h4>
                   <div className="space-y-2">
                     {reviewers.map((reviewer, index) => (
-                      <div key={index} className="flex items-center text-sm">
-                        <Mail className="w-4 h-4 text-gray-400 mr-2" />
+                      <div key={index} className="flex items-center gap-2 text-sm">
+                        <Avatar
+                          name={reviewer.name}
+                          picture={undefined}
+                          size="sm"
+                        />
                         <span className="font-medium text-gray-900">{reviewer.name}</span>
                         <span className="mx-2 text-gray-400">•</span>
                         <span className="text-gray-600">{reviewer.email}</span>
