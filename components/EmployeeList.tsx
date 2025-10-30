@@ -44,7 +44,7 @@ export default function EmployeeList({
   // Filter state
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-  const [360Status, set360Status] = useState<'all' | 'completed' | 'pending'>('all');
+  const [status360, setStatus360] = useState<'all' | 'completed' | 'pending'>('all');
   const [showFilters, setShowFilters] = useState(false);
 
   const filteredEmployees = employees
@@ -72,10 +72,10 @@ export default function EmployeeList({
       }
 
       // 360 Status filter
-      if (360Status !== 'all') {
+      if (status360 !== 'all') {
         const has360 = finalizedSurveys[employee.id] && finalizedSurveys[employee.id] > 0;
-        if (360Status === 'completed' && !has360) return false;
-        if (360Status === 'pending' && has360) return false;
+        if (status360 === 'completed' && !has360) return false;
+        if (status360 === 'pending' && has360) return false;
       }
 
       return true;
@@ -162,7 +162,7 @@ export default function EmployeeList({
           className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg border border-gray-300"
         >
           <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-          Filters {selectedDepartments.length + selectedRoles.length + (360Status !== 'all' ? 1 : 0) > 0 && `(${selectedDepartments.length + selectedRoles.length + (360Status !== 'all' ? 1 : 0)})`}
+          Filters {selectedDepartments.length + selectedRoles.length + (status360 !== 'all' ? 1 : 0) > 0 && `(${selectedDepartments.length + selectedRoles.length + (status360 !== 'all' ? 1 : 0)})`}
         </button>
 
         {/* Filter Panel */}
@@ -178,8 +178,8 @@ export default function EmployeeList({
                       type="radio"
                       name="360-status"
                       value="all"
-                      checked={360Status === 'all'}
-                      onChange={() => set360Status('all')}
+                      checked={status360 === 'all'}
+                      onChange={() => setStatus360('all')}
                       className="rounded"
                     />
                     <span className="ml-2 text-sm text-gray-600">All</span>
@@ -189,8 +189,8 @@ export default function EmployeeList({
                       type="radio"
                       name="360-status"
                       value="completed"
-                      checked={360Status === 'completed'}
-                      onChange={() => set360Status('completed')}
+                      checked={status360 === 'completed'}
+                      onChange={() => setStatus360('completed')}
                       className="rounded"
                     />
                     <span className="ml-2 text-sm text-gray-600">Completed</span>
@@ -200,8 +200,8 @@ export default function EmployeeList({
                       type="radio"
                       name="360-status"
                       value="pending"
-                      checked={360Status === 'pending'}
-                      onChange={() => set360Status('pending')}
+                      checked={status360 === 'pending'}
+                      onChange={() => setStatus360('pending')}
                       className="rounded"
                     />
                     <span className="ml-2 text-sm text-gray-600">Pending</span>
@@ -259,12 +259,12 @@ export default function EmployeeList({
             </div>
 
             {/* Clear Filters Button */}
-            {(selectedDepartments.length > 0 || selectedRoles.length > 0 || 360Status !== 'all') && (
+            {(selectedDepartments.length > 0 || selectedRoles.length > 0 || status360 !== 'all') && (
               <button
                 onClick={() => {
                   setSelectedDepartments([]);
                   setSelectedRoles([]);
-                  set360Status('all');
+                  setStatus360('all');
                 }}
                 className="mt-4 flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
               >
