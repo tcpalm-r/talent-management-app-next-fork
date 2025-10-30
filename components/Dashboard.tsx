@@ -49,7 +49,12 @@ export default function Dashboard({
   const [isDevelopment, setIsDevelopment] = useState(false);
 
   useEffect(() => {
-    setIsDevelopment(typeof window !== 'undefined' && window.location.hostname === 'localhost');
+    // Enable development features (test role switcher) for localhost and demo deployments
+    const isDev = typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname.includes('vercel.app')
+    );
+    setIsDevelopment(isDev);
   }, []);
 
   // Find current user's employee record for 360 dashboard filtering
