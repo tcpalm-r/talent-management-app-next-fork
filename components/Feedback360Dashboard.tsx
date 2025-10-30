@@ -1364,8 +1364,10 @@ export default function Feedback360Dashboard({
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">360° Review</h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xl font-bold text-gray-900">
+                  360° Review - {selectedSurvey.employee?.name || 'Unknown'}
+                </h2>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={async () => {
@@ -1408,45 +1410,29 @@ export default function Feedback360Dashboard({
                   </button>
                 </div>
               </div>
+              {/* Metadata line */}
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <div className="flex items-center gap-6">
+                  {selectedSurvey.due_date && (
+                    <div>
+                      <span className="text-gray-600">Due Date: </span>
+                      <span className="font-semibold text-gray-900">
+                        {new Date(selectedSurvey.due_date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-gray-600">Created: </span>
+                    <span className="text-gray-900">
+                      {new Date(selectedSurvey.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+                {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin)}
+              </div>
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Review Overview */}
-              <div>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2 text-gray-500" />
-                      <span className="text-sm text-gray-600">Employee:</span>
-                      <span className="ml-2 text-sm font-semibold text-gray-900">
-                        {selectedSurvey.employee?.name || 'Unknown'}
-                      </span>
-                      {selectedSurvey.employee?.title && (
-                        <span className="ml-2 text-sm text-gray-600">• {selectedSurvey.employee.title}</span>
-                      )}
-                    </div>
-                    {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin)}
-                  </div>
-                  <div className="flex items-center gap-6">
-                    {selectedSurvey.due_date && (
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 mr-2 text-gray-500" />
-                        <span className="text-sm text-gray-600">Due Date:</span>
-                        <span className="ml-2 text-sm font-semibold text-gray-900">
-                          {new Date(selectedSurvey.due_date).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-center">
-                      <span className="text-sm text-gray-600">Created:</span>
-                      <span className="ml-2 text-sm text-gray-900">
-                        {new Date(selectedSurvey.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* Reviewers */}
               <div>
                 <div className="flex items-center justify-between mb-3">
