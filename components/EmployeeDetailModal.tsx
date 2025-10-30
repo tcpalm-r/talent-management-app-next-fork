@@ -27,7 +27,7 @@ import { supabase } from '../lib/supabase';
 
 // Simplified navigation structure
 type PanelKey = 'overview' | 'performance' | 'development' | 'notes' | 'advanced'
-type SubPanel = 'details' | 'job-description' | 'reviews' | '360' | 'plans' | 'one-on-one' | 'manager-notes' | 'pip' | 'succession' | 'ingest'
+type SubPanel = 'details' | 'job-description' | 'reviews' | '360' | 'plans' | 'one-on-one' | 'manager-notes' | 'pip' | 'succession' | 'ingest' | 'notes'
 
 // Remove old mapping functions - using new simplified structure
 
@@ -711,6 +711,14 @@ export default function EmployeeDetailModal({
               activeClass: 'bg-indigo-600 text-white shadow-md',
               inactiveClass: 'bg-white text-gray-700 hover:bg-indigo-50 border border-gray-200',
               hasContent: hasJobDescription,
+            },
+            {
+              key: 'notes',
+              label: 'Notes',
+              icon: PenSquare,
+              activeClass: 'bg-cyan-600 text-white shadow-md',
+              inactiveClass: 'bg-white text-gray-700 hover:bg-cyan-50 border border-gray-200',
+              hasContent: true, // Always available
             },
           ];
           })().map((item) => {
@@ -1540,7 +1548,11 @@ export default function EmployeeDetailModal({
             </div>
           )}
 
-          {/* Manager Notes Tab */}
+          {/* Notes Tab */}
+          {activeTab === 'notes' && (
+            <ManagerNotes employee={employee} />
+          )}
+
           {/* Performance Review & ITP Matrix Tab (Combined) */}
           {activeTab === 'perf-review' && (
             <div className="space-y-6">
