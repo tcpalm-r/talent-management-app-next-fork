@@ -246,7 +246,7 @@ export default function Dashboard({
                 <h1 className="text-2xl font-bold text-gray-900">Sonance Talent Management</h1>
 
                 {isDevelopment && (
-                  <div className={`flex items-center gap-2 ${currentView === '360-feedback' ? '' : 'invisible'}`}>
+                  <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500 font-medium">Test as:</span>
                     <div className="flex gap-1 bg-blue-50 border border-blue-200 p-1 rounded-lg">
                       <button
