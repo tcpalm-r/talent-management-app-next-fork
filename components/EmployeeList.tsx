@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, Search, User, Check } from 'lucide-react';
+import { Download, Search, User, Check, ChevronDown, X } from 'lucide-react';
 import type { Employee, Department, UserRole } from '../types';
 import type { PerformanceReview } from '../lib/schema';
 import EmployeeDetailModal from './EmployeeDetailModal';
@@ -41,13 +41,45 @@ export default function EmployeeList({
   const [selected360Employee, setSelected360Employee] = useState<Employee | null>(null);
   const [is360ModalOpen, setIs360ModalOpen] = useState(false);
 
+  // Filter state
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [360Status, set360Status] = useState<'all' | 'completed' | 'pending'>('all');
+  const [showFilters, setShowFilters] = useState(false);
+
   const filteredEmployees = employees
-    .filter(employee =>
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.department?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    .filter(employee => {
+      // Search filter
+      const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        employee.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        employee.department?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      // Department filter
+      if (selectedDepartments.length > 0) {
+        if (!employee.department_id || !selectedDepartments.includes(employee.department_id)) {
+          return false;
+        }
+      }
+
+      // Role filter
+      if (selectedRoles.length > 0) {
+        if (!employee.role || !selectedRoles.includes(employee.role)) {
+          return false;
+        }
+      }
+
+      // 360 Status filter
+      if (360Status !== 'all') {
+        const has360 = finalizedSurveys[employee.id] && finalizedSurveys[employee.id] > 0;
+        if (360Status === 'completed' && !has360) return false;
+        if (360Status === 'pending' && has360) return false;
+      }
+
+      return true;
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const handleExport = async () => {
@@ -113,7 +145,7 @@ export default function EmployeeList({
         </div>
 
         {/* Search */}
-        <div className="relative">
+        <div className="relative mb-4">
           <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -123,6 +155,125 @@ export default function EmployeeList({
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
+
+        {/* Filter Toggle */}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg border border-gray-300"
+        >
+          <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+          Filters {selectedDepartments.length + selectedRoles.length + (360Status !== 'all' ? 1 : 0) > 0 && `(${selectedDepartments.length + selectedRoles.length + (360Status !== 'all' ? 1 : 0)})`}
+        </button>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 360 Status Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">360 Review Status</label>
+                <div className="space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="360-status"
+                      value="all"
+                      checked={360Status === 'all'}
+                      onChange={() => set360Status('all')}
+                      className="rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-600">All</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="360-status"
+                      value="completed"
+                      checked={360Status === 'completed'}
+                      onChange={() => set360Status('completed')}
+                      className="rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-600">Completed</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="360-status"
+                      value="pending"
+                      checked={360Status === 'pending'}
+                      onChange={() => set360Status('pending')}
+                      className="rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-600">Pending</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Department Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Departments</label>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {departments.map((dept) => (
+                    <label key={dept.id} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedDepartments.includes(dept.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedDepartments([...selectedDepartments, dept.id]);
+                          } else {
+                            setSelectedDepartments(selectedDepartments.filter(id => id !== dept.id));
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-600">{dept.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Role Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Roles</label>
+                <div className="space-y-2">
+                  {['admin', 'leader', 'user'].map((role) => (
+                    <label key={role} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedRoles.includes(role)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedRoles([...selectedRoles, role]);
+                          } else {
+                            setSelectedRoles(selectedRoles.filter(r => r !== role));
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-600 capitalize">{role}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            {(selectedDepartments.length > 0 || selectedRoles.length > 0 || 360Status !== 'all') && (
+              <button
+                onClick={() => {
+                  setSelectedDepartments([]);
+                  setSelectedRoles([]);
+                  set360Status('all');
+                }}
+                className="mt-4 flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+                Clear All Filters
+              </button>
+            )}
+          </div>
+        )}
       </div>
       
       <div className="p-6">
