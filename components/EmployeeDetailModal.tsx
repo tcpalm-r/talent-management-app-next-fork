@@ -673,16 +673,6 @@ export default function EmployeeDetailModal({
               badgeClass: 'bg-green-500 text-white',
             },
             {
-              key: 'notes',
-              label: 'Notes',
-              icon: Lock,
-              activeClass: 'bg-amber-600 text-white shadow-md',
-              inactiveClass: 'bg-white text-gray-700 hover:bg-amber-50 border border-gray-200',
-              hasContent: managerNotes.length > 0,
-              badge: managerNotes.length,
-              badgeClass: 'bg-purple-500 text-white',
-            },
-            {
               key: 'pip',
               label: 'PIP',
               icon: AlertTriangle,
@@ -1562,82 +1552,6 @@ export default function EmployeeDetailModal({
           )}
 
           {/* Manager Notes Tab */}
-          {activeTab === 'notes' && (
-            <ManagerNotes
-              employeeId={employee.id}
-              employeeName={employee.name}
-              notes={managerNotes}
-              currentUserName="Current Manager"
-              onAddNote={(note) => {
-                // In real implementation, save to Supabase
-                const newNote: ManagerNote = {
-                  ...note,
-                  id: `note-${Date.now()}`,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                };
-                setManagerNotes([...managerNotes, newNote]);
-
-                // Show alert if requires acknowledgment
-                if (note.requires_acknowledgment) {
-                  notify({
-                    title: 'Feedback sent for acknowledgment',
-                    description: `${employee.name} must acknowledge this ${note.severity ?? 'medium'} severity note.`,
-                    variant: 'info',
-                  });
-                }
-
-                // Update employee object if needed
-                if (onUpdateEmployee) {
-                  onUpdateEmployee({
-                    ...employee,
-                    manager_notes: [...managerNotes, newNote],
-                  });
-                }
-              }}
-              onDeleteNote={(noteId) => {
-                // In real implementation, delete from Supabase
-                const updatedNotes = managerNotes.filter(n => n.id !== noteId);
-                setManagerNotes(updatedNotes);
-
-                // Update employee object if needed
-                if (onUpdateEmployee) {
-                  onUpdateEmployee({
-                    ...employee,
-                    manager_notes: updatedNotes,
-                  });
-                }
-              }}
-              onAcknowledgeNote={(noteId) => {
-                // Employee acknowledges the feedback
-                const updatedNotes = managerNotes.map(n =>
-                  n.id === noteId
-                    ? {
-                        ...n,
-                        acknowledged_at: new Date().toISOString(),
-                        acknowledged_by: employee.name,
-                      }
-                    : n
-                );
-                setManagerNotes(updatedNotes);
-
-                // Update employee object
-                if (onUpdateEmployee) {
-                  onUpdateEmployee({
-                    ...employee,
-                    manager_notes: updatedNotes,
-                  });
-                }
-
-                notify({
-                  title: 'Feedback acknowledged',
-                  description: `${employee.name} confirmed receipt of this feedback.`,
-                  variant: 'success',
-                });
-              }}
-            />
-          )}
-
           {/* Performance Review & ITP Matrix Tab (Combined) */}
           {activeTab === 'perf-review' && (
             <div className="space-y-6">
