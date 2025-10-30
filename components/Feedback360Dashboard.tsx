@@ -1410,8 +1410,11 @@ export default function Feedback360Dashboard({
                   </button>
                 </div>
               </div>
+            </div>
+
+            <div className="p-6 space-y-6">
               {/* Metadata line */}
-              <div className="flex items-center justify-between text-sm text-gray-600">
+              <div className="flex items-center justify-between text-sm text-gray-600 pb-4 border-b border-gray-200">
                 <div className="flex items-center gap-6">
                   {selectedSurvey.due_date && (
                     <div>
@@ -1430,9 +1433,7 @@ export default function Feedback360Dashboard({
                 </div>
                 {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin)}
               </div>
-            </div>
 
-            <div className="p-6 space-y-6">
               {/* Reviewers */}
               <div>
                 <div className="flex items-center justify-between mb-3">
