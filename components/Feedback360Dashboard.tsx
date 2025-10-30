@@ -910,7 +910,6 @@ export default function Feedback360Dashboard({
           }}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
         >
-          <Sparkles className="w-4 h-4 mr-2" />
           Create 360° Review
         </button>
         <button
