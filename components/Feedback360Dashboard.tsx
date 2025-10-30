@@ -362,10 +362,13 @@ export default function Feedback360Dashboard({
 
   const finalizeSurvey = async (surveyId: string) => {
     try {
-      // Update survey status to finalized
+      // Update survey status to finalized and clear the "needs review" flag
       const { error } = await supabase
         .from('feedback_360_surveys')
-        .update({ status: 'finalized' })
+        .update({
+          status: 'finalized',
+          flagged_for_admin: false  // Clear the "needs review" tag
+        })
         .eq('id', surveyId);
 
       if (error) {
@@ -375,7 +378,7 @@ export default function Feedback360Dashboard({
 
       notify({
         title: 'Review finalized',
-        description: 'The review has been finalized and archived.',
+        description: 'The review has been finalized and the review flag has been cleared.',
         variant: 'success',
       });
 
