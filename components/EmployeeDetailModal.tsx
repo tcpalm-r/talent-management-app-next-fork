@@ -1806,11 +1806,36 @@ export default function EmployeeDetailModal({
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Themes</h3>
                   <div className="space-y-3">
-                    {completedSurveyResults.themes.map((theme: any, idx: number) => (
-                      <div key={idx} className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-sm text-gray-700">{theme}</p>
-                      </div>
-                    ))}
+                    {completedSurveyResults.themes.map((theme: any, idx: number) => {
+                      // Handle both string and object formats
+                      const themeName = typeof theme === 'string' ? theme : theme.theme;
+                      const sentiment = typeof theme === 'object' ? theme.sentiment : undefined;
+                      const evidence = typeof theme === 'object' ? theme.supporting_evidence : [];
+
+                      // Map sentiment to color
+                      const sentimentColors: Record<string, string> = {
+                        'very_positive': 'bg-green-50 border-green-200',
+                        'positive': 'bg-emerald-50 border-emerald-200',
+                        'mixed': 'bg-yellow-50 border-yellow-200',
+                        'needs_work': 'bg-orange-50 border-orange-200',
+                        'critical': 'bg-red-50 border-red-200',
+                      };
+
+                      const colorClass = sentiment ? sentimentColors[sentiment] : 'bg-blue-50 border-blue-200';
+
+                      return (
+                        <div key={idx} className={`p-4 rounded-lg border ${colorClass}`}>
+                          <p className="text-sm font-medium text-gray-900 mb-2">{themeName}</p>
+                          {Array.isArray(evidence) && evidence.length > 0 && (
+                            <ul className="text-xs text-gray-600 space-y-1 ml-3">
+                              {evidence.map((e: string, eIdx: number) => (
+                                <li key={eIdx} className="list-disc">{e}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
