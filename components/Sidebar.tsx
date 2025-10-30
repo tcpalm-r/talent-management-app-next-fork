@@ -11,15 +11,15 @@ interface SidebarProps {
 
 export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
   const navItems = [
-    { id: '360-feedback', label: '360° Feedback', icon: MessageSquare },
+    { id: '360-feedback', label: '360°', icon: MessageSquare },
     { id: 'directory', label: 'Talent', icon: Users },
     { id: 'admin-settings', label: 'Settings', icon: Settings },
   ] as const;
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <aside className="w-20 bg-white border-r border-gray-200 flex flex-col items-center">
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-2">
+      <nav className="flex-1 py-4 space-y-2 flex flex-col items-center w-full">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
@@ -28,22 +28,22 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
             <button
               key={item.id}
               onClick={() => onViewChange(item.id as View)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center justify-center p-3 rounded-lg transition-colors ${
                 isActive
                   ? 'bg-blue-100 text-blue-700'
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
+              title={item.label}
             >
               <Icon className="w-5 h-5" />
-              <span>{item.label}</span>
             </button>
           );
         })}
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-gray-200">
-        <p className="text-xs text-gray-500">v1.0.0</p>
+      <div className="pb-4 border-t border-gray-200 w-full flex items-center justify-center pt-4">
+        <p className="text-xs text-gray-500">v1</p>
       </div>
     </aside>
   );
