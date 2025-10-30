@@ -43,6 +43,7 @@ export default function Dashboard({
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [employeePlans, setEmployeePlans] = useState<Record<string, any>>({});
   const [performanceReviews, setPerformanceReviews] = useState<Record<string, any>>({});
+  const [finalizedSurveys, setFinalizedSurveys] = useState<Record<string, number>>({});
 
   // DEV: Employee override for testing 360 dashboard with different users
   const [employeeOverride, setEmployeeOverride] = useState<string | null>('admin.test@example.com');
@@ -159,12 +160,37 @@ export default function Dashboard({
     onDepartmentsChange?.(departments.map((d: Department) => d.id) || []);
   }, [organization?.id, notify, onDepartmentsChange]);
 
+  const loadFinalizedSurveys = useCallback(async (): Promise<void> => {
+    if (!organization?.id) return;
+
+    const { data, error } = await supabase
+      .from('feedback_360_surveys' as any)
+      .select('employee_id, id')
+      .eq('organization_id', organization.id)
+      .eq('status', 'finalized');
+
+    if (error) {
+      console.error('Error loading finalized surveys:', error);
+      return;
+    }
+
+    // Group surveys by employee_id and count them
+    const surveyCount: Record<string, number> = {};
+    (data || []).forEach((survey: any) => {
+      if (survey.employee_id) {
+        surveyCount[survey.employee_id] = (surveyCount[survey.employee_id] || 0) + 1;
+      }
+    });
+
+    setFinalizedSurveys(surveyCount);
+  }, [organization?.id]);
+
   const loadData = useCallback(async (): Promise<void> => {
     if (!organization?.id) return;
 
     setLoading(true);
     try {
-      await Promise.all([loadEmployees(), loadDepartments()]);
+      await Promise.all([loadEmployees(), loadDepartments(), loadFinalizedSurveys()]);
     } catch (error) {
       console.error('Error loading data:', error);
       notify({
@@ -175,7 +201,7 @@ export default function Dashboard({
     } finally {
       setLoading(false);
     }
-  }, [organization?.id, loadEmployees, loadDepartments, notify]);
+  }, [organization?.id, loadEmployees, loadDepartments, loadFinalizedSurveys, notify]);
 
   useEffect(() => {
     loadData();
@@ -377,6 +403,7 @@ export default function Dashboard({
                 activeDepartmentIds={selectedDepartments}
                 simpleMode={true}
                 currentUser={currentUserEmployee}
+                finalizedSurveys={finalizedSurveys}
               />
             )}
 

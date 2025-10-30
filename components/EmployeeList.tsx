@@ -17,6 +17,7 @@ interface EmployeeListProps {
   performanceReviews?: Record<string, { self?: PerformanceReview; manager?: PerformanceReview }>;
   onReviewSave?: (review: PerformanceReview) => void;
   currentUser?: Employee;
+  finalizedSurveys?: Record<string, number>; // Maps employee_id to count of finalized surveys
 }
 
 export default function EmployeeList({
@@ -30,6 +31,7 @@ export default function EmployeeList({
   performanceReviews = {},
   onReviewSave,
   currentUser,
+  finalizedSurveys = {},
 }: EmployeeListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -140,8 +142,8 @@ export default function EmployeeList({
                 .join('')
                 .toUpperCase();
 
-              // Check if employee has done a 360 review this year
-              const has360Review = employee.completed_360_survey_count && employee.completed_360_survey_count > 0;
+              // Check if employee has a finalized 360 review
+              const has360Review = finalizedSurveys[employee.id] && finalizedSurveys[employee.id] > 0;
 
               return (
                 <div
