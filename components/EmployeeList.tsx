@@ -16,6 +16,7 @@ interface EmployeeListProps {
   organizationId?: string;
   performanceReviews?: Record<string, { self?: PerformanceReview; manager?: PerformanceReview }>;
   onReviewSave?: (review: PerformanceReview) => void;
+  currentUser?: Employee;
 }
 
 export default function EmployeeList({
@@ -28,6 +29,7 @@ export default function EmployeeList({
   organizationId,
   performanceReviews = {},
   onReviewSave,
+  currentUser,
 }: EmployeeListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -165,6 +167,8 @@ export default function EmployeeList({
           onUpdateEmployee={() => {
             onEmployeeUpdate();
           }}
+          currentUser={currentUser}
+          availableEmployees={employees}
         />
       )}
 

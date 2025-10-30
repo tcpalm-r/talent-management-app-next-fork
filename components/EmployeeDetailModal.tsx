@@ -75,6 +75,7 @@ interface EmployeeDetailModalProps {
   performanceReviewRecord?: { manager?: PerformanceReview; self?: PerformanceReview };
   onReviewSave?: (review: PerformanceReview) => void;
   availableEmployees?: Employee[];
+  currentUser?: Employee;
 }
 
 export default function EmployeeDetailModal({
@@ -91,6 +92,7 @@ export default function EmployeeDetailModal({
   performanceReviewRecord,
   onReviewSave,
   availableEmployees = [],
+  currentUser,
 }: EmployeeDetailModalProps) {
   const { notify } = useToast();
   const { setModalContext } = useUnifiedAICoach();
@@ -1634,6 +1636,7 @@ export default function EmployeeDetailModal({
         preselectedEmployee={employee}
         onSurveyCreated={() => setIs360ModalOpen(false)}
         employees={availableEmployees}
+        currentUser={currentUser}
       />
 
       {/* Critical Role Setup Modal */}

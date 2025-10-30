@@ -376,6 +376,7 @@ export default function Dashboard({
                 organizationId={organization.id}
                 activeDepartmentIds={selectedDepartments}
                 simpleMode={true}
+                currentUser={currentUserEmployee}
               />
             )}
 

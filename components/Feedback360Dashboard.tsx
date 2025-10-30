@@ -1253,11 +1253,13 @@ export default function Feedback360Dashboard({
       {/* Review Details Modal */}
       {isDetailsModalOpen && selectedSurvey && (() => {
         const isCreator = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
+        const isAdmin = currentUser?.role === 'admin';
+        const canManage = isCreator || isAdmin;
         const isSubject = selectedSurvey.employee_id === currentUser?.id;
         const isReviewer = selectedSurvey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
         const userCompletedReview = isReviewer && selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.status === 'completed';
 
-        if (!isCreator) {
+        if (!canManage) {
           // Read-only view for reviewers and subject
           return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

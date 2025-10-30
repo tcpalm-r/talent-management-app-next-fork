@@ -82,13 +82,26 @@ export default function Survey360Wizard({
 }: Survey360WizardProps) {
   const { notify } = useToast();
   const isBatchMode = !!preselectedEmployees && preselectedEmployees.length > 0;
-  const [currentStep, setCurrentStep] = useState<WizardStep>(draftSurvey ? 'preview' : (isBatchMode ? 'competencies' : 'who'));
+  const initialStep: WizardStep = draftSurvey
+    ? 'preview'
+    : (isBatchMode || preselectedEmployee)
+      ? 'competencies'
+      : 'who';
+
+  console.log('Survey360Wizard initialized:', {
+    preselectedEmployee,
+    isBatchMode,
+    initialStep,
+    draftSurvey: !!draftSurvey
+  });
+
+  const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>(preselectedEmployee);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   // Required questions (admin-only editable)
   const [requiredQuestions, setRequiredQuestions] = useState<string[]>([
-    'What are this employee&apos;s key strengths?',
+    "What are this employee's key strengths?",
     'What areas could this employee improve?',
     'How effectively does this employee collaborate with others?'
   ]);
@@ -113,7 +126,9 @@ export default function Survey360Wizard({
 
   // Reset wizard state
   const resetWizard = () => {
-    setCurrentStep(isBatchMode ? 'competencies' : 'who');
+    const resetStep: WizardStep = draftSurvey ? 'preview' : (isBatchMode || preselectedEmployee) ? 'competencies' : 'who';
+    console.log('resetWizard called, setting step to:', resetStep);
+    setCurrentStep(resetStep);
     setSelectedEmployee(preselectedEmployee);
     setSelectedTemplate(null);
     // Don't reset requiredQuestions - they are loaded from API and should persist

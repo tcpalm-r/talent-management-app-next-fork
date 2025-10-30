@@ -15,6 +15,7 @@ interface PeopleDashboardProps {
   organizationId: string;
   activeDepartmentIds?: string[];
   simpleMode?: boolean;
+  currentUser?: Employee;
 }
 
 export default function PeopleDashboard({
@@ -28,6 +29,7 @@ export default function PeopleDashboard({
   onReviewSave,
   organizationId,
   activeDepartmentIds = [],
+  currentUser,
 }: PeopleDashboardProps) {
   const scopedEmployees = activeDepartmentIds.length > 0
     ? employees.filter(emp => emp.department_id && activeDepartmentIds.includes(emp.department_id))
@@ -46,6 +48,7 @@ export default function PeopleDashboard({
           organizationId={organizationId}
           performanceReviews={performanceReviews}
           onReviewSave={onReviewSave}
+          currentUser={currentUser}
         />
       </div>
     </div>
