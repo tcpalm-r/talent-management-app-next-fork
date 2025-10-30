@@ -165,21 +165,9 @@ export default function EmployeeList({
                   </div>
 
                   {/* Email */}
-                  <div className="mb-3 pb-3 border-b border-gray-100">
+                  <div className="mb-4 pb-4 border-b border-gray-100">
                     <p className="text-xs text-gray-500 mb-1">Email</p>
                     <p className="text-sm text-gray-900 truncate">{employee.email || 'N/A'}</p>
-                  </div>
-
-                  {/* Manager */}
-                  <div className="mb-3 pb-3 border-b border-gray-100">
-                    <p className="text-xs text-gray-500 mb-1">Manager</p>
-                    <p className="text-sm text-gray-900 truncate">{employee.manager_id ? 'Assigned' : 'Unassigned'}</p>
-                  </div>
-
-                  {/* Department */}
-                  <div className="mb-4 pb-4 border-b border-gray-100">
-                    <p className="text-xs text-gray-500 mb-1">Department</p>
-                    <p className="text-sm text-gray-900 truncate">{dept?.name || 'No department'}</p>
                   </div>
 
                   {/* 360 Review Checkbox */}
