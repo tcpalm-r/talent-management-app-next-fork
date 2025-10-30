@@ -18,10 +18,17 @@ export default function Avatar({
   className = ''
 }: AvatarProps) {
   const sizeClasses = {
-    xs: 'w-5 h-5 text-xs',
-    sm: 'w-6 h-6 text-xs',
-    md: 'w-8 h-8 text-sm',
-    lg: 'w-10 h-10 text-base'
+    xs: 'w-5 h-5 text-xs leading-none',
+    sm: 'w-6 h-6 text-xs leading-none',
+    md: 'w-8 h-8 text-sm leading-none',
+    lg: 'w-10 h-10 text-base leading-none'
+  };
+
+  const fontSizeStyles = {
+    xs: { fontSize: '9px' },
+    sm: { fontSize: '10px' },
+    md: { fontSize: '12px' },
+    lg: { fontSize: '14px' }
   };
 
   const initials = useMemo(() => {
@@ -41,6 +48,7 @@ export default function Avatar({
         src={picture}
         alt={name}
         className={`rounded-full object-cover ${sizeClasses[size]} ${className}`}
+        style={fontSizeStyles[size]}
         title={name}
       />
     );
@@ -50,6 +58,7 @@ export default function Avatar({
   return (
     <div
       className={`rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold ${sizeClasses[size]} ${className}`}
+      style={fontSizeStyles[size]}
       title={name}
     >
       {initials}
