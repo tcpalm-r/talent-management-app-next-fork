@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { supabase } from '@/lib/supabase';
 
 interface ParseRequest {
   description: string;
@@ -226,6 +227,42 @@ CRITICAL:
 
     console.log('[parse-survey-description API] Parse result:', parseResult);
 
+    // Enrich rater emails from employee database
+    const enrichedRaters = await Promise.all(
+      parseResult.raters.map(async (rater) => {
+        // If email is already present, skip lookup
+        if (rater.email) {
+          return rater;
+        }
+
+        // Try to find the employee in the database by name
+        try {
+          const { data: employee } = await supabase
+            .from('user_profiles')
+            .select('email')
+            .ilike('full_name', `%${rater.name}%`)
+            .limit(1)
+            .maybeSingle();
+
+          if (employee?.email) {
+            console.log(`[parse-survey-description API] Enriched email for "${rater.name}": ${employee.email}`);
+            return {
+              ...rater,
+              email: employee.email,
+            };
+          }
+        } catch (error) {
+          console.log(`[parse-survey-description API] Error looking up email for "${rater.name}":`, error);
+        }
+
+        return rater;
+      })
+    );
+
+    // Replace raters with enriched version
+    parseResult.raters = enrichedRaters;
+    console.log('[parse-survey-description API] Raters after email enrichment:', enrichedRaters);
+
     // Check if clarifications are needed
     if (parseResult.clarifications_needed && parseResult.clarifications.length > 0) {
       console.log('[parse-survey-description API] Returning with clarifications needed');
@@ -237,6 +274,16 @@ CRITICAL:
     }
 
     // If no clarifications needed, return the parsed data
+    // Default due date to 1 week from today if not specified
+    let defaultedDueDate = parseResult.dueDate;
+    if (!defaultedDueDate) {
+      const todayDate = today ? new Date(today) : new Date();
+      const oneWeekLater = new Date(todayDate);
+      oneWeekLater.setDate(oneWeekLater.getDate() + 7);
+      defaultedDueDate = oneWeekLater.toISOString().split('T')[0];
+      console.log('[parse-survey-description API] No due date specified, defaulting to 1 week from today:', defaultedDueDate);
+    }
+
     const parsedData = {
       employeeName: parseResult.employeeName,
       questions: parseResult.questions,
@@ -247,7 +294,7 @@ CRITICAL:
           email: r.email,
           relationship: r.relationship,
         })),
-      dueDate: parseResult.dueDate,
+      dueDate: defaultedDueDate,
       surveyTitle: parseResult.surveyTitle,
     };
 

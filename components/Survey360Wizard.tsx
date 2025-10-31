@@ -185,9 +185,9 @@ export default function Survey360Wizard({
       setSurveyTitle(data.surveyTitle);
     }
 
-    // Move to preview step and flag for auto-launch (internal flow only)
+    // Move to preview step - let user manually review and launch
     setCurrentStep('preview');
-    setShouldAutoLaunch(true);
+    setShouldAutoLaunch(false); // Don't auto-launch, let user review first
     setIsAIModalOpen(false);
 
     // Auto-confirm questions when AI provides them
@@ -662,6 +662,40 @@ export default function Survey360Wizard({
     const employeesToProcess = isBatchMode ? preselectedEmployees : (selectedEmployee ? [selectedEmployee] : []);
     if (employeesToProcess.length === 0) return;
 
+    // Validate all required fields before proceeding
+    const missingFields: string[] = [];
+
+    if (!selectedEmployee) {
+      missingFields.push('Employee selection');
+    }
+
+    if (!requiredQuestions || requiredQuestions.length === 0 || requiredQuestions.some(q => !q.trim())) {
+      missingFields.push('Required questions');
+    }
+
+    if (!raters || raters.length === 0) {
+      missingFields.push('At least one reviewer');
+    } else {
+      // Check that all raters have name (emails are auto-populated from database by name)
+      const reviewersWithoutName = raters.filter(r => !r.name || !r.name.trim());
+      if (reviewersWithoutName.length > 0) {
+        missingFields.push(`${reviewersWithoutName.length} reviewer(s) missing name`);
+      }
+    }
+
+    if (!dueDate) {
+      missingFields.push('Due date');
+    }
+
+    if (missingFields.length > 0) {
+      notify({
+        title: 'Missing Required Fields',
+        description: `Please complete the following before launching: ${missingFields.join(', ')}`,
+        variant: 'error',
+      });
+      return;
+    }
+
     setIsCreating(true);
     try {
       let successCount = 0;
@@ -770,13 +804,13 @@ export default function Survey360Wizard({
             throw deleteReviewersError;
           }
 
-          // Create reviewers
+          // Create reviewers (filter for those with at least a name)
           const reviewersToInsert = raters
-            .filter(r => r.name && r.email)
+            .filter(r => r.name && r.name.trim())
             .map(r => ({
               survey_id: survey.id,
               reviewer_name: r.name,
-              reviewer_email: r.email,
+              reviewer_email: r.email || 'pending-email@example.com', // Use placeholder if email is missing
               relationship: r.relationship,
               status: 'pending',
               access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -920,13 +954,13 @@ export default function Survey360Wizard({
               if (questionsError) throw questionsError;
             }
 
-            // Create reviewers
+            // Create reviewers (filter for those with at least a name)
             const reviewersToInsert = raters
-              .filter(r => r.name && r.email)
+              .filter(r => r.name && r.name.trim())
               .map(r => ({
                 survey_id: survey.id,
                 reviewer_name: r.name,
-                reviewer_email: r.email,
+                reviewer_email: r.email || 'pending-email@example.com', // Use placeholder if email is missing
                 relationship: r.relationship,
                 status: 'pending',
                 access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

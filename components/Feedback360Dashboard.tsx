@@ -364,6 +364,70 @@ export default function Feedback360Dashboard({
     }
   };
 
+  const deleteInProgressSurvey = async (surveyId: string) => {
+    // Verify user is the creator
+    const survey = surveys.find(s => s.id === surveyId);
+    const isCreator = survey?.created_by === currentUser?.id || survey?.created_by === currentUser?.email;
+
+    if (!isCreator) {
+      notify({
+        title: 'Error',
+        description: 'Only the creator can delete this review.',
+        variant: 'error',
+      });
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // Delete survey responses
+      await supabase
+        .from('feedback_360_responses')
+        .delete()
+        .eq('survey_id', surveyId);
+
+      // Delete survey reviewers
+      await supabase
+        .from('feedback_360_survey_reviewers')
+        .delete()
+        .eq('survey_id', surveyId);
+
+      // Delete survey questions
+      await supabase
+        .from('feedback_360_survey_questions')
+        .delete()
+        .eq('survey_id', surveyId);
+
+      // Delete the survey itself
+      const { error } = await supabase
+        .from('feedback_360_surveys')
+        .delete()
+        .eq('id', surveyId);
+
+      if (error) throw error;
+
+      notify({
+        title: 'Review deleted',
+        description: 'Your review has been deleted successfully.',
+        variant: 'success',
+      });
+
+      // Close any open modals and reload
+      setIsDetailsModalOpen(false);
+      await loadSurveys();
+    } catch (error) {
+      console.error('Error deleting in-progress survey:', error);
+      notify({
+        title: 'Error',
+        description: 'Failed to delete review',
+        variant: 'error',
+      });
+    }
+  };
+
   const sendToHRForReanalysis = async (surveyId: string) => {
     try {
       const { error } = await supabase
@@ -554,6 +618,18 @@ export default function Feedback360Dashboard({
         throw error;
       }
 
+      // Update selectedSurvey to remove the tag immediately
+      if (selectedSurvey) {
+        const updatedSurvey = {
+          ...selectedSurvey,
+          flagged_for_reanalysis: false
+        };
+        setSelectedSurvey(updatedSurvey);
+
+        // Also update the surveys list
+        setSurveys(surveys.map(s => s.id === surveyId ? updatedSurvey : s));
+      }
+
       notify({
         title: 'Review Resolved',
         description: 'The "Needs Reanalysis" tag has been removed.',
@@ -561,7 +637,6 @@ export default function Feedback360Dashboard({
       });
 
       setIsResultsModalOpen(false);
-      loadSurveys();
     } catch (error) {
       console.error('Error resolving review:', error);
       notify({
@@ -754,8 +829,50 @@ export default function Feedback360Dashboard({
         variant: 'success',
       });
 
-      setIsDetailsModalOpen(false);
-      loadSurveys();
+      // Update selectedSurvey immediately to reflect the new status
+      // This ensures the modal re-renders with the correct view (editable vs read-only)
+      if (selectedSurvey) {
+        setSelectedSurvey({
+          ...selectedSurvey,
+          status: targetStatus,
+          flagged_for_reanalysis: false
+        });
+      }
+
+      // Reload surveys in the background to ensure data consistency
+      await loadSurveys();
+
+      // After surveys are reloaded, update selectedSurvey with fresh data
+      if (selectedSurvey) {
+        const { data } = await supabase
+          .from('feedback_360_surveys')
+          .select(`
+            *,
+            reviewers:feedback_360_survey_reviewers(id, status, reviewer_email, access_token)
+          `)
+          .eq('id', selectedSurvey.id)
+          .single();
+
+        if (data) {
+          const updatedSurvey = {
+            ...data,
+            employee: selectedSurvey.employee,
+            reviewers_count: data.reviewers?.length || 0,
+            completed_count: data.reviewers?.filter((r: any) => r.status === 'completed').length || 0
+          };
+          setSelectedSurvey(updatedSurvey);
+
+          // Reload reviewers data
+          await loadReviewers(selectedSurvey.id);
+
+          // If the results modal was open, close it and reopen the details modal
+          // This ensures the correct modal content is shown for the new status
+          if (isResultsModalOpen) {
+            setIsResultsModalOpen(false);
+            setIsDetailsModalOpen(true);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error sending survey backward:', error);
       notify({
@@ -990,8 +1107,18 @@ export default function Feedback360Dashboard({
   });
 
   const getStatusBadge = (status: string, flaggedForAdmin?: boolean, flaggedForReanalysis?: boolean) => {
-    // Show "Needs Reanalysis" badge for flagged surveys (admin only)
-    if (flaggedForAdmin && currentUser?.role === 'admin') {
+    // Show "Needs Reanalysis" badge for flagged surveys
+    if ((flaggedForAdmin || flaggedForReanalysis) && currentUser?.role === 'admin') {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300">
+          <AlertTriangle className="w-3 h-3 mr-1" />
+          Needs Reanalysis
+        </span>
+      );
+    }
+
+    // Show "Needs Reanalysis" for creators when flagged for reanalysis
+    if (flaggedForReanalysis && (selectedSurvey?.created_by === currentUser?.id || selectedSurvey?.created_by === currentUser?.email)) {
       return (
         <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300">
           <AlertTriangle className="w-3 h-3 mr-1" />
@@ -1026,7 +1153,7 @@ export default function Feedback360Dashboard({
         {labels[status as keyof typeof labels] || status}
       </span>
     );
-  }
+  };
 
   // Handle AI modal completion - pass data to wizard and open it
   const handleAIModalComplete = (data: ParsedSurveyData) => {
@@ -1239,8 +1366,37 @@ export default function Feedback360Dashboard({
                     loadAndShowResults(survey);
                   } else {
                     // Open details modal for other statuses
-                    setSelectedSurvey(survey);
-                    setIsDetailsModalOpen(true);
+                    // First fetch fresh data to ensure completed_count is accurate
+                    const fetchAndOpenModal = async () => {
+                      try {
+                        const { data } = await supabase
+                          .from('feedback_360_surveys')
+                          .select(`
+                            *,
+                            reviewers:feedback_360_survey_reviewers(id, status, reviewer_email, access_token)
+                          `)
+                          .eq('id', survey.id)
+                          .single();
+
+                        if (data) {
+                          const reviewers = data.reviewers || [];
+                          const freshSurvey = {
+                            ...data,
+                            employee: survey.employee,
+                            reviewers_count: reviewers.length,
+                            completed_count: reviewers.filter((r: any) => r.status === 'completed').length
+                          };
+                          setSelectedSurvey(freshSurvey);
+                          setIsDetailsModalOpen(true);
+                        }
+                      } catch (error) {
+                        console.error('Error fetching survey data:', error);
+                        // Fallback to original survey data
+                        setSelectedSurvey(survey);
+                        setIsDetailsModalOpen(true);
+                      }
+                    };
+                    fetchAndOpenModal();
                   }
                 }}
               >
@@ -1259,17 +1415,17 @@ export default function Feedback360Dashboard({
 
                       {/* Relationship badges */}
                       {isCreator && (
-                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 border border-blue-300 rounded">
+                        <span className="text-xs font-medium text-indigo-700">
                           Creator
                         </span>
                       )}
                       {isReviewee && (
-                        <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 border border-purple-300 rounded">
+                        <span className="text-xs font-medium text-orange-700">
                           Subject
                         </span>
                       )}
                       {isReviewer && (
-                        <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 border border-green-300 rounded">
+                        <span className="text-xs font-medium text-cyan-700">
                           Reviewer
                         </span>
                       )}
@@ -1349,14 +1505,6 @@ export default function Feedback360Dashboard({
                   {/* Status badge */}
                   {getStatusBadge(survey.status, survey.flagged_for_admin, survey.flagged_for_reanalysis)}
 
-                  {/* Needs Reanalysis tag - visible to all users */}
-                  {survey.flagged_for_reanalysis && (
-                    <span className="inline-flex items-center px-3 py-1 rounded text-xs font-semibold border bg-red-100 text-red-700 border-red-300">
-                      <AlertTriangle className="w-3 h-3 mr-1" />
-                      Needs Reanalysis
-                    </span>
-                  )}
-
                   {/* Remind button */}
                   {survey.status === 'active' && (survey.completed_count ?? 0) !== (survey.reviewers_count ?? 0) && (
                     <button
@@ -1404,21 +1552,24 @@ export default function Feedback360Dashboard({
       {isDetailsModalOpen && selectedSurvey && (() => {
         const isCreator = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
         const isAdmin = currentUser?.role === 'admin';
-        const canManage = isCreator || isAdmin;
+        const isLeader = currentUser?.role === 'leader';
+        const canManage = isCreator || isAdmin || isLeader;
         const isSubject = selectedSurvey.employee_id === currentUser?.id;
         const isReviewer = selectedSurvey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
         const userCompletedReview = isReviewer && selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.status === 'completed';
 
-        if (!canManage) {
+        // For finalized surveys, non-creator admins/leaders see read-only view
+        const isFinalizedNonCreatorAdmin = !isCreator && (isAdmin || isLeader) && selectedSurvey.status === 'finalized';
+
+        if (!canManage || isFinalizedNonCreatorAdmin) {
           // Read-only view for reviewers and subject
-          // If finalized, subject can see the complete review results
-          const canSeeResults = isSubject && selectedSurvey.status === 'finalized';
+          // If finalized, subject or admin can see the complete review results
+          const canSeeResults = (isSubject || isFinalizedNonCreatorAdmin) && selectedSurvey.status === 'finalized';
           return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6">
-                {/* Review Overview - Read Only */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+              <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6 border-b border-gray-200 sticky top-0 bg-white flex items-center justify-between">
+                  <div className="flex-1">
                     <div className="flex items-center">
                       <Users className="w-4 h-4 mr-2 text-gray-500" />
                       <span className="text-sm text-gray-600">Employee:</span>
@@ -1431,24 +1582,34 @@ export default function Feedback360Dashboard({
                     </div>
                     {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin, selectedSurvey.flagged_for_reanalysis)}
                   </div>
-                  <div className="flex items-center gap-6">
-                    {selectedSurvey.due_date && (
+                  <button
+                    onClick={() => setIsDetailsModalOpen(false)}
+                    className="text-gray-400 hover:text-gray-600 ml-4"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                <div className="p-6 space-y-6">
+                  {/* Review Overview - Read Only */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-6">
+                      {selectedSurvey.due_date && (
+                        <div className="flex items-center">
+                          <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                          <span className="text-sm text-gray-600">Due Date:</span>
+                          <span className="ml-2 text-sm font-semibold text-gray-900">
+                            {new Date(selectedSurvey.due_date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-center">
-                        <Clock className="w-4 h-4 mr-2 text-gray-500" />
-                        <span className="text-sm text-gray-600">Due Date:</span>
-                        <span className="ml-2 text-sm font-semibold text-gray-900">
-                          {new Date(selectedSurvey.due_date).toLocaleDateString()}
+                        <span className="text-sm text-gray-600">Created:</span>
+                        <span className="ml-2 text-sm text-gray-900">
+                          {new Date(selectedSurvey.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                    )}
-                    <div className="flex items-center">
-                      <span className="text-sm text-gray-600">Created:</span>
-                      <span className="ml-2 text-sm text-gray-900">
-                        {new Date(selectedSurvey.created_at).toLocaleDateString()}
-                      </span>
                     </div>
                   </div>
-                </div>
 
                 {/* View Results Button - For finalized reviews */}
                 {canSeeResults && (
@@ -1491,15 +1652,6 @@ export default function Feedback360Dashboard({
                     </button>
                   )
                 )}
-
-                {/* Close button */}
-                <div className="flex justify-end pt-4 border-t border-gray-200">
-                  <button
-                    onClick={() => setIsDetailsModalOpen(false)}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                  >
-                    Close
-                  </button>
                 </div>
               </div>
             </div>
@@ -1522,52 +1674,13 @@ export default function Feedback360Dashboard({
                   {selectedSurvey.employee?.name || 'Unknown'}
                 </h2>
                 <div className="flex items-center gap-3">
-                  {selectedSurvey.status === 'completed' && isCreator && (
+                  {isCreator && (currentUser?.role === 'admin' || currentUser?.role === 'leader') && (
                     <button
-                      onClick={() => sendToHRForReanalysis(selectedSurvey.id)}
-                      disabled={selectedSurvey.flagged_for_reanalysis}
-                      className={`px-3 py-1.5 text-sm rounded font-medium transition-colors ${
-                        selectedSurvey.flagged_for_reanalysis
-                          ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                          : 'bg-orange-600 text-white hover:bg-orange-700'
-                      }`}
+                      onClick={() => deleteInProgressSurvey(selectedSurvey.id)}
+                      className="text-red-600 hover:text-red-700 transition-colors"
+                      title="Delete this review"
                     >
-                      {selectedSurvey.flagged_for_reanalysis ? 'Sent to HR' : 'Send to HR for Reanalysis'}
-                    </button>
-                  )}
-                  {selectedSurvey.status === 'draft' && (
-                    <button
-                      onClick={async () => {
-                        if (confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
-                          try {
-                            const { error } = await supabase
-                              .from('feedback_360_surveys')
-                              .delete()
-                              .eq('id', selectedSurvey.id);
-
-                            if (error) throw error;
-
-                            notify({
-                              title: 'Draft deleted',
-                              description: 'The draft has been permanently deleted.',
-                              variant: 'success',
-                            });
-
-                            setIsDetailsModalOpen(false);
-                            loadSurveys();
-                          } catch (error) {
-                            console.error('Error deleting draft:', error);
-                            notify({
-                              title: 'Error',
-                              description: 'Failed to delete draft',
-                              variant: 'error',
-                            });
-                          }
-                        }
-                      }}
-                      className="px-3 py-1.5 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-medium"
-                    >
-                      Delete
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   )}
                   <button
@@ -1599,7 +1712,7 @@ export default function Feedback360Dashboard({
                     </span>
                   </div>
                 </div>
-                {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin)}
+                {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin, selectedSurvey.flagged_for_reanalysis)}
               </div>
 
               {/* Reviewers */}
@@ -1611,7 +1724,7 @@ export default function Feedback360Dashboard({
                   {isCreator && (
                   <button
                     onClick={() => setIsAddingReviewer(!isAddingReviewer)}
-                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-1"
+                    className="text-sm text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 font-medium"
                   >
                     <Plus className="w-4 h-4" />
                     Add Reviewer
@@ -1759,7 +1872,7 @@ export default function Feedback360Dashboard({
                           </div>
                         </div>
                         {isCreator && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-6">
                           {reviewer.status !== 'completed' && (
                             remindedReviewers.has(reviewer.id) ? (
                               <span className="px-3 py-1.5 text-xs bg-green-50 text-green-700 rounded flex items-center gap-1">
@@ -1769,7 +1882,7 @@ export default function Feedback360Dashboard({
                             ) : (
                               <button
                                 onClick={() => sendReminderToReviewer(reviewer.id, reviewer.reviewer_email)}
-                                className="px-3 py-1.5 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded transition-colors flex items-center gap-1"
+                                className="text-xs text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 font-medium"
                                 title="Send reminder email"
                               >
                                 <Send className="w-3 h-3" />
@@ -1779,7 +1892,7 @@ export default function Feedback360Dashboard({
                           )}
                           <button
                             onClick={() => removeReviewer(reviewer.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            className="text-red-600 hover:text-red-700 transition-colors"
                             title="Remove reviewer"
                           >
                             <X className="w-4 h-4" />
@@ -1808,17 +1921,6 @@ export default function Feedback360Dashboard({
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  {/* Send Reminders for in_progress when not all completed */}
-                  {selectedSurvey.status === 'in_progress' &&
-                   (selectedSurvey.completed_count ?? 0) !== (selectedSurvey.reviewers_count ?? 0) && (
-                    <button
-                      onClick={() => sendReminders(selectedSurvey.id)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center"
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      Send Reminders
-                    </button>
-                  )}
                   {/* Complete with AI for in_progress when at least 1 reviewer completed */}
                   {selectedSurvey.status === 'in_progress' &&
                    (selectedSurvey.completed_count ?? 0) >= 1 && (
@@ -1913,6 +2015,18 @@ export default function Feedback360Dashboard({
                     <Download className="w-4 h-4 mr-2" />
                     Export PDF
                   </button>
+                  {(selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (currentUser?.role === 'admin' || currentUser?.role === 'leader') && (
+                    <button
+                      onClick={() => {
+                        deleteInProgressSurvey(selectedSurvey.id);
+                        setIsResultsModalOpen(false);
+                      }}
+                      className="text-red-600 hover:text-red-700 transition-colors"
+                      title="Delete this review"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                   <button
                     onClick={() => setIsResultsModalOpen(false)}
                     className="text-gray-400 hover:text-gray-600"
@@ -2138,26 +2252,41 @@ export default function Feedback360Dashboard({
                   {/* Bottom row: Standard actions */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                     <button
-                      onClick={() => sendBackward(selectedSurvey.id, 'completed')}
+                      onClick={() => sendBackward(selectedSurvey.id)}
                       className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium flex items-center"
                     >
                       <ChevronLeft className="w-4 h-4 mr-2" />
                       Send Backward
                     </button>
                     <div className="flex items-center gap-3">
+                      {selectedSurvey.status === 'completed' && (
+                        <button
+                          onClick={() => sendToHRForReanalysis(selectedSurvey.id)}
+                          disabled={selectedSurvey.flagged_for_reanalysis}
+                          className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                            selectedSurvey.flagged_for_reanalysis
+                              ? 'bg-green-600 text-white cursor-not-allowed opacity-75'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                          }`}
+                        >
+                          {selectedSurvey.flagged_for_reanalysis ? 'Sent to HR' : 'Send to HR for Reanalysis'}
+                        </button>
+                      )}
                       <button
                         onClick={() => setIsResultsModalOpen(false)}
                         className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
                       >
                         Close
                       </button>
-                      <button
-                        onClick={() => finalizeSurvey(selectedSurvey.id)}
-                        className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Finalize
-                      </button>
+                      {selectedSurvey.status !== 'finalized' && (
+                        <button
+                          onClick={() => finalizeSurvey(selectedSurvey.id)}
+                          className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center"
+                        >
+                          <ArrowDownCircle className="w-4 h-4 mr-2" />
+                          Finalize
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2165,7 +2294,7 @@ export default function Feedback360Dashboard({
                 /* Normal footer for non-admin or non-flagged surveys */
                 <div className="flex items-center justify-between">
                   <button
-                    onClick={() => sendBackward(selectedSurvey.id, 'completed')}
+                    onClick={() => sendBackward(selectedSurvey.id)}
                     className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium flex items-center"
                   >
                     <ChevronLeft className="w-4 h-4 mr-2" />
@@ -2173,31 +2302,28 @@ export default function Feedback360Dashboard({
                   </button>
 
                   <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setIsResultsModalOpen(false)}
-                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-                    >
-                      Close
-                    </button>
-                    <button
-                      onClick={() => sendToHRForReanalysis(selectedSurvey.id)}
-                      disabled={selectedSurvey.flagged_for_reanalysis}
-                      className={`px-6 py-3 rounded-lg font-medium flex items-center transition-colors ${
-                        selectedSurvey.flagged_for_reanalysis
-                          ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700'
-                      }`}
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      {selectedSurvey.flagged_for_reanalysis ? 'Sent to HR' : 'Send to HR for Reanalysis'}
-                    </button>
-                    <button
-                      onClick={() => finalizeSurvey(selectedSurvey.id)}
-                      className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Finalize
-                    </button>
+                    {selectedSurvey.status === 'completed' && (
+                      <button
+                        onClick={() => sendToHRForReanalysis(selectedSurvey.id)}
+                        disabled={selectedSurvey.flagged_for_reanalysis}
+                        className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                          selectedSurvey.flagged_for_reanalysis
+                            ? 'bg-green-600 text-white cursor-not-allowed opacity-75'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                      >
+                        {selectedSurvey.flagged_for_reanalysis ? 'Sent to HR' : 'Send to HR for Reanalysis'}
+                      </button>
+                    )}
+                    {selectedSurvey.status !== 'finalized' && (
+                      <button
+                        onClick={() => finalizeSurvey(selectedSurvey.id)}
+                        className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center"
+                      >
+                        <ArrowDownCircle className="w-4 h-4 mr-2" />
+                        Finalize
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

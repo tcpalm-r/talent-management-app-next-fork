@@ -166,6 +166,16 @@ export default function CreateWithAIModal({
     // TODO: Send clarifications to Claude for refinement
     // For now, just proceed with the partial data plus user responses
     if (partialData) {
+      // Default due date to 1 week from today if not provided
+      let finalDueDate = clarificationResponses.dueDate || partialData.dueDate;
+      if (!finalDueDate) {
+        const today = new Date();
+        const oneWeekLater = new Date(today);
+        oneWeekLater.setDate(oneWeekLater.getDate() + 7);
+        finalDueDate = oneWeekLater.toISOString().split('T')[0];
+        console.log('[CreateWithAIModal] No due date provided, defaulting to 1 week from today:', finalDueDate);
+      }
+
       const finalData: ParsedSurveyData = {
         employeeName: clarificationResponses.employeeName || partialData.employeeName || '',
         questions: partialData.questions,
@@ -176,7 +186,7 @@ export default function CreateWithAIModal({
             email: r.email || '',
             relationship: r.relationship,
           })),
-        dueDate: clarificationResponses.dueDate || partialData.dueDate || undefined,
+        dueDate: finalDueDate,
         surveyTitle: partialData.surveyTitle || undefined,
       };
 
