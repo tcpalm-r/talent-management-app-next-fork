@@ -1174,7 +1174,7 @@ export default function Survey360Wizard({
                       size="xs"
                     />
                   )}
-                  {selectedEmployee ? selectedEmployee.name : 'Add Raters'}
+                  {selectedEmployee ? selectedEmployee.name : 'Add Reviewers'}
                 </h3>
               </div>
 
@@ -1324,7 +1324,7 @@ export default function Survey360Wizard({
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
               >
                 <Users className="w-4 h-4" />
-                Add Rater
+                Add Reviewer
               </button>
             </div>
           )}
