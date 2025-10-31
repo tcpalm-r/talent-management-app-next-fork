@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@auth0/nextjs-auth0';
 import { getUserProfile } from '@/lib/database';
+import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 
 /**
  * POST /api/auth/switch-user
@@ -10,9 +10,9 @@ import { getUserProfile } from '@/lib/database';
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const authData = await getAuthenticatedUser(request);
 
-    if (!session?.user) {
+    if (!authData?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

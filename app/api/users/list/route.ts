@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@auth0/nextjs-auth0';
 import { getActiveUsers } from '@/lib/database';
+import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 
 /**
  * GET /api/users/list
@@ -10,9 +10,10 @@ import { getActiveUsers } from '@/lib/database';
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
+    // Use custom auth instead of Auth0
+    const authData = await getAuthenticatedUser(request);
 
-    if (!session?.user) {
+    if (!authData?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
