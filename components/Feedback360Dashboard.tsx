@@ -308,6 +308,35 @@ export default function Feedback360Dashboard({
     }
   };
 
+  const deleteDraftSurvey = async (surveyId: string) => {
+    try {
+      // Delete the draft survey from the database
+      const { error } = await supabase
+        .from('feedback_360_surveys')
+        .delete()
+        .eq('id', surveyId)
+        .eq('status', 'draft');
+
+      if (error) throw error;
+
+      notify({
+        title: 'Draft deleted',
+        description: 'Your draft survey has been deleted.',
+        variant: 'success',
+      });
+
+      // Reload surveys
+      await loadSurveys();
+    } catch (error) {
+      console.error('Error deleting draft survey:', error);
+      notify({
+        title: 'Error',
+        description: 'Failed to delete draft survey',
+        variant: 'error',
+      });
+    }
+  };
+
   const completeSurveyWithAI = async (proceedWithIncomplete: boolean = false) => {
     if (!selectedSurvey) return;
 
@@ -1094,6 +1123,11 @@ export default function Feedback360Dashboard({
                   // If it's a draft and user is the creator, open wizard to edit/launch
                   if (survey.status === 'draft' && isCreator) {
                     setEditingDraftSurvey(survey);
+                    // Pre-select the employee being reviewed
+                    const employee = employees.find(e => e.id === survey.employee_id);
+                    if (employee) {
+                      setPreselectedEmployee(employee);
+                    }
                     setIsWizardOpen(true);
                   } else if (survey.status === 'completed' && hasSurveyBeenViewed(survey.id)) {
                     // If it's a completed survey that has been viewed before, go straight to results
@@ -1236,6 +1270,22 @@ export default function Feedback360Dashboard({
                     >
                       <Send className="w-4 h-4 mr-1" />
                       Remind
+                    </button>
+                  )}
+
+                  {/* Delete button for draft surveys (creator only) */}
+                  {survey.status === 'draft' && isCreator && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm('Are you sure you want to delete this draft?')) {
+                          deleteDraftSurvey(survey.id);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm font-medium flex items-center whitespace-nowrap"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
                     </button>
                   )}
                 </div>
@@ -2281,13 +2331,20 @@ export default function Feedback360Dashboard({
       {/* Survey 360 Wizard Modal */}
       <Survey360Wizard
         isOpen={isWizardOpen}
-        onClose={() => setIsWizardOpen(false)}
+        onClose={() => {
+          setIsWizardOpen(false);
+          setEditingDraftSurvey(null);
+          setPreselectedEmployee(undefined);
+        }}
         organizationId={organizationId}
         employees={employees}
         preselectedEmployee={preselectedEmployee}
         currentUser={currentUser}
+        draftSurvey={editingDraftSurvey}
         onSurveyCreated={() => {
           setIsWizardOpen(false);
+          setEditingDraftSurvey(null);
+          setPreselectedEmployee(undefined);
           loadSurveys();
         }}
       />
