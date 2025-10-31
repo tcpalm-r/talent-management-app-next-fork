@@ -38,13 +38,16 @@ export default function Sidebar({ currentView, onViewChange, userRole }: Sidebar
             <button
               key={item.id}
               onClick={() => onViewChange(item.id as View)}
-              className={`w-full flex flex-col items-center justify-center py-2 px-2 rounded-none transition-colors ${
+              className={`w-full flex flex-col items-center justify-center py-3 px-2 rounded-none transition-colors relative ${
                 isActive
                   ? 'text-blue-600'
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
-              style={isActive ? { boxShadow: 'inset 4px 0 0 0 rgb(37, 99, 235)' } : {}}
             >
+              {/* Left indicator bar with padding */}
+              {isActive && (
+                <div className="absolute left-1 top-1 bottom-1 w-1 bg-blue-600 rounded-sm" />
+              )}
               <Icon className="w-5 h-5 mb-1" />
               <span className="text-xs font-normal text-center leading-tight">{item.label}</span>
             </button>
