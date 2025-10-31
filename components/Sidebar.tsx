@@ -7,14 +7,20 @@ type View = '360-feedback' | 'directory' | 'admin-settings';
 interface SidebarProps {
   currentView: View;
   onViewChange: (view: View) => void;
+  userRole?: string;
 }
 
-export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
-  const navItems = [
+export default function Sidebar({ currentView, onViewChange, userRole }: SidebarProps) {
+  const baseNavItems = [
     { id: '360-feedback', label: '360°', icon: MessageSquare },
     { id: 'directory', label: 'Talent', icon: Users },
+  ] as const;
+
+  const adminNavItems = [
     { id: 'admin-settings', label: 'Settings', icon: Settings },
   ] as const;
+
+  const navItems = userRole === 'admin' ? [...baseNavItems, ...adminNavItems] : baseNavItems;
 
   return (
     <aside className="w-20 bg-white border-r border-gray-200 flex flex-col items-center">
