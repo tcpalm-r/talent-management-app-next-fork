@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
   console.log('[Middleware] Processing request to:', pathname);
 
   // Get AI Intranet configuration
-  const localTestingMode = process.env.LOCAL_TESTING_MODE === 'true';
+  const localTestingMode = process.env.LOCAL_TESTING_MODE?.trim() === 'true';
   const aiIntranetUrl = localTestingMode
     ? process.env.AI_INTRANET_URL_LOCAL || 'http://localhost:3001'
     : process.env.AI_INTRANET_URL_PROD || 'https://aiintranet.sonance.com';
@@ -25,7 +25,10 @@ export function middleware(request: NextRequest) {
   console.log('[Middleware] Route requires auth:', requiresAuth);
 
   // Check if authentication is disabled (mock auth mode)
-  const authDisabled = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
+  // Trim in case environment variables have trailing whitespace/newlines
+  const authDisabled =
+    process.env.NEXT_PUBLIC_DISABLE_AUTH?.trim() === 'true' ||
+    process.env.DISABLE_AUTH?.trim() === 'true';
   console.log('[Middleware] Auth disabled (mock mode):', authDisabled);
 
   // If auth is disabled, automatically authenticate with mock user

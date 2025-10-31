@@ -8,9 +8,15 @@ export async function GET(request: NextRequest) {
   try {
     console.log('[Auth0 Login] Initiating login flow');
 
-    // Check if auth is disabled (mock mode)
-    const authDisabled = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
-    console.log('[Auth0 Login] Auth disabled:', authDisabled);
+    // Check if auth is disabled (mock mode) - check both variables for compatibility
+    // Trim in case environment variables have trailing whitespace/newlines
+    const authDisabled =
+      process.env.NEXT_PUBLIC_DISABLE_AUTH?.trim() === 'true' ||
+      process.env.DISABLE_AUTH?.trim() === 'true';
+    console.log('[Auth0 Login] Auth disabled:', authDisabled, {
+      NEXT_PUBLIC_DISABLE_AUTH: process.env.NEXT_PUBLIC_DISABLE_AUTH,
+      DISABLE_AUTH: process.env.DISABLE_AUTH
+    });
 
     if (authDisabled) {
       console.log('[Auth0 Login] Auth disabled, redirecting to home');

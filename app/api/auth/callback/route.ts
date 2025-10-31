@@ -27,6 +27,17 @@ export async function GET(request: NextRequest) {
   try {
     console.log('[Auth0 Callback] Processing callback');
 
+    // Check if auth is disabled (mock mode) - if so, redirect to home
+    // Trim in case environment variables have trailing whitespace/newlines
+    const authDisabled =
+      process.env.NEXT_PUBLIC_DISABLE_AUTH?.trim() === 'true' ||
+      process.env.DISABLE_AUTH?.trim() === 'true';
+
+    if (authDisabled) {
+      console.log('[Auth0 Callback] Auth disabled, redirecting to home');
+      return NextResponse.redirect(new URL('/', request.nextUrl.origin));
+    }
+
     const { searchParams } = request.nextUrl;
     const code = searchParams.get('code');
     const state = searchParams.get('state');

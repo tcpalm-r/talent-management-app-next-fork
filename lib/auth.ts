@@ -17,7 +17,9 @@ import type { SessionUser } from './schema';
  * Checks NEXT_PUBLIC_DISABLE_AUTH environment variable at build time
  * This enables mock authentication mode for development and testing
  */
-export const AUTH_DISABLED = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
+export const AUTH_DISABLED =
+  process.env.NEXT_PUBLIC_DISABLE_AUTH?.trim() === 'true' ||
+  process.env.DISABLE_AUTH?.trim() === 'true';
 
 /**
  * Mock user for local development (Thomas Palmer)
