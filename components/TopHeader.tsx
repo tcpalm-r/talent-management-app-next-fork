@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreVertical, Sparkles } from 'lucide-react';
+import { MoreHorizontal, Sparkles } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Avatar from './Avatar';
 
@@ -110,7 +110,7 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
               title="More options"
             >
-              <MoreVertical className="w-5 h-5" />
+              <MoreHorizontal className="w-5 h-5" />
             </button>
 
             {menuOpen && (
