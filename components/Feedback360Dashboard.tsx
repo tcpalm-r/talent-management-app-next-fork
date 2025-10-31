@@ -543,10 +543,10 @@ export default function Feedback360Dashboard({
 
   const resolveNeedsReview = async (surveyId: string) => {
     try {
-      // Clear the admin review flag
+      // Clear the reanalysis flag
       const { error } = await supabase
         .from('feedback_360_surveys')
-        .update({ flagged_for_admin: false })
+        .update({ flagged_for_reanalysis: false })
         .eq('id', surveyId);
 
       if (error) {
@@ -556,7 +556,7 @@ export default function Feedback360Dashboard({
 
       notify({
         title: 'Review Resolved',
-        description: 'The "Needs Review" tag has been removed.',
+        description: 'The "Needs Reanalysis" tag has been removed.',
         variant: 'success',
       });
 
