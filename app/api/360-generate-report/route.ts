@@ -252,13 +252,11 @@ export async function POST(req: NextRequest) {
     console.log('✅ AI analysis complete');
 
     // ========================================================================
-    // STEP 8: Save report to database (upsert)
+    // STEP 8: Return analysis result directly
     // ========================================================================
 
-    // TODO: Fix report saving once database schema is confirmed
-    // For now, skip saving and return analysis result directly
-    const savedReport = null;
-    console.log('⏭️  Skipping report save - database schema needs update');
+    // Return the AI analysis result directly instead of saving to DB
+    console.log('✅ Returning AI analysis result directly');
 
     // ========================================================================
     // STEP 9: Update survey status to 'completed'
@@ -280,7 +278,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      report: savedReport,
+      report: analysisResult,
       message: 'AI analysis completed successfully'
     });
 
@@ -336,9 +334,11 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       if (error.code === 'PGRST116') {
+        // No report in database - this is expected if report was just generated
+        // Return a message indicating the user should have already seen the results
         return NextResponse.json({
           error: 'No report found for this survey',
-          message: 'Report may not have been generated yet'
+          message: 'Report data should have been displayed immediately after generation. Please regenerate the analysis if needed.'
         }, { status: 404 });
       }
 

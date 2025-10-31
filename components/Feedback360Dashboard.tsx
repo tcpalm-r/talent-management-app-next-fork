@@ -97,6 +97,20 @@ export default function Feedback360Dashboard({
   // Function to load and display survey results
   const loadAndShowResults = async (survey: Survey) => {
     try {
+      // First, try to load from localStorage cache
+      const cacheKey = `survey_report_${survey.id}`;
+      const cachedReport = typeof window !== 'undefined' ? localStorage.getItem(cacheKey) : null;
+
+      if (cachedReport) {
+        console.log('📦 Loading report from cache for survey:', survey.id);
+        setSelectedSurvey(survey);
+        setSurveyResults(JSON.parse(cachedReport));
+        setIsResultsModalOpen(true);
+        markSurveyAsViewed(survey.id);
+        return;
+      }
+
+      // If not cached, try to fetch from API
       const response = await fetch(`/api/360-generate-report?survey_id=${survey.id}`);
       const data = await response.json();
 
@@ -108,11 +122,21 @@ export default function Feedback360Dashboard({
       setSurveyResults(data.report);
       setIsResultsModalOpen(true);
       markSurveyAsViewed(survey.id);
+
+      // Cache the report if successful
+      if (data.report && typeof window !== 'undefined') {
+        localStorage.setItem(cacheKey, JSON.stringify(data.report));
+      }
     } catch (error: any) {
       console.error('Error loading survey results:', error);
+
+      // If report not found, offer to regenerate
+      const isReportNotFound = error.message?.includes('No report found');
       notify({
-        title: 'Error',
-        description: error.message || 'Failed to load review results',
+        title: isReportNotFound ? 'Report Not Found' : 'Error',
+        description: isReportNotFound
+          ? 'The analysis report could not be found. Please regenerate the analysis by opening the survey and clicking "Complete Review with AI Analysis".'
+          : error.message || 'Failed to load review results',
         variant: 'error',
       });
     }
@@ -370,6 +394,14 @@ export default function Feedback360Dashboard({
 
       // Store the generated report and open results modal
       setSurveyResults(data.report);
+
+      // Cache the report in localStorage for persistence
+      if (data.report && typeof window !== 'undefined') {
+        const cacheKey = `survey_report_${selectedSurvey.id}`;
+        localStorage.setItem(cacheKey, JSON.stringify(data.report));
+        console.log('💾 Report cached for survey:', selectedSurvey.id);
+      }
+
       setIsDetailsModalOpen(false);
       setIsResultsModalOpen(true);
 
@@ -574,6 +606,14 @@ export default function Feedback360Dashboard({
       }
 
       setSurveyResults(data.report);
+
+      // Cache the reanalyzed report in localStorage
+      if (data.report && typeof window !== 'undefined') {
+        const cacheKey = `survey_report_${surveyId}`;
+        localStorage.setItem(cacheKey, JSON.stringify(data.report));
+        console.log('💾 Reanalyzed report cached for survey:', surveyId);
+      }
+
       notify({
         title: 'Analysis Complete',
         description: tone === 'softer'
@@ -1439,39 +1479,41 @@ export default function Feedback360Dashboard({
                   {selectedSurvey.employee?.name || 'Unknown'}
                 </h2>
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={async () => {
-                      if (confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
-                        try {
-                          const { error } = await supabase
-                            .from('feedback_360_surveys')
-                            .delete()
-                            .eq('id', selectedSurvey.id);
+                  {selectedSurvey.status === 'draft' && (
+                    <button
+                      onClick={async () => {
+                        if (confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
+                          try {
+                            const { error } = await supabase
+                              .from('feedback_360_surveys')
+                              .delete()
+                              .eq('id', selectedSurvey.id);
 
-                          if (error) throw error;
+                            if (error) throw error;
 
-                          notify({
-                            title: 'Review deleted',
-                            description: 'The review has been permanently deleted.',
-                            variant: 'success',
-                          });
+                            notify({
+                              title: 'Draft deleted',
+                              description: 'The draft has been permanently deleted.',
+                              variant: 'success',
+                            });
 
-                          setIsDetailsModalOpen(false);
-                          loadSurveys();
-                        } catch (error) {
-                          console.error('Error deleting survey:', error);
-                          notify({
-                            title: 'Error',
-                            description: 'Failed to delete review',
-                            variant: 'error',
-                          });
+                            setIsDetailsModalOpen(false);
+                            loadSurveys();
+                          } catch (error) {
+                            console.error('Error deleting draft:', error);
+                            notify({
+                              title: 'Error',
+                              description: 'Failed to delete draft',
+                              variant: 'error',
+                            });
+                          }
                         }
-                      }
-                    }}
-                    className="px-3 py-1.5 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-medium"
-                  >
-                    Delete
-                  </button>
+                      }}
+                      className="px-3 py-1.5 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-medium"
+                    >
+                      Delete
+                    </button>
+                  )}
                   <button
                     onClick={() => setIsDetailsModalOpen(false)}
                     className="text-gray-400 hover:text-gray-600"
@@ -1721,9 +1763,9 @@ export default function Feedback360Dashboard({
                       Send Reminders
                     </button>
                   )}
-                  {/* Complete with AI for in_progress when at least 2 reviewers completed */}
+                  {/* Complete with AI for in_progress when at least 1 reviewer completed */}
                   {selectedSurvey.status === 'in_progress' &&
-                   (selectedSurvey.completed_count ?? 0) >= 2 && (
+                   (selectedSurvey.completed_count ?? 0) >= 1 && (
                     <button
                       onClick={() => completeSurveyWithAI()}
                       disabled={isGeneratingAnalysis}
