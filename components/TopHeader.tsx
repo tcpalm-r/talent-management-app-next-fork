@@ -42,7 +42,7 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
       <div className="h-20 px-6 flex items-center relative">
         {/* Centered Title */}
-        <h1 className="text-xl font-bold text-gray-900 absolute left-1/2 transform -translate-x-1/2">Sonance Talent Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900 absolute left-1/2 transform -translate-x-1/2">Sonance Talent Management</h1>
 
         {/* Ask AI Button - positioned to the right of center */}
         <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-sm font-medium transition-colors absolute" style={{ left: 'calc(50% + 145px)' }}>
