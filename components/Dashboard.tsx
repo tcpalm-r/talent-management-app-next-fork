@@ -47,24 +47,11 @@ export default function Dashboard({
   const [performanceReviews, setPerformanceReviews] = useState<Record<string, any>>({});
   const [finalizedSurveys, setFinalizedSurveys] = useState<Record<string, number>>({});
 
-  // DEV: Employee override for testing 360 dashboard with different users
-  const [employeeOverride, setEmployeeOverride] = useState<string | null>('admin.test@example.com');
-  const [isDevelopment, setIsDevelopment] = useState(false);
-
-  useEffect(() => {
-    // Enable development features (test role switcher) for localhost and demo deployments
-    const isDev = typeof window !== 'undefined' && (
-      window.location.hostname === 'localhost' ||
-      window.location.hostname.includes('vercel.app')
-    );
-    setIsDevelopment(isDev);
-  }, []);
 
   // Find current user's employee record for 360 dashboard filtering
   const currentUserEmployee = useMemo(() => {
-    const userEmail = employeeOverride || userProfile.email;
-    return employees.find(e => e.email === userEmail);
-  }, [employees, userProfile.email, employeeOverride]);
+    return employees.find(e => e.email === userProfile.email);
+  }, [employees, userProfile.email]);
 
   // Redirect from admin settings if user is no longer admin
   useEffect(() => {
@@ -256,105 +243,6 @@ export default function Dashboard({
 
           {!loading && (
             <div className={`${shellClass} py-8`}>
-              {/* Dev Test User Switcher */}
-              {isDevelopment && (
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-gray-600 font-medium">Test as:</span>
-                    <div className="flex gap-1 flex-wrap">
-                      <button
-                        onClick={() => setEmployeeOverride('admin.test@example.com')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                          employeeOverride === 'admin.test@example.com'
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
-                        }`}
-                        title="Admin [TEST] - can see ALL reviews"
-                      >
-                        Admin
-                      </button>
-                      <button
-                        onClick={() => setEmployeeOverride('leader1.test@example.com')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                          employeeOverride === 'leader1.test@example.com'
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
-                        }`}
-                        title="Leader 1 [TEST] - can see own + direct reports"
-                      >
-                        Leader 1
-                      </button>
-                      <button
-                        onClick={() => setEmployeeOverride('leader2.test@example.com')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                          employeeOverride === 'leader2.test@example.com'
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
-                        }`}
-                        title="Leader 2 [TEST] - can see own + direct reports"
-                      >
-                        Leader 2
-                      </button>
-                      <button
-                        onClick={() => setEmployeeOverride('user1.test@example.com')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                          employeeOverride === 'user1.test@example.com'
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
-                        }`}
-                        title="User 1 [TEST]"
-                      >
-                        User 1
-                      </button>
-                      <button
-                        onClick={() => setEmployeeOverride('user2.test@example.com')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                          employeeOverride === 'user2.test@example.com'
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
-                        }`}
-                        title="User 2 [TEST]"
-                      >
-                        User 2
-                      </button>
-                      <button
-                        onClick={() => setEmployeeOverride('user3.test@example.com')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                          employeeOverride === 'user3.test@example.com'
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
-                        }`}
-                        title="User 3 [TEST]"
-                      >
-                        User 3
-                      </button>
-                      <button
-                        onClick={() => setEmployeeOverride('user4.test@example.com')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                          employeeOverride === 'user4.test@example.com'
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
-                        }`}
-                        title="User 4 [TEST]"
-                      >
-                        User 4
-                      </button>
-                      <button
-                        onClick={() => setEmployeeOverride(null)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                          employeeOverride === null
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
-                        }`}
-                        title="Use actual logged-in user"
-                      >
-                        Actual User
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* View Content */}
               {currentView === '360-feedback' && (
                 <Feedback360Dashboard
