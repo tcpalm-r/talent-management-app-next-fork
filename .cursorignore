@@ -1,1 +1,5 @@
 .env.backup
+.env
+.env.local
+.env.local.backup
+.env.*.local
