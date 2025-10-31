@@ -229,7 +229,7 @@ export default function CreateWithAIModal({
                 </p>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                   <p className="text-sm text-blue-900 mb-3">
-                    <strong>Example:</strong> "Create a 360 review for Sarah Chen to assess her leadership and communication skills. Get feedback from her manager (john@company.com), 2 peers (mike@company.com and anna@company.com), and 2 direct reports. Focus on leadership, collaboration, and communication. Due next Friday."
+                    <strong>Example:</strong> "Create a 360 review for Sarah Chen to assess her leadership and communication skills. Get feedback from her manager John, 2 peers Mike and Anna, and 2 direct reports. Focus on leadership, collaboration, and communication. Due next Friday."
                   </p>
                   <div className="flex items-start gap-2 text-xs text-blue-800 bg-white/60 p-2 rounded border border-blue-100">
                     <span className="text-blue-600 font-semibold mt-0.5">💡 Tip:</span>
