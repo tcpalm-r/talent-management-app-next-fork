@@ -1112,9 +1112,6 @@ export default function Survey360Wizard({
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Who is this review for?</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Select the employee who will receive 360° feedback
-                </p>
               </div>
 
               {/* Templates - Disabled for now */}
@@ -1191,9 +1188,6 @@ export default function Survey360Wizard({
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Review Questions</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Configure the questions that reviewers will answer
-                </p>
               </div>
 
               {/* Required Questions */}
@@ -1446,7 +1440,6 @@ export default function Survey360Wizard({
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Set Timeline</h3>
-                <p className="text-sm text-gray-600 mb-4">When should reviewers complete their feedback?</p>
               </div>
 
               <div>
@@ -1473,7 +1466,6 @@ export default function Survey360Wizard({
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Review & Launch</h3>
-                <p className="text-sm text-gray-600 mb-4">Confirm details before sending</p>
               </div>
 
               <div className="space-y-4">

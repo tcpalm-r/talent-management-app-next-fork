@@ -224,9 +224,6 @@ export default function CreateWithAIModal({
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Describe your 360° review
                 </label>
-                <p className="text-sm text-gray-600 mb-4">
-                  Tell us who the review is for, what you want to assess, who should provide feedback, and when it's due. Be as specific as possible.
-                </p>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                   <p className="text-sm text-blue-900">
                     <strong>Example:</strong> "Create a 360 review for Sarah Chen to assess her leadership and communication skills. Get feedback from her manager John, 2 peers Mike and Anna, and 2 direct reports. Focus on leadership, collaboration, and communication. Due next Friday."
