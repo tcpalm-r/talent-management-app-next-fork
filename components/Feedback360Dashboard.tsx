@@ -127,9 +127,11 @@ export default function Feedback360Dashboard({
           *,
           reviewers:feedback_360_survey_reviewers(id, status, reviewer_email, access_token)
         `)
+        .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
 
       // Enhance surveys with employee data and reviewer counts
       let enhancedSurveys = data?.map((survey: any) => {
@@ -220,9 +222,10 @@ export default function Feedback360Dashboard({
         enhancedSurveys = [];
       }
 
+
       setSurveys(enhancedSurveys);
     } catch (error) {
-      console.error('Error loading surveys:', error);
+      console.error('[loadSurveys] Error loading surveys:', error);
     } finally {
       setLoading(false);
     }
@@ -2282,6 +2285,7 @@ export default function Feedback360Dashboard({
         organizationId={organizationId}
         employees={employees}
         preselectedEmployee={preselectedEmployee}
+        currentUser={currentUser}
         onSurveyCreated={() => {
           setIsWizardOpen(false);
           loadSurveys();

@@ -6,6 +6,7 @@ import type { User, Organization, Employee, Department } from '../types';
 import PeopleDashboard from './PeopleDashboard';
 import Feedback360Dashboard from './Feedback360Dashboard';
 import AdminSettings from './AdminSettings';
+import InsightsPanel from './InsightsPanel';
 import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
 
@@ -21,7 +22,7 @@ interface DashboardProps {
   onRegisterNavigate?: (fn: ((view: string) => void) | null) => void;
 }
 
-type View = '360-feedback' | 'directory' | 'admin-settings';
+type View = '360-feedback' | 'directory' | 'admin-settings' | 'insights';
 
 export default function Dashboard({
   user: _user,
@@ -51,13 +52,42 @@ export default function Dashboard({
 
   // Find current user's employee record for 360 dashboard filtering
   const currentUserEmployee = useMemo(() => {
-    return employees.find(e => e.email === userProfile.email);
-  }, [employees, userProfile.email]);
+    // Try to find the user in the employees list by email (case-insensitive)
+    const matched = employees.find(e => e.email?.toLowerCase() === userProfile.email?.toLowerCase());
 
-  // Redirect from admin settings if user is no longer admin
+    // If found, return the employee record; otherwise create a minimal one from userProfile
+    if (matched) return matched;
+
+    // Fallback: Create an employee record from userProfile so drafts can be saved with creator info
+    if (userProfile.id && userProfile.email) {
+      console.log('[Dashboard] Using userProfile as currentUserEmployee (not found in employees list)');
+      return {
+        id: userProfile.id,
+        email: userProfile.email,
+        name: userProfile.full_name || 'User',
+        organization_id: organization.id,
+        employee_id: null,
+        department_id: null,
+        manager_name: null,
+        title: null,
+        location: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    }
+
+    return undefined;
+  }, [employees, userProfile]);
+
+  // Redirect from restricted views if user no longer has access
   useEffect(() => {
     const currentRole = (roleOverride || userProfile.role)?.toLowerCase();
+
     if (currentView === 'admin-settings' && currentRole !== 'admin') {
+      setCurrentView('360-feedback');
+    }
+
+    if (currentView === 'insights' && currentRole !== 'admin' && currentRole !== 'leader') {
       setCurrentView('360-feedback');
     }
   }, [roleOverride, userProfile.role, currentView]);
@@ -76,6 +106,9 @@ export default function Dashboard({
       case 'people':
       case 'directory':
         changeView('directory');
+        break;
+      case 'insights':
+        changeView('insights');
         break;
       default:
         break;
@@ -279,6 +312,16 @@ export default function Dashboard({
 
               {currentView === 'admin-settings' && (
                 <AdminSettings />
+              )}
+
+              {currentView === 'insights' && (
+                <InsightsPanel
+                  employees={employees}
+                  departments={departments}
+                  userRole={userProfile.role}
+                  currentUserEmployee={currentUserEmployee}
+                  organizationId={organization.id}
+                />
               )}
             </div>
           )}

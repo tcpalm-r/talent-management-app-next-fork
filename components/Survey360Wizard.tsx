@@ -90,13 +90,6 @@ export default function Survey360Wizard({
       ? 'competencies'
       : 'who';
 
-  console.log('Survey360Wizard initialized:', {
-    preselectedEmployee,
-    isBatchMode,
-    initialStep,
-    draftSurvey: !!draftSurvey
-  });
-
   const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>(preselectedEmployee);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -131,7 +124,6 @@ export default function Survey360Wizard({
   // Reset wizard state
   const resetWizard = () => {
     const resetStep: WizardStep = draftSurvey ? 'preview' : (isBatchMode || preselectedEmployee) ? 'competencies' : 'who';
-    console.log('resetWizard called, setting step to:', resetStep);
     setCurrentStep(resetStep);
     setSelectedEmployee(preselectedEmployee);
     setSelectedTemplate(null);
@@ -149,55 +141,41 @@ export default function Survey360Wizard({
 
   // Handle AI modal completion
   const handleAIModalComplete = (data: ParsedSurveyData) => {
-    console.log('[Survey360Wizard.handleAIModalComplete] Called with data:', data);
-
     // Find employee by name if the AI-parsed name differs from current selection
     if (data.employeeName) {
-      console.log('[Survey360Wizard.handleAIModalComplete] Looking for employee:', data.employeeName);
       const matchedEmployee = employees.find(
         emp => emp.name.toLowerCase() === data.employeeName.toLowerCase()
       );
       if (matchedEmployee) {
-        console.log('[Survey360Wizard.handleAIModalComplete] Found matching employee:', matchedEmployee);
         setSelectedEmployee(matchedEmployee);
-      } else {
-        console.log('[Survey360Wizard.handleAIModalComplete] No matching employee found');
       }
     }
 
     // Apply questions - combine with existing required questions if user hasn't changed them
     // or replace if AI provided custom questions
     if (data.questions && data.questions.length > 0) {
-      console.log('[Survey360Wizard.handleAIModalComplete] Setting custom questions:', data.questions);
       setCustomQuestions(data.questions);
     }
 
     // Apply raters
     if (data.raters && data.raters.length > 0) {
-      console.log('[Survey360Wizard.handleAIModalComplete] Setting raters:', data.raters);
       setRaters(data.raters);
     }
 
     // Apply due date
     if (data.dueDate) {
-      console.log('[Survey360Wizard.handleAIModalComplete] Setting due date:', data.dueDate);
       setDueDate(data.dueDate);
     }
 
     // Apply survey title if provided
     if (data.surveyTitle) {
-      console.log('[Survey360Wizard.handleAIModalComplete] Setting survey title:', data.surveyTitle);
       setSurveyTitle(data.surveyTitle);
     }
 
     // Move to preview step and flag for auto-launch
-    console.log('[Survey360Wizard.handleAIModalComplete] Moving to preview step and setting auto-launch flag');
     setCurrentStep('preview');
     setShouldAutoLaunch(true);
-
-    // Close AI modal
     setIsAIModalOpen(false);
-    console.log('[Survey360Wizard.handleAIModalComplete] Closed AI modal');
   };
 
   // Load default questions from API
@@ -409,6 +387,7 @@ export default function Survey360Wizard({
         const { data: survey, error: surveyError } = await supabase
           .from('feedback_360_surveys')
           .insert({
+            organization_id: organizationId,
             employee_id: selectedEmployee.id,
             survey_name: surveyTitle || `360° Feedback - ${selectedEmployee.name}`,
             status: 'draft',
@@ -418,7 +397,10 @@ export default function Survey360Wizard({
           .select()
           .single();
 
-        if (surveyError) throw surveyError;
+        if (surveyError) {
+          console.error('[handleClose] Survey insert error:', surveyError);
+          throw surveyError;
+        }
 
         // Save questions if any are filled
         const allQuestions = [...requiredQuestions.filter(q => q.trim()), ...customQuestions];
@@ -430,7 +412,7 @@ export default function Survey360Wizard({
               .from('feedback_360_questions')
               .select('id')
               .eq('question_text', questionText)
-              .single();
+              .maybeSingle(); // Use maybeSingle instead of single to avoid errors
 
             if (!existingQuestion) {
               const { data: newQuestion } = await supabase
@@ -489,7 +471,7 @@ export default function Survey360Wizard({
         // Refresh the survey list to show the new draft
         onSurveyCreated();
       } catch (error) {
-        console.error('Error saving draft:', error);
+        console.error('[handleClose] Error saving draft:', error);
         // Don't show error notification, just close silently
       }
     }
@@ -585,10 +567,8 @@ export default function Survey360Wizard({
       // If editing a draft, work with just that draft
       if (draftSurvey) {
         try {
-          console.log('[DRAFT UPDATE] Starting draft update for survey:', draftSurvey.id);
 
           // Delete existing questions (but keep reviewers so they can be re-launched)
-          console.log('[DRAFT UPDATE] Deleting existing questions...');
           const { error: deleteQuestionsError } = await supabase
             .from('feedback_360_survey_questions')
             .delete()
@@ -598,10 +578,8 @@ export default function Survey360Wizard({
             console.error('[DRAFT UPDATE] Error deleting questions:', deleteQuestionsError);
             throw deleteQuestionsError;
           }
-          console.log('[DRAFT UPDATE] Questions deleted successfully');
 
           // Update survey with new data
-          console.log('[DRAFT UPDATE] Updating survey with new data:', { surveyTitle, dueDate });
           const { error: updateError } = await supabase
             .from('feedback_360_surveys')
             .update({
@@ -614,14 +592,12 @@ export default function Survey360Wizard({
             console.error('[DRAFT UPDATE] Error updating survey:', updateError);
             throw updateError;
           }
-          console.log('[DRAFT UPDATE] Survey updated successfully');
 
           // Use the draft survey ID
           const survey = draftSurvey;
 
           // Combine required and custom questions
           const allQuestions = [...requiredQuestions, ...customQuestions];
-          console.log('[DRAFT UPDATE] All questions to add:', allQuestions);
           const questionUUIDs: string[] = [];
 
           for (const questionText of allQuestions) {
@@ -640,7 +616,6 @@ export default function Survey360Wizard({
 
             if (!existingQuestion) {
               // Create the question
-              console.log('[DRAFT UPDATE] Creating new question:', questionText);
               const { data: newQuestion, error: createError } = await supabase
                 .from('feedback_360_questions')
                 .insert({
@@ -658,12 +633,10 @@ export default function Survey360Wizard({
               }
               questionUUIDs.push(newQuestion.id);
             } else {
-              console.log('[DRAFT UPDATE] Question already exists:', existingQuestion.id);
               questionUUIDs.push(existingQuestion.id);
             }
           }
 
-          console.log('[DRAFT UPDATE] Question UUIDs:', questionUUIDs);
 
           // Create survey questions with UUIDs
           const questionsToInsert = questionUUIDs.map((questionUUID, index) => ({
@@ -673,7 +646,6 @@ export default function Survey360Wizard({
           }));
 
           if (questionsToInsert.length > 0) {
-            console.log('[DRAFT UPDATE] Inserting survey questions:', questionsToInsert);
             const { error: questionsError } = await supabase
               .from('feedback_360_survey_questions')
               .insert(questionsToInsert);
@@ -682,11 +654,9 @@ export default function Survey360Wizard({
               console.error('[DRAFT UPDATE] Error inserting survey questions:', questionsError);
               throw questionsError;
             }
-            console.log('[DRAFT UPDATE] Survey questions inserted successfully');
           }
 
           // Delete existing reviewers before inserting new ones
-          console.log('[DRAFT UPDATE] Deleting existing reviewers...');
           const { error: deleteReviewersError } = await supabase
             .from('feedback_360_survey_reviewers')
             .delete()
@@ -696,7 +666,6 @@ export default function Survey360Wizard({
             console.error('[DRAFT UPDATE] Error deleting existing reviewers:', deleteReviewersError);
             throw deleteReviewersError;
           }
-          console.log('[DRAFT UPDATE] Existing reviewers deleted successfully');
 
           // Create reviewers
           const reviewersToInsert = raters
@@ -710,10 +679,8 @@ export default function Survey360Wizard({
               access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             }));
 
-          console.log('[DRAFT UPDATE] Reviewers to insert:', reviewersToInsert);
 
           if (reviewersToInsert.length > 0) {
-            console.log('[DRAFT UPDATE] Attempting to insert reviewers...');
             const { data: insertedReviewers, error: reviewersError } = await supabase
               .from('feedback_360_survey_reviewers')
               .insert(reviewersToInsert)
@@ -729,7 +696,6 @@ export default function Survey360Wizard({
               });
               throw reviewersError;
             }
-            console.log('[DRAFT UPDATE] Reviewers inserted successfully:', insertedReviewers);
 
             // Send invitation emails to each reviewer (with delay to avoid rate limiting)
             if (insertedReviewers && insertedReviewers.length > 0) {
@@ -767,7 +733,6 @@ export default function Survey360Wizard({
             }
           }
 
-          console.log('[DRAFT UPDATE] Draft survey update completed successfully');
           successCount++;
         } catch (error: any) {
           console.error('[DRAFT UPDATE] FINAL ERROR updating draft survey:', {
@@ -1524,6 +1489,9 @@ export default function Survey360Wizard({
         isOpen={isAIModalOpen}
         onClose={() => setIsAIModalOpen(false)}
         onComplete={handleAIModalComplete}
+        selectedEmployee={selectedEmployee}
+        currentStep={currentStep}
+        employees={employees}
       />
     </>,
     document.body
