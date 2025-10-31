@@ -361,6 +361,39 @@ export default function Feedback360Dashboard({
     }
   };
 
+  const markResolvedByHR = async (surveyId: string) => {
+    try {
+      const { error } = await supabase
+        .from('feedback_360_surveys')
+        .update({
+          resolved_by_hr: true,
+          resolved_by: currentUser?.email || currentUser?.id,
+          resolved_at: new Date().toISOString(),
+        })
+        .eq('id', surveyId)
+        .eq('status', 'completed');
+
+      if (error) throw error;
+
+      notify({
+        title: 'Review resolved',
+        description: 'Review has been marked as resolved by HR.',
+        variant: 'success',
+      });
+
+      // Reload surveys
+      await loadSurveys();
+      setIsDetailsModalOpen(false);
+    } catch (error) {
+      console.error('Error marking review as resolved:', error);
+      notify({
+        title: 'Error',
+        description: 'Failed to mark review as resolved',
+        variant: 'error',
+      });
+    }
+  };
+
   const completeSurveyWithAI = async (proceedWithIncomplete: boolean = false) => {
     if (!selectedSurvey) return;
 
@@ -932,7 +965,22 @@ export default function Feedback360Dashboard({
     return responseRate < 0.5 && daysUntilDue <= 3 && daysUntilDue > 0;
   });
 
-  const getStatusBadge = (status: string, flaggedForAdmin?: boolean) => {
+  const getStatusBadge = (status: string, flaggedForAdmin?: boolean, resolvedByHR?: boolean) => {
+    // Show "Resolved by HR" badge for completed reviews marked as resolved
+    if (resolvedByHR && status === 'completed') {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-green-100 text-green-700 border-green-300">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Completed
+          </span>
+          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-blue-100 text-blue-700 border-blue-300">
+            Resolved by HR
+          </span>
+        </div>
+      );
+    }
+
     // Show "Needs Review" badge for flagged surveys (admin only)
     if (flaggedForAdmin && currentUser?.role === 'admin') {
       return (
@@ -1297,7 +1345,7 @@ export default function Feedback360Dashboard({
                 {/* Right side: Status badge and actions */}
                 <div className="ml-4 flex flex-col items-end gap-2">
                   {/* Status badge */}
-                  {getStatusBadge(survey.status, survey.flagged_for_admin)}
+                  {getStatusBadge(survey.status, survey.flagged_for_admin, survey.resolved_by_hr)}
 
                   {/* Remind button */}
                   {survey.status === 'active' && (survey.completed_count ?? 0) !== (survey.reviewers_count ?? 0) && (
@@ -1386,7 +1434,7 @@ export default function Feedback360Dashboard({
                         <span className="ml-2 text-sm text-gray-600">• {selectedSurvey.employee.title}</span>
                       )}
                     </div>
-                    {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin)}
+                    {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin, selectedSurvey.resolved_by_hr)}
                   </div>
                   <div className="flex items-center gap-6">
                     {selectedSurvey.due_date && (
@@ -1479,6 +1527,14 @@ export default function Feedback360Dashboard({
                   {selectedSurvey.employee?.name || 'Unknown'}
                 </h2>
                 <div className="flex items-center gap-3">
+                  {selectedSurvey.status === 'completed' && !selectedSurvey.resolved_by_hr && isAdmin && (
+                    <button
+                      onClick={() => markResolvedByHR(selectedSurvey.id)}
+                      className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      Mark as Resolved by HR
+                    </button>
+                  )}
                   {selectedSurvey.status === 'draft' && (
                     <button
                       onClick={async () => {
