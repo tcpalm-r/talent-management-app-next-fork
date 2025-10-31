@@ -503,9 +503,11 @@ export default function Survey360Wizard({
           throw surveyError;
         }
 
-        // Save questions if any are filled
-        const allQuestions = [...requiredQuestions.filter(q => q.trim()), ...customQuestions];
-        if (allQuestions.length > 0) {
+        // Save questions only if confirmed or if custom questions were added
+        // Don't save unconfirmed default questions (they'll be loaded fresh when draft is reopened)
+        const shouldSaveQuestions = questionsConfirmed || customQuestions.length > 0;
+        const allQuestions = shouldSaveQuestions ? [...requiredQuestions.filter(q => q.trim()), ...customQuestions] : [];
+        if (allQuestions.length > 0 && shouldSaveQuestions) {
           const questionUUIDs: string[] = [];
 
           for (const questionText of allQuestions) {
