@@ -1,6 +1,7 @@
 'use client';
 
 import { MessageSquare, Users, Settings } from 'lucide-react';
+import { useMemo } from 'react';
 
 type View = '360-feedback' | 'directory' | 'admin-settings';
 
@@ -20,7 +21,10 @@ export default function Sidebar({ currentView, onViewChange, userRole }: Sidebar
     { id: 'admin-settings', label: 'Settings', icon: Settings },
   ] as const;
 
-  const navItems = userRole === 'admin' ? [...baseNavItems, ...adminNavItems] : baseNavItems;
+  const navItems = useMemo(() => {
+    const isAdmin = userRole?.toLowerCase() === 'admin';
+    return isAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
+  }, [userRole]);
 
   return (
     <aside className="w-20 bg-white border-r border-gray-200 flex flex-col items-center">
