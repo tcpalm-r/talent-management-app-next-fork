@@ -141,7 +141,7 @@ export default function Survey360Wizard({
     setShowRaterPicker(null);
   };
 
-  // Handle AI modal completion
+  // Handle AI modal completion (internal - triggered from within wizard)
   const handleAIModalComplete = (data: ParsedSurveyData) => {
     console.log('[Survey360Wizard.handleAIModalComplete] AI modal data received:', data);
 
@@ -183,10 +183,54 @@ export default function Survey360Wizard({
       setSurveyTitle(data.surveyTitle);
     }
 
-    // Move to preview step and flag for auto-launch
+    // Move to preview step and flag for auto-launch (internal flow only)
     setCurrentStep('preview');
     setShouldAutoLaunch(true);
     setIsAIModalOpen(false);
+  };
+
+  // Handle AI data from external source (dashboard AI modal)
+  // Just populate the data and show step 5, don't auto-launch
+  const handleAIDataFromDashboard = (data: ParsedSurveyData) => {
+    console.log('[Survey360Wizard.handleAIDataFromDashboard] Received data from dashboard AI modal:', data);
+
+    // Find employee by name
+    if (data.employeeName) {
+      const matchedEmployee = employees.find(
+        emp => emp.name.toLowerCase() === data.employeeName.toLowerCase()
+      );
+      if (matchedEmployee) {
+        console.log('[Survey360Wizard.handleAIDataFromDashboard] Setting employee:', matchedEmployee.name);
+        setSelectedEmployee(matchedEmployee);
+      }
+    }
+
+    // Apply questions
+    if (data.questions && data.questions.length > 0) {
+      console.log('[Survey360Wizard.handleAIDataFromDashboard] Setting custom questions:', data.questions);
+      setCustomQuestions(data.questions);
+    }
+
+    // Apply raters
+    if (data.raters && data.raters.length > 0) {
+      console.log('[Survey360Wizard.handleAIDataFromDashboard] Setting reviewers:', data.raters);
+      setRaters(data.raters);
+    }
+
+    // Apply due date
+    if (data.dueDate) {
+      console.log('[Survey360Wizard.handleAIDataFromDashboard] Setting due date:', data.dueDate);
+      setDueDate(data.dueDate);
+    }
+
+    // Apply survey title if provided
+    if (data.surveyTitle) {
+      console.log('[Survey360Wizard.handleAIDataFromDashboard] Setting survey title:', data.surveyTitle);
+      setSurveyTitle(data.surveyTitle);
+    }
+
+    // Move to preview step only (no auto-launch for external flow)
+    setCurrentStep('preview');
   };
 
   // Load default questions from API
@@ -307,11 +351,11 @@ export default function Survey360Wizard({
     loadDraftSurveyData();
   }, [isOpen, draftSurvey, employees]);
 
-  // Handle AI-parsed data when received from AI modal
+  // Handle AI-parsed data when received from dashboard AI modal
   useEffect(() => {
     if (isOpen && aiParsedData) {
-      console.log('[Survey360Wizard] Received AI parsed data, calling handleAIModalComplete');
-      handleAIModalComplete(aiParsedData);
+      console.log('[Survey360Wizard] Received AI parsed data from dashboard, calling handleAIDataFromDashboard');
+      handleAIDataFromDashboard(aiParsedData);
     }
   }, [isOpen, aiParsedData]);
 
