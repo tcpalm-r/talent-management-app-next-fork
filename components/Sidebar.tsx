@@ -17,7 +17,7 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
   ] as const;
 
   return (
-    <aside className="w-24 bg-white border-r border-gray-200 flex flex-col items-center">
+    <aside className="w-20 bg-white border-r border-gray-200 flex flex-col items-center">
       {/* Navigation */}
       <nav className="flex-1 py-4 space-y-1 flex flex-col items-center w-full">
         {navItems.map((item) => {
@@ -35,7 +35,7 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
               }`}
             >
               <Icon className="w-5 h-5 mb-1" />
-              <span className="text-xs font-medium text-center leading-tight">{item.label}</span>
+              <span className="text-xs font-normal text-center leading-tight">{item.label}</span>
             </button>
           );
         })}
