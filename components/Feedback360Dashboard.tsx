@@ -697,8 +697,8 @@ export default function Feedback360Dashboard({
       successMessage = 'The review has been moved back to Completed status.';
     } else if (status === 'completed') {
       targetStatus = 'in_progress';
-      confirmMessage = 'Are you sure you want to send this review back to In Progress? This will discard the current AI analysis.';
-      successMessage = 'The review has been moved back to In Progress status.';
+      confirmMessage = 'Are you sure you want to send this review back to In Progress? This will discard the current AI analysis and clear the reanalysis flag.';
+      successMessage = 'The review has been moved back to In Progress status and the reanalysis flag has been cleared.';
     } else if (status === 'in_progress') {
       targetStatus = 'draft';
       confirmMessage = 'Are you sure you want to send this review back to Draft? Reviewer access links will be invalidated and it will only be visible to you for editing.';
@@ -731,10 +731,15 @@ export default function Feedback360Dashboard({
         }
       }
 
-      // Update survey status
+      // Update survey status and clear reanalysis flag if moving back from completed
+      const updateData: any = { status: targetStatus };
+      if (status === 'completed' || status === 'finalized') {
+        updateData.flagged_for_reanalysis = false;
+      }
+
       const { error } = await supabase
         .from('feedback_360_surveys')
-        .update({ status: targetStatus })
+        .update(updateData)
         .eq('id', surveyId);
 
       if (error) {
