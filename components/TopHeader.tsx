@@ -40,20 +40,24 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
-      <div className="h-16 px-6 flex items-center justify-between gap-4 relative">
-        {/* Logo/Brand */}
-        <div className="flex-shrink-0 min-w-0">
+      <div className="h-20 px-6 flex items-center justify-between gap-4">
+        {/* Empty left spacer */}
+        <div className="flex-1"></div>
+
+        {/* Center: Logo and Ask AI Button */}
+        <div className="flex flex-col items-center gap-2">
           <h1 className="text-xl font-bold text-gray-900">Sonance Talent Management</h1>
+          <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-sm font-medium transition-colors">
+            <Sparkles className="w-4 h-4" />
+            Ask AI
+          </button>
         </div>
 
-        {/* Ask AI Button - Centered Absolutely */}
-        <button className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-sm font-medium transition-colors">
-          <Sparkles className="w-4 h-4" />
-          Ask AI
-        </button>
+        {/* Empty right spacer to balance layout */}
+        <div className="flex-1"></div>
 
         {/* Right Section */}
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-3 flex-shrink-0 absolute right-6">
           {/* Role Switcher */}
           <div className="relative" ref={roleRef}>
             <button
