@@ -141,12 +141,15 @@ export default function Survey360Wizard({
 
   // Handle AI modal completion
   const handleAIModalComplete = (data: ParsedSurveyData) => {
+    console.log('[Survey360Wizard.handleAIModalComplete] AI modal data received:', data);
+
     // Find employee by name if the AI-parsed name differs from current selection
     if (data.employeeName) {
       const matchedEmployee = employees.find(
         emp => emp.name.toLowerCase() === data.employeeName.toLowerCase()
       );
       if (matchedEmployee) {
+        console.log('[Survey360Wizard.handleAIModalComplete] Setting employee:', matchedEmployee.name);
         setSelectedEmployee(matchedEmployee);
       }
     }
@@ -154,21 +157,27 @@ export default function Survey360Wizard({
     // Apply questions - combine with existing required questions if user hasn't changed them
     // or replace if AI provided custom questions
     if (data.questions && data.questions.length > 0) {
+      console.log('[Survey360Wizard.handleAIModalComplete] Setting custom questions:', data.questions);
       setCustomQuestions(data.questions);
     }
 
     // Apply raters
     if (data.raters && data.raters.length > 0) {
+      console.log('[Survey360Wizard.handleAIModalComplete] Setting reviewers:', data.raters);
       setRaters(data.raters);
+    } else {
+      console.log('[Survey360Wizard.handleAIModalComplete] WARNING: No reviewers found in AI response');
     }
 
     // Apply due date
     if (data.dueDate) {
+      console.log('[Survey360Wizard.handleAIModalComplete] Setting due date:', data.dueDate);
       setDueDate(data.dueDate);
     }
 
     // Apply survey title if provided
     if (data.surveyTitle) {
+      console.log('[Survey360Wizard.handleAIModalComplete] Setting survey title:', data.surveyTitle);
       setSurveyTitle(data.surveyTitle);
     }
 

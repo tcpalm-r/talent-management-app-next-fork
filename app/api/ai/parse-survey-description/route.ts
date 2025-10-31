@@ -108,7 +108,18 @@ USER DESCRIPTION:
 IMPORTANT EXTRACTION RULES:
 1. Employee Name: ${wizardContext?.selectedEmployee ? `Use "${wizardContext.selectedEmployee.name}" (already selected in wizard)` : 'Extract the name of the person being reviewed. Must be unambiguous. Match against available employees when possible.'}.
 2. Questions: Extract specific questions or assessment areas mentioned. If NOT explicitly mentioned, return empty array (system will use default admin questions).
-3. Reviewers: Extract names and emails of reviewers. Classify relationship as one of: manager, peer, direct_report, cross_functional. Match reviewer names against available employees.
+3. REVIEWERS (CRITICAL - EXTRACT COMPREHENSIVELY):
+   - Extract ALL mentioned reviewers (names, titles, departments, roles)
+   - For each mentioned person, MUST include in raters array
+   - Match names against available employees - use fuzzy matching if not exact match
+   - For emails: extract from text or infer from available employees if name matches
+   - ALWAYS infer relationship type from context clues (manager/peer/direct_report/cross_functional)
+   - If relationship unclear, default to "peer"
+   - Examples:
+     * "Get feedback from John" → search for John in employees, add as peer
+     * "2 team members" → look for team context to classify as peer/direct_report
+     * "Her manager and 3 peers" → extract manager (set relationship="manager"), peers (relationship="peer")
+   - NEVER skip a mentioned person
 4. Due Date: Extract due date if mentioned. Convert to ISO format (YYYY-MM-DD) using TODAY'S DATE as reference:
    - "next Friday" → calculate Friday after today
    - "2 weeks" → add 14 days to today
@@ -162,10 +173,16 @@ CRITICAL:
 - If a field cannot be extracted, use null
 - If confidence is low or critical info is missing, add to clarifications_needed
 - IMPORTANT: If no specific questions are mentioned, return empty questions array - DO NOT ask for clarification (system uses default admin questions)
-- Rater emails can be null if not provided - we'll ask for them later
-- Only flag as clarifications_needed if employee name is unclear or raters are very ambiguous
+- IMPORTANT FOR REVIEWERS:
+  * AGGRESSIVE EXTRACTION: Always try to extract reviewers even from vague mentions
+  * Match names against available employees using fuzzy matching
+  * Email can be null - system will infer from matched employee or ask later
+  * ONLY mark raters as needing clarification if name is EXTREMELY ambiguous (e.g., "someone from accounting" with multiple matches)
+  * If ANY name/title/role is mentioned, MUST extract to raters array - DO NOT return empty array if people are mentioned
+  * Use context to infer relationships when not explicit
+- Only flag employee name as clarifications_needed if truly unclear
 - Always include the full JSON structure even if some fields are null
-- When name clarification is needed (e.g., ambiguous or unclear), provide up to 3 similar employee names as "options" in the clarifications
+- When name clarification is needed, provide up to 3 similar employee names as "options" in the clarifications
 - Prioritize exact and fuzzy matches from the available employees list`;
 
     const response = await anthropic.messages.create({

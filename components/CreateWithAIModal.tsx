@@ -135,6 +135,8 @@ export default function CreateWithAIModal({
 
       const data = await response.json();
       console.log('[CreateWithAIModal.handleDone] API success response:', data);
+      console.log('[CreateWithAIModal.handleDone] Parsed data:', data.parsedData || data.partialData);
+      console.log('[CreateWithAIModal.handleDone] Reviewers extracted:', data.parsedData?.raters?.length || data.partialData?.raters?.length || 0);
 
       if (data.requiresClarification) {
         console.log('[CreateWithAIModal.handleDone] Clarifications needed:', data.clarifications);
@@ -144,6 +146,7 @@ export default function CreateWithAIModal({
         setClarificationResponses({});
       } else {
         console.log('[CreateWithAIModal.handleDone] No clarifications needed, proceeding with data:', data.parsedData);
+        console.log('[CreateWithAIModal.handleDone] Reviewers to be added:', data.parsedData?.raters);
         // Proceed with the parsed data
         onComplete(data.parsedData);
         setDescription('');
