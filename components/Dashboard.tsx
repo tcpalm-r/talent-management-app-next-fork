@@ -46,6 +46,7 @@ export default function Dashboard({
   const [employeePlans, setEmployeePlans] = useState<Record<string, any>>({});
   const [performanceReviews, setPerformanceReviews] = useState<Record<string, any>>({});
   const [finalizedSurveys, setFinalizedSurveys] = useState<Record<string, number>>({});
+  const [roleOverride, setRoleOverride] = useState<string | null>(null);
 
 
   // Find current user's employee record for 360 dashboard filtering
@@ -223,12 +224,14 @@ export default function Dashboard({
       {/* Top Header */}
       <TopHeader
         userProfile={userProfile}
+        currentRole={roleOverride || userProfile.app_role}
+        onRoleChange={setRoleOverride}
       />
 
       {/* Main Content with Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <Sidebar currentView={currentView} onViewChange={changeView} userRole={userProfile.app_role} />
+        <Sidebar currentView={currentView} onViewChange={changeView} userRole={roleOverride || userProfile.app_role} />
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto">

@@ -7,24 +7,31 @@ import Avatar from './Avatar';
 interface TopHeaderProps {
   userProfile: any;
   onMenuOpen?: () => void;
+  currentRole?: string;
+  onRoleChange?: (role: string) => void;
 }
 
-export default function TopHeader({ userProfile, onMenuOpen }: TopHeaderProps) {
+export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRoleChange }: TopHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [roleOpen, setRoleOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const roleRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
       }
+      if (roleRef.current && !roleRef.current.contains(event.target as Node)) {
+        setRoleOpen(false);
+      }
     }
 
-    if (menuOpen) {
+    if (menuOpen || roleOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [menuOpen]);
+  }, [menuOpen, roleOpen]);
 
   const handleMenuToggle = () => {
     setMenuOpen(!menuOpen);
@@ -47,6 +54,55 @@ export default function TopHeader({ userProfile, onMenuOpen }: TopHeaderProps) {
 
         {/* Right Section */}
         <div className="flex items-center gap-3 flex-shrink-0">
+          {/* Role Switcher */}
+          <div className="relative" ref={roleRef}>
+            <button
+              onClick={() => setRoleOpen(!roleOpen)}
+              className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors capitalize"
+              title="Switch role for testing"
+            >
+              {currentRole || 'admin'}
+            </button>
+
+            {roleOpen && (
+              <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg py-1">
+                <button
+                  onClick={() => {
+                    onRoleChange?.('admin');
+                    setRoleOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors ${
+                    currentRole === 'admin' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Admin
+                </button>
+                <button
+                  onClick={() => {
+                    onRoleChange?.('leader');
+                    setRoleOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors ${
+                    currentRole === 'leader' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Leader
+                </button>
+                <button
+                  onClick={() => {
+                    onRoleChange?.('user');
+                    setRoleOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors ${
+                    currentRole === 'user' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  User
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* More Options Menu */}
           <div className="relative" ref={menuRef}>
             <button
