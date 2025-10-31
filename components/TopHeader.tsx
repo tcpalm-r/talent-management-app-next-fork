@@ -45,7 +45,7 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
         <h1 className="text-2xl font-bold text-gray-900 absolute left-1/2 transform -translate-x-1/2">Sonance Talent Management</h1>
 
         {/* Ask AI Button - positioned to the right of center */}
-        <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-sm font-medium transition-colors absolute" style={{ left: 'calc(50% + 145px)' }}>
+        <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-sm font-medium transition-colors absolute" style={{ left: 'calc(50% + 160px)' }}>
           <Sparkles className="w-4 h-4" />
           Ask AI
         </button>
