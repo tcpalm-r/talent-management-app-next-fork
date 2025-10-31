@@ -38,11 +38,12 @@ export default function Sidebar({ currentView, onViewChange, userRole }: Sidebar
             <button
               key={item.id}
               onClick={() => onViewChange(item.id as View)}
-              className={`w-full flex flex-col items-center justify-center py-3 px-2 rounded-none transition-colors border-l-4 ${
+              className={`w-full flex flex-col items-center justify-center py-2 px-2 rounded-none transition-colors ${
                 isActive
-                  ? 'border-l-blue-600 text-blue-600'
-                  : 'border-l-transparent text-gray-700 hover:bg-gray-100'
+                  ? 'text-blue-600'
+                  : 'text-gray-700 hover:bg-gray-100'
               }`}
+              style={isActive ? { boxShadow: 'inset 4px 0 0 0 rgb(37, 99, 235)' } : {}}
             >
               <Icon className="w-5 h-5 mb-1" />
               <span className="text-xs font-normal text-center leading-tight">{item.label}</span>
