@@ -224,14 +224,14 @@ export default function Dashboard({
       {/* Top Header */}
       <TopHeader
         userProfile={userProfile}
-        currentRole={roleOverride || userProfile.app_role}
+        currentRole={roleOverride || userProfile.role}
         onRoleChange={setRoleOverride}
       />
 
       {/* Main Content with Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <Sidebar currentView={currentView} onViewChange={changeView} userRole={roleOverride || userProfile.app_role} />
+        <Sidebar currentView={currentView} onViewChange={changeView} userRole={roleOverride || userProfile.role} />
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto">

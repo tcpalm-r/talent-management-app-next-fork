@@ -18,11 +18,12 @@ export default function Sidebar({ currentView, onViewChange, userRole }: Sidebar
   ] as const;
 
   const adminNavItems = [
-    { id: 'admin-settings', label: 'Settings', icon: Settings },
+    { id: 'admin-settings', label: 'Admin', icon: Settings },
   ] as const;
 
   const navItems = useMemo(() => {
     const isAdmin = userRole?.toLowerCase() === 'admin';
+    console.log('[Sidebar] userRole:', userRole, 'isAdmin:', isAdmin, 'navItems count:', isAdmin ? baseNavItems.length + adminNavItems.length : baseNavItems.length);
     return isAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
   }, [userRole]);
 
