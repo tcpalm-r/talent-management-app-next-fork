@@ -228,7 +228,7 @@ export default function Dashboard({
       {/* Main Content with Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <Sidebar currentView={currentView} onViewChange={changeView} userRole={userProfile.role} />
+        <Sidebar currentView={currentView} onViewChange={changeView} userRole={userProfile.app_role} />
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto">
