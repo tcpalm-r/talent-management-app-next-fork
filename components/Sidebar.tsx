@@ -38,7 +38,7 @@ export default function Sidebar({ currentView, onViewChange, userRole }: Sidebar
             <button
               key={item.id}
               onClick={() => onViewChange(item.id as View)}
-              className={`w-full flex flex-col items-center justify-center py-3 px-2 rounded-lg transition-colors ${
+              className={`w-full flex flex-col items-center justify-center py-3 px-2 rounded-none transition-colors ${
                 isActive
                   ? 'bg-blue-100 text-blue-700'
                   : 'text-gray-700 hover:bg-gray-100'
