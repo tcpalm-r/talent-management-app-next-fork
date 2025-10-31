@@ -12,8 +12,8 @@ interface SidebarProps {
 
 export default function Sidebar({ currentView, onViewChange, userRole }: SidebarProps) {
   const baseNavItems = [
-    { id: '360-feedback', label: '360°', icon: MessageSquare },
     { id: 'directory', label: 'Talent', icon: Users },
+    { id: '360-feedback', label: '360°', icon: MessageSquare },
   ] as const;
 
   const adminNavItems = [
