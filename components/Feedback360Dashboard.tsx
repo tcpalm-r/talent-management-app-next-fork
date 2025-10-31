@@ -1366,21 +1366,6 @@ export default function Feedback360Dashboard({
                     </button>
                   )}
 
-                  {/* Delete button for draft surveys (creator only) */}
-                  {survey.status === 'draft' && isCreator && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm('Are you sure you want to delete this draft?')) {
-                          deleteDraftSurvey(survey.id);
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm font-medium flex items-center whitespace-nowrap"
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Delete
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
