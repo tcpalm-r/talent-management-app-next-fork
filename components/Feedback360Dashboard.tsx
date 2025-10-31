@@ -74,7 +74,7 @@ export default function Feedback360Dashboard({
 
   useEffect(() => {
     loadSurveys();
-  }, [organizationId, currentUser?.id]);
+  }, [organizationId, currentUser?.id, currentUser?.role]);
 
   // Helper functions to track viewed surveys in localStorage
   const getViewedSurveys = (): Set<string> => {
