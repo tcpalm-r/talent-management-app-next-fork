@@ -1,6 +1,6 @@
 'use client';
 
-import { MessageSquare, Users, Settings } from 'lucide-react';
+import { RotateCw, Users, Settings } from 'lucide-react';
 import { useMemo } from 'react';
 
 type View = '360-feedback' | 'directory' | 'admin-settings';
@@ -14,7 +14,7 @@ interface SidebarProps {
 export default function Sidebar({ currentView, onViewChange, userRole }: SidebarProps) {
   const baseNavItems = [
     { id: 'directory', label: 'Talent', icon: Users },
-    { id: '360-feedback', label: '360°', icon: MessageSquare },
+    { id: '360-feedback', label: '360°', icon: RotateCw },
   ] as const;
 
   const adminNavItems = [
