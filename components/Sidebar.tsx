@@ -17,9 +17,9 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
   ] as const;
 
   return (
-    <aside className="w-20 bg-white border-r border-gray-200 flex flex-col items-center">
+    <aside className="w-24 bg-white border-r border-gray-200 flex flex-col items-center">
       {/* Navigation */}
-      <nav className="flex-1 py-4 space-y-2 flex flex-col items-center w-full">
+      <nav className="flex-1 py-4 space-y-1 flex flex-col items-center w-full">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
@@ -28,14 +28,14 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
             <button
               key={item.id}
               onClick={() => onViewChange(item.id as View)}
-              className={`flex items-center justify-center p-3 rounded-lg transition-colors ${
+              className={`w-full flex flex-col items-center justify-center py-3 px-2 rounded-lg transition-colors ${
                 isActive
                   ? 'bg-blue-100 text-blue-700'
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
-              title={item.label}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className="w-5 h-5 mb-1" />
+              <span className="text-xs font-medium text-center leading-tight">{item.label}</span>
             </button>
           );
         })}
