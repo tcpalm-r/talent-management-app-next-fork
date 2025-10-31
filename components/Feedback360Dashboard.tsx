@@ -28,6 +28,8 @@ interface Survey {
   completed_count?: number;
   created_by?: string;
   reviewers?: any[];
+  flagged_for_admin?: boolean;
+  flagged_for_reanalysis?: boolean;
 }
 
 interface Reviewer {
@@ -367,28 +369,41 @@ export default function Feedback360Dashboard({
         .from('feedback_360_surveys')
         .update({
           flagged_for_reanalysis: true,
-          reanalysis_requested_at: new Date().toISOString(),
-          reanalysis_requested_by: currentUser?.email || currentUser?.id,
         })
-        .eq('id', surveyId)
-        .eq('status', 'completed');
+        .eq('id', surveyId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Full error details:', error);
+        throw error;
+      }
+
+      console.log('✅ Successfully flagged survey for reanalysis');
+
+      // Update the selected survey state immediately to reflect the change
+      if (selectedSurvey) {
+        const updatedSurvey = {
+          ...selectedSurvey,
+          flagged_for_reanalysis: true
+        };
+        setSelectedSurvey(updatedSurvey);
+
+        // Also update the survey in the surveys list
+        setSurveys(surveys.map(s => s.id === surveyId ? updatedSurvey : s));
+      }
 
       notify({
-        title: 'Sent to HR for reanalysis',
-        description: 'Review has been sent to HR for reanalysis.',
+        title: 'Sent to HR for Reanalysis',
+        description: 'Review has been sent to HR for Reanalysis.',
         variant: 'success',
       });
 
-      // Reload surveys
+      // Reload surveys to update all views
       await loadSurveys();
-      setIsDetailsModalOpen(false);
     } catch (error) {
-      console.error('Error sending review to HR for reanalysis:', error);
+      console.error('Error sending review to HR for Reanalysis:', error);
       notify({
         title: 'Error',
-        description: 'Failed to send review to HR for reanalysis',
+        description: 'Failed to send review to HR for Reanalysis',
         variant: 'error',
       });
     }
@@ -947,6 +962,8 @@ export default function Feedback360Dashboard({
     ? surveys
     : filterStatus === 'needs_review'
     ? surveys.filter(s => s.flagged_for_admin === true)
+    : filterStatus === 'needs_reanalysis'
+    ? surveys.filter(s => s.flagged_for_reanalysis === true)
     : surveys.filter(s => s.status === filterStatus);
 
   const stats = {
@@ -954,6 +971,7 @@ export default function Feedback360Dashboard({
     in_progress: surveys.filter(s => s.status === 'in_progress').length,
     completed: surveys.filter(s => s.status === 'completed').length,
     needs_review: surveys.filter(s => s.flagged_for_admin === true).length,
+    needs_reanalysis: surveys.filter(s => s.flagged_for_reanalysis === true).length,
     finalized: surveys.filter(s => s.status === 'finalized').length,
   };
 
@@ -966,28 +984,12 @@ export default function Feedback360Dashboard({
   });
 
   const getStatusBadge = (status: string, flaggedForAdmin?: boolean, flaggedForReanalysis?: boolean) => {
-    // Show "Needs HR Reanalysis" badge for completed reviews flagged for reanalysis
-    if (flaggedForReanalysis && status === 'completed') {
-      return (
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-green-100 text-green-700 border-green-300">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Completed
-          </span>
-          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-orange-100 text-orange-700 border-orange-300">
-            <AlertTriangle className="w-3 h-3 mr-1" />
-            Needs HR Reanalysis
-          </span>
-        </div>
-      );
-    }
-
-    // Show "Needs Review" badge for flagged surveys (admin only)
+    // Show "Needs Reanalysis" badge for flagged surveys (admin only)
     if (flaggedForAdmin && currentUser?.role === 'admin') {
       return (
         <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300">
           <AlertTriangle className="w-3 h-3 mr-1" />
-          Needs Review
+          Needs Reanalysis
         </span>
       );
     }
@@ -1120,20 +1122,20 @@ export default function Feedback360Dashboard({
           </div>
         </button>
 
-        {/* Needs Review - Admin Only */}
+        {/* Needs Reanalysis - Admin Only */}
         {currentUser?.role === 'admin' && (
           <button
-            onClick={() => setFilterStatus('needs_review')}
+            onClick={() => setFilterStatus('needs_reanalysis')}
             className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
-              filterStatus === 'needs_review'
+              filterStatus === 'needs_reanalysis'
                 ? 'border-red-500 bg-red-50'
                 : 'bg-white border-red-200 hover:bg-red-50'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-red-700">Needs Review</p>
-                <p className="text-2xl font-bold text-red-900">{stats.needs_review}</p>
+                <p className="text-sm text-red-700">Needs Reanalysis</p>
+                <p className="text-2xl font-bold text-red-900">{stats.needs_reanalysis}</p>
               </div>
               <AlertTriangle className="w-8 h-8 text-red-400" />
             </div>
@@ -1266,12 +1268,7 @@ export default function Feedback360Dashboard({
                       );
                       const isCompleted = myReviewerRecord?.status === 'completed';
 
-                      return isCompleted ? (
-                        <div className="inline-flex items-center px-4 py-2 bg-green-50 border border-green-200 rounded-lg mb-3">
-                          <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                          <span className="text-sm font-medium text-green-900">Review completed</span>
-                        </div>
-                      ) : myReviewerRecord?.access_token ? (
+                      return !isCompleted && myReviewerRecord?.access_token ? (
                         <a
                           href={`/survey/complete/${myReviewerRecord.access_token}`}
                           target="_blank"
@@ -1285,16 +1282,6 @@ export default function Feedback360Dashboard({
                       ) : null;
                     })()}
 
-                  <div className="flex items-center text-sm text-gray-600 mb-3">
-                    <Users className="w-4 h-4 mr-1" />
-                    <span className="font-medium">{survey.employee?.name || 'Unknown Employee'}</span>
-                    {survey.employee?.title && (
-                      <>
-                        <span className="mx-2">•</span>
-                        <span>{survey.employee.title}</span>
-                      </>
-                    )}
-                  </div>
                   <div className="flex items-center space-x-4 text-sm">
                     <div className="flex items-center">
                       <span className="text-gray-500">Reviewers:</span>
@@ -1347,6 +1334,14 @@ export default function Feedback360Dashboard({
                 <div className="ml-4 flex flex-col items-end gap-2">
                   {/* Status badge */}
                   {getStatusBadge(survey.status, survey.flagged_for_admin, survey.flagged_for_reanalysis)}
+
+                  {/* Needs Reanalysis tag - visible to all users */}
+                  {survey.flagged_for_reanalysis && (
+                    <span className="inline-flex items-center px-3 py-1 rounded text-xs font-semibold border bg-red-100 text-red-700 border-red-300">
+                      <AlertTriangle className="w-3 h-3 mr-1" />
+                      Needs Reanalysis
+                    </span>
+                  )}
 
                   {/* Remind button */}
                   {survey.status === 'active' && (survey.completed_count ?? 0) !== (survey.reviewers_count ?? 0) && (
@@ -2103,7 +2098,7 @@ export default function Feedback360Dashboard({
             {/* Actions Footer - Anchored at bottom */}
             <div className="border-t border-gray-200 bg-white p-6">
               {/* Admin viewing flagged survey - special controls */}
-              {currentUser?.role === 'admin' && selectedSurvey.flagged_for_admin ? (
+              {currentUser?.role === 'admin' && (selectedSurvey.flagged_for_admin || selectedSurvey.flagged_for_reanalysis) ? (
                 <div className="space-y-4">
                   {/* Top row: Admin tools */}
                   <div className="flex items-center justify-between">
@@ -2186,11 +2181,16 @@ export default function Feedback360Dashboard({
                       Close
                     </button>
                     <button
-                      onClick={() => sendToHR(selectedSurvey.id)}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors font-medium flex items-center"
+                      onClick={() => sendToHRForReanalysis(selectedSurvey.id)}
+                      disabled={selectedSurvey.flagged_for_reanalysis}
+                      className={`px-6 py-3 rounded-lg font-medium flex items-center transition-colors ${
+                        selectedSurvey.flagged_for_reanalysis
+                          ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700'
+                      }`}
                     >
                       <Send className="w-4 h-4 mr-2" />
-                      Send to HR for Review
+                      {selectedSurvey.flagged_for_reanalysis ? 'Sent to HR' : 'Send to HR for Reanalysis'}
                     </button>
                     <button
                       onClick={() => finalizeSurvey(selectedSurvey.id)}

@@ -125,7 +125,7 @@ export default function EmployeeDetailModal({
     analysisResultRef.current = analysisResult;
   }, [analysisResult]);
 
-  // Load completed 360 surveys for this employee
+  // Load completed 360 surveys for this employee whenever modal opens or tab changes
   useEffect(() => {
     if (activeTab === '360' && isOpen) {
       loadCompletedSurveys();
@@ -153,6 +153,18 @@ export default function EmployeeDetailModal({
 
   const loadSurveyResults = async (survey: any) => {
     try {
+      // First, try to load from localStorage cache
+      const cacheKey = `survey_report_${survey.id}`;
+      const cachedReport = typeof window !== 'undefined' ? localStorage.getItem(cacheKey) : null;
+
+      if (cachedReport) {
+        console.log('📦 Loading report from cache for survey:', survey.id);
+        setSelectedCompletedSurvey(survey);
+        setCompletedSurveyResults(JSON.parse(cachedReport));
+        return;
+      }
+
+      // If not cached, try to fetch from API
       const response = await fetch(`/api/360-generate-report?survey_id=${survey.id}`);
       const data = await response.json();
 
@@ -162,6 +174,11 @@ export default function EmployeeDetailModal({
 
       setSelectedCompletedSurvey(survey);
       setCompletedSurveyResults(data.report);
+
+      // Cache the report if successful
+      if (data.report && typeof window !== 'undefined') {
+        localStorage.setItem(cacheKey, JSON.stringify(data.report));
+      }
     } catch (error: any) {
       console.error('Error loading survey results:', error);
       notify({
