@@ -73,6 +73,7 @@ export default function Feedback360Dashboard({
   const [rawSurveyData, setRawSurveyData] = useState<any>(null);
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [aiParsedData, setAiParsedData] = useState<ParsedSurveyData | null>(null);
 
   useEffect(() => {
     loadSurveys();
@@ -1021,6 +1022,14 @@ export default function Feedback360Dashboard({
       </span>
     );
   }
+
+  // Handle AI modal completion - pass data to wizard and open it
+  const handleAIModalComplete = (data: ParsedSurveyData) => {
+    console.log('[Feedback360Dashboard.handleAIModalComplete] Data received from AI modal:', data);
+    setAiParsedData(data);
+    setIsAIModalOpen(false);
+    setIsWizardOpen(true);
+  };
 
   return (
     <div>
@@ -2424,12 +2433,8 @@ export default function Feedback360Dashboard({
       <CreateWithAIModal
         isOpen={isAIModalOpen}
         onClose={() => setIsAIModalOpen(false)}
-        organizationId={organizationId}
+        onComplete={handleAIModalComplete}
         employees={employees}
-        onSurveyCreated={() => {
-          setIsAIModalOpen(false);
-          loadSurveys();
-        }}
       />
 
       {/* Survey 360 Wizard Modal */}
@@ -2439,16 +2444,19 @@ export default function Feedback360Dashboard({
           setIsWizardOpen(false);
           setEditingDraftSurvey(null);
           setPreselectedEmployee(undefined);
+          setAiParsedData(null);
         }}
         organizationId={organizationId}
         employees={employees}
         preselectedEmployee={preselectedEmployee}
         currentUser={currentUser}
         draftSurvey={editingDraftSurvey}
+        aiParsedData={aiParsedData}
         onSurveyCreated={() => {
           setIsWizardOpen(false);
           setEditingDraftSurvey(null);
           setPreselectedEmployee(undefined);
+          setAiParsedData(null);
           loadSurveys();
         }}
       />

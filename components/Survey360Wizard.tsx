@@ -37,6 +37,7 @@ interface Survey360WizardProps {
   employees: Employee[];
   currentUser?: Employee; // Current logged-in user for tracking who created the survey
   draftSurvey?: any; // Optional: Draft survey to edit
+  aiParsedData?: ParsedSurveyData; // Optional: Data from AI modal
 }
 
 type WizardStep = 'who' | 'competencies' | 'raters' | 'timeline' | 'preview';
@@ -81,6 +82,7 @@ export default function Survey360Wizard({
   employees,
   currentUser,
   draftSurvey,
+  aiParsedData,
 }: Survey360WizardProps) {
   const { notify } = useToast();
   const isBatchMode = !!preselectedEmployees && preselectedEmployees.length > 0;
@@ -304,6 +306,14 @@ export default function Survey360Wizard({
 
     loadDraftSurveyData();
   }, [isOpen, draftSurvey, employees]);
+
+  // Handle AI-parsed data when received from AI modal
+  useEffect(() => {
+    if (isOpen && aiParsedData) {
+      console.log('[Survey360Wizard] Received AI parsed data, calling handleAIModalComplete');
+      handleAIModalComplete(aiParsedData);
+    }
+  }, [isOpen, aiParsedData]);
 
   // Auto-launch survey when AI modal completes
   useEffect(() => {
