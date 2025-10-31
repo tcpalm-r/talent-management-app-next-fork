@@ -2,11 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * GET /api/auth/login
- * Redirects to Auth0 login
+ * Redirects to Auth0 login (or redirects to home if auth is disabled)
  */
 export async function GET(request: NextRequest) {
   try {
     console.log('[Auth0 Login] Initiating login flow');
+
+    // Check if auth is disabled (mock mode)
+    const authDisabled = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
+    console.log('[Auth0 Login] Auth disabled:', authDisabled);
+
+    if (authDisabled) {
+      console.log('[Auth0 Login] Auth disabled, redirecting to home');
+      return NextResponse.redirect(new URL('/', request.nextUrl.origin));
+    }
 
     // Log all available env vars for debugging
     console.log('[Auth0 Login] AUTH0_ISSUER_BASE_URL:', process.env.AUTH0_ISSUER_BASE_URL);
