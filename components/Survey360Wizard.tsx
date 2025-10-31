@@ -1025,9 +1025,21 @@ export default function Survey360Wizard({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-blue-600" />
-            </div>
+            {isBatchMode ? (
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-blue-600" />
+              </div>
+            ) : selectedEmployee ? (
+              <Avatar
+                name={selectedEmployee.name}
+                picture={selectedEmployee.picture}
+                size="md"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-blue-600" />
+              </div>
+            )}
             <div>
               <h2 className="text-xl font-bold text-gray-900">
                 {isBatchMode
@@ -1178,17 +1190,7 @@ export default function Survey360Wizard({
           {currentStep === 'competencies' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2 leading-tight">
-                  360° Review -
-                  {selectedEmployee && (
-                    <Avatar
-                      name={selectedEmployee.name}
-                      picture={selectedEmployee.picture}
-                      size="xs"
-                    />
-                  )}
-                  {selectedEmployee ? selectedEmployee.name : 'Review Questions'}
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Review Questions</h3>
                 <p className="text-sm text-gray-600 mb-4">
                   Configure the questions that reviewers will answer
                 </p>
@@ -1285,17 +1287,7 @@ export default function Survey360Wizard({
           {currentStep === 'raters' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2 leading-tight">
-                  360° Review -
-                  {selectedEmployee && (
-                    <Avatar
-                      name={selectedEmployee.name}
-                      picture={selectedEmployee.picture}
-                      size="xs"
-                    />
-                  )}
-                  {selectedEmployee ? selectedEmployee.name : 'Add Reviewers'}
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">Add Reviewers</h3>
               </div>
 
               <div className="space-y-3">
@@ -1453,17 +1445,7 @@ export default function Survey360Wizard({
           {currentStep === 'timeline' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2 leading-tight">
-                  360° Review -
-                  {selectedEmployee && (
-                    <Avatar
-                      name={selectedEmployee.name}
-                      picture={selectedEmployee.picture}
-                      size="xs"
-                    />
-                  )}
-                  {selectedEmployee ? selectedEmployee.name : 'Set Timeline'}
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Set Timeline</h3>
                 <p className="text-sm text-gray-600 mb-4">When should reviewers complete their feedback?</p>
               </div>
 
@@ -1490,17 +1472,7 @@ export default function Survey360Wizard({
           {currentStep === 'preview' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2 leading-tight">
-                  360° Review -
-                  {selectedEmployee && (
-                    <Avatar
-                      name={selectedEmployee.name}
-                      picture={selectedEmployee.picture}
-                      size="xs"
-                    />
-                  )}
-                  {selectedEmployee ? selectedEmployee.name : 'Review & Launch'}
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Review & Launch</h3>
                 <p className="text-sm text-gray-600 mb-4">Confirm details before sending</p>
               </div>
 
