@@ -361,14 +361,14 @@ export default function Feedback360Dashboard({
     }
   };
 
-  const markResolvedByHR = async (surveyId: string) => {
+  const sendToHRForReanalysis = async (surveyId: string) => {
     try {
       const { error } = await supabase
         .from('feedback_360_surveys')
         .update({
-          resolved_by_hr: true,
-          resolved_by: currentUser?.email || currentUser?.id,
-          resolved_at: new Date().toISOString(),
+          flagged_for_reanalysis: true,
+          reanalysis_requested_at: new Date().toISOString(),
+          reanalysis_requested_by: currentUser?.email || currentUser?.id,
         })
         .eq('id', surveyId)
         .eq('status', 'completed');
@@ -376,8 +376,8 @@ export default function Feedback360Dashboard({
       if (error) throw error;
 
       notify({
-        title: 'Review resolved',
-        description: 'Review has been marked as resolved by HR.',
+        title: 'Sent to HR for reanalysis',
+        description: 'Review has been sent to HR for reanalysis.',
         variant: 'success',
       });
 
@@ -385,10 +385,10 @@ export default function Feedback360Dashboard({
       await loadSurveys();
       setIsDetailsModalOpen(false);
     } catch (error) {
-      console.error('Error marking review as resolved:', error);
+      console.error('Error sending review to HR for reanalysis:', error);
       notify({
         title: 'Error',
-        description: 'Failed to mark review as resolved',
+        description: 'Failed to send review to HR for reanalysis',
         variant: 'error',
       });
     }
@@ -965,17 +965,18 @@ export default function Feedback360Dashboard({
     return responseRate < 0.5 && daysUntilDue <= 3 && daysUntilDue > 0;
   });
 
-  const getStatusBadge = (status: string, flaggedForAdmin?: boolean, resolvedByHR?: boolean) => {
-    // Show "Resolved by HR" badge for completed reviews marked as resolved
-    if (resolvedByHR && status === 'completed') {
+  const getStatusBadge = (status: string, flaggedForAdmin?: boolean, flaggedForReanalysis?: boolean) => {
+    // Show "Needs HR Reanalysis" badge for completed reviews flagged for reanalysis
+    if (flaggedForReanalysis && status === 'completed') {
       return (
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-green-100 text-green-700 border-green-300">
             <CheckCircle className="w-3 h-3 mr-1" />
             Completed
           </span>
-          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-blue-100 text-blue-700 border-blue-300">
-            Resolved by HR
+          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-orange-100 text-orange-700 border-orange-300">
+            <AlertTriangle className="w-3 h-3 mr-1" />
+            Needs HR Reanalysis
           </span>
         </div>
       );
@@ -1345,7 +1346,7 @@ export default function Feedback360Dashboard({
                 {/* Right side: Status badge and actions */}
                 <div className="ml-4 flex flex-col items-end gap-2">
                   {/* Status badge */}
-                  {getStatusBadge(survey.status, survey.flagged_for_admin, survey.resolved_by_hr)}
+                  {getStatusBadge(survey.status, survey.flagged_for_admin, survey.flagged_for_reanalysis)}
 
                   {/* Remind button */}
                   {survey.status === 'active' && (survey.completed_count ?? 0) !== (survey.reviewers_count ?? 0) && (
@@ -1434,7 +1435,7 @@ export default function Feedback360Dashboard({
                         <span className="ml-2 text-sm text-gray-600">• {selectedSurvey.employee.title}</span>
                       )}
                     </div>
-                    {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin, selectedSurvey.resolved_by_hr)}
+                    {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin, selectedSurvey.flagged_for_reanalysis)}
                   </div>
                   <div className="flex items-center gap-6">
                     {selectedSurvey.due_date && (
@@ -1527,12 +1528,17 @@ export default function Feedback360Dashboard({
                   {selectedSurvey.employee?.name || 'Unknown'}
                 </h2>
                 <div className="flex items-center gap-3">
-                  {selectedSurvey.status === 'completed' && !selectedSurvey.resolved_by_hr && isAdmin && (
+                  {selectedSurvey.status === 'completed' && isCreator && (
                     <button
-                      onClick={() => markResolvedByHR(selectedSurvey.id)}
-                      className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+                      onClick={() => sendToHRForReanalysis(selectedSurvey.id)}
+                      disabled={selectedSurvey.flagged_for_reanalysis}
+                      className={`px-3 py-1.5 text-sm rounded font-medium transition-colors ${
+                        selectedSurvey.flagged_for_reanalysis
+                          ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                          : 'bg-orange-600 text-white hover:bg-orange-700'
+                      }`}
                     >
-                      Mark as Resolved by HR
+                      {selectedSurvey.flagged_for_reanalysis ? 'Sent to HR' : 'Send to HR for Reanalysis'}
                     </button>
                   )}
                   {selectedSurvey.status === 'draft' && (

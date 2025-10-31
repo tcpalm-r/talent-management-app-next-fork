@@ -213,9 +213,9 @@ export interface Feedback360Survey {
   sent_at: string | null;
   completed_at: string | null;
   flagged_for_admin: boolean | null;
-  resolved_by_hr: boolean | null;
-  resolved_by: string | null;
-  resolved_at: string | null;
+  flagged_for_reanalysis: boolean | null;
+  reanalysis_requested_at: string | null;
+  reanalysis_requested_by: string | null;
   is_anonymous: boolean | null;
   created_at: string | null;
   updated_at: string | null;
