@@ -46,7 +46,7 @@ export default function Sidebar({ currentView, onViewChange, userRole }: Sidebar
             >
               {/* Left indicator bar with padding */}
               {isActive && (
-                <div className="absolute left-1 top-1 bottom-1 w-1 bg-blue-600 rounded-sm" />
+                <div className="absolute left-1 top-1 bottom-1 w-1 bg-blue-600 rounded-none" />
               )}
               <Icon className="w-5 h-5 mb-1" />
               <span className="text-xs font-normal text-center leading-tight">{item.label}</span>
