@@ -82,11 +82,23 @@ export async function POST(request: NextRequest) {
 Use this as the employeeName and do NOT ask for clarification about who the review is for. The user is now describing what feedback to collect.`
       : '';
 
+    // Build employee directory for name recognition
+    const employeeDirectory = wizardContext?.availableEmployees
+      ? `AVAILABLE EMPLOYEES IN SYSTEM:
+${wizardContext.availableEmployees.map(emp => `- ${emp.name}`).join('\n')}
+
+When extracting employee names, ALWAYS try to match against this list first. Use fuzzy matching for variations (e.g., "Bob" → "Robert", "Sarah" → "Sarah Chen").
+For reviewers, if a name is mentioned, try to find the closest match in this list.
+`
+      : '';
+
     const prompt = `You are an expert HR assistant helping to parse 360-degree review survey requests.
 
 Parse the following survey description and extract the structured information. Return ONLY valid JSON, no additional text.
 
 TODAY'S DATE: ${today || 'Unknown - use best guess'}
+
+${employeeDirectory}
 
 ${contextNotes}
 
@@ -94,9 +106,9 @@ USER DESCRIPTION:
 "${description}"
 
 IMPORTANT EXTRACTION RULES:
-1. Employee Name: ${wizardContext?.selectedEmployee ? `Use "${wizardContext.selectedEmployee.name}" (already selected in wizard)` : 'Extract the name of the person being reviewed. Must be unambiguous.'}.
+1. Employee Name: ${wizardContext?.selectedEmployee ? `Use "${wizardContext.selectedEmployee.name}" (already selected in wizard)` : 'Extract the name of the person being reviewed. Must be unambiguous. Match against available employees when possible.'}.
 2. Questions: Extract specific questions or assessment areas mentioned. If NOT explicitly mentioned, return empty array (system will use default admin questions).
-3. Reviewers/Raters: Extract names and emails of reviewers. Classify relationship as one of: manager, peer, direct_report, cross_functional
+3. Reviewers/Raters: Extract names and emails of reviewers. Classify relationship as one of: manager, peer, direct_report, cross_functional. Match reviewer names against available employees.
 4. Due Date: Extract due date if mentioned. Convert to ISO format (YYYY-MM-DD) using TODAY'S DATE as reference:
    - "next Friday" → calculate Friday after today
    - "2 weeks" → add 14 days to today
@@ -105,10 +117,11 @@ IMPORTANT EXTRACTION RULES:
 5. Survey Title: Extract or infer a good title for the survey.
 
 RELATIONSHIP TYPE CLASSIFICATION:
-- manager: Their manager/supervisor
-- peer: Colleagues at same level
-- direct_report: People who report to this person
-- cross_functional: People from other departments/functions
+- manager: Their manager/supervisor (keywords: "manager", "boss", "supervisor", "lead")
+- peer: Colleagues at same level (keywords: "colleague", "peer", "coworker", "team member")
+- direct_report: People who report to this person (keywords: "direct report", "report", "team member under")
+- cross_functional: People from other departments/functions (keywords: "from", "in the", "across")
+Use context clues from the text to infer relationships when not explicitly stated.
 
 CONFIDENCE LEVELS:
 - high: Clearly stated in the description
@@ -151,7 +164,9 @@ CRITICAL:
 - IMPORTANT: If no specific questions are mentioned, return empty questions array - DO NOT ask for clarification (system uses default admin questions)
 - Rater emails can be null if not provided - we'll ask for them later
 - Only flag as clarifications_needed if employee name is unclear or raters are very ambiguous
-- Always include the full JSON structure even if some fields are null`;
+- Always include the full JSON structure even if some fields are null
+- When name clarification is needed (e.g., ambiguous or unclear), provide up to 3 similar employee names as "options" in the clarifications
+- Prioritize exact and fuzzy matches from the available employees list`;
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',

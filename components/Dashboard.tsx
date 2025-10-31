@@ -55,8 +55,14 @@ export default function Dashboard({
     // Try to find the user in the employees list by email (case-insensitive)
     const matched = employees.find(e => e.email?.toLowerCase() === userProfile.email?.toLowerCase());
 
-    // If found, return the employee record; otherwise create a minimal one from userProfile
-    if (matched) return matched;
+    // If found, apply roleOverride if set and return the employee record; otherwise create a minimal one from userProfile
+    if (matched) {
+      // Apply roleOverride to matched employee if in dev mode
+      if (roleOverride) {
+        return { ...matched, role: roleOverride as any };
+      }
+      return matched;
+    }
 
     // Fallback: Create an employee record from userProfile so drafts can be saved with creator info
     if (userProfile.id && userProfile.email) {
@@ -71,13 +77,14 @@ export default function Dashboard({
         manager_name: null,
         title: null,
         location: null,
+        role: (roleOverride || userProfile.role) as any,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
     }
 
     return undefined;
-  }, [employees, userProfile]);
+  }, [employees, userProfile, roleOverride]);
 
   // Redirect from restricted views if user no longer has access
   useEffect(() => {
