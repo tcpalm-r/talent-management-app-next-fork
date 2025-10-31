@@ -340,9 +340,24 @@ export default function Survey360Wizard({
         }
         setIsAnonymous(draftSurvey.is_anonymous !== false);
 
-        // Note: currentStep is already set to 'preview' in useState initialization
-        // No need to set it here - the useEffect for loadDraftSurveyData loads the data
-        // and the preview step will display it
+        // Determine the appropriate step to show based on what's filled in
+        // Step progression: who -> competencies -> raters -> timeline -> preview
+        if (employee && surveyQuestions && surveyQuestions.length > 0 && reviewers && reviewers.length > 0 && draftSurvey.due_date) {
+          // All data filled → go to preview
+          setCurrentStep('preview');
+        } else if (employee && surveyQuestions && surveyQuestions.length > 0 && reviewers && reviewers.length > 0) {
+          // Has employee, questions, and reviewers but no due date → go to timeline
+          setCurrentStep('timeline');
+        } else if (employee && surveyQuestions && surveyQuestions.length > 0) {
+          // Has employee and questions but no reviewers → go to raters
+          setCurrentStep('raters');
+        } else if (employee) {
+          // Has employee but no questions → go to competencies
+          setCurrentStep('competencies');
+        } else {
+          // No employee → go back to start
+          setCurrentStep('who');
+        }
       } catch (error) {
         console.error('Error loading draft survey data:', error);
       }
