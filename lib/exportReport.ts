@@ -178,7 +178,7 @@ export async function exportReportAsPDF(report: Report360Data) {
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(34, 197, 94); // Green
-    pdf.text('✓ Key Strengths', margin, yPosition);
+    pdf.text('Key Strengths', margin, yPosition);
     yPosition += 8;
 
     pdf.setFontSize(10);
@@ -201,7 +201,7 @@ export async function exportReportAsPDF(report: Report360Data) {
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(245, 158, 11); // Amber
-    pdf.text('△ Development Areas', margin, yPosition);
+    pdf.text('Development Areas', margin, yPosition);
     yPosition += 8;
 
     pdf.setFontSize(10);
@@ -228,7 +228,7 @@ export async function exportReportAsPDF(report: Report360Data) {
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(59, 130, 246); // Blue
-    pdf.text('→ Recommended Actions', margin, yPosition);
+    pdf.text('Recommended Actions', margin, yPosition);
     yPosition += 8;
 
     pdf.setFontSize(10);
@@ -251,7 +251,7 @@ export async function exportReportAsPDF(report: Report360Data) {
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(147, 51, 234); // Purple
-    pdf.text('💡 Key Insights', margin, yPosition);
+    pdf.text('Key Insights', margin, yPosition);
     yPosition += 8;
 
     pdf.setFontSize(10);

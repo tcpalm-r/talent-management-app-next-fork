@@ -37,7 +37,7 @@ export default function Sidebar({ currentView, onViewChange, userRole }: Sidebar
   }, [userRole]);
 
   return (
-    <aside className="w-20 bg-white border-r border-gray-200 flex flex-col items-center">
+    <aside className="w-20 bg-gray-50 border-r border-gray-200 flex flex-col items-center">
       {/* Navigation */}
       <nav className="flex-1 pt-0 pb-4 space-y-0 flex flex-col items-center w-full">
         {navItems.map((item) => {

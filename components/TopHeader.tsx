@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreHorizontal, Sparkles } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Avatar from './Avatar';
 
@@ -44,14 +44,10 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
-      <div className="h-20 px-6 flex items-center justify-center relative gap-3">
-        {/* Centered Title and Ask AI Button */}
-        <h1 className="text-2xl font-bold text-gray-900">Sonance Talent Management</h1>
-        <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-sm font-medium transition-colors">
-          <Sparkles className="w-4 h-4" />
-          Ask AI
-        </button>
+    <header className="sticky top-0 z-40 bg-gray-100 border-b border-gray-200">
+      <div className="h-16 px-6 flex items-center justify-center relative">
+        {/* Centered Title */}
+        <h1 className="text-2xl font-semibold text-gray-900">Sonance Talent Management</h1>
 
         {/* Right Section */}
         <div className="flex items-center gap-3 flex-shrink-0 absolute right-6">
