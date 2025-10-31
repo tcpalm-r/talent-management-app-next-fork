@@ -44,17 +44,17 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
         {/* Empty left spacer */}
         <div className="flex-1"></div>
 
-        {/* Center: Logo and Ask AI Button */}
-        <div className="flex items-center gap-6">
-          <h1 className="text-xl font-bold text-gray-900">Sonance Talent Management</h1>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-sm font-medium transition-colors">
-            <Sparkles className="w-4 h-4" />
-            Ask AI
-          </button>
-        </div>
+        {/* Centered Title */}
+        <h1 className="text-xl font-bold text-gray-900">Sonance Talent Management</h1>
 
-        {/* Empty right spacer to balance layout */}
+        {/* Empty spacer to balance title and position button to the right */}
         <div className="flex-1"></div>
+
+        {/* Ask AI Button - positioned to the right */}
+        <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-sm font-medium transition-colors">
+          <Sparkles className="w-4 h-4" />
+          Ask AI
+        </button>
 
         {/* Right Section */}
         <div className="flex items-center gap-3 flex-shrink-0 absolute right-6">
