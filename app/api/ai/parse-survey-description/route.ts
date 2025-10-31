@@ -108,7 +108,7 @@ USER DESCRIPTION:
 IMPORTANT EXTRACTION RULES:
 1. Employee Name: ${wizardContext?.selectedEmployee ? `Use "${wizardContext.selectedEmployee.name}" (already selected in wizard)` : 'Extract the name of the person being reviewed. Must be unambiguous. Match against available employees when possible.'}.
 2. Questions: Extract specific questions or assessment areas mentioned. If NOT explicitly mentioned, return empty array (system will use default admin questions).
-3. Reviewers/Raters: Extract names and emails of reviewers. Classify relationship as one of: manager, peer, direct_report, cross_functional. Match reviewer names against available employees.
+3. Reviewers: Extract names and emails of reviewers. Classify relationship as one of: manager, peer, direct_report, cross_functional. Match reviewer names against available employees.
 4. Due Date: Extract due date if mentioned. Convert to ISO format (YYYY-MM-DD) using TODAY'S DATE as reference:
    - "next Friday" → calculate Friday after today
    - "2 weeks" → add 14 days to today

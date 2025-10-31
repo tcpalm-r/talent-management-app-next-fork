@@ -1254,7 +1254,7 @@ export default function Survey360Wizard({
                       <button
                         onClick={() => setRaters(raters.filter((_, i) => i !== index))}
                         className="p-2 text-red-600 hover:bg-red-50 rounded"
-                        title="Remove rater"
+                        title="Remove reviewer"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -1344,7 +1344,7 @@ export default function Survey360Wizard({
                   )}
                   {selectedEmployee ? selectedEmployee.name : 'Set Timeline'}
                 </h3>
-                <p className="text-sm text-gray-600 mb-4">When should raters complete their feedback?</p>
+                <p className="text-sm text-gray-600 mb-4">When should reviewers complete their feedback?</p>
               </div>
 
               <div>
@@ -1415,7 +1415,7 @@ export default function Survey360Wizard({
                 </div>
 
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div className="text-sm text-gray-600 mb-2">Raters ({raters.length})</div>
+                  <div className="text-sm text-gray-600 mb-2">Reviewers ({raters.length})</div>
                   <ul className="space-y-2 text-sm text-gray-700">
                     {raters.map((r, i) => (
                       <li key={i} className="flex items-center gap-2">
