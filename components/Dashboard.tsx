@@ -56,10 +56,11 @@ export default function Dashboard({
 
   // Redirect from admin settings if user is no longer admin
   useEffect(() => {
-    if (currentView === 'admin-settings' && currentUserEmployee?.role !== 'admin') {
+    const currentRole = (roleOverride || userProfile.role)?.toLowerCase();
+    if (currentView === 'admin-settings' && currentRole !== 'admin') {
       setCurrentView('360-feedback');
     }
-  }, [currentUserEmployee?.role, currentView]);
+  }, [roleOverride, userProfile.role, currentView]);
 
   const changeView = useCallback((view: View) => {
     setCurrentView(view);
