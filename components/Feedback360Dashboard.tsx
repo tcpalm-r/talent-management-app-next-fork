@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye } from 'lucide-react';
+import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Employee, Department } from '../types';
 import Survey360Wizard from './Survey360Wizard';
