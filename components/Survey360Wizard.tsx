@@ -1024,34 +1024,27 @@ export default function Survey360Wizard({
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl min-h-[600px] max-h-[80vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-          <div className="flex items-center gap-3">
-            {isBatchMode ? (
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-blue-600" />
-              </div>
-            ) : selectedEmployee ? (
-              <Avatar
-                name={selectedEmployee.name}
-                picture={selectedEmployee.picture}
-                size="md"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-blue-600" />
-              </div>
-            )}
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">
-                {isBatchMode
-                  ? `Create 360° Reviews for ${preselectedEmployees.length} Team Members`
-                  : selectedEmployee
-                    ? `360° Review - ${selectedEmployee.name}`
-                    : 'Create 360° Review'}
-              </h2>
-              <p className="text-sm text-gray-600">
-                Step {currentStepIndex + 1} of {steps.length}: {currentStep.replace('-', ' ')}
-              </p>
-            </div>
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-gray-900">
+              {isBatchMode ? (
+                `Create 360° Reviews for ${preselectedEmployees.length} Team Members`
+              ) : selectedEmployee ? (
+                <div className="flex items-center gap-2">
+                  360° Review -{' '}
+                  <Avatar
+                    name={selectedEmployee.name}
+                    picture={selectedEmployee.picture}
+                    size="xs"
+                  />
+                  {selectedEmployee.name}
+                </div>
+              ) : (
+                'Create 360° Review'
+              )}
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Step {currentStepIndex + 1} of {steps.length}: {currentStep === 'raters' ? 'Reviewers' : currentStep.replace('-', ' ')}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <button
