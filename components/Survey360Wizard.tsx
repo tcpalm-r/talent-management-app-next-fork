@@ -117,6 +117,7 @@ export default function Survey360Wizard({
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [raterSearch, setRaterSearch] = useState('');
   const [showRaterPicker, setShowRaterPicker] = useState<number | null>(null);
+  const [questionsConfirmed, setQuestionsConfirmed] = useState(false);
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -139,6 +140,7 @@ export default function Survey360Wizard({
     setEmployeeSearch('');
     setRaterSearch('');
     setShowRaterPicker(null);
+    setQuestionsConfirmed(false);
   };
 
   // Handle AI modal completion (internal - triggered from within wizard)
@@ -187,6 +189,9 @@ export default function Survey360Wizard({
     setCurrentStep('preview');
     setShouldAutoLaunch(true);
     setIsAIModalOpen(false);
+
+    // Auto-confirm questions when AI provides them
+    setQuestionsConfirmed(true);
   };
 
   // Handle AI data from external source (dashboard AI modal)
@@ -231,6 +236,9 @@ export default function Survey360Wizard({
 
     // Move to preview step only (no auto-launch for external flow)
     setCurrentStep('preview');
+
+    // Auto-confirm questions when AI provides them
+    setQuestionsConfirmed(true);
   };
 
   // Load default questions from API
@@ -343,20 +351,25 @@ export default function Survey360Wizard({
         // Determine the appropriate step to show based on what's filled in
         // Step progression: who -> competencies -> raters -> timeline -> preview
         if (employee && surveyQuestions && surveyQuestions.length > 0 && reviewers && reviewers.length > 0 && draftSurvey.due_date) {
-          // All data filled → go to preview
+          // All data filled → go to preview and mark questions as confirmed
           setCurrentStep('preview');
+          setQuestionsConfirmed(true);
         } else if (employee && surveyQuestions && surveyQuestions.length > 0 && reviewers && reviewers.length > 0) {
-          // Has employee, questions, and reviewers but no due date → go to timeline
+          // Has employee, questions, and reviewers but no due date → go to timeline and mark questions as confirmed
           setCurrentStep('timeline');
+          setQuestionsConfirmed(true);
         } else if (employee && surveyQuestions && surveyQuestions.length > 0) {
-          // Has employee and questions but no reviewers → go to raters
+          // Has employee and questions but no reviewers → go to raters and mark questions as confirmed
           setCurrentStep('raters');
+          setQuestionsConfirmed(true);
         } else if (employee) {
-          // Has employee but no questions → go to competencies
+          // Has employee but no questions → go to competencies, questions not yet confirmed
           setCurrentStep('competencies');
+          setQuestionsConfirmed(false);
         } else {
           // No employee → go back to start
           setCurrentStep('who');
+          setQuestionsConfirmed(false);
         }
       } catch (error) {
         console.error('Error loading draft survey data:', error);
@@ -425,7 +438,7 @@ export default function Survey360Wizard({
       case 'who':
         return isBatchMode || !!selectedEmployee;
       case 'competencies':
-        return requiredQuestions.length === 3 && requiredQuestions.every(q => q.trim().length > 0);
+        return requiredQuestions.length === 3 && requiredQuestions.every(q => q.trim().length > 0) && questionsConfirmed;
       case 'raters':
         return raters.length >= 1;
       case 'timeline':
@@ -438,6 +451,16 @@ export default function Survey360Wizard({
   };
 
   const handleNext = () => {
+    // Prevent advancing past step 2 (competencies) unless questions are confirmed
+    if (currentStep === 'competencies' && !questionsConfirmed) {
+      notify({
+        title: 'Confirm Questions',
+        description: 'Please click "Confirm Questions" before proceeding.',
+        variant: 'error',
+      });
+      return;
+    }
+
     if (currentStepIndex < steps.length - 1) {
       setCurrentStep(steps[currentStepIndex + 1]);
     }
@@ -1227,6 +1250,7 @@ export default function Survey360Wizard({
                       if (newCustomQuestion.trim()) {
                         setCustomQuestions([...customQuestions, newCustomQuestion.trim()]);
                         setNewCustomQuestion('');
+                        setQuestionsConfirmed(false); // Reset confirmation when new question added
                       }
                     }}
                     disabled={!newCustomQuestion.trim()}
@@ -1235,6 +1259,22 @@ export default function Survey360Wizard({
                     Add Question
                   </button>
                 </div>
+              </div>
+
+              {/* Confirm Questions Button */}
+              <div className="pt-6 border-t border-gray-200 flex justify-end">
+                <button
+                  onClick={() => {
+                    setQuestionsConfirmed(true);
+                  }}
+                  className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                    questionsConfirmed
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {questionsConfirmed ? '✓ Questions Confirmed' : 'Confirm Questions'}
+                </button>
               </div>
             </div>
           )}
