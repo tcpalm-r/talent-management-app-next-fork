@@ -131,7 +131,7 @@ export default function EmployeeList({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <>
       <div className="px-6 py-4 border-b">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Employees ({filteredEmployees.length})</h2>
@@ -372,6 +372,6 @@ export default function EmployeeList({
           }}
         />
       )}
-    </div>
+    </>
   );
 }

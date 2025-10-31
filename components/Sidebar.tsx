@@ -1,9 +1,9 @@
 'use client';
 
-import { RotateCw, Users, Settings } from 'lucide-react';
+import { RotateCw, Users, Settings, Lightbulb } from 'lucide-react';
 import { useMemo } from 'react';
 
-type View = '360-feedback' | 'directory' | 'admin-settings';
+type View = '360-feedback' | 'directory' | 'admin-settings' | 'insights';
 
 interface SidebarProps {
   currentView: View;
@@ -17,13 +17,23 @@ export default function Sidebar({ currentView, onViewChange, userRole }: Sidebar
     { id: '360-feedback', label: '360°', icon: RotateCw },
   ] as const;
 
+  const leaderNavItems = [
+    { id: 'insights', label: 'Insights', icon: Lightbulb },
+  ] as const;
+
   const adminNavItems = [
+    { id: 'insights', label: 'Insights', icon: Lightbulb },
     { id: 'admin-settings', label: 'Admin', icon: Settings },
   ] as const;
 
   const navItems = useMemo(() => {
-    const isAdmin = userRole?.toLowerCase() === 'admin';
-    return isAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
+    const role = userRole?.toLowerCase();
+    if (role === 'admin') {
+      return [...baseNavItems, ...adminNavItems];
+    } else if (role === 'leader') {
+      return [...baseNavItems, ...leaderNavItems];
+    }
+    return baseNavItems;
   }, [userRole]);
 
   return (

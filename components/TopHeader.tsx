@@ -14,8 +14,10 @@ interface TopHeaderProps {
 export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRoleChange }: TopHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const roleRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -25,13 +27,16 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
       if (roleRef.current && !roleRef.current.contains(event.target as Node)) {
         setRoleOpen(false);
       }
+      if (avatarRef.current && !avatarRef.current.contains(event.target as Node)) {
+        setAvatarOpen(false);
+      }
     }
 
-    if (menuOpen || roleOpen) {
+    if (menuOpen || roleOpen || avatarOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [menuOpen, roleOpen]);
+  }, [menuOpen, roleOpen, avatarOpen]);
 
   const handleMenuToggle = () => {
     setMenuOpen(!menuOpen);
@@ -117,28 +122,58 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
                 <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
                   Help & Support
                 </button>
-                <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
-                  About
-                </button>
-                <div className="border-t border-gray-200 my-1"></div>
-                <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
-                  Sign Out
-                </button>
               </div>
             )}
           </div>
 
           {/* Avatar */}
-          <button
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-            title={userProfile?.full_name}
-          >
-            <Avatar
-              name={userProfile?.full_name}
-              picture={userProfile?.picture}
-              size="sm"
-            />
-          </button>
+          <div className="relative" ref={avatarRef}>
+            <button
+              onClick={() => setAvatarOpen(!avatarOpen)}
+              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              title={userProfile?.full_name}
+            >
+              <Avatar
+                name={userProfile?.full_name}
+                picture={userProfile?.picture}
+                size="sm"
+              />
+            </button>
+
+            {avatarOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-3 px-3">
+                {/* User Info Section */}
+                <div className="mb-3">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Avatar
+                      name={userProfile?.full_name}
+                      picture={userProfile?.picture}
+                      size="md"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {userProfile?.full_name}
+                      </p>
+                      <p className="text-xs text-gray-600 truncate">
+                        {userProfile?.email}
+                      </p>
+                    </div>
+                  </div>
+                  <button className="w-full text-left text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors mt-2">
+                    View account →
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-gray-200 my-2"></div>
+
+                {/* Sign Out */}
+                <button className="w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors font-medium">
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

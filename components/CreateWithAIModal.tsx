@@ -8,6 +8,9 @@ interface CreateWithAIModalProps {
   isOpen: boolean;
   onClose: () => void;
   onComplete: (data: ParsedSurveyData) => void;
+  selectedEmployee?: any; // Employee being reviewed
+  currentStep?: string; // Current wizard step for context
+  employees?: any[]; // Available employees for reference
 }
 
 export interface ParsedSurveyData {
@@ -50,8 +53,16 @@ export default function CreateWithAIModal({
   isOpen,
   onClose,
   onComplete,
+  selectedEmployee,
+  currentStep,
+  employees,
 }: CreateWithAIModalProps) {
-  const [description, setDescription] = useState('');
+  // Pre-populate description with employee name if available
+  const initialDescription = selectedEmployee
+    ? `Create a 360 review for ${selectedEmployee.name || selectedEmployee.full_name}. `
+    : '';
+
+  const [description, setDescription] = useState(initialDescription);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clarifications, setClarifications] = useState<Clarification[] | null>(null);
@@ -66,15 +77,12 @@ export default function CreateWithAIModal({
     toggleListening,
   } = useSpeechToText({
     onTranscribed: (text: string) => {
-      console.log('[CreateWithAIModal] Transcribed text received:', text);
       setDescription((prev) => prev + text);
     },
   });
 
-  console.log('[CreateWithAIModal] Render - isOpen:', isOpen, 'clarifications:', clarifications);
 
   if (!isOpen) {
-    console.log('[CreateWithAIModal] Not open, returning null');
     return null;
   }
 
@@ -103,6 +111,11 @@ export default function CreateWithAIModal({
       const requestPayload = {
         description: description.trim(),
         today: todayString,
+        wizardContext: {
+          selectedEmployee: selectedEmployee ? { id: selectedEmployee.id, name: selectedEmployee.name || selectedEmployee.full_name } : undefined,
+          currentStep,
+          availableEmployees: employees ? employees.map((e: any) => ({ id: e.id, name: e.name || e.full_name })) : undefined,
+        },
       };
       console.log('[CreateWithAIModal.handleDone] Request payload:', JSON.stringify(requestPayload));
 
@@ -234,7 +247,6 @@ export default function CreateWithAIModal({
                   {isSpeechSupported && (
                     <button
                       onClick={() => {
-                        console.log('[CreateWithAIModal] Microphone button clicked');
                         toggleListening();
                       }}
                       disabled={isLoading}

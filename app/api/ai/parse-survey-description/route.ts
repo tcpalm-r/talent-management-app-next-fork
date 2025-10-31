@@ -4,6 +4,11 @@ import Anthropic from '@anthropic-ai/sdk';
 interface ParseRequest {
   description: string;
   today?: string;
+  wizardContext?: {
+    selectedEmployee?: { id: string; name: string };
+    currentStep?: string;
+    availableEmployees?: Array<{ id: string; name: string }>;
+  };
 }
 
 interface ParsedRater {
@@ -54,10 +59,11 @@ export async function POST(request: NextRequest) {
     });
 
     const body: ParseRequest = await request.json();
-    const { description, today } = body;
+    const { description, today, wizardContext } = body;
 
     console.log('[parse-survey-description API] Description length:', description?.length);
     console.log('[parse-survey-description API] Today date received:', today);
+    console.log('[parse-survey-description API] Wizard context:', wizardContext);
     console.log('[parse-survey-description API] Request body:', JSON.stringify(body));
 
     if (!description || description.trim().length === 0) {
@@ -70,17 +76,25 @@ export async function POST(request: NextRequest) {
 
     console.log('[parse-survey-description API] Calling Claude API...');
 
+    // Build context about wizard state
+    const contextNotes = wizardContext?.selectedEmployee
+      ? `IMPORTANT: The user is already on step 3 of the 360 review wizard and has already selected "${wizardContext.selectedEmployee.name}" as the person being reviewed.
+Use this as the employeeName and do NOT ask for clarification about who the review is for. The user is now describing what feedback to collect.`
+      : '';
+
     const prompt = `You are an expert HR assistant helping to parse 360-degree review survey requests.
 
 Parse the following survey description and extract the structured information. Return ONLY valid JSON, no additional text.
 
 TODAY'S DATE: ${today || 'Unknown - use best guess'}
 
+${contextNotes}
+
 USER DESCRIPTION:
 "${description}"
 
 IMPORTANT EXTRACTION RULES:
-1. Employee Name: Extract the name of the person being reviewed. Must be unambiguous.
+1. Employee Name: ${wizardContext?.selectedEmployee ? `Use "${wizardContext.selectedEmployee.name}" (already selected in wizard)` : 'Extract the name of the person being reviewed. Must be unambiguous.'}.
 2. Questions: Extract specific questions or assessment areas mentioned. If NOT explicitly mentioned, return empty array (system will use default admin questions).
 3. Reviewers/Raters: Extract names and emails of reviewers. Classify relationship as one of: manager, peer, direct_report, cross_functional
 4. Due Date: Extract due date if mentioned. Convert to ISO format (YYYY-MM-DD) using TODAY'S DATE as reference:
