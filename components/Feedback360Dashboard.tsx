@@ -1510,7 +1510,7 @@ export default function Feedback360Dashboard({
                   )}
 
                   {/* Delete button - bottom left of card */}
-                  {isCreator && (currentUser?.role === 'admin' || currentUser?.role === 'leader') && (
+                  {isCreator && currentUser?.role === 'admin' && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
