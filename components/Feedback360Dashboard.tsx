@@ -18,23 +18,21 @@ interface Feedback360DashboardProps {
 
 interface Survey {
   id: string;
-  survey_name: string;
-  status: string;
+  survey_name: string | null;
+  status: string | null;
   due_date: string | null;
-  created_at: string;
+  created_at: string | null;
   employee_id: string;
   employee?: Employee;
   reviewers_count?: number;
   completed_count?: number;
   created_by?: string;
   reviewers?: any[];
-  flagged_for_admin?: boolean;
-  flagged_for_reanalysis?: boolean;
 }
 
 interface Reviewer {
   id: string;
-  reviewer_name: string;
+  reviewer_name: string | null;
   reviewer_email: string;
   relationship: string;
   status: string;
@@ -433,7 +431,7 @@ export default function Feedback360Dashboard({
       const { error } = await supabase
         .from('feedback_360_surveys')
         .update({
-          flagged_for_reanalysis: true,
+          status: 'needs_review',
         })
         .eq('id', surveyId);
 

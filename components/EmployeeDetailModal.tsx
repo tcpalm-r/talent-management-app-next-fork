@@ -19,8 +19,6 @@ import type { PerformanceReview } from '../lib/schema';
 import Survey360Wizard from './Survey360Wizard';
 import CriticalRoleSetupModal from './CriticalRoleSetupModal';
 import { useToast, EmployeeNameLink } from './unified';
-import JobDescriptionViewer from './JobDescriptionViewer';
-import JobDescriptionEditor from './JobDescriptionEditor';
 import { AICoachMicroPanel, getEmployeeModalSuggestions } from './AICoachMicroPanel';
 import { useUnifiedAICoach } from '../context/UnifiedAICoachContext';
 import { supabase } from '../lib/supabase';
@@ -1534,27 +1532,8 @@ export default function EmployeeDetailModal({
 
           {/* Job Description Tab */}
           {activeTab === 'job-description' && (
-            <div>
-              {isEditingJobDescription ? (
-                <JobDescriptionEditor
-                  employee={employee}
-                  onSave={async (updates) => {
-                    // Update employee with job description fields
-                    if (onUpdateEmployee) {
-                      const updatedEmployee = { ...employee, ...updates };
-                      await onUpdateEmployee(updatedEmployee);
-                    }
-                    setIsEditingJobDescription(false);
-                  }}
-                  onCancel={() => setIsEditingJobDescription(false)}
-                />
-              ) : (
-                <JobDescriptionViewer
-                  employee={employee}
-                  onEdit={() => setIsEditingJobDescription(true)}
-                  canEdit={true}
-                />
-              )}
+            <div className="text-center text-gray-500 py-8">
+              Job Description Management - Coming Soon
             </div>
           )}
 
