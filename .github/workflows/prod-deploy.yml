@@ -53,4 +53,4 @@ jobs:
         run: npm install --global vercel@latest
 
       - name: Deploy to Vercel (Employee Self-Assessment)
-        run: vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --prod
+        run: vercel deploy --yes --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --prod
