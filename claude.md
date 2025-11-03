@@ -29,12 +29,10 @@ This is a full-stack TypeScript application focused on talent management, perfor
 - **Custom CSS** (globals.css with design system)
 
 ### Specialized UI Libraries
-- **React Flow** (Org charts, visual workflows)
+- **React Flow** (Org charts, visual workflows) - Note: reactflow package not directly listed
 - **@dnd-kit** (Drag & drop functionality)
   - @dnd-kit/core
-  - @dnd-kit/sortable
   - @dnd-kit/utilities
-- **React Hook Form** (Form state management)
 - **Zod 4.1.11** (Schema validation)
 - **html2canvas** (Screenshot/export capabilities)
 
@@ -43,10 +41,11 @@ This is a full-stack TypeScript application focused on talent management, perfor
 ## Authentication & Authorization
 
 ### Auth Provider
-- **Auth0** (@auth0/nextjs-auth0 v4.11)
+- **Auth0** (Custom implementation)
   - SSO support
   - OAuth integration
   - JWT token management
+  - Note: @auth0/nextjs-auth0 package not directly in dependencies
 
 ### Custom Auth Layer
 - **lib/auth.ts** - Core auth utilities
@@ -183,7 +182,7 @@ Materialized views:
 ### Data Management Libraries
 - **lib/transcriptImporter.ts** - Import conversation transcripts
 - **lib/export.ts** - Export utilities
-- **lib/utils.ts** - General utilities
+- **lib/exportReport.ts** - Report export functionality
 
 ---
 
@@ -227,7 +226,6 @@ Materialized views:
 ### 2. 360° Feedback System
 **Components:**
 - `Feedback360Dashboard.tsx` - Main dashboard
-- `Feedback360CreateModal.tsx` - Survey creation
 - `Survey360Wizard.tsx` - Survey creation wizard
 - `Quick360Modal.tsx` - Quick survey creation
 
@@ -258,8 +256,7 @@ Performance vs. Potential assessment matrix
 **Components:**
 - `EmployeeDetailModal.tsx` - Employee details (85KB, feature-rich)
 - `EmployeeList.tsx` - List view
-- `EmployeeCard.tsx` - Card view
-- `EmployeeModalNavigation.tsx` - Modal navigation
+- `EmployeeCardUnified.tsx` - Unified card component (in unified/ directory)
 
 **Features:**
 - Org chart visualization (React Flow)
@@ -275,22 +272,16 @@ Performance vs. Potential assessment matrix
   - Suggestions and insights
 
 - **Document Generation**
-  - PIP (Performance Improvement Plan) documents
-  - Action item extraction
-  - Conversation scripts
+  - Action item extraction (lib/actionItemGenerator.ts)
+  - Survey analysis & insights (lib/survey360Analyzer.ts)
 
 - **Analysis**
-  - Survey insights
-  - Talent health scores (lib/talentHealthScore.ts)
   - Review analysis (lib/reviewAnalyzer.ts)
+  - Survey insights (lib/survey360Analyzer.ts)
 
 ### 7. Other Features
 - **Dashboard** (Dashboard.tsx) - Main application dashboard
-- **Department Selector** (DepartmentSelector.tsx)
-- **Import Modal** (ImportModal.tsx)
-- **Batch Review Flow** (BatchReviewFlow.tsx)
 - **Critical Role Setup** (CriticalRoleSetupModal.tsx)
-- **Development Dashboard** (DevelopmentDashboard.tsx)
 
 ---
 
@@ -397,20 +388,180 @@ AI_INTRANET_URL_PROD=https://aiintranet.sonance.com
 
 ## Component Architecture
 
-### Major Components (by size/complexity)
+### Overview
+- **Total Components:** 26 React components across 3 locations
+- **Total Lines of Code:** ~14,458 lines
+- **Average Component Size:** 535 lines
+- **Root Level:** 18 feature components
+- **Design System:** 7 unified/reusable components (plus index.ts)
 
-**Largest Components:**
-1. `EmployeeDetailModal.tsx` (85KB) - Comprehensive employee modal
-2. `Feedback360Dashboard.tsx` (54KB) - 360 feedback dashboard
-3. `AdminSettings.tsx` (27KB) - Admin settings panel
-4. `Feedback360CreateModal.tsx` (27KB) - Survey creation
+### Component Organization
 
-**Key Subdirectories:**
-- `components/admin/` - Admin-specific components
-- `app/` - Next.js app router pages
-- `lib/` - Utility libraries and services
-- `context/` - React context providers
-- `hooks/` - Custom React hooks
+**Directory Structure:**
+```
+components/
+├── Root (18 components) - Feature-specific components
+├── unified/ (7 components + index.ts) - Design system & reusable patterns
+└── admin/ (empty)
+```
+
+### Distribution by Size & Complexity
+
+**Large Components (>1500 LOC) - 44% of total code:**
+1. `Feedback360Dashboard.tsx` (2,584 lines) - 360° feedback hub & survey management
+2. `OneOnOneModal.tsx` (2,101 lines) - 1-on-1 meeting management + transcripts
+3. `EmployeeDetailModal.tsx` (1,834 lines) - Central employee profile (9 sub-panels)
+4. `Survey360Wizard.tsx` (1,611 lines) - Multi-step survey builder
+
+**Medium Components (500-1500 LOC) - 35% of total code:**
+- `RetentionPlanModal.tsx` (790) - Retention strategy & stay interviews
+- `AdminSettings.tsx` (672) - Employee management + question configuration
+- `EmployeeCardUnified.tsx` (616) - Flexible card with 4 layout variants
+- `ManagerNotes.tsx` (518) - Feedback notes with severity tracking
+- `Quick360Modal.tsx` (476) - Fast survey creation
+- `CreateWithAIModal.tsx` (427) - AI-powered survey generation
+- `CriticalRoleSetupModal.tsx` (389) - Succession planning
+
+**Small Components (<500 LOC) - 21% of total code:**
+- Navigation: `Dashboard.tsx` (339), `Sidebar.tsx` (~100), `TopHeader.tsx` (177)
+- Utilities: `EmployeeList.tsx` (377), `AICoachMicroPanel.tsx` (284), `SurveyAIAssistant.tsx` (241)
+- Layout: `PeopleDashboard.tsx` (~150), `InsightsPanel.tsx` (145), `Avatar.tsx` (~50)
+
+### Feature Area Organization
+
+**1. 360° Feedback Management (5 components)**
+- `Feedback360Dashboard.tsx` - Main hub for survey creation and tracking
+- `Survey360Wizard.tsx` - Step-by-step survey builder
+- `Quick360Modal.tsx` - Fast survey creation shortcut
+- `CreateWithAIModal.tsx` - AI-assisted survey generation
+- `SurveyAIAssistant.tsx` - AI response helper
+
+**2. Employee Management (4 + design system)**
+- `PeopleDashboard.tsx` - Directory container
+- `EmployeeList.tsx` - Searchable employee grid/list
+- `EmployeeDetailModal.tsx` - Comprehensive profile modal
+- `EmployeeCardUnified.tsx` - Reusable card (grid/list/compact/detailed variants)
+
+**3. Performance & Development (4 nested modals)**
+- `OneOnOneModal.tsx` - 1-on-1 meeting management (2,101 lines)
+- `RetentionPlanModal.tsx` - Retention strategy planning
+- `CriticalRoleSetupModal.tsx` - Succession planning
+- `ManagerNotes.tsx` - Feedback notes display
+*(All nested within EmployeeDetailModal)*
+
+**4. Admin & Configuration (2 components)**
+- `AdminSettings.tsx` - Employee management + 360 default questions
+- `Dashboard.tsx` - Main router (includes admin view)
+
+**5. Navigation & Layout (6 components)**
+- `Dashboard.tsx` - Main application orchestrator
+- `Sidebar.tsx` - Navigation sidebar with role-based menu
+- `TopHeader.tsx` - Application header + user menu
+- `Avatar.tsx` - User avatar utility
+- `InsightsPanel.tsx` - Team insights dashboard
+- `AICoachMicroPanel.tsx` - Contextual AI suggestions
+
+**6. Design System (7 components + index.ts in `unified/` subdirectory)**
+- `EmployeeCardUnified.tsx` - Flexible card component (4 variants)
+- `BadgeSystem.tsx` - Status indicators (8 badge types)
+- `NavigationTabs.tsx` - Tab navigation pattern
+- `ModalLayout.tsx` - Standardized modal wrapper
+- `EmptyState.tsx` - Consistent empty state pattern
+- `StatCard.tsx` - Metric display card
+- `EmployeeNameLink.tsx` - Smart employee link with context-aware navigation
+- `index.ts` - Re-exports for unified components
+
+### Dependency Analysis
+
+**Hub Components (Highest Centrality):**
+1. `EmployeeDetailModal.tsx` - Imports 5+ nested modals (OneOnOne, Retention, CriticalRole)
+2. `Dashboard.tsx` - Orchestrates all major feature areas
+3. `Feedback360Dashboard.tsx` - Composes wizard, AI modal, and analytics
+4. `EmployeeList.tsx` - Imports detail modal and card component
+
+**Universal Primitives (Used Everywhere):**
+- `EmployeeNameLink.tsx` - Imported by 9+ components for context-aware navigation
+- `EmployeeCardUnified.tsx` - Used throughout for employee display
+- `BadgeSystem.tsx` - Used in 8+ components for status indicators
+- `useToast` hook - Available globally via `unified/index.ts`
+
+**Context Providers:**
+- `UnifiedAICoachContext` - Powers `AICoachMicroPanel`
+- `QuickActionContext` - Enables global employee card access
+- `EmployeeFocusContext` - Used by `EmployeeCardUnified`
+- `TalentAppContext` - Provides `useToast` hook
+
+### Component Interaction Architecture
+
+```
+Dashboard (Router)
+├── Sidebar (nav)
+├── TopHeader (header)
+└── Views:
+    ├── PeopleDashboard
+    │  └── EmployeeList
+    │     ├── EmployeeCardUnified (4 variants)
+    │     └── EmployeeDetailModal (1,834 lines - 9 panels)
+    │        ├── OneOnOneModal (2,101 lines)
+    │        ├── RetentionPlanModal (790 lines)
+    │        ├── CriticalRoleSetupModal (389 lines)
+    │        └── Survey360Wizard (1,611 lines)
+    ├── Feedback360Dashboard (2,584 lines - hub)
+    │  ├── Survey360Wizard
+    │  ├── Quick360Modal
+    │  ├── CreateWithAIModal
+    │  └── SurveyAIAssistant
+    ├── AdminSettings (672 lines)
+    └── InsightsPanel
+```
+
+### Key Patterns & Observations
+
+✅ **Well-Implemented Patterns:**
+- **Modular Modal System** - Consistent modal patterns with ModalLayout base
+- **Design System Integration** - 8 unified components provide consistency
+- **Context-Driven Navigation** - EmployeeNameLink enables global profile access
+- **Nested Modal Composition** - Complex workflows compose simple modals effectively
+- **AI Integration Points** - Three distinct AI features (Survey generation, Response help, Suggestions)
+
+⚠️ **Areas for Improvement:**
+- **Large Component Size** - Top 4 components range 1,600-2,600 lines (candidates for decomposition)
+- **Modal Nesting** - EmployeeDetailModal contains 5+ nested modals (could flatten with modal router)
+- **Prop Drilling** - Multiple components pass 10+ props (context providers would help)
+- **No Test Coverage** - jest.config.js exists but no test files present
+- **Limited Documentation** - Components lack JSDoc/TSDoc for complex logic
+
+### Recommended Review Sequence
+
+**Phase 1: Design System Foundation** (2-3 days)
+- `BadgeSystem.tsx` - Verify 8 badge types consistency
+- `EmployeeCardUnified.tsx` - Review 4 layout variants
+- `ModalLayout.tsx` - Check sizing and accessibility
+
+**Phase 2: Navigation & Routing** (1-2 days)
+- `Dashboard.tsx` - Main router and state orchestration
+- `Sidebar.tsx` - Navigation structure
+- `TopHeader.tsx` - User menu and role switching
+
+**Phase 3: Employee Management** (3-4 days)
+- `EmployeeList.tsx` - Search, filter, actions
+- `EmployeeDetailModal.tsx` - Complex 9-panel modal (refactoring candidate)
+- `PeopleDashboard.tsx` - Container coordination
+
+**Phase 4: 360° Feedback System** (3-4 days)
+- `Feedback360Dashboard.tsx` - Hub dashboard (refactoring candidate)
+- `Survey360Wizard.tsx` - Wizard workflow
+- `Quick360Modal.tsx` - Fast path
+
+**Phase 5: HR Workflows** (2-3 days)
+- `OneOnOneModal.tsx` - Meeting management (refactoring candidate)
+- `RetentionPlanModal.tsx` - Retention planning
+- `CriticalRoleSetupModal.tsx` - Succession planning
+
+**Phase 6: Admin & AI Features** (1-2 days)
+- `AdminSettings.tsx` - Configuration interface
+- `AICoachMicroPanel.tsx` - AI suggestions
+- `CreateWithAIModal.tsx` - AI generation
 
 ---
 
@@ -418,14 +569,13 @@ AI_INTRANET_URL_PROD=https://aiintranet.sonance.com
 
 ### Core Dependencies (Production)
 - **Framework:** next, react, react-dom
-- **Database:** @supabase/supabase-js, drizzle-orm, postgres
-- **Auth:** @auth0/nextjs-auth0
+- **Database:** @supabase/supabase-js
 - **AI:** @anthropic-ai/sdk
 - **Email:** resend
-- **UI:** lucide-react, @dnd-kit/*, reactflow
-- **Forms:** react-hook-form, zod
-- **Utilities:** clsx, tailwind-merge
-- **Data:** papaparse, jszip, html2canvas
+- **UI:** lucide-react, @dnd-kit/core, @dnd-kit/utilities
+- **Validation:** zod
+- **Utilities:** uuid
+- **Data:** papaparse, jszip, html2canvas, jspdf
 
 ### Dev Dependencies
 - **TypeScript:** typescript, @types/*
@@ -435,12 +585,41 @@ AI_INTRANET_URL_PROD=https://aiintranet.sonance.com
 
 ---
 
-## Recent Updates (Latest Commit)
+## Recent Updates
+
+### Component Architecture Analysis (2025-11-03)
+
+**Comprehensive Component Audit Completed:**
+- Analyzed all 27 components across 3 locations
+- Total codebase: ~14,458 lines of component code
+- Created 3 detailed analysis documents:
+  - `COMPONENT_ANALYSIS.md` - Technical deep dive (19 KB)
+  - `COMPONENT_QUICK_REFERENCE.txt` - Quick lookup guide (11 KB)
+  - `COMPONENT_REVIEW_PLAN.md` - 6-phase review framework (14 KB)
+
+**Key Findings:**
+- 4 large components (>1,500 LOC) contain 44% of code - refactoring candidates
+- Well-organized design system with 8 unified components
+- Clear feature area separation: 360° Feedback, Employee Management, Performance, Admin, Navigation
+- 3 hub components with high centrality: Dashboard, EmployeeDetailModal, Feedback360Dashboard
+- Context-driven navigation pattern enables global employee profile access
+- No unit test coverage despite jest.config.js present
+
+**Recommended Action Items:**
+- Phase 1-6 component review plan outlined in this section
+- Consider decomposing top 4 components (1,600+ lines each)
+- Add JSDoc/TSDoc documentation to complex components
+- Implement component testing framework (Jest/Vitest)
+- Flatten modal composition hierarchy (EmployeeDetailModal nests 5+ modals)
+
+---
+
+### Latest Commit (Previous)
 
 **Commit:** a670cae
 **Date:** 2025-10-28
 
-### Changes:
+### Previous Changes:
 1. **Admin Settings Panel**
    - Complete employee management interface
    - Search-based with scrollable results
@@ -484,8 +663,8 @@ app/
 - Client-side state management with hooks
 
 ### Database Access Pattern
-1. **Client Components:** Use Supabase SDK
-2. **Server Components/API Routes:** Use Drizzle ORM or Supabase admin
+1. **Client Components:** Use Supabase SDK (lib/supabase.ts)
+2. **Server Components/API Routes:** Use Supabase admin SDK (lib/supabase-admin.ts) or database helpers (lib/database.ts)
 3. **Type Safety:** TypeScript types from lib/schema.ts
 
 ### Auth Pattern
@@ -563,9 +742,9 @@ talent-management-next/
 
 ### Potential Enhancements
 1. **Testing:**
-   - Add Jest/Vitest
-   - Component testing
-   - E2E tests with Playwright
+   - Expand Jest test coverage (currently 1 test file)
+   - Add component testing
+   - Expand Playwright E2E tests (currently 1 test file)
 
 2. **Database:**
    - Implement organization_settings table
@@ -617,5 +796,5 @@ talent-management-next/
 
 ---
 
-Last Updated: 2025-10-28
-Version: 0.1.0
+Last Updated: 2025-11-03
+Version: 0.2.0 (Component Architecture Analysis Added)

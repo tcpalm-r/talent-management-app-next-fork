@@ -411,7 +411,12 @@ export type Database = {
           created_by: string
           due_date: string | null
           employee_id: string
+          flagged_for_admin: boolean | null
+          flagged_for_reanalysis: boolean | null
           id: string
+          is_anonymous: boolean | null
+          reanalysis_requested_at: string | null
+          reanalysis_requested_by: string | null
           sent_at: string | null
           status: string | null
           survey_name: string | null
@@ -423,7 +428,12 @@ export type Database = {
           created_by: string
           due_date?: string | null
           employee_id: string
+          flagged_for_admin?: boolean | null
+          flagged_for_reanalysis?: boolean | null
           id?: string
+          is_anonymous?: boolean | null
+          reanalysis_requested_at?: string | null
+          reanalysis_requested_by?: string | null
           sent_at?: string | null
           status?: string | null
           survey_name?: string | null
@@ -435,7 +445,12 @@ export type Database = {
           created_by?: string
           due_date?: string | null
           employee_id?: string
+          flagged_for_admin?: boolean | null
+          flagged_for_reanalysis?: boolean | null
           id?: string
+          is_anonymous?: boolean | null
+          reanalysis_requested_at?: string | null
+          reanalysis_requested_by?: string | null
           sent_at?: string | null
           status?: string | null
           survey_name?: string | null
