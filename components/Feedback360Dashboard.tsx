@@ -1508,6 +1508,21 @@ export default function Feedback360Dashboard({
                       </div>
                     </div>
                   )}
+
+                  {/* Delete button - bottom left of card */}
+                  {isCreator && (currentUser?.role === 'admin' || currentUser?.role === 'leader') && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteInProgressSurvey(survey.id);
+                      }}
+                      className="mt-4 text-red-600 hover:text-red-700 transition-colors flex items-center gap-1 text-sm font-medium"
+                      title="Delete this review"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  )}
                 </div>
 
                 {/* Right side: Status badge and actions */}
@@ -1683,23 +1698,12 @@ export default function Feedback360Dashboard({
                   />
                   {selectedSurvey.employee?.name || 'Unknown'}
                 </h2>
-                <div className="flex items-center gap-3">
-                  {isCreator && (currentUser?.role === 'admin' || currentUser?.role === 'leader') && (
-                    <button
-                      onClick={() => deleteInProgressSurvey(selectedSurvey.id)}
-                      className="text-red-600 hover:text-red-700 transition-colors"
-                      title="Delete this review"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setIsDetailsModalOpen(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => setIsDetailsModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
               </div>
             </div>
 
