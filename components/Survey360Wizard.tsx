@@ -1225,10 +1225,7 @@ export default function Survey360Wizard({
               {/* Required Questions */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-gray-900">Required Questions</h4>
-                  {isAdmin && (
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">Set in Admin Settings</span>
-                  )}
+                  <h4 className="font-semibold text-gray-900">Required Questions <span className="text-sm text-gray-600">(Set by Admin)</span></h4>
                 </div>
 
                 {requiredQuestions.map((question, index) => (
