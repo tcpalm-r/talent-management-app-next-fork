@@ -1516,10 +1516,9 @@ export default function Feedback360Dashboard({
                         e.stopPropagation();
                         deleteInProgressSurvey(survey.id);
                       }}
-                      className="mt-4 text-red-600 hover:text-red-700 transition-colors flex items-center gap-1 text-sm font-medium"
+                      className="mt-4 text-red-600 hover:text-red-700 transition-colors text-sm font-medium"
                       title="Delete this review"
                     >
-                      <Trash2 className="w-4 h-4" />
                       Delete
                     </button>
                   )}
