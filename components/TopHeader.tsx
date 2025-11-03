@@ -1,8 +1,9 @@
 'use client';
 
 import { MoreHorizontal } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
+import { UserContext } from '@/context/UserContext';
 
 interface TopHeaderProps {
   userProfile: any;
@@ -18,6 +19,14 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
   const menuRef = useRef<HTMLDivElement>(null);
   const roleRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
+
+  const userContext = useContext(UserContext);
+  const handleSignOut = async () => {
+    setAvatarOpen(false);
+    if (userContext?.logout) {
+      await userContext.logout();
+    }
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -164,7 +173,10 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
                 <div className="border-t border-gray-200 my-2"></div>
 
                 {/* Sign Out */}
-                <button className="w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors font-medium">
+                <button
+                  onClick={handleSignOut}
+                  className="w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors font-medium"
+                >
                   Sign out
                 </button>
               </div>
