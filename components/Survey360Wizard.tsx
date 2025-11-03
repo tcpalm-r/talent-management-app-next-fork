@@ -1222,10 +1222,6 @@ export default function Survey360Wizard({
           {/* Step 2: Questions */}
           {currentStep === 'competencies' && (
             <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Review Questions</h3>
-              </div>
-
               {/* Required Questions */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
