@@ -1182,7 +1182,11 @@ export default function Survey360Wizard({
                     <button
                       key={emp.id}
                       onClick={() => setSelectedEmployee(emp)}
-                      className={`text-left p-2.5 rounded-lg border-2 transition-all flex items-center gap-2 ${
+                      onDoubleClick={() => {
+                        setSelectedEmployee(emp);
+                        setCurrentStep('competencies');
+                      }}
+                      className={`text-left p-2.5 rounded-lg border-2 transition-all flex items-center gap-2 cursor-pointer ${
                         selectedEmployee?.id === emp.id
                           ? 'border-blue-500 bg-blue-50 shadow-md'
                           : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
