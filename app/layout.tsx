@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Providers } from "./providers";
 import "./globals.css";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Sonance Talent Management",
   description: "Talent Management and 360° Feedback Review Platform",
