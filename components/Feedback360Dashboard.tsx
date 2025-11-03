@@ -480,11 +480,12 @@ export default function Feedback360Dashboard({
   const completeSurveyWithAI = async (proceedWithIncomplete: boolean = false) => {
     if (!selectedSurvey) return;
 
-    // Check if all reviewers have completed
-    const allCompleted = (selectedSurvey.completed_count ?? 0) === (selectedSurvey.reviewers_count ?? 0);
+    // Check if 70% of reviewers have completed (minimum completion requirement)
+    const completionPercent = selectedSurvey.reviewers_count ? (selectedSurvey.completed_count ?? 0) / selectedSurvey.reviewers_count : 0;
+    const minCompletionMet = completionPercent >= 0.7;
 
-    // If not all completed and user hasn't confirmed, show warning
-    if (!allCompleted && !proceedWithIncomplete) {
+    // If minimum completion not met and user hasn't confirmed, show warning
+    if (!minCompletionMet && !proceedWithIncomplete) {
       setShowIncompleteWarning(true);
       return;
     }
@@ -1474,7 +1475,7 @@ export default function Feedback360Dashboard({
                     <div className="mt-3">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-gray-600">
-                          Response Rate: {Math.round(((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) * 100)}%
+                          Response Rate: {Math.round(((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) * 100)}% (70% required)
                         </span>
                         {(() => {
                           const completedCount = survey.completed_count ?? 0;
@@ -1491,12 +1492,18 @@ export default function Feedback360Dashboard({
                           );
                         })()}
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 rounded-full h-2 relative">
                         <div
                           className={`h-2 rounded-full transition-all ${
-                            ((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) < 0.5 ? 'bg-orange-500' : 'bg-blue-600'
+                            ((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) < 0.7 ? 'bg-orange-500' : 'bg-green-600'
                           }`}
                           style={{ width: `${((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) * 100}%` }}
+                        />
+                        {/* Show 70% requirement marker */}
+                        <div
+                          className="absolute top-0 bottom-0 w-0.5 bg-gray-400 opacity-50"
+                          style={{ left: '70%' }}
+                          title="70% completion required"
                         />
                       </div>
                     </div>
@@ -1734,6 +1741,25 @@ export default function Feedback360Dashboard({
                   </button>
                   )}
                 </div>
+
+                {/* Review Requirements */}
+                {selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <div className="text-xs text-gray-700">
+                      <div className="font-semibold mb-1">Review Requirements:</div>
+                      <div className="space-y-1">
+                        <div className={`flex items-center gap-2 ${selectedSurvey.reviewers_count! >= 3 ? 'text-green-700' : 'text-orange-700'}`}>
+                          <span className="text-lg">{selectedSurvey.reviewers_count! >= 3 ? '✓' : '○'}</span>
+                          <span>Minimum 3 reviewers to launch ({selectedSurvey.reviewers_count || 0} added)</span>
+                        </div>
+                        <div className={`flex items-center gap-2 ${(selectedSurvey.completed_count! / selectedSurvey.reviewers_count! >= 0.7) ? 'text-green-700' : 'text-orange-700'}`}>
+                          <span className="text-lg">{(selectedSurvey.completed_count! / selectedSurvey.reviewers_count! >= 0.7) ? '✓' : '○'}</span>
+                          <span>70% completion to close ({Math.round((selectedSurvey.completed_count! / selectedSurvey.reviewers_count!) * 100)}% completed)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {isAddingReviewer && (
                   <div className="bg-blue-50 rounded-lg p-4 mb-3 space-y-3 relative">
@@ -2512,9 +2538,9 @@ export default function Feedback360Dashboard({
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Not All Reviewers Completed</h2>
+                  <h2 className="text-lg font-bold text-gray-900">Minimum Completion Not Met</h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    Only {selectedSurvey.completed_count}/{selectedSurvey.reviewers_count} reviewers have completed their feedback.
+                    {selectedSurvey.completed_count}/{selectedSurvey.reviewers_count} reviewers completed ({Math.round((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1) * 100)}%)
                   </p>
                 </div>
               </div>
@@ -2522,8 +2548,9 @@ export default function Feedback360Dashboard({
 
             <div className="p-6 space-y-4">
               <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                <p className="text-sm text-gray-700">
-                  You can still generate AI analysis with {selectedSurvey.completed_count} completed review(s), but the results may be incomplete. Are you sure you want to proceed?
+                <p className="text-sm text-gray-700 font-medium mb-2">70% completion required</p>
+                <p className="text-sm text-gray-600">
+                  A minimum of 70% of reviewers must complete their feedback before the review can be closed. You currently have {Math.round((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1) * 100)}% completion.
                 </p>
               </div>
             </div>

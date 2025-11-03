@@ -440,7 +440,7 @@ export default function Survey360Wizard({
       case 'competencies':
         return requiredQuestions.length === 3 && requiredQuestions.every(q => q.trim().length > 0) && questionsConfirmed;
       case 'raters':
-        return raters.length >= 1;
+        return raters.length >= 3;
       case 'timeline':
         return !!dueDate;
       case 'preview':
@@ -1457,6 +1457,16 @@ export default function Survey360Wizard({
                 <Users className="w-4 h-4" />
                 Add Reviewer
               </button>
+
+              {/* Reviewer count validation message */}
+              <div className={`p-4 rounded-lg ${raters.length >= 3 ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
+                <div className={`text-sm font-medium ${raters.length >= 3 ? 'text-green-700' : 'text-blue-700'}`}>
+                  {raters.length >= 3 ? '✓ Minimum reviewers met' : `${3 - raters.length} more reviewers needed`}
+                </div>
+                <div className={`text-xs mt-1 ${raters.length >= 3 ? 'text-green-600' : 'text-blue-600'}`}>
+                  A minimum of 3 reviewers is required to launch this review.
+                </div>
+              </div>
             </div>
           )}
 
