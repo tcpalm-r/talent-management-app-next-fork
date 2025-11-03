@@ -1075,7 +1075,14 @@ export default function Survey360Wizard({
               )}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              Step {currentStepIndex + 1} of {steps.length}: {currentStep === 'raters' ? 'Reviewers' : currentStep.replace('-', ' ')}
+              Step {currentStepIndex + 1} of {steps.length}: {
+                currentStep === 'who' ? 'Subject' :
+                currentStep === 'competencies' ? 'Survey Questions' :
+                currentStep === 'raters' ? 'Reviewers' :
+                currentStep === 'timeline' ? 'Due Date' :
+                currentStep === 'preview' ? 'Preview' :
+                currentStep.replace('-', ' ')
+              }
             </p>
           </div>
           <div className="flex items-center gap-2">
