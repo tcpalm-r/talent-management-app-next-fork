@@ -13,8 +13,8 @@ interface SidebarProps {
 
 export default function Sidebar({ currentView, onViewChange, userRole }: SidebarProps) {
   const baseNavItems = [
-    { id: 'directory', label: 'Talent', icon: Users },
     { id: '360-feedback', label: '360°', icon: RotateCw },
+    { id: 'directory', label: 'Talent', icon: Users },
   ] as const;
 
   const leaderNavItems = [
