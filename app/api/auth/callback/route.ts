@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase';
 import { createAuthenticatedResponse, MOCK_USER } from '@/lib/auth';
 import type { SessionUser } from '@/lib/schema';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Decode JWT payload without verification (safe since from Auth0 over HTTPS)
  */
