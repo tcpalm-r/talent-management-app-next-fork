@@ -207,9 +207,9 @@ export default function Feedback360Dashboard({
             if (survey.employee_id && survey.employee_id === currentUser.id) return true;
 
             // Survey where leader is a reviewer
-            const isReviewer = currentUser.email && survey.reviewers?.some((r: any) =>
-              r.reviewer_email && r.reviewer_email.toLowerCase() === currentUser.email.toLowerCase()
-            );
+            const isReviewer = currentUser.email ? survey.reviewers?.some((r: any) =>
+              r.reviewer_email && r.reviewer_email.toLowerCase() === currentUser.email!.toLowerCase()
+            ) : false;
             if (isReviewer) return true;
 
             // Survey about a direct report
@@ -238,9 +238,9 @@ export default function Feedback360Dashboard({
             if (isReviewee) return true;
 
             // Survey where user is a reviewer (check email match)
-            const isReviewer = currentUser.email && survey.reviewers?.some((r: any) =>
-              r.reviewer_email && r.reviewer_email.toLowerCase() === currentUser.email.toLowerCase()
-            );
+            const isReviewer = currentUser.email ? survey.reviewers?.some((r: any) =>
+              r.reviewer_email && r.reviewer_email.toLowerCase() === currentUser.email!.toLowerCase()
+            ) : false;
             if (isReviewer) return true;
 
             // If none of the above, explicitly exclude
@@ -991,12 +991,12 @@ export default function Feedback360Dashboard({
         .from('feedback_360_survey_reviewers')
         .insert({
           survey_id: selectedSurvey.id,
-          reviewer_name: selectedReviewerEmployee.name,
-          reviewer_email: selectedReviewerEmployee.email,
+          reviewer_name: selectedReviewerEmployee.name || '',
+          reviewer_email: selectedReviewerEmployee.email || '',
           relationship: newReviewerRelationship,
           status: 'pending',
           access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        })
+        } as any)
         .select()
         .single();
 
@@ -1410,7 +1410,7 @@ export default function Feedback360Dashboard({
                         360° Review -
                         <Avatar
                           name={survey.employee?.name}
-                          picture={survey.employee?.picture}
+                          picture={survey.employee?.picture ?? undefined}
                           size="xs"
                         />
                         {survey.employee?.name || 'Unknown Employee'}
@@ -1506,7 +1506,7 @@ export default function Feedback360Dashboard({
                 {/* Right side: Status badge and actions */}
                 <div className="ml-4 flex flex-col items-end gap-2">
                   {/* Status badge */}
-                  {getStatusBadge(survey.status, survey.flagged_for_admin, survey.flagged_for_reanalysis)}
+                  {getStatusBadge(survey.status || 'unknown', survey.flagged_for_admin ?? undefined, survey.flagged_for_reanalysis ?? undefined)}
 
                   {/* Remind button */}
                   {survey.status === 'active' && (survey.completed_count ?? 0) !== (survey.reviewers_count ?? 0) && (
@@ -1583,7 +1583,7 @@ export default function Feedback360Dashboard({
                         <span className="ml-2 text-sm text-gray-600">• {selectedSurvey.employee.title}</span>
                       )}
                     </div>
-                    {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin, selectedSurvey.flagged_for_reanalysis)}
+                    {getStatusBadge(selectedSurvey.status || 'unknown', selectedSurvey.flagged_for_admin ?? undefined, selectedSurvey.flagged_for_reanalysis ?? undefined)}
                   </div>
                   <button
                     onClick={() => setIsDetailsModalOpen(false)}
@@ -1608,7 +1608,7 @@ export default function Feedback360Dashboard({
                       <div className="flex items-center">
                         <span className="text-sm text-gray-600">Created:</span>
                         <span className="ml-2 text-sm text-gray-900">
-                          {new Date(selectedSurvey.created_at).toLocaleDateString()}
+                          {selectedSurvey.created_at ? new Date(selectedSurvey.created_at).toLocaleDateString() : 'N/A'}
                         </span>
                       </div>
                     </div>
@@ -1671,7 +1671,7 @@ export default function Feedback360Dashboard({
                   360° Review -
                   <Avatar
                     name={selectedSurvey.employee?.name}
-                    picture={selectedSurvey.employee?.picture}
+                    picture={selectedSurvey.employee?.picture ?? undefined}
                     size="xs"
                   />
                   {selectedSurvey.employee?.name || 'Unknown'}
@@ -1711,11 +1711,11 @@ export default function Feedback360Dashboard({
                   <div>
                     <span className="text-gray-600">Created: </span>
                     <span className="text-gray-900">
-                      {new Date(selectedSurvey.created_at).toLocaleDateString()}
+                      {selectedSurvey.created_at ? new Date(selectedSurvey.created_at).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                 </div>
-                {getStatusBadge(selectedSurvey.status, selectedSurvey.flagged_for_admin, selectedSurvey.flagged_for_reanalysis)}
+                {getStatusBadge(selectedSurvey.status ?? 'draft', selectedSurvey.flagged_for_admin ?? undefined, selectedSurvey.flagged_for_reanalysis ?? undefined)}
               </div>
 
               {/* Reviewers */}
@@ -1782,7 +1782,7 @@ export default function Feedback360Dashboard({
                                   >
                                     <Avatar
                                       name={emp.name}
-                                      picture={emp.picture}
+                                      picture={emp.picture ?? undefined}
                                       size="sm"
                                     />
                                     <div className="flex-1 min-w-0">
@@ -1809,7 +1809,7 @@ export default function Feedback360Dashboard({
                       <div className="px-3 py-2 bg-white border border-gray-300 rounded-lg flex items-center gap-2">
                         <Avatar
                           name={selectedReviewerEmployee.name}
-                          picture={selectedReviewerEmployee.picture}
+                          picture={selectedReviewerEmployee.picture ?? undefined}
                           size="sm"
                         />
                         <div className="flex-1 min-w-0">
@@ -1855,7 +1855,7 @@ export default function Feedback360Dashboard({
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <Avatar
-                              name={reviewer.reviewer_name}
+                              name={reviewer.reviewer_name ?? undefined}
                               picture={undefined}
                               size="sm"
                             />
@@ -1915,7 +1915,7 @@ export default function Feedback360Dashboard({
                   {/* Send Backward - Always on left, always grey */}
                   {(selectedSurvey.status === 'in_progress' || selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (
                     <button
-                      onClick={() => sendBackward(selectedSurvey.id, selectedSurvey.status)}
+                      onClick={() => sendBackward(selectedSurvey.id, selectedSurvey.status ?? undefined)}
                       className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium flex items-center"
                     >
                       <ChevronLeft className="w-4 h-4 mr-2" />
@@ -2265,7 +2265,7 @@ export default function Feedback360Dashboard({
                       {selectedSurvey.status === 'completed' && (
                         <button
                           onClick={() => sendToHRForReanalysis(selectedSurvey.id)}
-                          disabled={selectedSurvey.flagged_for_reanalysis}
+                          disabled={!!selectedSurvey.flagged_for_reanalysis}
                           className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                             selectedSurvey.flagged_for_reanalysis
                               ? 'bg-green-600 text-white cursor-not-allowed opacity-75'
@@ -2308,7 +2308,7 @@ export default function Feedback360Dashboard({
                     {selectedSurvey.status === 'completed' && (
                       <button
                         onClick={() => sendToHRForReanalysis(selectedSurvey.id)}
-                        disabled={selectedSurvey.flagged_for_reanalysis}
+                        disabled={!!selectedSurvey.flagged_for_reanalysis}
                         className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                           selectedSurvey.flagged_for_reanalysis
                             ? 'bg-green-600 text-white cursor-not-allowed opacity-75'
@@ -2570,7 +2570,7 @@ export default function Feedback360Dashboard({
         preselectedEmployee={preselectedEmployee}
         currentUser={currentUser}
         draftSurvey={editingDraftSurvey}
-        aiParsedData={aiParsedData}
+        aiParsedData={aiParsedData ?? undefined}
         onSurveyCreated={() => {
           setIsWizardOpen(false);
           setEditingDraftSurvey(null);
