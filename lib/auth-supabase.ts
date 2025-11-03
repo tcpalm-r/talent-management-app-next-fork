@@ -251,6 +251,94 @@ export async function syncMultipleUsers(
 }
 
 /**
+ * Sync user profile using Supabase client - with auth0_id support
+ * This is the main sync function used by middleware for Sonance hub authentication
+ */
+export async function syncUserProfileViaSupabase(userData: any): Promise<any> {
+  try {
+    console.log('[SYNC-SUPABASE] Starting profile sync for:', userData.email);
+
+    // Prepare the profile data
+    const profileData = {
+      id: userData.id,
+      auth0_id: userData.auth0_id,
+      email: userData.email,
+      full_name: userData.full_name || userData.email,
+      given_name: userData.given_name || null,
+      family_name: userData.family_name || null,
+      picture: userData.picture || userData.avatar_url || null,
+      avatar_url: userData.avatar_url || userData.picture || null,
+      global_role: userData.global_role || userData.role || 'user',
+      capabilities: userData.capabilities || [],
+      app_role: userData.app_role || userData.role || 'user',
+      app_permissions: userData.app_permissions || userData.permissions || {},
+      app_access: userData.app_access !== false, // Default to true
+      local_permissions: userData.local_permissions || {},
+      department: userData.department || null,
+      title: userData.title || null,
+      phone: userData.phone || null,
+      location: userData.location || null,
+      last_sync: new Date().toISOString(),
+      is_active: true,
+      updated_at: new Date().toISOString()
+    };
+
+    console.log('[SYNC-SUPABASE] Profile data prepared:', {
+      email: profileData.email,
+      app_role: profileData.app_role,
+      app_access: profileData.app_access
+    });
+
+    // Upsert the user profile using Supabase admin client (bypasses RLS)
+    const { data, error } = await supabaseAdmin
+      .from('user_profiles')
+      .upsert(profileData, {
+        onConflict: 'auth0_id'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[SYNC-SUPABASE] Failed to sync profile:', error);
+
+      // If upsert fails, try insert then update
+      if (error.code === '23505') { // Duplicate key error
+        console.log('[SYNC-SUPABASE] Attempting update instead of insert...');
+
+        const { data: updateData, error: updateError } = await supabaseAdmin
+          .from('user_profiles')
+          .update({
+            ...profileData,
+            created_at: undefined // Don't update created_at on update
+          })
+          .eq('auth0_id', userData.auth0_id)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('[SYNC-SUPABASE] Update also failed:', updateError);
+          throw updateError;
+        }
+
+        console.log('[SYNC-SUPABASE] Profile updated successfully:', updateData?.email);
+        return updateData;
+      }
+
+      throw error;
+    }
+
+    console.log('[SYNC-SUPABASE] Profile synced successfully:', data?.email);
+    return data;
+  } catch (error) {
+    console.error('[SYNC-SUPABASE] Sync failed with error:', error);
+
+    // Return null instead of throwing to avoid breaking authentication
+    // User can still use the app even if profile sync fails
+    return null;
+  }
+}
+
+/**
  * Get all active users from Supabase
  */
 export async function getAllActiveUsers(): Promise<UserProfile[]> {

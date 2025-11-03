@@ -1539,7 +1539,16 @@ export default function EmployeeDetailModal({
 
           {/* Notes Tab */}
           {activeTab === 'notes' && (
-            <ManagerNotes employee={employee} />
+            <ManagerNotes
+              employeeId={employee.id}
+              employeeName={employee.name || 'Employee'}
+              notes={[]}
+              onAddNote={() => {}}
+              onDeleteNote={() => {}}
+              onAcknowledgeNote={() => {}}
+              currentUserName={currentUser?.name || 'Manager'}
+              isEmployeeView={false}
+            />
           )}
 
           {/* Performance Review & ITP Matrix Tab (Combined) */}

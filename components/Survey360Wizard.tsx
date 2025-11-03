@@ -1065,7 +1065,7 @@ export default function Survey360Wizard({
                   360° Review -{' '}
                   <Avatar
                     name={selectedEmployee.name}
-                    picture={selectedEmployee.picture}
+                    picture={selectedEmployee.picture ?? undefined}
                     size="xs"
                   />
                   {selectedEmployee.name}
@@ -1190,7 +1190,7 @@ export default function Survey360Wizard({
                     >
                       <Avatar
                         name={emp.name}
-                        picture={emp.picture}
+                        picture={emp.picture ?? undefined}
                         size="sm"
                       />
                       <div className="flex-1 min-w-0">
@@ -1413,7 +1413,7 @@ export default function Survey360Wizard({
                                 >
                                   <Avatar
                                     name={emp.name}
-                                    picture={emp.picture}
+                                    picture={emp.picture ?? undefined}
                                     size="sm"
                                   />
                                   <div className="flex-1 min-w-0">
@@ -1499,7 +1499,7 @@ export default function Survey360Wizard({
                   <div className="flex items-center gap-3">
                     <Avatar
                       name={selectedEmployee?.name}
-                      picture={selectedEmployee?.picture}
+                      picture={selectedEmployee?.picture ?? undefined}
                       size="md"
                     />
                     <div>

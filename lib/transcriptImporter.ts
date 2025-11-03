@@ -130,9 +130,9 @@ function parseTeamsTranscript(text: string): ImportedTranscript {
   let buffer: string[] = [];
 
   const speakerPatterns = [
-    /^\s*\[(?<timestamp>(?:\d{1,2}:){1,2}\d{2})\]\s*(?<speaker>[^:]+):\s*(?<body>.*)$/,
-    /^\s*(?<speaker>[^:]+?):\s*(?<body>.+)$/, // fallback "Speaker: body"
-    /^\s*(?<speaker>[^-]+?)\s+-\s+(?<timestamp>(?:\d{1,2}:){1,2}\d{2})\s+-?\s*(?<body>.*)$/,
+    /^\s*\[((?:\d{1,2}:){1,2}\d{2})\]\s*([^:]+):\s*(.*)$/,
+    /^\s*([^:]+?):\s*(.+)$/, // fallback "Speaker: body"
+    /^\s*([^-]+?)\s+-\s+((?:\d{1,2}:){1,2}\d{2})\s+-?\s*(.*)$/,
   ];
 
   const pushBuffer = () => {
@@ -159,13 +159,18 @@ function parseTeamsTranscript(text: string): ImportedTranscript {
 
     const match = speakerPatterns
       .map((pattern) => line.match(pattern))
-      .find((result) => result && result.groups);
+      .find((result) => result && result.length > 1);
 
-    if (match && match.groups) {
+    if (match && match.length > 1) {
       pushBuffer();
-      currentSpeaker = tidyName(match.groups.speaker);
+      // For first pattern: [1]=timestamp, [2]=speaker, [3]=body
+      // For second pattern: [1]=speaker, [2]=body
+      // For third pattern: [1]=speaker, [2]=timestamp, [3]=body
+      const speakerIndex = match.length === 3 ? 1 : 2;
+      const bodyIndex = match.length === 3 ? 2 : 3;
+      currentSpeaker = tidyName(match[speakerIndex] || '');
       if (currentSpeaker) participants.add(currentSpeaker);
-      const body = (match.groups.body || '').trim();
+      const body = (match[bodyIndex] || '').trim();
       buffer = body ? [body] : [];
       continue;
     }
