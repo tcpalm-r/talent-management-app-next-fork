@@ -116,7 +116,7 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
               <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-3 px-3">
                 {/* User Info Section */}
                 <div className="mb-3">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3">
                     <Avatar
                       name={userProfile?.full_name}
                       picture={userProfile?.picture}
@@ -131,13 +131,7 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
                       </p>
                     </div>
                   </div>
-                  <button className="w-full text-left text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors mt-2">
-                    View account →
-                  </button>
                 </div>
-
-                {/* Divider */}
-                <div className="border-t border-gray-200 my-2"></div>
 
                 {/* Sign Out */}
                 <button
