@@ -1,0 +1,274 @@
+================================================================================
+TALENT MANAGEMENT APP - COMPONENT QUICK REFERENCE
+================================================================================
+
+DIRECTORY STRUCTURE:
+├── components/
+│   ├── Root (19 components)
+│   ├── unified/ (8 components - design system & reusable patterns)
+│   └── admin/ (empty - admin routes in /app/)
+
+TOTAL COMPONENTS: 27 | Total LOC: ~14,458 | Average Size: 535 lines
+
+================================================================================
+ROOT LEVEL COMPONENTS (19)
+================================================================================
+
+FEATURE HUBS (Largest/Complex):
+┌─────────────────────────┬──────┬─────────────────────────────────────┐
+│ Component               │ LOC  │ Purpose                             │
+├─────────────────────────┼──────┼─────────────────────────────────────┤
+│ Feedback360Dashboard    │ 2584 │ 360° feedback hub & survey mgmt      │
+│ OneOnOneModal           │ 2101 │ 1-on-1 meetings + transcripts       │
+│ EmployeeDetailModal     │ 1834 │ Central employee profile (9 panels)  │
+│ Survey360Wizard         │ 1611 │ Multi-step survey builder           │
+└─────────────────────────┴──────┴─────────────────────────────────────┘
+
+MEDIUM-SIZED (500-1500 LOC):
+├─ RetentionPlanModal (790) - Retention strategy & stay interviews
+├─ AdminSettings (672) - Employee mgmt + question configuration
+├─ EmployeeCardUnified (616) - Card with 4 variants
+├─ ManagerNotes (518) - Feedback notes with severity
+├─ Quick360Modal (476) - Fast survey creation
+├─ CreateWithAIModal (427) - AI-powered survey generation
+└─ CriticalRoleSetupModal (389) - Succession planning
+
+SMALL & UTILITIES (<500 LOC):
+├─ EmployeeList (377) - Searchable employee grid/list
+├─ Dashboard (339) - Main router & layout
+├─ AICoachMicroPanel (284) - Inline AI suggestions
+├─ SurveyAIAssistant (241) - AI response helper
+├─ TopHeader (177) - Header with user menu
+├─ InsightsPanel (145) - Team insights dashboard
+├─ Avatar (~50) - Avatar with initials fallback
+└─ PeopleDashboard (~150) - Directory container
+
+================================================================================
+UNIFIED COMPONENTS (Design System - unified/ subdirectory)
+================================================================================
+
+8 Reusable Components + Design Patterns:
+
+┌─────────────────────────────┬──────┬────────────────────────────┐
+│ Component                   │ LOC  │ Purpose                    │
+├─────────────────────────────┼──────┼────────────────────────────┤
+│ EmployeeCardUnified         │ 616  │ Flexible card (4 variants) │
+│ BadgeSystem                 │ 254  │ 8 badge types              │
+│ NavigationTabs              │ ~100 │ Tab navigation pattern     │
+│ ModalLayout                 │ 122  │ Modal wrapper              │
+│ EmptyState                  │ ~80  │ Empty state pattern        │
+│ StatCard                    │ ~100 │ Metric display card        │
+│ EmployeeNameLink            │ ~80  │ Smart employee link        │
+└─────────────────────────────┴──────┴────────────────────────────┘
+
+Exported from unified/index.ts with Badge variants & useToast hook
+
+================================================================================
+COMPONENTS BY FEATURE AREA
+================================================================================
+
+360° FEEDBACK MANAGEMENT (5 components):
+├─ Feedback360Dashboard (hub)
+├─ Survey360Wizard (step-by-step builder)
+├─ Quick360Modal (fast creation)
+├─ CreateWithAIModal (AI generation)
+└─ SurveyAIAssistant (AI response help)
+
+EMPLOYEE MANAGEMENT (4 + design system):
+├─ PeopleDashboard (container)
+├─ EmployeeList (search/filter/grid)
+├─ EmployeeDetailModal (profile modal)
+└─ EmployeeCardUnified (card component)
+
+PERFORMANCE & DEVELOPMENT (4 nested modals):
+├─ OneOnOneModal (meeting management)
+├─ RetentionPlanModal (retention strategy)
+├─ CriticalRoleSetupModal (succession planning)
+└─ (all nested in EmployeeDetailModal)
+
+ADMIN & CONFIGURATION (2 components):
+├─ AdminSettings (employee mgmt + questions)
+└─ Dashboard (router with admin view)
+
+UI/NAVIGATION (6 components):
+├─ Dashboard (router)
+├─ Sidebar (nav)
+├─ TopHeader (header)
+├─ Avatar (utility)
+├─ InsightsPanel (dashboard widget)
+└─ AICoachMicroPanel (inline AI)
+
+DESIGN SYSTEM (7 in unified/):
+├─ EmployeeCardUnified
+├─ BadgeSystem (8 variants)
+├─ NavigationTabs
+├─ ModalLayout
+├─ EmptyState
+├─ StatCard
+└─ EmployeeNameLink
+
+================================================================================
+DEPENDENCY GRAPH (Most Connected)
+================================================================================
+
+HUB COMPONENTS:
+1. EmployeeDetailModal ← imports 5+ child modals
+2. Dashboard ← imports all major feature areas
+3. Feedback360Dashboard ← imports wizard & AI modals
+4. EmployeeList ← imports card + detail modal
+
+UNIVERSAL PRIMITIVES:
+• EmployeeNameLink ← imported by 9+ components
+• EmployeeCardUnified ← used throughout app
+• BadgeSystem ← used in 8+ components
+
+CONTEXT PROVIDERS:
+• UnifiedAICoachContext (AICoachMicroPanel)
+• QuickActionContext (EmployeeNameLink)
+• EmployeeFocusContext (EmployeeCardUnified)
+• TalentAppContext (useToast re-export)
+
+================================================================================
+KEY STATISTICS
+================================================================================
+
+SIZE DISTRIBUTION:
+├─ Large (>1500 LOC): 4 components [18.5% of components, 44% of code]
+├─ Medium (500-1500): 7 components [26% of components, 35% of code]
+└─ Small (<500 LOC): 16 components [59% of components, 21% of code]
+
+COMPLEXITY:
+├─ Modal Components: 6 (Dashboard, EmployeeDetailModal, OneOnOneModal, etc.)
+├─ Feature Hubs: 3 (Feedback360Dashboard, EmployeeDetailModal, Dashboard)
+├─ Design System: 7 (unified/ directory)
+└─ Utility/Layout: 11 (navigation, small helpers)
+
+EXTERNAL DEPENDENCIES:
+├─ lucide-react (icons - all components)
+├─ supabase (database - 4 components)
+├─ @dnd-kit (drag-drop - EmployeeCardUnified)
+├─ react hooks (all components)
+└─ react-dom (createPortal - modals)
+
+================================================================================
+REFACTORING OPPORTUNITIES
+================================================================================
+
+DECOMPOSITION (Large Components):
+[1] Feedback360Dashboard (2584 LOC)
+    → Split into: SurveyList, SurveyCreation, SurveyAnalytics tabs
+
+[2] OneOnOneModal (2101 LOC)
+    → Split into: Meeting, Agenda, Notes, Transcript sub-components
+
+[3] EmployeeDetailModal (1834 LOC)
+    → Split into: Overview, Performance, Development, Notes panels
+
+[4] Survey360Wizard (1611 LOC)
+    → Keep modular but extract question selection step
+
+STATE MANAGEMENT:
+• Multiple contexts → Consider unified AppState or reducer
+• Prop drilling 10+ props → Extract to context/reducer
+• Modal state scattered → Consider modal router
+
+TESTING:
+• No test files (jest.config.js unused)
+• Start with unified/ components (snapshot tests)
+• Add integration tests for workflows
+
+================================================================================
+RECOMMENDED REVIEW SEQUENCE (10-Phase Approach)
+================================================================================
+
+PHASE 1 - FOUNDATION (Unified Components):
+1. unified/BadgeSystem.tsx - Base design system
+2. unified/ModalLayout.tsx - Modal foundation
+3. unified/EmployeeCardUnified.tsx - Card variations
+
+PHASE 2 - ROUTING & LAYOUT:
+4. Dashboard.tsx - App router
+5. Sidebar.tsx - Navigation
+6. TopHeader.tsx - Header
+
+PHASE 3 - EMPLOYEE MANAGEMENT:
+7. PeopleDashboard.tsx - Container
+8. EmployeeList.tsx - List view
+9. EmployeeDetailModal.tsx - Profile (COMPLEX)
+
+PHASE 4 - 360 FEEDBACK:
+10. Feedback360Dashboard.tsx - Hub (COMPLEX)
+11. Survey360Wizard.tsx - Builder
+12. Quick360Modal.tsx - Fast path
+
+PHASE 5 - HR WORKFLOWS:
+13. OneOnOneModal.tsx - Meetings (COMPLEX)
+14. RetentionPlanModal.tsx - Retention
+15. CriticalRoleSetupModal.tsx - Succession
+
+PHASE 6 - ADMIN & AI:
+16. AdminSettings.tsx - Configuration
+17. AICoachMicroPanel.tsx - AI integration
+18. CreateWithAIModal.tsx - AI generation
+
+================================================================================
+COMPONENT INTERACTION MAP
+================================================================================
+
+Dashboard (Router)
+├── Sidebar (Navigation)
+├── TopHeader (Header)
+└── View Selection:
+    ├── PeopleDashboard
+    │   └── EmployeeList
+    │       ├── EmployeeCardUnified (variants: grid/list/compact/detailed)
+    │       ├── EmployeeDetailModal
+    │       │   ├── ManagerNotes (notes panel)
+    │       │   ├── OneOnOneModal (from advanced panel)
+    │       │   ├── RetentionPlanModal (from advanced)
+    │       │   ├── CriticalRoleSetupModal (from advanced)
+    │       │   └── Survey360Wizard (from performance)
+    │       └── Quick360Modal (quick survey)
+    │
+    ├── Feedback360Dashboard
+    │   ├── EmployeeCardUnified (preview)
+    │   ├── Survey360Wizard (new survey)
+    │   ├── Quick360Modal (fast create)
+    │   ├── CreateWithAIModal (AI create)
+    │   └── SurveyAIAssistant (AI respond)
+    │
+    ├── AdminSettings
+    │   ├── Employee Manager (search/edit/delete)
+    │   └── 360 Questions Manager (default Q setup)
+    │
+    └── InsightsPanel
+        └── Team Insights (read-only)
+
+AICoachMicroPanel (Appears contextually with suggestions)
+
+================================================================================
+QUICK STATS
+================================================================================
+
+Total Components:        27
+├─ Root level:         19
+├─ Unified/Design:      8
+└─ Admin specific:      0
+
+Total Lines of Code:    ~14,458
+Average Component:      535 LOC
+Largest Component:      2,584 (Feedback360Dashboard)
+Smallest Component:     ~50 (Avatar)
+
+Feature Coverage:       100% (4 major areas)
+Modal Components:       6
+Hub Components:         3
+Design System:          7
+Utils/Helpers:          4
+
+External NPM Deps:      8+
+Custom Contexts:        3+
+Badge Variants:         8
+Card Variants:          4
+
+================================================================================

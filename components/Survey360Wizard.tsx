@@ -639,8 +639,7 @@ export default function Survey360Wizard({
     if (!template) return;
 
     setSelectedTemplate(templateId);
-    setSelectedQuestionIds(template.questionIds);
-    
+
     // Auto-add suggested raters
     const newRaters: Rater[] = [];
     Object.entries(template.suggestedRaters).forEach(([relationship, count]) => {
@@ -826,7 +825,6 @@ export default function Survey360Wizard({
             if (reviewersError) {
               console.error('[DRAFT UPDATE] ERROR inserting reviewers (409 likely):', {
                 error: reviewersError,
-                status: reviewersError.status,
                 code: reviewersError.code,
                 message: reviewersError.message,
                 details: reviewersError.details,

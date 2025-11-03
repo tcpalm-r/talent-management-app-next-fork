@@ -63,6 +63,8 @@ export interface Employee {
   one_on_one_meetings?: OneOnOneMeetingWithDetails[];
   is_critical_role?: boolean;
   critical_role_id?: string;
+  picture?: string | null; // Avatar/profile picture URL
+  notes?: string | null; // General notes about employee
 
   // Job Description fields
   job_description?: string;

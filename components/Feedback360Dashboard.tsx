@@ -28,6 +28,11 @@ interface Survey {
   completed_count?: number;
   created_by?: string;
   reviewers?: any[];
+  flagged_for_admin?: boolean | null;
+  flagged_for_reanalysis?: boolean | null;
+  sent_at?: string | null;
+  completed_at?: string | null;
+  updated_at?: string | null;
 }
 
 interface Reviewer {
@@ -36,7 +41,7 @@ interface Reviewer {
   reviewer_email: string;
   relationship: string;
   status: string;
-  email_sent_at?: string;
+  email_sent_at?: string | null;
 }
 
 export default function Feedback360Dashboard({
@@ -191,7 +196,7 @@ export default function Feedback360Dashboard({
             // Survey created by the leader (must match exactly)
             const isCreator = survey.created_by && (
               survey.created_by === currentUser.id ||
-              survey.created_by === currentUser.email
+              (currentUser.email && survey.created_by === currentUser.email)
             );
             if (isCreator) return true;
 
@@ -221,7 +226,7 @@ export default function Feedback360Dashboard({
             // Survey created by the user (must match exactly)
             const isCreator = survey.created_by && (
               survey.created_by === currentUser.id ||
-              survey.created_by === currentUser.email
+              (currentUser.email && survey.created_by === currentUser.email)
             );
             if (isCreator) return true;
 

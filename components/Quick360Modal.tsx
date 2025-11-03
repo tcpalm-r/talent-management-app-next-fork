@@ -55,7 +55,7 @@ export default function Quick360Modal({
           isEditing: false,
           isCustom: false,
         } satisfies Question;
-      }).filter((q): q is Question => Boolean(q));
+      }).filter(Boolean) as Question[];
 
       setSelectedQuestions((current) => (current.length > 0 ? current : defaults));
       setShowSuggestions(true);

@@ -1,5 +1,7 @@
 import type { ActionItem, ActionItemPriority, Performance, Potential } from '../types';
 
+export type ActionItemStatus = 'completed' | 'overdue' | 'blocked' | 'in_progress' | 'not_started';
+
 interface ActionItemTemplate {
   description: string;
   skillArea: string;

@@ -223,7 +223,7 @@ export async function GET(request: NextRequest) {
       email: user.email,
       full_name: user.full_name,
       app_role: user.app_role || 'user',
-      app_permissions: user.app_permissions || {},
+      app_permissions: (typeof user.app_permissions === 'object' && user.app_permissions !== null ? user.app_permissions : {}) as Record<string, any>,
       department: user.department,
       title: user.title,
     };
