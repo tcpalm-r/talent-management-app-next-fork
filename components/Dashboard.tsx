@@ -39,7 +39,7 @@ export default function Dashboard({
 
   const shellClass = 'mx-auto w-full px-6 lg:px-8 xl:px-12 max-w-screen-2xl 2xl:px-16 2xl:max-w-[1700px]';
 
-  const [currentView, setCurrentView] = useState<View>('directory');
+  const [currentView, setCurrentView] = useState<View>('360-feedback');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
