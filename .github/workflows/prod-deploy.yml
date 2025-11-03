@@ -49,10 +49,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
       - name: Deploy to Vercel (Employee Self-Assessment)
-        uses: vercel/action@v5
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          prod: true
+        run: |
+          vercel deploy \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --org-id=${{ secrets.VERCEL_ORG_ID }} \
+            --project-id=${{ secrets.VERCEL_PROJECT_ID }} \
+            --prod
