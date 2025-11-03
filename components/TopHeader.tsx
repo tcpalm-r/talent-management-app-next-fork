@@ -1,6 +1,5 @@
 'use client';
 
-import { MoreHorizontal } from 'lucide-react';
 import { useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
 import { UserContext } from '@/context/UserContext';
@@ -13,10 +12,8 @@ interface TopHeaderProps {
 }
 
 export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRoleChange }: TopHeaderProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const roleRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
 
@@ -30,9 +27,6 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
       if (roleRef.current && !roleRef.current.contains(event.target as Node)) {
         setRoleOpen(false);
       }
@@ -41,16 +35,11 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
       }
     }
 
-    if (menuOpen || roleOpen || avatarOpen) {
+    if (roleOpen || avatarOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [menuOpen, roleOpen, avatarOpen]);
-
-  const handleMenuToggle = () => {
-    setMenuOpen(!menuOpen);
-    onMenuOpen?.();
-  };
+  }, [roleOpen, avatarOpen]);
 
   return (
     <header className="sticky top-0 z-40 bg-gray-100 border-b border-gray-200">
@@ -104,28 +93,6 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
                   }`}
                 >
                   User
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* More Options Menu */}
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={handleMenuToggle}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
-              title="More options"
-            >
-              <MoreHorizontal className="w-5 h-5" />
-            </button>
-
-            {menuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1">
-                <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
-                  Settings
-                </button>
-                <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
-                  Help & Support
                 </button>
               </div>
             )}
