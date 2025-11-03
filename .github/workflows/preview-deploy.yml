@@ -112,7 +112,7 @@ jobs:
           echo "\`\`\`" >> build-report.md
 
       - name: Upload build report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-report
           path: build-report.md
