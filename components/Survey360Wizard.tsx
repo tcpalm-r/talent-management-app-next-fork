@@ -440,7 +440,7 @@ export default function Survey360Wizard({
       case 'competencies':
         return requiredQuestions.length === 3 && requiredQuestions.every(q => q.trim().length > 0) && questionsConfirmed;
       case 'raters':
-        return raters.length >= 3;
+        return raters.length >= 3 && raters.slice(0, 3).every(r => r.name && r.name.trim().length > 0 && r.email && r.email.trim().length > 0);
       case 'timeline':
         return !!dueDate;
       case 'preview':
@@ -1470,14 +1470,21 @@ export default function Survey360Wizard({
               </button>
 
               {/* Reviewer count validation message */}
-              <div className={`p-4 rounded-lg ${raters.length >= 3 ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
-                <div className={`text-sm font-medium ${raters.length >= 3 ? 'text-green-700' : 'text-blue-700'}`}>
-                  {raters.length >= 3 ? '✓ Minimum reviewers met' : `${3 - raters.length} more reviewers needed`}
-                </div>
-                <div className={`text-xs mt-1 ${raters.length >= 3 ? 'text-green-600' : 'text-blue-600'}`}>
-                  A minimum of 3 reviewers is required to launch this review.
-                </div>
-              </div>
+              {(() => {
+                const validReviewers = raters.slice(0, 3).filter(r => r.name && r.name.trim().length > 0 && r.email && r.email.trim().length > 0).length;
+                const isComplete = raters.length >= 3 && validReviewers === 3;
+
+                return (
+                  <div className={`p-4 rounded-lg ${isComplete ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
+                    <div className={`text-sm font-medium ${isComplete ? 'text-green-700' : 'text-blue-700'}`}>
+                      {isComplete ? '✓ All reviewers complete' : `${3 - validReviewers} reviewer${3 - validReviewers === 1 ? '' : 's'} incomplete`}
+                    </div>
+                    <div className={`text-xs mt-1 ${isComplete ? 'text-green-600' : 'text-blue-600'}`}>
+                      {raters.length < 3 ? `Add ${3 - raters.length} more reviewer${3 - raters.length === 1 ? '' : 's'}.` : `Complete name and email for the first 3 reviewers to proceed. (${validReviewers}/3)`}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
