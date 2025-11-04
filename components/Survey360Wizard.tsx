@@ -1473,10 +1473,6 @@ export default function Survey360Wizard({
           {currentStep === 'timeline' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Set Timeline</h3>
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
                 <input
                   type="date"
