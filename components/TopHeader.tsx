@@ -65,20 +65,35 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
 
   const handleUserSwitch = async (user: User) => {
     try {
+      console.log('[TopHeader] Switching to user:', user.full_name, user.id);
       const response = await fetch('/api/auth/switch-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id }),
       });
 
+      console.log('[TopHeader] API response status:', response.status);
       if (response.ok) {
+        const data = await response.json();
+        console.log('[TopHeader] API response data:', data);
+        console.log('[TopHeader] Setting switched user and reloading...');
         setSwitchedUser(user);
         setUserOpen(false);
+
+        // Check cookies before reload
+        console.log('[TopHeader] Current cookies before reload:', document.cookie);
+
         // Reload page to apply new user context
-        window.location.reload();
+        console.log('[TopHeader] Reloading page in 500ms...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      } else {
+        const error = await response.json();
+        console.error('[TopHeader] API error:', error);
       }
     } catch (error) {
-      console.error('Failed to switch user:', error);
+      console.error('[TopHeader] Failed to switch user:', error);
     }
   };
 
@@ -201,7 +216,8 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
             )}
           </div>
 
-          {/* Role Switcher */}
+          {/* Role Switcher - DISABLED */}
+          {/*
           <div className="relative" ref={roleRef}>
             <button
               onClick={() => setRoleOpen(!roleOpen)}
@@ -249,6 +265,7 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
               </div>
             )}
           </div>
+          */}
 
           {/* Avatar */}
           <div className="relative" ref={avatarRef}>
