@@ -650,7 +650,8 @@ export default function EmployeeDetailModal({
             const hasNotes = Boolean(employee.notes || employee.manager_notes);
             const isPIP = false; // Would check if employee has active PIP
             const isInSuccession = Boolean(employee.is_critical_role || employee.critical_role_id);
-            
+            const isUserRole = currentUser?.role === 'user';
+
             return [
             {
               key: 'details',
@@ -659,6 +660,7 @@ export default function EmployeeDetailModal({
               activeClass: 'bg-gray-600 text-white shadow-md',
               inactiveClass: 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200',
               hasContent: true, // Always has basic details
+              disabled: false,
             },
             {
               key: 'job-description',
@@ -667,6 +669,7 @@ export default function EmployeeDetailModal({
               activeClass: 'bg-indigo-600 text-white shadow-md',
               inactiveClass: 'bg-white text-gray-700 hover:bg-indigo-50 border border-gray-200',
               hasContent: hasJobDescription,
+              disabled: isUserRole,
             },
             {
               key: '360',
@@ -675,6 +678,7 @@ export default function EmployeeDetailModal({
               activeClass: 'bg-purple-600 text-white shadow-md',
               inactiveClass: 'bg-white text-gray-700 hover:bg-purple-50 border border-gray-200',
               hasContent: has360,
+              disabled: isUserRole,
             },
             {
               key: 'perf-review',
@@ -685,6 +689,7 @@ export default function EmployeeDetailModal({
               hasContent: performanceReviews.length > 0,
               badge: performanceReviews.length,
               badgeClass: 'bg-green-500 text-white',
+              disabled: isUserRole,
             },
             {
               key: 'one-on-one',
@@ -695,6 +700,7 @@ export default function EmployeeDetailModal({
               hasContent: hasOneOnOnes,
               badge: employee.one_on_one_meetings?.length || 0,
               badgeClass: 'bg-green-500 text-white',
+              disabled: isUserRole,
             },
             {
               key: 'plan',
@@ -703,6 +709,7 @@ export default function EmployeeDetailModal({
               activeClass: 'bg-blue-600 text-white shadow-md',
               inactiveClass: 'bg-white text-gray-700 hover:bg-blue-50 border border-gray-200',
               hasContent: hasPlan,
+              disabled: isUserRole,
             },
             {
               key: 'notes',
@@ -711,6 +718,7 @@ export default function EmployeeDetailModal({
               activeClass: 'bg-cyan-600 text-white shadow-md',
               inactiveClass: 'bg-white text-gray-700 hover:bg-cyan-50 border border-gray-200',
               hasContent: hasNotes,
+              disabled: isUserRole,
             },
             {
               key: 'pip',
@@ -719,6 +727,7 @@ export default function EmployeeDetailModal({
               activeClass: 'bg-red-600 text-white shadow-md',
               inactiveClass: 'bg-white text-gray-700 hover:bg-red-50 border border-gray-200',
               hasContent: isPIP,
+              disabled: isUserRole,
             },
             {
               key: 'succession',
@@ -727,6 +736,7 @@ export default function EmployeeDetailModal({
               activeClass: 'bg-teal-600 text-white shadow-md',
               inactiveClass: 'bg-white text-gray-700 hover:bg-teal-50 border border-gray-200',
               hasContent: isInSuccession,
+              disabled: isUserRole,
             },
           ];
           })().map((item) => {
@@ -736,6 +746,7 @@ export default function EmployeeDetailModal({
               <button
                 key={item.key}
                 onClick={() => {
+                  if (item.disabled) return;
                   setActiveSubPanel(item.key as any);
                   // Map 'ingest' to 'review' for the content panel
                   const tabToShow = item.key === 'ingest' ? 'review' : item.key;
@@ -743,7 +754,7 @@ export default function EmployeeDetailModal({
                 }}
                 className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all whitespace-nowrap flex items-center gap-2 ${
                   isActive ? item.activeClass : item.inactiveClass
-                } ${!item.hasContent && !isActive ? 'opacity-60' : ''}`}
+                } ${!item.hasContent && !isActive ? 'opacity-60' : ''} ${item.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
               >
                 <Icon className="w-4 h-4" />
                 <span>{item.label}</span>
@@ -857,45 +868,47 @@ export default function EmployeeDetailModal({
                       </div>
                     )}
 
-                    {/* Critical Role Card */}
-                    <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 shadow-sm">
-                      <h3 className="text-sm font-semibold text-amber-900 mb-3 flex items-center gap-2">
-                        <Shield className="h-4 w-4" />
-                        Critical Role Status
-                      </h3>
-                      {employee.is_critical_role ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-xs font-semibold text-amber-800 bg-amber-100 px-3 py-2 rounded-lg border border-amber-300">
-                            <CheckCircle className="h-4 w-4 text-amber-600" />
-                            Designated Critical Role
+                    {/* Critical Role Card - Only show for non-users */}
+                    {currentUser?.role !== 'user' && (
+                      <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 shadow-sm">
+                        <h3 className="text-sm font-semibold text-amber-900 mb-3 flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          Critical Role Status
+                        </h3>
+                        {employee.is_critical_role ? (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-amber-800 bg-amber-100 px-3 py-2 rounded-lg border border-amber-300">
+                              <CheckCircle className="h-4 w-4 text-amber-600" />
+                              Designated Critical Role
+                            </div>
+                            <button
+                              onClick={() => {
+                                if (onUpdateEmployee) {
+                                  onUpdateEmployee({ ...employee, is_critical_role: false, critical_role_id: undefined });
+                                }
+                                notify({ title: 'Removed from critical roles', variant: 'info' });
+                              }}
+                              className="w-full text-xs font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-3 py-2 rounded-lg border border-gray-300 transition-colors"
+                            >
+                              Remove Critical Role Status
+                            </button>
                           </div>
-                          <button
-                            onClick={() => {
-                              if (onUpdateEmployee) {
-                                onUpdateEmployee({ ...employee, is_critical_role: false, critical_role_id: undefined });
-                              }
-                              notify({ title: 'Removed from critical roles', variant: 'info' });
-                            }}
-                            className="w-full text-xs font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-3 py-2 rounded-lg border border-gray-300 transition-colors"
-                          >
-                            Remove Critical Role Status
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-xs text-gray-600 mb-3">
-                            Mark this position as critical to begin succession planning and identify potential successors.
-                          </p>
-                          <button
-                            onClick={() => setIsCriticalRoleSetupOpen(true)}
-                            className="w-full text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                          >
-                            <Shield className="h-4 w-4" />
-                            Mark as Critical Role
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-xs text-gray-600 mb-3">
+                              Mark this position as critical to begin succession planning and identify potential successors.
+                            </p>
+                            <button
+                              onClick={() => setIsCriticalRoleSetupOpen(true)}
+                              className="w-full text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                            >
+                              <Shield className="h-4 w-4" />
+                              Mark as Critical Role
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {analysisResult && (
                       <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 shadow-sm">

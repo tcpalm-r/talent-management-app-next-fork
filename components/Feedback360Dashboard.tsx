@@ -1203,7 +1203,7 @@ export default function Feedback360Dashboard({
       <div className={`grid gap-4 mt-6 ${
         currentUser?.role === 'admin'
           ? 'grid-cols-3 lg:grid-cols-6'
-          : 'grid-cols-2 lg:grid-cols-4'
+          : 'grid-cols-2 lg:grid-cols-5'
       }`}>
         <button
           onClick={() => setFilterStatus('all')}
