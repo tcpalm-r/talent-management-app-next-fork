@@ -1522,7 +1522,7 @@ export default function Feedback360Dashboard({
                   )}
 
                   {/* Delete button - bottom left of card */}
-                  {isCreator && currentUser?.role === 'admin' && (
+                  {(currentUser?.role === 'admin' || isCreator) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -2055,7 +2055,7 @@ export default function Feedback360Dashboard({
                     <Download className="w-4 h-4 mr-2" />
                     Export PDF
                   </button>
-                  {(selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (currentUser?.role === 'admin' || currentUser?.role === 'leader') && (
+                  {(currentUser?.role === 'admin' || ((selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (currentUser?.role === 'admin' || currentUser?.role === 'leader'))) && (
                     <button
                       onClick={() => {
                         deleteInProgressSurvey(selectedSurvey.id);
