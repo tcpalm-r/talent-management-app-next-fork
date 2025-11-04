@@ -44,6 +44,11 @@ interface Reviewer {
   email_sent_at?: string | null;
 }
 
+// Helper function to format relationship display
+const formatRelationship = (relationship: string): string => {
+  return relationship.replace(/_/g, ' ');
+};
+
 export default function Feedback360Dashboard({
   employees,
   departments,
@@ -1900,7 +1905,7 @@ export default function Feedback360Dashboard({
                             </span>
                           </div>
                           <div className="text-xs text-gray-600 mt-1">
-                            {reviewer.reviewer_email} • {reviewer.relationship}
+                            {reviewer.reviewer_email} • {formatRelationship(reviewer.relationship)}
                           </div>
                         </div>
                         {isCreator && (
@@ -2431,7 +2436,7 @@ export default function Feedback360Dashboard({
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded">
-                            {reviewer.relationship}
+                            {formatRelationship(reviewer.relationship)}
                           </span>
                           <span className={`px-2 py-1 text-xs font-medium rounded ${
                             reviewer.status === 'completed'
@@ -2475,7 +2480,7 @@ export default function Feedback360Dashboard({
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded">
-                                  {reviewer?.relationship || 'Unknown'}
+                                  {reviewer?.relationship ? formatRelationship(reviewer.relationship) : 'Unknown'}
                                 </span>
                                 <span className={`px-2 py-1 text-xs font-medium rounded ${
                                   reviewer?.status === 'completed'
