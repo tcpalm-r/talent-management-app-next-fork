@@ -4,7 +4,11 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialize Resend - needed because API key might not be available at build time
+const getResend = () => {
+  const apiKey = process.env.RESEND_API_KEY || 'placeholder-key';
+  return new Resend(apiKey);
+};
 
 // Initialize Supabase client with service role for server-side operations
 // Service role bypasses RLS policies
@@ -110,7 +114,7 @@ export async function POST(request: Request) {
       ? `Reminder: 360° Feedback Due in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} - ${survey.employee?.name || 'Team Member'}`
       : `360° Feedback Request for ${survey.employee?.name || 'Team Member'}`;
 
-    const emailResult = await resend.emails.send({
+    const emailResult = await getResend().emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'feedback@yourdomain.com',
       to: reviewer.reviewer_email,
       subject,
