@@ -1939,13 +1939,27 @@ export default function Feedback360Dashboard({
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  {/* Complete with AI for in_progress - disabled until 70% completion */}
+                  {/* Complete with AI for in_progress - greyed out if below 70% but still clickable */}
                   {selectedSurvey.status === 'in_progress' && (
                     <button
-                      onClick={() => completeSurveyWithAI()}
-                      disabled={isGeneratingAnalysis || ((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1)) < 0.7}
-                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-medium flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={(selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1) < 0.7 ? `${Math.round(((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1)) * 100)}% complete - 70% required` : ''}
+                      onClick={() => {
+                        const completionPercent = (selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1);
+                        if (completionPercent < 0.7) {
+                          notify({
+                            title: 'Cannot Complete Review',
+                            description: 'At least 70% of reviewers must submit their feedback before completing the review.',
+                            variant: 'warning',
+                          });
+                          return;
+                        }
+                        completeSurveyWithAI();
+                      }}
+                      disabled={isGeneratingAnalysis}
+                      className={`px-4 py-2 bg-gradient-to-r rounded-lg transition-colors font-medium flex items-center ${
+                        ((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1)) < 0.7
+                          ? 'from-purple-400 to-blue-400 text-white/80 hover:from-purple-500 hover:to-blue-500'
+                          : 'from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {isGeneratingAnalysis ? (
                         <>
