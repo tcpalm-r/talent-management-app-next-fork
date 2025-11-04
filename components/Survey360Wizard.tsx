@@ -438,7 +438,7 @@ export default function Survey360Wizard({
       case 'who':
         return isBatchMode || !!selectedEmployee;
       case 'competencies':
-        return requiredQuestions.length === 3 && requiredQuestions.every(q => q.trim().length > 0) && questionsConfirmed;
+        return requiredQuestions.length === 3 && requiredQuestions.every(q => q.trim().length > 0);
       case 'raters':
         return raters.length >= 3 && raters.slice(0, 3).every(r => r.name && r.name.trim().length > 0 && r.email && r.email.trim().length > 0);
       case 'timeline':
@@ -451,14 +451,10 @@ export default function Survey360Wizard({
   };
 
   const handleNext = () => {
-    // Prevent advancing past step 2 (competencies) unless questions are confirmed
-    if (currentStep === 'competencies' && !questionsConfirmed) {
-      notify({
-        title: 'Confirm Questions',
-        description: 'Please click "Confirm Questions" before proceeding.',
-        variant: 'error',
-      });
-      return;
+    // Auto-add any pending custom question text when leaving competencies step
+    if (currentStep === 'competencies' && newCustomQuestion.trim()) {
+      setCustomQuestions([...customQuestions, newCustomQuestion.trim()]);
+      setNewCustomQuestion('');
     }
 
     if (currentStepIndex < steps.length - 1) {
@@ -1285,21 +1281,6 @@ export default function Survey360Wizard({
                 </div>
               </div>
 
-              {/* Confirm Questions Button */}
-              <div className="pt-6 border-t border-gray-200 flex justify-end">
-                <button
-                  onClick={() => {
-                    setQuestionsConfirmed(true);
-                  }}
-                  className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                    questionsConfirmed
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  {questionsConfirmed ? '✓ Questions Confirmed' : 'Confirm Questions'}
-                </button>
-              </div>
             </div>
           )}
 
