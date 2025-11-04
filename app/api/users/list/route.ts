@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         id: user.id,
         full_name: user.full_name,
         email: user.email,
-        app_role: user.app_role || 'user',
+        app_role: user.role || 'user', // Use 'role' field (admin/leader/user) not 'app_role'
         department: user.department,
       })),
     });
