@@ -1750,25 +1750,6 @@ export default function Feedback360Dashboard({
                   )}
                 </div>
 
-                {/* Review Requirements */}
-                {selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                    <div className="text-xs text-gray-700">
-                      <div className="font-semibold mb-1">Review Requirements:</div>
-                      <div className="space-y-1">
-                        <div className={`flex items-center gap-2 ${selectedSurvey.reviewers_count! >= 3 ? 'text-green-700' : 'text-orange-700'}`}>
-                          <span className="text-lg">{selectedSurvey.reviewers_count! >= 3 ? '✓' : '○'}</span>
-                          <span>Minimum 3 reviewers to launch ({selectedSurvey.reviewers_count || 0} added)</span>
-                        </div>
-                        <div className={`flex items-center gap-2 ${(selectedSurvey.completed_count! / selectedSurvey.reviewers_count! >= 0.7) ? 'text-green-700' : 'text-orange-700'}`}>
-                          <span className="text-lg">{(selectedSurvey.completed_count! / selectedSurvey.reviewers_count! >= 0.7) ? '✓' : '○'}</span>
-                          <span>70% completion to close ({Math.round((selectedSurvey.completed_count! / selectedSurvey.reviewers_count!) * 100)}% completed)</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {isAddingReviewer && (
                   <div className="bg-blue-50 rounded-lg p-4 mb-3 space-y-3 relative">
                     {/* Relationship dropdown */}
