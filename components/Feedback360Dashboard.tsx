@@ -1955,10 +1955,10 @@ export default function Feedback360Dashboard({
                         completeSurveyWithAI();
                       }}
                       disabled={isGeneratingAnalysis}
-                      className={`px-4 py-2 bg-gradient-to-r rounded-lg transition-colors font-medium flex items-center ${
+                      className={`px-4 py-2 bg-gradient-to-r rounded-lg font-medium flex items-center ${
                         ((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1)) < 0.7
-                          ? 'from-purple-400 to-blue-400 text-white/80 hover:from-purple-500 hover:to-blue-500'
-                          : 'from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
+                          ? 'from-purple-500 to-indigo-600 text-white/70'
+                          : 'from-purple-600 to-indigo-700 text-white'
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {isGeneratingAnalysis ? (
