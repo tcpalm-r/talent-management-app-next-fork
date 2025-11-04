@@ -1482,12 +1482,6 @@ export default function Survey360Wizard({
                   className="px-4 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-900">
-                  <strong>Recommended:</strong> Allow 7-14 days for raters to complete thoughtful feedback.
-                </p>
-              </div>
             </div>
           )}
 
