@@ -1944,7 +1944,8 @@ export default function Feedback360Dashboard({
                     <button
                       onClick={() => {
                         const completionPercent = (selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1);
-                        if (completionPercent < 0.7) {
+                        // Admins can complete at any time, others need 70% completion
+                        if (currentUser?.role !== 'admin' && completionPercent < 0.7) {
                           notify({
                             title: 'Cannot Complete Review',
                             description: 'At least 70% of reviewers must submit their feedback before completing the review.',
@@ -1956,9 +1957,9 @@ export default function Feedback360Dashboard({
                       }}
                       disabled={isGeneratingAnalysis}
                       className={`px-4 py-2 bg-gradient-to-r rounded-lg font-medium flex items-center ${
-                        ((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1)) < 0.7
-                          ? 'from-purple-500 to-indigo-600 text-white/70'
-                          : 'from-purple-600 to-indigo-700 text-white'
+                        currentUser?.role === 'admin' || ((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1)) >= 0.7
+                          ? 'from-purple-600 to-indigo-700 text-white'
+                          : 'from-purple-500 to-indigo-600 text-white/70'
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {isGeneratingAnalysis ? (
