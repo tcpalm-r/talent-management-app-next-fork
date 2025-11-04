@@ -137,10 +137,10 @@ export default function Quick360Modal({
       });
       return;
     }
-    if (reviewers.length === 0) {
+    if (reviewers.length < 3) {
       notify({
-        title: 'Add recipients',
-        description: 'Invite at least one reviewer to send the survey.',
+        title: 'Add more reviewers',
+        description: 'A minimum of 3 reviewers is required to launch this review.',
         variant: 'warning',
       });
       return;
@@ -454,7 +454,7 @@ export default function Quick360Modal({
           </div>
           <button
             onClick={handleSendSurvey}
-            disabled={loading || selectedQuestions.length === 0 || reviewers.length === 0}
+            disabled={loading || selectedQuestions.length === 0 || reviewers.length < 3}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {loading ? (

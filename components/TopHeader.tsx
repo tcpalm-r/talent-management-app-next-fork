@@ -1,8 +1,8 @@
 'use client';
 
-import { MoreHorizontal } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
+import { UserContext } from '@/context/UserContext';
 
 interface TopHeaderProps {
   userProfile: any;
@@ -12,18 +12,21 @@ interface TopHeaderProps {
 }
 
 export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRoleChange }: TopHeaderProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const roleRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
 
+  const userContext = useContext(UserContext);
+  const handleSignOut = async () => {
+    setAvatarOpen(false);
+    if (userContext?.logout) {
+      await userContext.logout();
+    }
+  };
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
       if (roleRef.current && !roleRef.current.contains(event.target as Node)) {
         setRoleOpen(false);
       }
@@ -32,16 +35,11 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
       }
     }
 
-    if (menuOpen || roleOpen || avatarOpen) {
+    if (roleOpen || avatarOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [menuOpen, roleOpen, avatarOpen]);
-
-  const handleMenuToggle = () => {
-    setMenuOpen(!menuOpen);
-    onMenuOpen?.();
-  };
+  }, [roleOpen, avatarOpen]);
 
   return (
     <header className="sticky top-0 z-40 bg-gray-100 border-b border-gray-200">
@@ -100,28 +98,6 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
             )}
           </div>
 
-          {/* More Options Menu */}
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={handleMenuToggle}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
-              title="More options"
-            >
-              <MoreHorizontal className="w-5 h-5" />
-            </button>
-
-            {menuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1">
-                <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
-                  Settings
-                </button>
-                <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
-                  Help & Support
-                </button>
-              </div>
-            )}
-          </div>
-
           {/* Avatar */}
           <div className="relative" ref={avatarRef}>
             <button
@@ -140,7 +116,7 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
               <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-3 px-3">
                 {/* User Info Section */}
                 <div className="mb-3">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3">
                     <Avatar
                       name={userProfile?.full_name}
                       picture={userProfile?.picture}
@@ -155,16 +131,13 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
                       </p>
                     </div>
                   </div>
-                  <button className="w-full text-left text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors mt-2">
-                    View account →
-                  </button>
                 </div>
 
-                {/* Divider */}
-                <div className="border-t border-gray-200 my-2"></div>
-
                 {/* Sign Out */}
-                <button className="w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors font-medium">
+                <button
+                  onClick={handleSignOut}
+                  className="w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors font-medium"
+                >
                   Sign out
                 </button>
               </div>

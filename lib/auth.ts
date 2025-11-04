@@ -303,15 +303,38 @@ export function getClientUser(): SessionUser | null {
 
 /**
  * Logout user (client-side)
+ * Redirects to Sonance hub login page
  */
 export async function logout(): Promise<void> {
   if (typeof window === 'undefined') return;
 
   try {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    window.location.href = '/unauthorized';
+    console.log('[Auth] Initiating logout');
+
+    // Call logout endpoint to clear server-side cookies
+    const response = await fetch('/api/auth/logout', {
+      method: 'POST',
+      redirect: 'follow'
+    });
+
+    // The logout endpoint will redirect to hub login, so we let it complete
+    // If fetch doesn't redirect automatically, redirect manually
+    if (!response.redirected) {
+      // Get the hub URL from the environment or use default
+      const hubUrl = process.env.NEXT_PUBLIC_AI_INTRANET_URL || 'https://aiintranet.sonance.com';
+      const loginUrl = new URL('/login', hubUrl);
+      loginUrl.searchParams.set('returnTo', window.location.origin);
+      loginUrl.searchParams.set('logout', 'true');
+      window.location.href = loginUrl.toString();
+    }
   } catch (error) {
-    console.error('Logout error:', error);
-    window.location.href = '/unauthorized';
+    console.error('[Auth] Logout error:', error);
+
+    // Fallback: Redirect to hub login even if logout endpoint fails
+    const hubUrl = process.env.NEXT_PUBLIC_AI_INTRANET_URL || 'https://aiintranet.sonance.com';
+    const loginUrl = new URL('/login', hubUrl);
+    loginUrl.searchParams.set('returnTo', window.location.origin);
+    loginUrl.searchParams.set('logout', 'true');
+    window.location.href = loginUrl.toString();
   }
 }

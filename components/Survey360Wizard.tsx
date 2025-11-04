@@ -404,6 +404,16 @@ export default function Survey360Wizard({
     }
   }, [shouldAutoLaunch, currentStep, selectedEmployee]);
 
+  // Auto-fill due date with one week from today when arriving at timeline step
+  useEffect(() => {
+    if (currentStep === 'timeline' && !dueDate) {
+      const oneWeekFromNow = new Date();
+      oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
+      const formattedDate = oneWeekFromNow.toISOString().split('T')[0];
+      setDueDate(formattedDate);
+    }
+  }, [currentStep]);
+
   // Filter employees based on search
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
@@ -438,9 +448,9 @@ export default function Survey360Wizard({
       case 'who':
         return isBatchMode || !!selectedEmployee;
       case 'competencies':
-        return requiredQuestions.length === 3 && requiredQuestions.every(q => q.trim().length > 0) && questionsConfirmed;
+        return requiredQuestions.length === 3 && requiredQuestions.every(q => q.trim().length > 0);
       case 'raters':
-        return raters.length >= 1;
+        return raters.length >= 3 && raters.slice(0, 3).every(r => r.name && r.name.trim().length > 0 && r.email && r.email.trim().length > 0);
       case 'timeline':
         return !!dueDate;
       case 'preview':
@@ -451,14 +461,10 @@ export default function Survey360Wizard({
   };
 
   const handleNext = () => {
-    // Prevent advancing past step 2 (competencies) unless questions are confirmed
-    if (currentStep === 'competencies' && !questionsConfirmed) {
-      notify({
-        title: 'Confirm Questions',
-        description: 'Please click "Confirm Questions" before proceeding.',
-        variant: 'error',
-      });
-      return;
+    // Auto-add any pending custom question text when leaving competencies step
+    if (currentStep === 'competencies' && newCustomQuestion.trim()) {
+      setCustomQuestions([...customQuestions, newCustomQuestion.trim()]);
+      setNewCustomQuestion('');
     }
 
     if (currentStepIndex < steps.length - 1) {
@@ -1075,7 +1081,14 @@ export default function Survey360Wizard({
               )}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              Step {currentStepIndex + 1} of {steps.length}: {currentStep === 'raters' ? 'Reviewers' : currentStep.replace('-', ' ')}
+              Step {currentStepIndex + 1} of {steps.length}: {
+                currentStep === 'who' ? 'Subject' :
+                currentStep === 'competencies' ? 'Survey Questions' :
+                currentStep === 'raters' ? 'Reviewers' :
+                currentStep === 'timeline' ? 'Due Date' :
+                currentStep === 'preview' ? 'Preview' :
+                currentStep.replace('-', ' ')
+              }
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -1182,7 +1195,11 @@ export default function Survey360Wizard({
                     <button
                       key={emp.id}
                       onClick={() => setSelectedEmployee(emp)}
-                      className={`text-left p-2.5 rounded-lg border-2 transition-all flex items-center gap-2 ${
+                      onDoubleClick={() => {
+                        setSelectedEmployee(emp);
+                        setCurrentStep('competencies');
+                      }}
+                      className={`text-left p-2.5 rounded-lg border-2 transition-all flex items-center gap-2 cursor-pointer ${
                         selectedEmployee?.id === emp.id
                           ? 'border-blue-500 bg-blue-50 shadow-md'
                           : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
@@ -1211,34 +1228,24 @@ export default function Survey360Wizard({
           {/* Step 2: Questions */}
           {currentStep === 'competencies' && (
             <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Review Questions</h3>
-              </div>
-
               {/* Required Questions */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-gray-900">Required Questions</h4>
-                  {isAdmin && (
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">Set in Admin Settings</span>
-                  )}
+                  <h4 className="font-semibold text-gray-900">Required Questions <span className="text-sm text-gray-600">(Set by Admin)</span></h4>
                 </div>
 
-                {requiredQuestions.map((question, index) => (
-                  <div key={index} className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Question {index + 1} <span className="text-red-500">*</span>
-                    </label>
-                    <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700">
+                <div className="space-y-3">
+                  {requiredQuestions.map((question, index) => (
+                    <div key={index} className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700">
                       {question}
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
               {/* Custom Questions */}
               <div className="space-y-4 pt-4 border-t border-gray-200">
-                <h4 className="font-semibold text-gray-900">Custom Questions (Optional)</h4>
+                <h4 className="font-semibold text-gray-900">Custom Questions <span className="text-sm text-gray-600">(Optional)</span></h4>
 
                 {customQuestions.length > 0 && (
                   <div className="space-y-3">
@@ -1284,21 +1291,6 @@ export default function Survey360Wizard({
                 </div>
               </div>
 
-              {/* Confirm Questions Button */}
-              <div className="pt-6 border-t border-gray-200 flex justify-end">
-                <button
-                  onClick={() => {
-                    setQuestionsConfirmed(true);
-                  }}
-                  className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                    questionsConfirmed
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  {questionsConfirmed ? '✓ Questions Confirmed' : 'Confirm Questions'}
-                </button>
-              </div>
             </div>
           )}
 
@@ -1457,16 +1449,29 @@ export default function Survey360Wizard({
                 <Users className="w-4 h-4" />
                 Add Reviewer
               </button>
+
+              {/* Reviewer count validation message */}
+              {(() => {
+                const validReviewers = raters.slice(0, 3).filter(r => r.name && r.name.trim().length > 0 && r.email && r.email.trim().length > 0).length;
+                const isComplete = raters.length >= 3 && validReviewers === 3;
+
+                return (
+                  <div className={`p-4 rounded-lg ${isComplete ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
+                    <div className={`text-sm font-medium ${isComplete ? 'text-green-700' : 'text-blue-700'}`}>
+                      {isComplete ? '✓ All reviewers complete' : `${3 - validReviewers} reviewer${3 - validReviewers === 1 ? '' : 's'} incomplete`}
+                    </div>
+                    <div className={`text-xs mt-1 ${isComplete ? 'text-green-600' : 'text-blue-600'}`}>
+                      {raters.length < 3 ? `Add ${3 - raters.length} more reviewer${3 - raters.length === 1 ? '' : 's'}.` : `Complete name and email for the first 3 reviewers to proceed. (${validReviewers}/3)`}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
           {/* Step 4: Timeline */}
           {currentStep === 'timeline' && (
             <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Set Timeline</h3>
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
                 <input
