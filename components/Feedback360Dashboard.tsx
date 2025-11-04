@@ -46,7 +46,7 @@ interface Reviewer {
 
 // Helper function to format relationship display
 const formatRelationship = (relationship: string): string => {
-  return relationship.replace(/_/g, ' ');
+  return relationship.replace(/_/g, '-');
 };
 
 export default function Feedback360Dashboard({
