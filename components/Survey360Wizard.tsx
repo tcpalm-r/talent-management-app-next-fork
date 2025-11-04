@@ -404,6 +404,16 @@ export default function Survey360Wizard({
     }
   }, [shouldAutoLaunch, currentStep, selectedEmployee]);
 
+  // Auto-fill due date with one week from today when arriving at timeline step
+  useEffect(() => {
+    if (currentStep === 'timeline' && !dueDate) {
+      const oneWeekFromNow = new Date();
+      oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
+      const formattedDate = oneWeekFromNow.toISOString().split('T')[0];
+      setDueDate(formattedDate);
+    }
+  }, [currentStep]);
+
   // Filter employees based on search
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
