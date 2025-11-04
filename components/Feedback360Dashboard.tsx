@@ -1715,6 +1715,12 @@ export default function Feedback360Dashboard({
               {/* Metadata line */}
               <div className="flex items-center justify-between text-sm text-gray-600 pb-4 border-b border-gray-200">
                 <div className="flex items-center gap-6">
+                  <div>
+                    <span className="text-gray-600">Created: </span>
+                    <span className="text-gray-900">
+                      {selectedSurvey.created_at ? new Date(selectedSurvey.created_at).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
                   {selectedSurvey.due_date && (
                     <div>
                       <span className="text-gray-600">Due Date: </span>
@@ -1723,12 +1729,6 @@ export default function Feedback360Dashboard({
                       </span>
                     </div>
                   )}
-                  <div>
-                    <span className="text-gray-600">Created: </span>
-                    <span className="text-gray-900">
-                      {selectedSurvey.created_at ? new Date(selectedSurvey.created_at).toLocaleDateString() : 'N/A'}
-                    </span>
-                  </div>
                 </div>
                 {getStatusBadge(selectedSurvey.status ?? 'draft', selectedSurvey.flagged_for_admin ?? undefined, selectedSurvey.flagged_for_reanalysis ?? undefined)}
               </div>
