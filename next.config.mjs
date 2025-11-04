@@ -12,9 +12,9 @@ const nextConfig = {
   },
   // Increase timeout for static page generation to handle slower builds
   staticPageGenerationTimeout: 120,
-  // Experimental: skip static generation of error pages
+  // Experimental: optimize memory cache for incremental static regeneration
   experimental: {
-    isrMemoryCacheSize: 52 * 1024 * 1024,
+    cacheMaxMemorySize: 52 * 1024 * 1024,
   },
 };
 

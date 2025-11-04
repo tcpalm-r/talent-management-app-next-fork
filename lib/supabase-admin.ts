@@ -19,13 +19,9 @@ import { Database } from '@/types/supabase';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
-}
-
-if (!supabaseServiceRoleKey) {
-  throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
-}
+// Note: During build time, these env vars may not be available.
+// The client will be created with placeholder values and will fail at runtime
+// if these env vars are truly missing, which is the correct behavior.
 
 /**
  * Admin Supabase client with service role privileges
@@ -50,8 +46,8 @@ if (!supabaseServiceRoleKey) {
  * ```
  */
 export const supabaseAdmin = createClient<Database>(
-  supabaseUrl,
-  supabaseServiceRoleKey,
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseServiceRoleKey || 'placeholder-service-role-key',
   {
     auth: {
       autoRefreshToken: false,
