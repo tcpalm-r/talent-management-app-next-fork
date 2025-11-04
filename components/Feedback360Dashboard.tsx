@@ -1939,13 +1939,13 @@ export default function Feedback360Dashboard({
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  {/* Complete with AI for in_progress when at least 1 reviewer completed */}
-                  {selectedSurvey.status === 'in_progress' &&
-                   (selectedSurvey.completed_count ?? 0) >= 1 && (
+                  {/* Complete with AI for in_progress - disabled until 70% completion */}
+                  {selectedSurvey.status === 'in_progress' && (
                     <button
                       onClick={() => completeSurveyWithAI()}
-                      disabled={isGeneratingAnalysis}
-                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-medium flex items-center disabled:opacity-50"
+                      disabled={isGeneratingAnalysis || ((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1)) < 0.7}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-medium flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={(selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1) < 0.7 ? `${Math.round(((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1)) * 100)}% complete - 70% required` : ''}
                     >
                       {isGeneratingAnalysis ? (
                         <>
