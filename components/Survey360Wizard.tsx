@@ -1242,7 +1242,7 @@ export default function Survey360Wizard({
 
               {/* Custom Questions */}
               <div className="space-y-4 pt-4 border-t border-gray-200">
-                <h4 className="font-semibold text-gray-900">Custom Questions (Optional)</h4>
+                <h4 className="font-semibold text-gray-900">Custom Questions <span className="text-sm text-gray-600">(Optional)</span></h4>
 
                 {customQuestions.length > 0 && (
                   <div className="space-y-3">
