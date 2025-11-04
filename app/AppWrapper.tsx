@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { MOCK_USER } from '@/lib/auth';
+import { getUserProfile } from '@/lib/database';
 import type { User as AppUser, Organization } from '@/types';
 import Dashboard from '@/components/Dashboard';
 import { TalentAppProvider } from '@/context/TalentAppContext';
@@ -54,17 +55,20 @@ export default function AppWrapper() {
       const currentUser = user || MOCK_USER;
       console.log('[AppWrapper] Current user:', { id: currentUser.id, email: currentUser.email });
 
+      // Fetch the latest user profile from the database to get current role
+      const dbProfile = await getUserProfile(currentUser.id);
+
       // Map SessionUser to AppUser format
       const profile: AppUser = {
         id: currentUser.id,
         email: currentUser.email,
         full_name: currentUser.full_name,
-        role: (currentUser.role || currentUser.app_role) as any, // Use role field (for switched users) or fall back to app_role
+        role: (dbProfile?.role || currentUser.role || currentUser.app_role) as any, // Use DB role, then switched role, then app_role
         organization_id: FIXED_ORG_ID
       } as AppUser;
 
       setUserProfile(profile);
-      console.log('[AppWrapper] User profile set');
+      console.log('[AppWrapper] User profile set:', { role: profile.role });
 
       // Load organization
       await loadOrganization();
