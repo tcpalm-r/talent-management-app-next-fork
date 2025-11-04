@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       full_name: user.full_name,
       app_role: user.app_role || 'user',
+      role: user.role || 'user', // Internal 360 Review role (admin/leader/user)
       app_permissions: user.app_permissions || {},
       department: user.department,
       title: user.title,
