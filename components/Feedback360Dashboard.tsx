@@ -1174,28 +1174,30 @@ export default function Feedback360Dashboard({
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => {
-            setPreselectedEmployee(undefined);
-            setIsWizardOpen(true);
-          }}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
-          Create 360° Review
-        </button>
-        <button
-          onClick={() => {
-            setIsAIModalOpen(true);
-          }}
-          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center gap-2"
-          title="Create survey with AI assistance"
-        >
-          <Sparkles className="w-4 h-4" />
-          Create with AI
-        </button>
-      </div>
+      {/* Header - Only show create buttons for Admin and Leader (Sponsors) */}
+      {(currentUser?.role === 'admin' || currentUser?.role === 'leader') && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setPreselectedEmployee(undefined);
+              setIsWizardOpen(true);
+            }}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Create 360° Review
+          </button>
+          <button
+            onClick={() => {
+              setIsAIModalOpen(true);
+            }}
+            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center gap-2"
+            title="Create survey with AI assistance"
+          >
+            <Sparkles className="w-4 h-4" />
+            Create with AI
+          </button>
+        </div>
+      )}
 
       {/* Pipeline Stats with Risk Flags */}
       <div className={`grid gap-4 mt-6 ${
@@ -1217,20 +1219,23 @@ export default function Feedback360Dashboard({
           </div>
         </button>
 
-        <button
-          onClick={() => setFilterStatus('draft')}
-          className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
-            filterStatus === 'draft' ? 'border-gray-500' : 'border-gray-200 hover:border-gray-300'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Drafts</p>
-              <p className="text-2xl font-bold text-gray-700">{stats.draft}</p>
+        {/* Drafts - Only show for Admin and Leader (Sponsors) */}
+        {(currentUser?.role === 'admin' || currentUser?.role === 'leader') && (
+          <button
+            onClick={() => setFilterStatus('draft')}
+            className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
+              filterStatus === 'draft' ? 'border-gray-500' : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Drafts</p>
+                <p className="text-2xl font-bold text-gray-700">{stats.draft}</p>
+              </div>
+              <Clock className="w-8 h-8 text-gray-400" />
             </div>
-            <Clock className="w-8 h-8 text-gray-400" />
-          </div>
-        </button>
+          </button>
+        )}
 
         <button
           onClick={() => setFilterStatus('in_progress')}
@@ -1329,7 +1334,7 @@ export default function Feedback360Dashboard({
                 ? 'No reviews need admin review'
                 : `No reviews ${filterStatus === 'in_progress' ? 'in progress' : filterStatus}`}
             </h3>
-            {filterStatus === 'all' && (
+            {filterStatus === 'all' && (currentUser?.role === 'admin' || currentUser?.role === 'leader') && (
               <>
                 <p className="text-gray-600 mb-6">
                   Create your first 360° feedback review to gather multi-source feedback
