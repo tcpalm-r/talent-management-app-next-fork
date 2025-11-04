@@ -43,10 +43,7 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
 
   return (
     <header className="sticky top-0 z-40 bg-gray-100 border-b border-gray-200">
-      <div className="h-16 px-6 flex items-center justify-center relative">
-        {/* Centered Title */}
-        <h1 className="text-2xl font-semibold text-gray-900">Sonance Talent Management</h1>
-
+      <div className="h-12 px-6 flex items-center justify-end relative">
         {/* Right Section */}
         <div className="flex items-center gap-3 flex-shrink-0 absolute right-6">
           {/* Role Switcher */}
