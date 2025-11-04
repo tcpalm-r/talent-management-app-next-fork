@@ -1228,16 +1228,13 @@ export default function Survey360Wizard({
                   <h4 className="font-semibold text-gray-900">Required Questions <span className="text-sm text-gray-600">(Set by Admin)</span></h4>
                 </div>
 
-                {requiredQuestions.map((question, index) => (
-                  <div key={index} className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Question {index + 1} <span className="text-red-500">*</span>
-                    </label>
-                    <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700">
+                <div className="space-y-3">
+                  {requiredQuestions.map((question, index) => (
+                    <div key={index} className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700">
                       {question}
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
               {/* Custom Questions */}
