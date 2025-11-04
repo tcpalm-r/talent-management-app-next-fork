@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 
+export const dynamic = 'force-dynamic';
+
 const SETTINGS_FILE = path.join(process.cwd(), 'data', '360-default-questions.json');
 const DEFAULT_QUESTIONS = [
   'impact-biggest-impact',

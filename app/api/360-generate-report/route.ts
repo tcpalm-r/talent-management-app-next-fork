@@ -4,6 +4,8 @@ import { analyzeSurvey360Responses } from '@/lib/survey360Analyzer';
 import type { Database } from '@/types/supabase';
 import type { ParticipantRelationship } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * API Route: /api/360-generate-report
  *

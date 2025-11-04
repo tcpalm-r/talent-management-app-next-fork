@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   // Helper function to check if a variable is set
   const isSet = (value: string | undefined): string => {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserProfile } from '@/lib/database';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/auth/switch-user
  *

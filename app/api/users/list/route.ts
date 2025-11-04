@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActiveUsers } from '@/lib/database';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/users/list
  *
