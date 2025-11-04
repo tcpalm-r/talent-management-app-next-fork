@@ -59,7 +59,7 @@ export default function AppWrapper() {
         id: currentUser.id,
         email: currentUser.email,
         full_name: currentUser.full_name,
-        role: currentUser.app_role as any, // Map app_role to role
+        role: (currentUser.role || currentUser.app_role) as any, // Use role field (for switched users) or fall back to app_role
         organization_id: FIXED_ORG_ID
       } as AppUser;
 
