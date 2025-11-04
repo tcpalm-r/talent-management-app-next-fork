@@ -77,7 +77,7 @@ export default function Dashboard({
         manager_name: null,
         title: null,
         location: null,
-        role: (roleOverride || userProfile.role) as any,
+        role: (roleOverride || userProfile.app_role) as any,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -88,7 +88,7 @@ export default function Dashboard({
 
   // Redirect from restricted views if user no longer has access
   useEffect(() => {
-    const currentRole = (roleOverride || userProfile.role)?.toLowerCase();
+    const currentRole = (roleOverride || userProfile.app_role)?.toLowerCase();
 
     if (currentView === 'admin-settings' && currentRole !== 'admin') {
       setCurrentView('360-feedback');
@@ -97,7 +97,7 @@ export default function Dashboard({
     if (currentView === 'insights' && currentRole !== 'admin' && currentRole !== 'leader') {
       setCurrentView('360-feedback');
     }
-  }, [roleOverride, userProfile.role, currentView]);
+  }, [roleOverride, userProfile.app_role, currentView]);
 
   const changeView = useCallback((view: View) => {
     setCurrentView(view);
@@ -265,14 +265,14 @@ export default function Dashboard({
       {/* Top Header */}
       <TopHeader
         userProfile={userProfile}
-        currentRole={roleOverride || userProfile.role}
+        currentRole={roleOverride || userProfile.app_role}
         onRoleChange={setRoleOverride}
       />
 
       {/* Main Content with Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <Sidebar currentView={currentView} onViewChange={changeView} userRole={roleOverride || userProfile.role} />
+        <Sidebar currentView={currentView} onViewChange={changeView} userRole={roleOverride || userProfile.app_role} />
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto">
@@ -304,7 +304,7 @@ export default function Dashboard({
                   departments={departments}
                   employeePlans={employeePlans}
                   onEmployeeUpdate={loadEmployees}
-                  userRole={userProfile.role}
+                  userRole={userProfile.app_role}
                   onPlansUpdate={setEmployeePlans}
                   currentUserName={userProfile.full_name || userProfile.email || 'User'}
                   performanceReviews={performanceReviews}
@@ -325,7 +325,7 @@ export default function Dashboard({
                 <InsightsPanel
                   employees={employees}
                   departments={departments}
-                  userRole={userProfile.role}
+                  userRole={userProfile.app_role}
                   currentUserEmployee={currentUserEmployee}
                   organizationId={organization.id}
                 />
