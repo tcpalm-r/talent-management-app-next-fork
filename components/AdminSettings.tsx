@@ -2,8 +2,8 @@
 
 import { Settings, Pencil, Save, X, User, Shield, HelpCircle, Search, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { getActiveUsers, updateUserProfile, UserProfile } from '../lib/supabase';
-import { QUESTION_LIBRARY, DEFAULT_QUESTION_IDS } from '../lib/feedback360QuestionBank';
+import { getActiveUsers, updateUserProfile, UserProfile } from '@/lib/supabase';
+import { QUESTION_LIBRARY, DEFAULT_QUESTION_IDS } from '@/lib/feedback360QuestionBank';
 
 type EditableEmployee = UserProfile & {
   isEditing?: boolean;

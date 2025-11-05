@@ -8,8 +8,8 @@
 'use client';
 
 import { useContext } from 'react';
-import { UserContext } from '../context/UserContext';
-import type { SessionUser } from '../lib/schema';
+import { UserContext } from '@/context/UserContext';
+import type { SessionUser } from '@/lib/schema';
 
 export function useAuth() {
   const context = useContext(UserContext);

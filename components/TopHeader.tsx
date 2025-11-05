@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
-import { UserContext } from '../context/UserContext';
+import { UserContext } from '@/context/UserContext';
 import { ChevronDown } from 'lucide-react';
 
 interface TopHeaderProps {
