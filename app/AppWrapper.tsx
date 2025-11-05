@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/lib/supabase';
-import { MOCK_USER } from '@/lib/auth';
-import type { User as AppUser, Organization } from '@/types';
-import Dashboard from '@/components/Dashboard';
-import { TalentAppProvider } from '@/context/TalentAppContext';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
+import { MOCK_USER } from '../lib/auth';
+import type { User as AppUser, Organization } from '../types';
+import Dashboard from '../components/Dashboard';
+import { TalentAppProvider } from '../context/TalentAppContext';
 
 // Fixed organization ID (no auth needed)
 const FIXED_ORG_ID = 'f8a8b8c8-d8e8-4f8f-8f8f-8f8f8f8f8f8f';
