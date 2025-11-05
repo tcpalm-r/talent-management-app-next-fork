@@ -277,8 +277,25 @@ export async function exchangeAIIntranetToken(
 export function getClientUser(): SessionUser | null {
   if (typeof window === 'undefined') return null;
 
-  // Dev bypass mode - check for auth-disabled cookie set by middleware
   const cookies = document.cookie.split(';');
+
+  // Check for switched user first (testing purposes)
+  const switchedUserCookie = cookies
+    .find(c => c.trim().startsWith('x-switched-user='))
+    ?.split('=')[1];
+
+  if (switchedUserCookie) {
+    try {
+      console.log('[getClientUser] Found x-switched-user cookie');
+      const switchedUser = JSON.parse(decodeURIComponent(switchedUserCookie));
+      console.log('[getClientUser] Parsed switched user:', switchedUser.email);
+      return switchedUser;
+    } catch (error) {
+      console.error('[getClientUser] Failed to parse x-switched-user cookie:', error);
+    }
+  }
+
+  // Dev bypass mode - check for auth-disabled cookie set by middleware
   const authDisabledCookie = cookies
     .find(c => c.trim().startsWith('x-auth-disabled='))
     ?.split('=')[1];

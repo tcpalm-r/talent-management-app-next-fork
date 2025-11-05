@@ -31,6 +31,63 @@ import type { SessionUser, UserProfile } from './schema';
 export async function getAuthenticatedUser(
   request: NextRequest
 ): Promise<{ user: SessionUser; profile: UserProfile } | null> {
+  // Check for switched user first (from middleware's x-switched-user cookie)
+  const switchedUserHeader = request.headers.get('x-user-data');
+  if (switchedUserHeader) {
+    try {
+      const switchedUser = JSON.parse(switchedUserHeader) as SessionUser;
+      console.log('[auth-wrapper] Using switched user from middleware:', switchedUser.email);
+
+      // Get the profile from Supabase
+      const profile = await getUserProfileByEmail(switchedUser.email);
+      if (profile) {
+        return {
+          user: toSessionUser(profile),
+          profile,
+        };
+      }
+
+      // If not in database, construct profile from switched user data
+      return {
+        user: switchedUser,
+        profile: {
+          ...switchedUser,
+          auth0_id: null,
+          given_name: switchedUser.full_name?.split(' ')[0] || '',
+          family_name: switchedUser.full_name?.split(' ')[1] || '',
+          picture: null,
+          avatar_url: null,
+          global_role: switchedUser.app_role,
+          capabilities: null,
+          local_permissions: null,
+          job_title: switchedUser.title || '',
+          phone: null,
+          location: null,
+          manager_id: null,
+          manager_email: null,
+          employee_number: null,
+          cost_center: null,
+          external_id: null,
+          has_logged_in: true,
+          first_login_at: new Date().toISOString(),
+          last_login_at: new Date().toISOString(),
+          sync_method: 'switched',
+          last_sync: null,
+          is_active: true,
+          scim_active: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          created_by: null,
+          last_updated_by: null,
+          idx: 0,
+          app_access: true,
+        } as UserProfile,
+      };
+    } catch (error) {
+      console.error('[auth-wrapper] Failed to parse switched user:', error);
+    }
+  }
+
   // Dev bypass mode
   if (AUTH_DISABLED) {
     // Try to get mock user from Supabase, or use hardcoded mock

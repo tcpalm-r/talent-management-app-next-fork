@@ -798,3 +798,9 @@ talent-management-next/
 
 Last Updated: 2025-11-03
 Version: 0.2.0 (Component Architecture Analysis Added)
+
+## Important Naming Note
+
+  **Local Directory & GitHub Repository:** `talent-management-next` (https://github.com/tcpalm-r/talent-management-app-next-fork)
+  **Vercel Deployment Project:** `employee-self-assessment` (https://vercel.com/elliottamadors-projects/employee-self-assessment)
+  When working on this project, remember that pushes to the GitHub repo automatically deploy to the employee-self-assessment Vercel project, NOT to a project named talent-management-next.

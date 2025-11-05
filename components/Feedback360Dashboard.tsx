@@ -85,7 +85,7 @@ export default function Feedback360Dashboard({
 
   useEffect(() => {
     loadSurveys();
-  }, [organizationId, currentUser?.id, currentUser?.role]);
+  }, [organizationId, currentUser?.id, currentUser?.app_role]);
 
   // Helper functions to track viewed surveys in localStorage
   const getViewedSurveys = (): Set<string> => {
@@ -182,7 +182,7 @@ export default function Feedback360Dashboard({
 
       // Filter surveys based on user role
       if (currentUser) {
-        const userRole = currentUser.role || 'user';
+        const userRole = currentUser.app_role || 'user';
 
         if (userRole === 'admin') {
           // Admin can see all surveys
@@ -1117,7 +1117,7 @@ export default function Feedback360Dashboard({
 
   const getStatusBadge = (status: string, flaggedForAdmin?: boolean, flaggedForReanalysis?: boolean) => {
     // Show "Needs Reanalysis" badge for flagged surveys
-    if ((flaggedForAdmin || flaggedForReanalysis) && currentUser?.role === 'admin') {
+    if ((flaggedForAdmin || flaggedForReanalysis) && currentUser?.app_role === 'admin') {
       return (
         <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300">
           <AlertTriangle className="w-3 h-3 mr-1" />
@@ -1174,34 +1174,38 @@ export default function Feedback360Dashboard({
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => {
-            setPreselectedEmployee(undefined);
-            setIsWizardOpen(true);
-          }}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
-          Create 360° Review
-        </button>
-        <button
-          onClick={() => {
-            setIsAIModalOpen(true);
-          }}
-          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center gap-2"
-          title="Create survey with AI assistance"
-        >
-          <Sparkles className="w-4 h-4" />
-          Create with AI
-        </button>
-      </div>
+      {/* Header - Only show create buttons for Admin and Leader (Sponsors) */}
+      {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader') && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setPreselectedEmployee(undefined);
+              setIsWizardOpen(true);
+            }}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Create 360° Review
+          </button>
+          <button
+            onClick={() => {
+              setIsAIModalOpen(true);
+            }}
+            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center gap-2"
+            title="Create survey with AI assistance"
+          >
+            <Sparkles className="w-4 h-4" />
+            Create with AI
+          </button>
+        </div>
+      )}
 
       {/* Pipeline Stats with Risk Flags */}
       <div className={`grid gap-4 mt-6 ${
-        currentUser?.role === 'admin'
+        currentUser?.app_role === 'admin'
           ? 'grid-cols-3 lg:grid-cols-6'
-          : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'
+          : currentUser?.app_role === 'leader'
+          ? 'grid-cols-2 lg:grid-cols-5'
+          : 'grid-cols-2 lg:grid-cols-4'
       }`}>
         <button
           onClick={() => setFilterStatus('all')}
@@ -1217,20 +1221,23 @@ export default function Feedback360Dashboard({
           </div>
         </button>
 
-        <button
-          onClick={() => setFilterStatus('draft')}
-          className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
-            filterStatus === 'draft' ? 'border-gray-500' : 'border-gray-200 hover:border-gray-300'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Drafts</p>
-              <p className="text-2xl font-bold text-gray-700">{stats.draft}</p>
+        {/* Drafts - Only show for Admin and Leader (Sponsors) */}
+        {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader') && (
+          <button
+            onClick={() => setFilterStatus('draft')}
+            className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
+              filterStatus === 'draft' ? 'border-gray-500' : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Drafts</p>
+                <p className="text-2xl font-bold text-gray-700">{stats.draft}</p>
+              </div>
+              <Clock className="w-8 h-8 text-gray-400" />
             </div>
-            <Clock className="w-8 h-8 text-gray-400" />
-          </div>
-        </button>
+          </button>
+        )}
 
         <button
           onClick={() => setFilterStatus('in_progress')}
@@ -1273,7 +1280,7 @@ export default function Feedback360Dashboard({
         </button>
 
         {/* Needs Reanalysis - Admin Only */}
-        {currentUser?.role === 'admin' && (
+        {currentUser?.app_role === 'admin' && (
           <button
             onClick={() => setFilterStatus('needs_reanalysis')}
             className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
@@ -1329,7 +1336,7 @@ export default function Feedback360Dashboard({
                 ? 'No reviews need admin review'
                 : `No reviews ${filterStatus === 'in_progress' ? 'in progress' : filterStatus}`}
             </h3>
-            {filterStatus === 'all' && (
+            {filterStatus === 'all' && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader') && (
               <>
                 <p className="text-gray-600 mb-6">
                   Create your first 360° feedback review to gather multi-source feedback
@@ -1515,7 +1522,7 @@ export default function Feedback360Dashboard({
                   )}
 
                   {/* Delete button - bottom left of card */}
-                  {isCreator && currentUser?.role === 'admin' && (
+                  {(currentUser?.app_role === 'admin' || isCreator) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1580,8 +1587,8 @@ export default function Feedback360Dashboard({
       {/* Review Details Modal */}
       {isDetailsModalOpen && selectedSurvey && (() => {
         const isCreator = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
-        const isAdmin = currentUser?.role === 'admin';
-        const isLeader = currentUser?.role === 'leader';
+        const isAdmin = currentUser?.app_role === 'admin';
+        const isLeader = currentUser?.app_role === 'leader';
         const canManage = isCreator || isAdmin || isLeader;
         const isSubject = selectedSurvey.employee_id === currentUser?.id;
         const isReviewer = selectedSurvey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
@@ -1945,7 +1952,7 @@ export default function Feedback360Dashboard({
                       onClick={() => {
                         const completionPercent = (selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1);
                         // Admins can complete at any time, others need 70% completion
-                        if (currentUser?.role !== 'admin' && completionPercent < 0.7) {
+                        if (currentUser?.app_role !== 'admin' && completionPercent < 0.7) {
                           notify({
                             title: 'Cannot Complete Review',
                             description: 'At least 70% of reviewers must submit their feedback before completing the review.',
@@ -1957,7 +1964,7 @@ export default function Feedback360Dashboard({
                       }}
                       disabled={isGeneratingAnalysis}
                       className={`px-4 py-2 bg-gradient-to-r rounded-lg font-medium flex items-center ${
-                        currentUser?.role === 'admin' || ((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1)) >= 0.7
+                        currentUser?.app_role === 'admin' || ((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1)) >= 0.7
                           ? 'from-purple-600 to-indigo-700 text-white'
                           : 'from-purple-500 to-indigo-600 text-white/70'
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -2048,7 +2055,7 @@ export default function Feedback360Dashboard({
                     <Download className="w-4 h-4 mr-2" />
                     Export PDF
                   </button>
-                  {(selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (currentUser?.role === 'admin' || currentUser?.role === 'leader') && (
+                  {(currentUser?.app_role === 'admin' || ((selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader'))) && (
                     <button
                       onClick={() => {
                         deleteInProgressSurvey(selectedSurvey.id);
@@ -2244,7 +2251,7 @@ export default function Feedback360Dashboard({
             {/* Actions Footer - Anchored at bottom */}
             <div className="border-t border-gray-200 bg-white p-6">
               {/* Admin viewing flagged survey - special controls */}
-              {currentUser?.role === 'admin' && (selectedSurvey.flagged_for_admin || selectedSurvey.flagged_for_reanalysis) ? (
+              {currentUser?.app_role === 'admin' && (selectedSurvey.flagged_for_admin || selectedSurvey.flagged_for_reanalysis) ? (
                 <div className="space-y-4">
                   {/* Top row: Admin tools */}
                   <div className="flex items-center justify-between">

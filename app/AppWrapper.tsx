@@ -59,12 +59,12 @@ export default function AppWrapper() {
         id: currentUser.id,
         email: currentUser.email,
         full_name: currentUser.full_name,
-        role: currentUser.app_role as any, // Map app_role to role
+        role: currentUser.app_role as any, // Use app_role field from auth
         organization_id: FIXED_ORG_ID
       } as AppUser;
 
       setUserProfile(profile);
-      console.log('[AppWrapper] User profile set');
+      console.log('[AppWrapper] User profile set:', { role: profile.role });
 
       // Load organization
       await loadOrganization();

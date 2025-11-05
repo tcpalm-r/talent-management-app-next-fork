@@ -12,9 +12,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('[switch-user] Request received');
     const authData = await getAuthenticatedUser(request);
 
     if (!authData?.user) {
+      console.log('[switch-user] Unauthorized - no auth data');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -22,8 +24,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { userId } = await request.json();
+    console.log('[switch-user] Switching to userId:', userId);
 
     if (!userId) {
+      console.log('[switch-user] Error - userId is required');
       return NextResponse.json(
         { error: 'userId is required' },
         { status: 400 }
@@ -34,11 +38,14 @@ export async function POST(request: NextRequest) {
     const user = await getUserProfile(userId);
 
     if (!user) {
+      console.log('[switch-user] Error - User not found:', userId);
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
+
+    console.log('[switch-user] Found user:', user.email);
 
     // Create session user object
     const switchedUser = {
@@ -67,9 +74,11 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
+    console.log('[switch-user] Cookie set for user:', user.email);
+    console.log('[switch-user] Cookie value:', JSON.stringify(switchedUser));
     return response;
   } catch (error) {
-    console.error('[API] Error switching user:', error);
+    console.error('[switch-user] Error switching user:', error);
     return NextResponse.json(
       { error: 'Failed to switch user' },
       { status: 500 }
