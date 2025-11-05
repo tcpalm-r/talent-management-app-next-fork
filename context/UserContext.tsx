@@ -8,8 +8,8 @@
 'use client';
 
 import React, { createContext, useState, useEffect, useCallback } from 'react';
-import { getClientUser, logout as logoutUser } from '@/lib/auth';
-import type { SessionUser } from '@/lib/schema';
+import { getClientUser, logout as logoutUser } from '../lib/auth';
+import type { SessionUser } from '../lib/schema';
 
 // ============================================================================
 // TYPES
