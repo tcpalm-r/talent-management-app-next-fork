@@ -8,4 +8,6 @@ if [ -f .env.local ]; then
 fi
 
 # Start the dev server with any passed flags
-next dev -p 3004 "$@"
+# Use PORT env var if set, otherwise default to 3004
+PORT=${PORT:-3004}
+next dev -p "$PORT" "$@"
