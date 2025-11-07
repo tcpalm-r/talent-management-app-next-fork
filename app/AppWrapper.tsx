@@ -60,6 +60,7 @@ export default function AppWrapper() {
         email: currentUser.email,
         full_name: currentUser.full_name,
         role: currentUser.app_role as any, // Use app_role field from auth
+        app_role: currentUser.app_role as any, // Also set app_role for Dashboard/Sidebar
         organization_id: FIXED_ORG_ID
       } as AppUser;
 

@@ -25,6 +25,7 @@ export interface User {
   email: string;
   full_name: string | null;
   role: UserRole;
+  app_role?: EmployeeRole; // Role for app permissions (admin, leader, user)
   created_at: string;
   updated_at: string;
 }
