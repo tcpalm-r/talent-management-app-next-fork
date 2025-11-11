@@ -120,8 +120,13 @@ export default function Survey360Wizard({
   const [questionsConfirmed, setQuestionsConfirmed] = useState(false);
   const [newlyAddedRaterIndex, setNewlyAddedRaterIndex] = useState<number | null>(null);
   const [highlightedEmployeeIndex, setHighlightedEmployeeIndex] = useState<number>(-1);
+  const [highlightedEmployeeListIndex, setHighlightedEmployeeListIndex] = useState<number>(-1);
   const raterInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
   const employeeListRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
+  const employeeSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const customQuestionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const employeeListContainerRef = useRef<HTMLDivElement | null>(null);
+  const modalContentRef = useRef<HTMLDivElement | null>(null);
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -439,6 +444,150 @@ export default function Survey360Wizard({
     }
   }, [showRaterPicker]);
 
+  // Reset employee list highlight when step changes away from 'who'
+  useEffect(() => {
+    if (currentStep !== 'who') {
+      setHighlightedEmployeeListIndex(-1);
+    }
+  }, [currentStep]);
+
+  // Auto-scroll to bottom when on step 3 (raters) to ensure bottom content is visible
+  useEffect(() => {
+    if (currentStep === 'raters' && modalContentRef.current) {
+      // Small delay to ensure DOM has updated
+      setTimeout(() => {
+        if (modalContentRef.current) {
+          modalContentRef.current.scrollTo({
+            top: modalContentRef.current.scrollHeight,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  }, [currentStep, raters.length]);
+
+  // Auto-focus input when step changes
+  useEffect(() => {
+    // Small delay to ensure the DOM has updated
+    setTimeout(() => {
+      if (currentStep === 'who' && employeeSearchInputRef.current) {
+        employeeSearchInputRef.current.focus();
+      } else if (currentStep === 'raters') {
+        // Focus first rater input if it exists, otherwise add one and focus it
+        if (raters.length === 0) {
+          const newIndex = 0;
+          setRaters([{ name: '', email: '', relationship: 'peer' }]);
+          setNewlyAddedRaterIndex(newIndex);
+        } else {
+          // Find first rater without name/email (empty rater)
+          const firstEmptyRaterIndex = raters.findIndex(r => !r.name && !r.email);
+          if (firstEmptyRaterIndex >= 0) {
+            const firstInput = raterInputRefs.current[firstEmptyRaterIndex];
+            if (firstInput) {
+              firstInput.focus();
+              setShowRaterPicker(firstEmptyRaterIndex);
+              // Highlight first employee if available
+              const filtered = employees.filter(emp =>
+                emp.name.toLowerCase().includes(raterSearch.toLowerCase()) ||
+                emp.title?.toLowerCase().includes(raterSearch.toLowerCase()) ||
+                emp.email?.toLowerCase().includes(raterSearch.toLowerCase())
+              );
+              if (filtered.length > 0) {
+                setHighlightedEmployeeIndex(0);
+              }
+            }
+          }
+        }
+      }
+    }, 0);
+  }, [currentStep, raters.length, employees, raterSearch]);
+
+
+  // Capture keyboard input when on relevant steps and input is not focused
+  useEffect(() => {
+    if (!isOpen || (currentStep !== 'who' && currentStep !== 'competencies' && currentStep !== 'raters')) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Determine which input/textarea should be focused based on current step
+      let targetElement: HTMLInputElement | HTMLTextAreaElement | null = null;
+      let setValue: ((value: string) => void) | null = null;
+      let getValue: (() => string) | null = null;
+
+      if (currentStep === 'who') {
+        targetElement = employeeSearchInputRef.current;
+        setValue = (value: string) => setEmployeeSearch(value);
+        getValue = () => employeeSearch;
+      } else if (currentStep === 'competencies') {
+        targetElement = customQuestionTextareaRef.current;
+        setValue = (value: string) => setNewCustomQuestion(value);
+        getValue = () => newCustomQuestion;
+      } else if (currentStep === 'raters') {
+        // For raters, focus the first empty rater input (one without name/email)
+        const firstEmptyRaterIndex = raters.findIndex(r => !r.name && !r.email);
+        if (firstEmptyRaterIndex >= 0) {
+          const firstInput = raterInputRefs.current[firstEmptyRaterIndex];
+          if (firstInput) {
+            targetElement = firstInput;
+            setValue = (value: string) => setRaterSearch(value);
+            getValue = () => raterSearch;
+          }
+        }
+      }
+
+      // Don't capture if target element doesn't exist
+      if (!targetElement) {
+        return;
+      }
+
+      // Don't capture if any input, textarea, or contenteditable element is already focused
+      const activeElement = document.activeElement;
+      if (
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement ||
+        activeElement?.getAttribute('contenteditable') === 'true'
+      ) {
+        return;
+      }
+
+      // Don't capture special keys or modifier combinations
+      if (
+        e.ctrlKey ||
+        e.metaKey ||
+        e.altKey ||
+        e.key === 'Tab' ||
+        e.key === 'Escape' ||
+        e.key === 'Enter' ||
+        e.key === 'Backspace' ||
+        e.key === 'Delete' ||
+        e.key.length > 1 // Function keys, arrows, etc.
+      ) {
+        return;
+      }
+
+      // If it's a printable character (including Shift+letter), focus the input and append it
+      if (e.key.length === 1 && setValue && getValue) {
+        e.preventDefault();
+        e.stopPropagation();
+        targetElement.focus();
+        // Append the typed character
+        setValue(getValue() + e.key);
+        
+        // For raters step, also show the picker for the first empty rater
+        if (currentStep === 'raters') {
+          const firstEmptyRaterIndex = raters.findIndex(r => !r.name && !r.email);
+          if (firstEmptyRaterIndex >= 0) {
+            setShowRaterPicker(firstEmptyRaterIndex);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentStep, isOpen, employeeSearch, newCustomQuestion, raterSearch, raters]);
+
   // Filter employees based on search
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
@@ -507,6 +656,7 @@ export default function Survey360Wizard({
         break;
       case 'Enter':
         e.preventDefault();
+        e.stopPropagation(); // Prevent global Enter handler from firing
         if (highlightedEmployeeIndex >= 0 && highlightedEmployeeIndex < filtered.length) {
           selectEmployeeAsRater(filtered[highlightedEmployeeIndex], index);
         }
@@ -523,7 +673,7 @@ export default function Survey360Wizard({
   const canProceed = () => {
     switch (currentStep) {
       case 'who':
-        return isBatchMode || !!selectedEmployee;
+        return isBatchMode || !!selectedEmployee || (highlightedEmployeeListIndex >= 0 && filteredEmployees.length > 0);
       case 'competencies':
         return requiredQuestions.length === 3 && requiredQuestions.every(q => q.trim().length > 0);
       case 'raters':
@@ -538,6 +688,14 @@ export default function Survey360Wizard({
   };
 
   const handleNext = () => {
+    // Auto-select highlighted employee if one is highlighted but not selected (for 'who' step)
+    if (currentStep === 'who' && !selectedEmployee && highlightedEmployeeListIndex >= 0 && filteredEmployees.length > 0) {
+      const highlightedEmployee = filteredEmployees[highlightedEmployeeListIndex];
+      if (highlightedEmployee) {
+        setSelectedEmployee(highlightedEmployee);
+      }
+    }
+
     // Auto-add any pending custom question text when leaving competencies step
     if (currentStep === 'competencies' && newCustomQuestion.trim()) {
       setCustomQuestions([...customQuestions, newCustomQuestion.trim()]);
@@ -554,6 +712,51 @@ export default function Survey360Wizard({
       setCurrentStep(steps[currentStepIndex - 1]);
     }
   };
+
+  // Global Enter key handler to advance when Next button is enabled
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEnterKey = (e: KeyboardEvent) => {
+      // Don't handle Enter if user is typing in a textarea (multi-line input)
+      const activeElement = document.activeElement;
+      const isTextarea = activeElement && activeElement.tagName === 'TEXTAREA' && (activeElement as HTMLTextAreaElement).rows > 1;
+
+      // Don't handle Enter if modifier keys are pressed
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
+        return;
+      }
+
+      // Don't handle Enter if we're in a textarea (multi-line input)
+      if (isTextarea) {
+        return;
+      }
+
+      // Only handle Enter if Next button is enabled and not on last step
+      if (e.key === 'Enter' && canProceed() && currentStepIndex < steps.length - 1) {
+        // Don't interfere with step 1's Enter handler (it selects employee)
+        if (currentStep === 'who' && activeElement === employeeSearchInputRef.current) {
+          // Step 1 has its own Enter handler, so don't interfere
+          return;
+        }
+
+        // Don't interfere with step 3's Enter handler when rater picker is open
+        if (currentStep === 'raters' && showRaterPicker !== null && activeElement && activeElement.tagName === 'INPUT') {
+          // Step 3 has its own Enter handler for selecting reviewers, so don't interfere
+          return;
+        }
+
+        // For other cases, advance to next step
+        e.preventDefault();
+        handleNext();
+      }
+    };
+
+    window.addEventListener('keydown', handleEnterKey);
+    return () => {
+      window.removeEventListener('keydown', handleEnterKey);
+    };
+  }, [isOpen, currentStep, currentStepIndex, steps, selectedEmployee, highlightedEmployeeListIndex, filteredEmployees, isBatchMode, requiredQuestions, raters, dueDate, showRaterPicker]);
 
   const handleClose = async () => {
     // Skip auto-save if we're editing an existing draft (user will click "Launch" to save changes)
@@ -866,6 +1069,8 @@ export default function Survey360Wizard({
 
             // Send invitation emails to each reviewer (with delay to avoid rate limiting)
             if (insertedReviewers && insertedReviewers.length > 0) {
+              const emailErrors: Array<{ email: string; error: string }> = [];
+              
               for (let i = 0; i < insertedReviewers.length; i++) {
                 const reviewer = insertedReviewers[i];
                 try {
@@ -879,17 +1084,62 @@ export default function Survey360Wizard({
                   });
 
                   if (!response.ok) {
-                    const error = await response.json();
-                    console.error(`Failed to send email to ${reviewer.reviewer_email}:`, error);
+                    let errorData;
+                    try {
+                      errorData = await response.json();
+                    } catch (parseError) {
+                      // If response isn't JSON, use status text
+                      const statusText = response.statusText || 'Unknown error';
+                      console.error(`Failed to send email to ${reviewer.reviewer_email}:`, {
+                        status: response.status,
+                        statusText,
+                        parseError,
+                      });
+                      emailErrors.push({
+                        email: reviewer.reviewer_email,
+                        error: `HTTP ${response.status}: ${statusText}`,
+                      });
+                      continue;
+                    }
+                    
+                    const errorMessage = errorData.details || errorData.error || 'Unknown error';
+                    const errorHint = errorData.hint || '';
+                    
+                    console.error(`Failed to send email to ${reviewer.reviewer_email}:`, {
+                      status: response.status,
+                      error: errorData,
+                      fullResponse: errorData,
+                    });
+                    emailErrors.push({
+                      email: reviewer.reviewer_email,
+                      error: errorHint ? `${errorMessage} (${errorHint})` : errorMessage,
+                    });
                   }
 
                   // Add 600ms delay between emails to respect rate limit (2 per second)
                   if (i < insertedReviewers.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 600));
                   }
-                } catch (error) {
+                } catch (error: any) {
                   console.error(`Error sending email to ${reviewer.reviewer_email}:`, error);
+                  emailErrors.push({
+                    email: reviewer.reviewer_email,
+                    error: error.message || 'Network error occurred',
+                  });
                 }
+              }
+
+              // Show error notification if any emails failed
+              if (emailErrors.length > 0) {
+                const errorCount = emailErrors.length;
+                const totalCount = insertedReviewers.length;
+                notify({
+                  title: `Failed to send ${errorCount} of ${totalCount} email${errorCount > 1 ? 's' : ''}`,
+                  description: emailErrors.length <= 3 
+                    ? emailErrors.map(e => `${e.email}: ${e.error}`).join('; ')
+                    : `${errorCount} emails failed. Check console for details.`,
+                  variant: 'error',
+                });
               }
 
               // Update survey status to 'in_progress' after emails are sent
@@ -1006,6 +1256,8 @@ export default function Survey360Wizard({
 
               // Send invitation emails to each reviewer (with delay to avoid rate limiting)
               if (insertedReviewers && insertedReviewers.length > 0) {
+                const emailErrors: Array<{ email: string; error: string }> = [];
+                
                 for (let i = 0; i < insertedReviewers.length; i++) {
                   const reviewer = insertedReviewers[i];
                   try {
@@ -1019,17 +1271,62 @@ export default function Survey360Wizard({
                     });
 
                     if (!response.ok) {
-                      const error = await response.json();
-                      console.error(`Failed to send email to ${reviewer.reviewer_email}:`, error);
+                      let errorData;
+                      try {
+                        errorData = await response.json();
+                      } catch (parseError) {
+                        // If response isn't JSON, use status text
+                        const statusText = response.statusText || 'Unknown error';
+                        console.error(`Failed to send email to ${reviewer.reviewer_email}:`, {
+                          status: response.status,
+                          statusText,
+                          parseError,
+                        });
+                        emailErrors.push({
+                          email: reviewer.reviewer_email,
+                          error: `HTTP ${response.status}: ${statusText}`,
+                        });
+                        continue;
+                      }
+                      
+                      const errorMessage = errorData.details || errorData.error || 'Unknown error';
+                      const errorHint = errorData.hint || '';
+                      
+                      console.error(`Failed to send email to ${reviewer.reviewer_email}:`, {
+                        status: response.status,
+                        error: errorData,
+                        fullResponse: errorData,
+                      });
+                      emailErrors.push({
+                        email: reviewer.reviewer_email,
+                        error: errorHint ? `${errorMessage} (${errorHint})` : errorMessage,
+                      });
                     }
 
                     // Add 600ms delay between emails to respect rate limit (2 per second)
                     if (i < insertedReviewers.length - 1) {
                       await new Promise(resolve => setTimeout(resolve, 600));
                     }
-                  } catch (error) {
+                  } catch (error: any) {
                     console.error(`Error sending email to ${reviewer.reviewer_email}:`, error);
+                    emailErrors.push({
+                      email: reviewer.reviewer_email,
+                      error: error.message || 'Network error occurred',
+                    });
                   }
+                }
+
+                // Show error notification if any emails failed
+                if (emailErrors.length > 0) {
+                  const errorCount = emailErrors.length;
+                  const totalCount = insertedReviewers.length;
+                  notify({
+                    title: `Failed to send ${errorCount} of ${totalCount} email${errorCount > 1 ? 's' : ''}`,
+                    description: emailErrors.length <= 3 
+                      ? emailErrors.map(e => `${e.email}: ${e.error}`).join('; ')
+                      : `${errorCount} emails failed. Check console for details.`,
+                    variant: 'error',
+                  });
                 }
 
                 // Update survey status to 'in_progress' after emails are sent
@@ -1113,7 +1410,7 @@ export default function Survey360Wizard({
                 currentStep === 'raters' ? 'Reviewers' :
                 currentStep === 'timeline' ? 'Due Date' :
                 currentStep === 'preview' ? 'Preview' :
-                currentStep.replace('-', ' ')
+                String(currentStep).replace('-', ' ')
               }
             </p>
           </div>
@@ -1166,7 +1463,7 @@ export default function Survey360Wizard({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div ref={modalContentRef} className="flex-1 overflow-y-auto p-6">
           {/* Step 1: Who */}
           {currentStep === 'who' && (
             <div className="space-y-6">
@@ -1202,20 +1499,73 @@ export default function Survey360Wizard({
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
+                  ref={employeeSearchInputRef}
                   type="text"
                   value={employeeSearch}
-                  onChange={(e) => setEmployeeSearch(e.target.value)}
+                  onChange={(e) => {
+                    setEmployeeSearch(e.target.value);
+                    setHighlightedEmployeeListIndex(-1); // Reset highlight when typing
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      if (filteredEmployees.length > 0) {
+                        const nextIndex = highlightedEmployeeListIndex < filteredEmployees.length - 1
+                          ? highlightedEmployeeListIndex + 1
+                          : 0;
+                        setHighlightedEmployeeListIndex(nextIndex);
+                        // Scroll into view
+                        setTimeout(() => {
+                          const button = employeeListRefs.current[nextIndex];
+                          if (button && employeeListContainerRef.current) {
+                            button.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                          }
+                        }, 0);
+                      }
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      if (filteredEmployees.length > 0) {
+                        const prevIndex = highlightedEmployeeListIndex > 0
+                          ? highlightedEmployeeListIndex - 1
+                          : filteredEmployees.length - 1;
+                        setHighlightedEmployeeListIndex(prevIndex);
+                        // Scroll into view
+                        setTimeout(() => {
+                          const button = employeeListRefs.current[prevIndex];
+                          if (button && employeeListContainerRef.current) {
+                            button.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                          }
+                        }, 0);
+                      }
+                    } else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (highlightedEmployeeListIndex >= 0 && filteredEmployees.length > 0) {
+                        // Select highlighted employee and advance
+                        const highlightedEmployee = filteredEmployees[highlightedEmployeeListIndex];
+                        if (highlightedEmployee) {
+                          setSelectedEmployee(highlightedEmployee);
+                          setCurrentStep('competencies');
+                        }
+                      } else if (selectedEmployee) {
+                        // If an employee is already selected, just advance
+                        setCurrentStep('competencies');
+                      }
+                    }
+                  }}
                   placeholder="Search by name, title, or email..."
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               {/* Employee Selection */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-80 overflow-y-auto">
+              <div ref={employeeListContainerRef} className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-80 overflow-y-auto">
                 {filteredEmployees.length > 0 ? (
-                  filteredEmployees.map(emp => (
+                  filteredEmployees.map((emp, index) => (
                     <button
                       key={emp.id}
+                      ref={(el) => {
+                        employeeListRefs.current[index] = el;
+                      }}
                       onClick={() => setSelectedEmployee(emp)}
                       onDoubleClick={() => {
                         setSelectedEmployee(emp);
@@ -1224,6 +1574,8 @@ export default function Survey360Wizard({
                       className={`text-left p-2.5 rounded-lg border-2 transition-all flex items-center gap-2 cursor-pointer ${
                         selectedEmployee?.id === emp.id
                           ? 'border-blue-500 bg-blue-50 shadow-md'
+                          : highlightedEmployeeListIndex === index
+                          ? 'border-blue-400 bg-blue-100 shadow-sm'
                           : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
                       }`}
                     >
@@ -1291,6 +1643,7 @@ export default function Survey360Wizard({
 
                 <div className="space-y-2">
                   <textarea
+                    ref={customQuestionTextareaRef}
                     value={newCustomQuestion}
                     onChange={(e) => setNewCustomQuestion(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1398,16 +1751,6 @@ export default function Survey360Wizard({
                               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
                             />
                           </div>
-                          <button
-                            onClick={() => {
-                              setShowRaterPicker(index);
-                              setRaterSearch('');
-                            }}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                            title="Select different employee"
-                          >
-                            <User className="w-4 h-4" />
-                          </button>
                         </div>
                       )}
 
@@ -1512,10 +1855,7 @@ export default function Survey360Wizard({
                 return (
                   <div className={`p-4 rounded-lg ${isComplete ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
                     <div className={`text-sm font-medium ${isComplete ? 'text-green-700' : 'text-blue-700'}`}>
-                      {isComplete ? '✓ All reviewers complete' : `${3 - validReviewers} reviewer${3 - validReviewers === 1 ? '' : 's'} incomplete`}
-                    </div>
-                    <div className={`text-xs mt-1 ${isComplete ? 'text-green-600' : 'text-blue-600'}`}>
-                      {raters.length < 3 ? `Add ${3 - raters.length} more reviewer${3 - raters.length === 1 ? '' : 's'}.` : `Complete name and email for the first 3 reviewers to proceed. (${validReviewers}/3)`}
+                      {isComplete ? '✓ All reviewers complete' : 'Add at least 3 reviewers.'}
                     </div>
                   </div>
                 );
