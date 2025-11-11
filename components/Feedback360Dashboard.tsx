@@ -220,9 +220,9 @@ export default function Feedback360Dashboard({
             // Draft surveys should only be visible to their sponsor
             if (survey.status === 'draft') return false;
 
-            // Survey about the user themselves
+            // Survey about the user themselves (only finalized surveys)
             const isReviewee = survey.employee_id && survey.employee_id === currentUser.id;
-            if (isReviewee) return true;
+            if (isReviewee && survey.status === 'finalized') return true;
 
             // Survey where user is a reviewer (check email match)
             const isReviewer = currentUser.email ? survey.reviewers?.some((r: any) =>
@@ -1343,7 +1343,7 @@ export default function Feedback360Dashboard({
             return (
               <div
                 key={survey.id}
-                className="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+                className="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer relative"
                 onClick={() => {
                   // If it's a draft and user is the sponsor, open wizard to edit/launch
                   if (survey.status === 'draft' && isSponsor) {
@@ -1354,8 +1354,8 @@ export default function Feedback360Dashboard({
                       setPreselectedEmployee(employee);
                     }
                     setIsWizardOpen(true);
-                  } else if (survey.status === 'completed' && hasSurveyBeenViewed(survey.id)) {
-                    // If it's a completed survey that has been viewed before, go straight to results
+                  } else if (survey.status === 'finalized' && hasSurveyBeenViewed(survey.id)) {
+                    // If it's a finalized survey that has been viewed before, go straight to results
                     loadAndShowResults(survey);
                   } else {
                     // Open details modal for other statuses
@@ -1395,7 +1395,7 @@ export default function Feedback360Dashboard({
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center flex-wrap gap-2 mb-2">
+                    <div className="flex items-center flex-wrap gap-2 mb-4">
                       <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 leading-tight">
                         360° Review -
                         <Avatar
@@ -1424,27 +1424,6 @@ export default function Feedback360Dashboard({
                       )}
                     </div>
 
-                    {/* Complete Review Button for Reviewers */}
-                    {isReviewer && (() => {
-                      const myReviewerRecord = survey.reviewers?.find((r: any) =>
-                        r.reviewer_email === currentUser?.email
-                      );
-                      const isCompleted = myReviewerRecord?.status === 'completed';
-
-                      return !isCompleted && myReviewerRecord?.access_token ? (
-                        <a
-                          href={`/survey/complete/${myReviewerRecord.access_token}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg mb-3"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Complete your review
-                        </a>
-                      ) : null;
-                    })()}
-
                   <div className="flex items-center space-x-4 text-sm">
                     <div className="flex items-center">
                       <span className="text-gray-500">Reviewers:</span>
@@ -1460,6 +1439,27 @@ export default function Feedback360Dashboard({
                       </div>
                     )}
                   </div>
+
+                  {/* Complete Review Button for Reviewers */}
+                  {isReviewer && (() => {
+                    const myReviewerRecord = survey.reviewers?.find((r: any) =>
+                      r.reviewer_email === currentUser?.email
+                    );
+                    const isCompleted = myReviewerRecord?.status === 'completed';
+
+                    return !isCompleted && myReviewerRecord?.access_token ? (
+                      <a
+                        href={`/survey/complete/${myReviewerRecord.access_token}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg mt-4"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Complete your review
+                      </a>
+                    ) : null;
+                  })()}
                   {survey.status === 'active' && (survey.reviewers_count ?? 0) > 0 && (
                     <div className="mt-3">
                       <div className="flex items-center justify-between mb-1">
@@ -1497,20 +1497,6 @@ export default function Feedback360Dashboard({
                       </div>
                     </div>
                   )}
-
-                  {/* Delete button - bottom left of card */}
-                  {(currentUser?.app_role === 'admin' || isSponsor) && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteInProgressSurvey(survey.id);
-                      }}
-                      className="mt-4 text-red-600 hover:text-red-700 transition-colors text-sm font-medium"
-                      title="Delete this review"
-                    >
-                      Delete
-                    </button>
-                  )}
                 </div>
 
                 {/* Right side: Status badge and actions */}
@@ -1533,6 +1519,20 @@ export default function Feedback360Dashboard({
                   )}
 
                 </div>
+
+                {/* Delete button - bottom right of card */}
+                {(currentUser?.app_role === 'admin' || isSponsor) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteInProgressSurvey(survey.id);
+                    }}
+                    className="absolute bottom-6 right-6 mt-4 text-red-600 hover:text-red-700 transition-colors text-sm font-medium"
+                    title="Delete this review"
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -1593,7 +1593,9 @@ export default function Feedback360Dashboard({
                         <span className="ml-2 text-sm text-gray-600">• {selectedSurvey.employee.title}</span>
                       )}
                     </div>
-                    {getStatusBadge(selectedSurvey.status || 'unknown', selectedSurvey.flagged_for_admin ?? undefined, selectedSurvey.flagged_for_reanalysis ?? undefined)}
+                    <div className="mt-2">
+                      {getStatusBadge(selectedSurvey.status || 'unknown', selectedSurvey.flagged_for_admin ?? undefined, selectedSurvey.flagged_for_reanalysis ?? undefined)}
+                    </div>
                   </div>
                   <button
                     onClick={() => setIsDetailsModalOpen(false)}
@@ -1641,13 +1643,51 @@ export default function Feedback360Dashboard({
                     <h4 className="text-sm font-semibold text-gray-900 mb-3">
                       Reviewers ({selectedSurvey.completed_count}/{selectedSurvey.reviewers_count} completed)
                     </h4>
+                    {/* Only show reviewers list to admin or sponsor */}
+                    {(isAdmin || isSponsor) && (
+                      <div className="bg-gray-50 rounded-lg p-4 space-y-2 max-h-[240px] overflow-y-auto">
+                        {surveyReviewers.length === 0 ? (
+                          <p className="text-sm text-gray-500 text-center py-2">No reviewers added yet</p>
+                        ) : (
+                          surveyReviewers.map((reviewer) => (
+                            <div
+                              key={reviewer.id}
+                              className="flex items-center justify-between p-3 bg-white rounded border border-gray-200"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <Avatar
+                                    name={reviewer.reviewer_name ?? undefined}
+                                    picture={undefined}
+                                    size="sm"
+                                  />
+                                  <span className="font-medium text-gray-900 text-sm">{reviewer.reviewer_name}</span>
+                                  <span className={`px-2 py-0.5 text-xs rounded ${
+                                    reviewer.status === 'completed'
+                                      ? 'bg-green-100 text-green-700'
+                                      : reviewer.status === 'in_progress'
+                                      ? 'bg-yellow-100 text-yellow-700'
+                                      : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    {reviewer.status === 'completed' ? 'Completed' : reviewer.status === 'in_progress' ? 'In Progress' : 'Pending'}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-600 mt-1">
+                                  {reviewer.reviewer_email} • {formatRelationship(reviewer.relationship)}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* Completion Message or Button - Only for reviewers, not for subject */}
                 {isReviewer && !isSubject && (
                   userCompletedReview ? (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
                       <div className="flex items-start gap-3">
                         <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                         <p className="text-sm font-medium text-green-900">
@@ -1658,7 +1698,7 @@ export default function Feedback360Dashboard({
                   ) : (
                     <button
                       onClick={() => window.open(`/survey/complete/${selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.access_token}`, '_blank')}
-                      className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                      className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg mt-4"
                     >
                       <CheckCircle className="w-4 h-4" />
                       Complete your review
@@ -1842,69 +1882,74 @@ export default function Feedback360Dashboard({
                   </div>
                 )}
 
-                <div className="bg-gray-50 rounded-lg p-4 space-y-2 max-h-[240px] overflow-y-auto">
-                  {surveyReviewers.length === 0 ? (
-                    <p className="text-sm text-gray-500 text-center py-2">No reviewers added yet</p>
-                  ) : (
-                    surveyReviewers.map((reviewer) => (
-                      <div
-                        key={reviewer.id}
-                        className="flex items-center justify-between p-3 bg-white rounded border border-gray-200"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Avatar
-                              name={reviewer.reviewer_name ?? undefined}
-                              picture={undefined}
-                              size="sm"
-                            />
-                            <span className="font-medium text-gray-900 text-sm">{reviewer.reviewer_name}</span>
-                            <span className={`px-2 py-0.5 text-xs rounded ${
-                              reviewer.status === 'completed'
-                                ? 'bg-green-100 text-green-700'
-                                : reviewer.status === 'in_progress'
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              {reviewer.status === 'completed' ? 'Completed' : reviewer.status === 'in_progress' ? 'In Progress' : 'Pending'}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-600 mt-1">
-                            {reviewer.reviewer_email} • {formatRelationship(reviewer.relationship)}
-                          </div>
-                        </div>
-                        {(isSponsor || isAdmin) && (
-                        <div className="flex items-center gap-6">
-                          {reviewer.status !== 'completed' && (
-                            remindedReviewers.has(reviewer.id) ? (
-                              <span className="px-3 py-1.5 text-xs bg-green-50 text-green-700 rounded flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" />
-                                Reminded
+                {/* Only show reviewers list to admin or sponsor */}
+                {(isAdmin || isSponsor) ? (
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-2 max-h-[240px] overflow-y-auto">
+                    {surveyReviewers.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-2">No reviewers added yet</p>
+                    ) : (
+                      surveyReviewers.map((reviewer) => (
+                        <div
+                          key={reviewer.id}
+                          className="flex items-center justify-between p-3 bg-white rounded border border-gray-200"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Avatar
+                                name={reviewer.reviewer_name ?? undefined}
+                                picture={undefined}
+                                size="sm"
+                              />
+                              <span className="font-medium text-gray-900 text-sm">{reviewer.reviewer_name}</span>
+                              <span className={`px-2 py-0.5 text-xs rounded ${
+                                reviewer.status === 'completed'
+                                  ? 'bg-green-100 text-green-700'
+                                  : reviewer.status === 'in_progress'
+                                  ? 'bg-yellow-100 text-yellow-700'
+                                  : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {reviewer.status === 'completed' ? 'Completed' : reviewer.status === 'in_progress' ? 'In Progress' : 'Pending'}
                               </span>
-                            ) : (
-                              <button
-                                onClick={() => sendReminderToReviewer(reviewer.id, reviewer.reviewer_email)}
-                                className="text-xs text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 font-medium"
-                                title="Send reminder email"
-                              >
-                                <Send className="w-3 h-3" />
-                                Remind
-                              </button>
-                            )
+                            </div>
+                            <div className="text-xs text-gray-600 mt-1">
+                              {reviewer.reviewer_email} • {formatRelationship(reviewer.relationship)}
+                            </div>
+                          </div>
+                          {(isSponsor || isAdmin) && (
+                          <div className="flex items-center gap-6">
+                            {reviewer.status !== 'completed' && (
+                              remindedReviewers.has(reviewer.id) ? (
+                                <span className="px-3 py-1.5 text-xs bg-green-50 text-green-700 rounded flex items-center gap-1">
+                                  <CheckCircle className="w-3 h-3" />
+                                  Reminded
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => sendReminderToReviewer(reviewer.id, reviewer.reviewer_email)}
+                                  className="text-xs text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 font-medium"
+                                  title="Send reminder email"
+                                >
+                                  <Send className="w-3 h-3" />
+                                  Remind
+                                </button>
+                              )
+                            )}
+                            <button
+                              onClick={() => removeReviewer(reviewer.id)}
+                              className="text-red-600 hover:text-red-700 transition-colors"
+                              title="Remove reviewer"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
                           )}
-                          <button
-                            onClick={() => removeReviewer(reviewer.id)}
-                            className="text-red-600 hover:text-red-700 transition-colors"
-                            title="Remove reviewer"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
                         </div>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
+                      ))
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-2">Reviewer details are only visible to admins and the review sponsor.</p>
+                )}
               </div>
 
               {/* Actions - Only visible to sponsor */}
@@ -2032,7 +2077,7 @@ export default function Feedback360Dashboard({
                     <Download className="w-4 h-4 mr-2" />
                     Export PDF
                   </button>
-                  {(currentUser?.app_role === 'admin' || ((selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader'))) && (
+                  {(currentUser?.app_role === 'admin' || ((selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader'))) && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
                     <button
                       onClick={() => {
                         deleteInProgressSurvey(selectedSurvey.id);
@@ -2194,11 +2239,22 @@ export default function Feedback360Dashboard({
               )}
 
               {/* Sentiment by Relationship - Sponsor/Admin Only */}
-              {surveyResults.sentiment_by_relationship &&
-               (surveyResults.sentiment_by_relationship.manager !== undefined ||
-                surveyResults.sentiment_by_relationship.peer !== undefined ||
-                surveyResults.sentiment_by_relationship.direct_report !== undefined ||
-                surveyResults.sentiment_by_relationship.cross_functional !== undefined) && (
+              {(() => {
+                // Check if current user is the subject (employee being reviewed)
+                const isSubject = currentUser?.id === selectedSurvey?.employee_id;
+                // Check if user is sponsor or admin
+                const isSponsor = selectedSurvey?.created_by === currentUser?.id || selectedSurvey?.created_by === currentUser?.email;
+                const isAdmin = currentUser?.app_role === 'admin';
+                // Only show relationship breakdown if NOT a pure subject (subjects who are also sponsors/admins can see it)
+                const canSeeRelationshipBreakdown = !isSubject || isAdmin || isSponsor;
+
+                return canSeeRelationshipBreakdown &&
+                       surveyResults.sentiment_by_relationship &&
+                       (surveyResults.sentiment_by_relationship.manager !== undefined ||
+                        surveyResults.sentiment_by_relationship.peer !== undefined ||
+                        surveyResults.sentiment_by_relationship.direct_report !== undefined ||
+                        surveyResults.sentiment_by_relationship.cross_functional !== undefined);
+              })() && (
                 <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <Users className="w-5 h-5 text-blue-600" />
@@ -2393,36 +2449,44 @@ export default function Feedback360Dashboard({
               ) : (
                 /* Normal footer for non-admin or non-flagged surveys */
                 <div className="flex items-center justify-between">
-                  <button
-                    onClick={() => sendBackward(selectedSurvey.id)}
-                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium flex items-center"
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-2" />
-                    Send Backward
-                  </button>
+                  {/* Send Backward - Only visible to sponsor or admin */}
+                  {(currentUser?.app_role === 'admin' || selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (
+                    <button
+                      onClick={() => sendBackward(selectedSurvey.id)}
+                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium flex items-center"
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-2" />
+                      Send Backward
+                    </button>
+                  )}
 
-                  <div className="flex items-center gap-3">
-                    {selectedSurvey.status === 'completed' && (
-                      <button
-                        onClick={() => sendToHRForReanalysis(selectedSurvey.id)}
-                        disabled={!!selectedSurvey.flagged_for_reanalysis}
-                        className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                          selectedSurvey.flagged_for_reanalysis
-                            ? 'bg-green-600 text-white cursor-not-allowed opacity-75'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                        }`}
-                      >
-                        {selectedSurvey.flagged_for_reanalysis ? 'Sent to HR' : 'Send to HR for Reanalysis'}
-                      </button>
-                    )}
-                    {selectedSurvey.status !== 'finalized' && (
-                      <button
-                        onClick={() => finalizeSurvey(selectedSurvey.id)}
-                        className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center"
-                      >
-                        <ArrowDownCircle className="w-4 h-4 mr-2" />
-                        Finalize
-                      </button>
+                  <div className={`flex items-center gap-3 ${!(currentUser?.app_role === 'admin' || selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) ? 'ml-auto' : ''}`}>
+                    {/* Workflow controls - Only visible to sponsor or admin */}
+                    {(currentUser?.app_role === 'admin' || selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (
+                      <>
+                        {selectedSurvey.status === 'completed' && (
+                          <button
+                            onClick={() => sendToHRForReanalysis(selectedSurvey.id)}
+                            disabled={!!selectedSurvey.flagged_for_reanalysis}
+                            className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                              selectedSurvey.flagged_for_reanalysis
+                                ? 'bg-green-600 text-white cursor-not-allowed opacity-75'
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            }`}
+                          >
+                            {selectedSurvey.flagged_for_reanalysis ? 'Sent to HR' : 'Send to HR for Reanalysis'}
+                          </button>
+                        )}
+                        {selectedSurvey.status !== 'finalized' && (
+                          <button
+                            onClick={() => finalizeSurvey(selectedSurvey.id)}
+                            className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center"
+                          >
+                            <ArrowDownCircle className="w-4 h-4 mr-2" />
+                            Finalize
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
