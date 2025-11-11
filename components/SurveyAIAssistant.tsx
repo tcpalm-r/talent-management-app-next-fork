@@ -6,20 +6,23 @@ import { useSpeechToText } from '../hooks/useSpeechToText';
 
 interface Question {
   id: string;
-  text: string;
+  question_text: string;
+  category: string;
 }
 
 interface SurveyAIAssistantProps {
   isOpen: boolean;
   onClose: () => void;
-  questions: Question[];
-  onComplete: (responses: { [questionId: string]: string }) => void;
+  question: Question | undefined;
+  subjectName: string;
+  onComplete: (responseText: string) => void;
 }
 
 export default function SurveyAIAssistant({
   isOpen,
   onClose,
-  questions,
+  question,
+  subjectName,
   onComplete,
 }: SurveyAIAssistantProps) {
   const [feedback, setFeedback] = useState('');
@@ -51,22 +54,28 @@ export default function SurveyAIAssistant({
 
     if (!feedback.trim()) {
       console.log('[SurveyAIAssistant.handleProcess] Error: Empty feedback');
-      setError('Please provide feedback before processing');
+      setError('Please provide your thoughts before processing');
       return;
     }
 
-    console.log('[SurveyAIAssistant.handleProcess] Calling API with feedback');
+    if (!question) {
+      setError('Question not found');
+      return;
+    }
+
+    console.log('[SurveyAIAssistant.handleProcess] Calling API with feedback for single question');
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('[SurveyAIAssistant.handleProcess] Making fetch request to /api/ai/parse-survey-responses');
-      const response = await fetch('/api/ai/parse-survey-responses', {
+      console.log('[SurveyAIAssistant.handleProcess] Making fetch request to /api/ai/generate-survey-response');
+      const response = await fetch('/api/ai/generate-survey-response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          feedbackText: feedback.trim(),
-          questions: questions,
+          questionText: question.question_text,
+          userThoughts: feedback.trim(),
+          subjectName: subjectName,
         }),
       });
 
@@ -75,23 +84,23 @@ export default function SurveyAIAssistant({
       if (!response.ok) {
         const data = await response.json();
         console.log('[SurveyAIAssistant.handleProcess] API error response:', data);
-        throw new Error(data.error || 'Failed to parse feedback');
+        throw new Error(data.error || 'Failed to generate response');
       }
 
       const data = await response.json();
       console.log('[SurveyAIAssistant.handleProcess] API success response:', data);
 
-      if (data.parsedResponses) {
-        console.log('[SurveyAIAssistant.handleProcess] Proceeding with parsed responses:', data.parsedResponses);
-        onComplete(data.parsedResponses);
+      if (data.response) {
+        console.log('[SurveyAIAssistant.handleProcess] Proceeding with response:', data.response);
+        onComplete(data.response);
         setFeedback('');
         onClose();
       } else {
-        throw new Error('No parsed responses returned');
+        throw new Error('No response returned');
       }
     } catch (err: any) {
       console.error('[SurveyAIAssistant.handleProcess] Error:', err);
-      setError(err.message || 'Failed to process your feedback');
+      setError(err.message || 'Failed to process your thoughts');
     } finally {
       setIsLoading(false);
     }
@@ -101,10 +110,10 @@ export default function SurveyAIAssistant({
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-6 text-white flex items-center justify-between">
+        <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-indigo-600 px-8 py-6 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Sparkles className="w-6 h-6" />
-            <h2 className="text-2xl font-bold">AI Response Assistant</h2>
+            <h2 className="text-2xl font-bold">AI Response Helper</h2>
           </div>
           <button
             onClick={onClose}
@@ -117,18 +126,23 @@ export default function SurveyAIAssistant({
 
         {/* Content */}
         <div className="p-8">
+          {/* Question Display */}
+          {question && (
+            <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+              <label className="block text-sm font-semibold text-purple-900 mb-2">
+                Question:
+              </label>
+              <p className="text-gray-900">{question.question_text}</p>
+            </div>
+          )}
+
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Share your feedback in your own words
+              Share your thoughts
             </label>
             <p className="text-sm text-gray-600 mb-4">
-              Type or speak all your thoughts and observations. Our AI will intelligently map your feedback to each survey question.
+              Type or speak your thoughts about this question. AI will help refine and format your response into professional feedback.
             </p>
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4">
-              <p className="text-sm text-emerald-900">
-                <strong>Example:</strong> "Sarah has great communication skills and leads meetings effectively. She could work on delegating more to her team instead of doing everything herself. Overall very impressed with her collaboration with other departments."
-              </p>
-            </div>
 
             {/* Textarea with Microphone Button */}
             <div className="relative mb-4">
@@ -139,8 +153,8 @@ export default function SurveyAIAssistant({
                   setError(null);
                 }}
                 disabled={isLoading || isListening}
-                placeholder="Type your feedback here... or click the mic to speak"
-                className="w-full h-48 px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500 disabled:bg-gray-100 resize-none"
+                placeholder="Type your thoughts here... or click the mic to speak (e.g., 'great communicator, needs to delegate more, very collaborative')"
+                className="w-full h-48 px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 disabled:bg-gray-100 resize-none"
               />
 
               {/* Microphone Button */}
@@ -191,22 +205,6 @@ export default function SurveyAIAssistant({
             </div>
           )}
 
-          {/* Questions Preview */}
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Your feedback will be mapped to these questions:
-            </label>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {questions.map((q, idx) => (
-                <div key={q.id} className="p-2 bg-gray-50 rounded border border-gray-200">
-                  <p className="text-sm text-gray-700">
-                    <strong>{idx + 1}.</strong> {q.text}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Action Buttons */}
           <div className="flex gap-3 justify-end">
             <button
@@ -219,17 +217,17 @@ export default function SurveyAIAssistant({
             <button
               onClick={handleProcess}
               disabled={isLoading}
-              className="px-6 py-3 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition flex items-center gap-2 disabled:opacity-50"
             >
               {isLoading ? (
                 <>
                   <Loader className="w-4 h-4 animate-spin" />
-                  Processing...
+                  Generating...
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  Process & Fill Responses
+                  Generate Response
                 </>
               )}
             </button>

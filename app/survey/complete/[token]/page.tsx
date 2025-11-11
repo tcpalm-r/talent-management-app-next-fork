@@ -36,12 +36,25 @@ export default function SurveyCompletionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
+  const [activeQuestionForAI, setActiveQuestionForAI] = useState<string | null>(null);
 
   const [reviewer, setReviewer] = useState<Reviewer | null>(null);
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [responses, setResponses] = useState<Record<string, string>>({});
+
+  // Autosave draft responses to localStorage
+  useEffect(() => {
+    if (Object.keys(responses).length > 0 && !success) {
+      const draftKey = `survey-draft-${token}`;
+      const saveTimer = setTimeout(() => {
+        localStorage.setItem(draftKey, JSON.stringify(responses));
+        console.log('[SurveyCompletionPage] Draft saved to localStorage');
+      }, 500); // Debounce 500ms
+
+      return () => clearTimeout(saveTimer);
+    }
+  }, [responses, token, success]);
 
   useEffect(() => {
     loadSurveyData();
@@ -144,11 +157,30 @@ export default function SurveyCompletionPage() {
 
       setQuestions(loadedQuestions);
 
-      // Initialize responses
+      // Initialize responses - check for saved draft first
       const initialResponses: Record<string, string> = {};
       loadedQuestions.forEach((q: Question) => {
         initialResponses[q.id] = '';
       });
+
+      // Load draft from localStorage if it exists
+      const draftKey = `survey-draft-${token}`;
+      const savedDraft = localStorage.getItem(draftKey);
+      if (savedDraft) {
+        try {
+          const draftResponses = JSON.parse(savedDraft);
+          console.log('[SurveyCompletionPage] Loaded draft from localStorage');
+          // Merge saved draft with initial responses
+          Object.keys(draftResponses).forEach((questionId) => {
+            if (initialResponses.hasOwnProperty(questionId)) {
+              initialResponses[questionId] = draftResponses[questionId];
+            }
+          });
+        } catch (e) {
+          console.error('[SurveyCompletionPage] Error loading draft:', e);
+        }
+      }
+
       setResponses(initialResponses);
 
       setLoading(false);
@@ -159,10 +191,15 @@ export default function SurveyCompletionPage() {
     }
   };
 
-  const handleAIAssistantComplete = (parsedResponses: { [questionId: string]: string }) => {
-    console.log('[SurveyCompletionPage] AI Assistant completed with responses:', parsedResponses);
-    setResponses(parsedResponses);
-    setIsAIAssistantOpen(false);
+  const handleAIAssistantComplete = (responseText: string) => {
+    console.log('[SurveyCompletionPage] AI Assistant completed with response:', responseText);
+    if (activeQuestionForAI) {
+      setResponses(prev => ({
+        ...prev,
+        [activeQuestionForAI]: responseText
+      }));
+    }
+    setActiveQuestionForAI(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -224,6 +261,11 @@ export default function SurveyCompletionPage() {
             .eq('id', survey.id);
         }
       }
+
+      // Clear draft from localStorage on successful submission
+      const draftKey = `survey-draft-${token}`;
+      localStorage.removeItem(draftKey);
+      console.log('[SurveyCompletionPage] Draft cleared from localStorage');
 
       setSuccess(true);
     } catch (err: any) {
@@ -289,38 +331,25 @@ export default function SurveyCompletionPage() {
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-white flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">360° Feedback Survey</h1>
-              <p className="text-blue-100">
-                Providing feedback for <strong>{survey?.employee_name}</strong>
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-white">
+            <h1 className="text-3xl font-bold mb-2">360° Feedback Survey</h1>
+            <p className="text-blue-100">
+              Subject: <strong>{survey?.employee_name}</strong>
+            </p>
+            <p className="text-blue-100 mt-1">
+              Responding as: <strong>{reviewer?.reviewer_name}</strong>
+            </p>
+            {survey?.due_date && (
+              <p className="text-sm text-blue-200 mt-2">
+                Due: {new Date(survey.due_date).toLocaleDateString()}
               </p>
-              {survey?.due_date && (
-                <p className="text-sm text-blue-200 mt-2">
-                  Due: {new Date(survey.due_date).toLocaleDateString()}
-                </p>
-              )}
-            </div>
-            {/* AI Assistant Button in Header */}
-            <button
-              type="button"
-              onClick={() => {
-                console.log('[SurveyCompletionPage] Opening AI Assistant');
-                setIsAIAssistantOpen(true);
-              }}
-              disabled={submitting}
-              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap ml-4"
-              title="Use AI to help fill in responses"
-            >
-              <Sparkles className="w-4 h-4" />
-              Use AI for responses
-            </button>
+            )}
           </div>
 
           {/* Instructions */}
           <div className="bg-blue-50 border-b border-blue-200 px-8 py-4">
             <p className="text-sm text-blue-900">
-              <strong>Instructions:</strong> Please provide thoughtful responses to each question. Your feedback is confidential and will be aggregated with other responses.
+              Your feedback is confidential and will be aggregated with other responses for anonymity.
             </p>
           </div>
 
@@ -334,10 +363,23 @@ export default function SurveyCompletionPage() {
                       <span className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-sm">
                         {index + 1}
                       </span>
-                      <div className="flex-1">
+                      <div className="flex-1 flex items-start justify-between gap-3">
                         <p className="text-gray-900 font-medium">
                           {question.question_text} <span className="text-red-500">*</span>
                         </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            console.log('[SurveyCompletionPage] Opening AI Assistant for question:', question.id);
+                            setActiveQuestionForAI(question.id);
+                          }}
+                          disabled={submitting}
+                          className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold py-1.5 px-3 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0"
+                          title="Use AI to help with this question"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          AI
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -348,7 +390,7 @@ export default function SurveyCompletionPage() {
                       value={responses[question.id] || ''}
                       onChange={(e) => updateResponse(question.id, e.target.value)}
                       rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
                       placeholder="Please provide specific examples and thoughtful feedback..."
                       required
                     />
@@ -380,22 +422,18 @@ export default function SurveyCompletionPage() {
           </form>
         </div>
 
-        {/* Privacy Note */}
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>🔒 Your responses are confidential and will be aggregated to protect your anonymity.</p>
-        </div>
       </div>
 
       {/* AI Response Assistant Modal */}
-      <SurveyAIAssistant
-        isOpen={isAIAssistantOpen}
-        onClose={() => setIsAIAssistantOpen(false)}
-        questions={questions.map((q) => ({
-          id: q.id,
-          text: q.question_text,
-        }))}
-        onComplete={handleAIAssistantComplete}
-      />
+      {activeQuestionForAI && (
+        <SurveyAIAssistant
+          isOpen={activeQuestionForAI !== null}
+          onClose={() => setActiveQuestionForAI(null)}
+          question={questions.find(q => q.id === activeQuestionForAI)}
+          subjectName={survey?.employee_name || 'the employee'}
+          onComplete={handleAIAssistantComplete}
+        />
+      )}
     </div>
   );
 }
