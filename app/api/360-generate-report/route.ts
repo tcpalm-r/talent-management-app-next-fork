@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { analyzeSurvey360Responses } from '@/lib/survey360Analyzer';
+import { filterReportForSubject } from '@/lib/filterReport';
+import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 import type { Database } from '@/types/supabase';
 import type { ParticipantRelationship } from '@/types';
 
@@ -28,6 +30,41 @@ const getSupabaseClient = () => {
 };
 
 /**
+ * Determine the viewer's role for a given survey
+ *
+ * @param user - The authenticated user's profile
+ * @param survey - The survey being viewed
+ * @returns 'sponsor' | 'subject' | 'admin' | 'unauthorized'
+ */
+function determineViewerRole(
+  user: { id: string; email?: string; app_role?: string },
+  survey: { created_by: string; employee_id: string; status: string | null }
+): 'sponsor' | 'subject' | 'admin' | 'unauthorized' {
+  // Admins can see everything
+  if (user.app_role === 'admin') {
+    return 'admin';
+  }
+
+  // Check if user is the survey sponsor (creator)
+  const isSponsor =
+    user.id === survey.created_by ||
+    (user.email && user.email === survey.created_by);
+
+  if (isSponsor) {
+    return 'sponsor';
+  }
+
+  // Check if user is the subject (employee being reviewed)
+  // Subjects can only view finalized reports
+  if (user.id === survey.employee_id && survey.status === 'finalized') {
+    return 'subject';
+  }
+
+  // User has no authorized role for this survey
+  return 'unauthorized';
+}
+
+/**
  * POST - Generate AI analysis report
  *
  * Request body: { survey_id: string }
@@ -49,6 +86,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'survey_id is required' }, { status: 400 });
     }
 
+    // Authenticate user
+    const authData = await getAuthenticatedUser(req);
+    if (!authData) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = getSupabaseClient();
 
     // ========================================================================
@@ -66,6 +109,15 @@ export async function POST(req: NextRequest) {
         error: 'Survey not found',
         details: surveyError?.message
       }, { status: 404 });
+    }
+
+    // Check authorization - only sponsors and admins can generate reports
+    const viewerRole = determineViewerRole(authData.profile, survey);
+    if (viewerRole !== 'sponsor' && viewerRole !== 'admin') {
+      return NextResponse.json({
+        error: 'Forbidden',
+        message: 'Only survey sponsors and administrators can generate reports'
+      }, { status: 403 });
     }
 
     // ========================================================================
@@ -254,11 +306,39 @@ export async function POST(req: NextRequest) {
     console.log('✅ AI analysis complete');
 
     // ========================================================================
-    // STEP 8: Return analysis result directly
+    // STEP 8: Save report to database
     // ========================================================================
 
-    // Return the AI analysis result directly instead of saving to DB
-    console.log('✅ Returning AI analysis result directly');
+    console.log('💾 Saving report to database...');
+
+    const { error: upsertError } = await supabase
+      .from('feedback_360_reports')
+      .upsert(
+        {
+          survey_id: survey_id,
+          themes: analysisResult.themes || [],
+          overall_strengths: analysisResult.overall_strengths || [],
+          development_areas: analysisResult.development_areas || [],
+          recommendations: analysisResult.recommendations || [],
+          sentiment_by_relationship: analysisResult.sentiment_by_relationship || {},
+          key_insights: analysisResult.key_insights || [],
+          consensus_areas: analysisResult.consensus_areas || [],
+          outlier_opinions: analysisResult.outlier_opinions || [],
+          generated_by: analysisResult.generated_by || 'claude-sonnet-4',
+          generated_at: analysisResult.generated_at || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'survey_id',
+        }
+      );
+
+    if (upsertError) {
+      console.error('Error saving report to database:', upsertError);
+      // Don't fail the entire request - return the report anyway
+    } else {
+      console.log('✅ Report saved to database successfully');
+    }
 
     // ========================================================================
     // STEP 9: Update survey status to 'completed'
@@ -271,8 +351,6 @@ export async function POST(req: NextRequest) {
         completed_at: new Date().toISOString()
       })
       .eq('id', survey_id);
-
-    console.log('💾 Report saved successfully');
 
     // ========================================================================
     // STEP 10: Return success response
@@ -315,6 +393,12 @@ export async function GET(req: NextRequest) {
       }, { status: 400 });
     }
 
+    // Authenticate user
+    const authData = await getAuthenticatedUser(req);
+    if (!authData) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = getSupabaseClient();
 
     // Fetch report with survey details
@@ -350,9 +434,42 @@ export async function GET(req: NextRequest) {
       }, { status: 500 });
     }
 
+    // Determine viewer role for authorization and filtering
+    const survey = report.survey as any;
+    if (!survey) {
+      return NextResponse.json({
+        error: 'Survey not found',
+        message: 'Report exists but associated survey could not be loaded'
+      }, { status: 404 });
+    }
+
+    const viewerRole = determineViewerRole(authData.profile, {
+      created_by: survey.created_by,
+      employee_id: survey.employee_id,
+      status: survey.status
+    });
+
+    if (viewerRole === 'unauthorized') {
+      return NextResponse.json({
+        error: 'Forbidden',
+        message: 'You do not have permission to view this report'
+      }, { status: 403 });
+    }
+
+    // Filter report data based on viewer role
+    let filteredReport = { ...report };
+
+    if (viewerRole === 'subject') {
+      // Subjects see filtered report without relationship breakdowns
+      filteredReport = filterReportForSubject(filteredReport as any);
+    }
+
+    // Sponsors and admins see full report (no filtering needed)
+
     return NextResponse.json({
       success: true,
-      report
+      report: filteredReport,
+      viewerRole // Include viewer role for debugging/frontend awareness
     });
 
   } catch (error: any) {

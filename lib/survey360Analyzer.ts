@@ -73,7 +73,11 @@ IMPORTANT: Respond ONLY with valid JSON. Do not include any explanatory text bef
     "Another specific action to take"
   ],
   "sentiment_by_relationship": {
-    "overall": 0.82
+    "overall": 0.84,
+    "manager": 0.85,
+    "peer": 0.78,
+    "direct_report": 0.92,
+    "cross_functional": 0.80
   },
   "key_insights": [
     "Important pattern or insight from the data",
@@ -102,7 +106,11 @@ CRITICAL - ANONYMITY & AGGREGATION REQUIREMENTS:
   * "Several mentioned..."
   * "A unique perspective was..."
 - Combine ALL feedback into unified, anonymized observations regardless of reviewer relationship
-- The sentiment_by_relationship field should ONLY contain an "overall" score (0-1) representing the aggregate sentiment across all reviewers
+- The sentiment_by_relationship field should contain BOTH:
+  * An "overall" score (0-1) representing aggregate sentiment across all reviewers
+  * Individual scores for each relationship type that provided feedback: "manager", "peer", "direct_report", "cross_functional"
+  * Calculate each relationship score based on the tone, positivity, and constructiveness of that group's responses
+  * If a relationship type had no responses, omit that key from the object
 
 ANALYSIS GUIDELINES:
 1. **Themes**: Identify 5-8 major themes. Look for patterns across all responses combined.
@@ -113,7 +121,10 @@ ANALYSIS GUIDELINES:
    - "mixed": Balance of positive and constructive feedback
    - "needs_work": Areas requiring attention and development
    - "critical": Serious concerns requiring immediate action
-4. **Overall Sentiment Score**: Provide a single 0-1 score representing aggregate sentiment. Do NOT break down by relationship type.
+4. **Sentiment Scores**: Calculate sentiment scores (0-1 scale) based on overall tone and constructiveness:
+   - Overall: Aggregate sentiment across all reviewers
+   - Per-relationship: Calculate separate scores for manager, peer, direct_report, and cross_functional groups
+   - Base scores on positivity, constructiveness, and supportiveness of feedback from each group
 5. **Strengths**: List 3-5 clear strengths. Synthesize feedback from all sources into unified statements.
 6. **Development Areas**: Identify 3-5 areas for growth. Use paraphrased, aggregated summaries.
 7. **Recommendations**: Provide 4-6 specific, actionable steps based on synthesized feedback.

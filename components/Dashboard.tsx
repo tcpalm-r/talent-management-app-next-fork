@@ -64,7 +64,7 @@ export default function Dashboard({
       return matched;
     }
 
-    // Fallback: Create an employee record from userProfile so drafts can be saved with creator info
+    // Fallback: Create an employee record from userProfile so drafts can be saved with sponsor info
     if (userProfile.id && userProfile.email) {
       console.log('[Dashboard] Using userProfile as currentUserEmployee (not found in employees list)');
       return {

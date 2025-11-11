@@ -108,20 +108,7 @@ export default function Feedback360Dashboard({
   // Function to load and display survey results
   const loadAndShowResults = async (survey: Survey) => {
     try {
-      // First, try to load from localStorage cache
-      const cacheKey = `survey_report_${survey.id}`;
-      const cachedReport = typeof window !== 'undefined' ? localStorage.getItem(cacheKey) : null;
-
-      if (cachedReport) {
-        console.log('📦 Loading report from cache for survey:', survey.id);
-        setSelectedSurvey(survey);
-        setSurveyResults(JSON.parse(cachedReport));
-        setIsResultsModalOpen(true);
-        markSurveyAsViewed(survey.id);
-        return;
-      }
-
-      // If not cached, try to fetch from API
+      // Fetch report from API with role-based filtering
       const response = await fetch(`/api/360-generate-report?survey_id=${survey.id}`);
       const data = await response.json();
 
@@ -133,11 +120,6 @@ export default function Feedback360Dashboard({
       setSurveyResults(data.report);
       setIsResultsModalOpen(true);
       markSurveyAsViewed(survey.id);
-
-      // Cache the report if successful
-      if (data.report && typeof window !== 'undefined') {
-        localStorage.setItem(cacheKey, JSON.stringify(data.report));
-      }
     } catch (error: any) {
       console.error('Error loading survey results:', error);
 
@@ -191,7 +173,7 @@ export default function Feedback360Dashboard({
           // Leaders can see:
           // 1. Surveys they created (including drafts)
           // 2. Surveys where they are the subject (employee_id matches)
-          // 3. Surveys where they are a reviewer (but NOT if draft - those are creator-only)
+          // 3. Surveys where they are a reviewer (but NOT if draft - those are sponsor-only)
           // 4. Surveys for their direct reports
           const directReportIds = employees
             .filter(e => e.reports_to_id === currentUser.id)
@@ -199,13 +181,13 @@ export default function Feedback360Dashboard({
 
           enhancedSurveys = enhancedSurveys.filter((survey: any) => {
             // Survey created by the leader (must match exactly)
-            const isCreator = survey.created_by && (
+            const isSponsor = survey.created_by && (
               survey.created_by === currentUser.id ||
               (currentUser.email && survey.created_by === currentUser.email)
             );
-            if (isCreator) return true;
+            if (isSponsor) return true;
 
-            // Draft surveys should only be visible to their creator
+            // Draft surveys should only be visible to their sponsor
             if (survey.status === 'draft') return false;
 
             // Survey about the leader themselves
@@ -226,16 +208,16 @@ export default function Feedback360Dashboard({
           // Regular users can see ONLY:
           // 1. Surveys they created (including drafts)
           // 2. Surveys where they are the subject (employee_id matches)
-          // 3. Surveys where they are a reviewer (but NOT if draft - those are creator-only)
+          // 3. Surveys where they are a reviewer (but NOT if draft - those are sponsor-only)
           enhancedSurveys = enhancedSurveys.filter((survey: any) => {
             // Survey created by the user (must match exactly)
-            const isCreator = survey.created_by && (
+            const isSponsor = survey.created_by && (
               survey.created_by === currentUser.id ||
               (currentUser.email && survey.created_by === currentUser.email)
             );
-            if (isCreator) return true;
+            if (isSponsor) return true;
 
-            // Draft surveys should only be visible to their creator
+            // Draft surveys should only be visible to their sponsor
             if (survey.status === 'draft') return false;
 
             // Survey about the user themselves
@@ -373,14 +355,15 @@ export default function Feedback360Dashboard({
   };
 
   const deleteInProgressSurvey = async (surveyId: string) => {
-    // Verify user is the creator
+    // Verify user is the sponsor or an admin
     const survey = surveys.find(s => s.id === surveyId);
-    const isCreator = survey?.created_by === currentUser?.id || survey?.created_by === currentUser?.email;
+    const isSponsor = survey?.created_by === currentUser?.id || survey?.created_by === currentUser?.email;
+    const isAdmin = currentUser?.app_role === 'admin';
 
-    if (!isCreator) {
+    if (!isSponsor && !isAdmin) {
       notify({
         title: 'Error',
-        description: 'Only the creator can delete this review.',
+        description: 'Only the sponsor or an admin can delete this review.',
         variant: 'error',
       });
       return;
@@ -516,13 +499,6 @@ export default function Feedback360Dashboard({
 
       // Store the generated report and open results modal
       setSurveyResults(data.report);
-
-      // Cache the report in localStorage for persistence
-      if (data.report && typeof window !== 'undefined') {
-        const cacheKey = `survey_report_${selectedSurvey.id}`;
-        localStorage.setItem(cacheKey, JSON.stringify(data.report));
-        console.log('💾 Report cached for survey:', selectedSurvey.id);
-      }
 
       setIsDetailsModalOpen(false);
       setIsResultsModalOpen(true);
@@ -739,13 +715,6 @@ export default function Feedback360Dashboard({
       }
 
       setSurveyResults(data.report);
-
-      // Cache the reanalyzed report in localStorage
-      if (data.report && typeof window !== 'undefined') {
-        const cacheKey = `survey_report_${surveyId}`;
-        localStorage.setItem(cacheKey, JSON.stringify(data.report));
-        console.log('💾 Reanalyzed report cached for survey:', surveyId);
-      }
 
       notify({
         title: 'Analysis Complete',
@@ -1126,7 +1095,7 @@ export default function Feedback360Dashboard({
       );
     }
 
-    // Show "Needs Reanalysis" for creators when flagged for reanalysis
+    // Show "Needs Reanalysis" for sponsors when flagged for reanalysis
     if (flaggedForReanalysis && (selectedSurvey?.created_by === currentUser?.id || selectedSurvey?.created_by === currentUser?.email)) {
       return (
         <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300">
@@ -1186,16 +1155,20 @@ export default function Feedback360Dashboard({
           >
             Create 360° Review
           </button>
-          <button
-            onClick={() => {
-              setIsAIModalOpen(true);
-            }}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center gap-2"
-            title="Create survey with AI assistance"
-          >
-            <Sparkles className="w-4 h-4" />
-            Create with AI
-          </button>
+          {/* AI-assisted review wizard button - disabled and hidden */}
+          {false && (
+            <button
+              onClick={() => {
+                setIsAIModalOpen(true);
+              }}
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center gap-2"
+              title="Create survey with AI assistance"
+              disabled
+            >
+              <Sparkles className="w-4 h-4" />
+              Create with AI
+            </button>
+          )}
         </div>
       )}
 
@@ -1341,13 +1314,17 @@ export default function Feedback360Dashboard({
                 <p className="text-gray-600 mb-6">
                   Create your first 360° feedback review to gather multi-source feedback
                 </p>
-                <button
-                  onClick={() => setIsWizardOpen(true)}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold inline-flex items-center gap-2"
-                >
-                  <Sparkles className="w-5 h-5" />
-                  Create First Review
-                </button>
+                {/* Create First Review button - disabled and hidden */}
+                {false && (
+                  <button
+                    onClick={() => setIsWizardOpen(true)}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold inline-flex items-center gap-2"
+                    disabled
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    Create First Review
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -1357,7 +1334,7 @@ export default function Feedback360Dashboard({
         <div className="space-y-4 mt-6">
           {filteredSurveys.map((survey) => {
             // Determine user's relationship to this survey
-            const isCreator = survey.created_by === currentUser?.id || survey.created_by === currentUser?.email;
+            const isSponsor = survey.created_by === currentUser?.id || survey.created_by === currentUser?.email;
             const isReviewee = survey.employee_id === currentUser?.id;
             const isReviewer = survey.reviewers?.some((r: any) =>
               r.reviewer_email === currentUser?.email
@@ -1368,8 +1345,8 @@ export default function Feedback360Dashboard({
                 key={survey.id}
                 className="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => {
-                  // If it's a draft and user is the creator, open wizard to edit/launch
-                  if (survey.status === 'draft' && isCreator) {
+                  // If it's a draft and user is the sponsor, open wizard to edit/launch
+                  if (survey.status === 'draft' && isSponsor) {
                     setEditingDraftSurvey(survey);
                     // Pre-select the employee being reviewed
                     const employee = employees.find(e => e.id === survey.employee_id);
@@ -1430,9 +1407,9 @@ export default function Feedback360Dashboard({
                       </h3>
 
                       {/* Relationship badges */}
-                      {isCreator && (
+                      {isSponsor && (
                         <span className="text-xs font-medium text-indigo-700">
-                          Creator
+                          Sponsor
                         </span>
                       )}
                       {isReviewee && (
@@ -1522,7 +1499,7 @@ export default function Feedback360Dashboard({
                   )}
 
                   {/* Delete button - bottom left of card */}
-                  {(currentUser?.app_role === 'admin' || isCreator) && (
+                  {(currentUser?.app_role === 'admin' || isSponsor) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1586,21 +1563,21 @@ export default function Feedback360Dashboard({
 
       {/* Review Details Modal */}
       {isDetailsModalOpen && selectedSurvey && (() => {
-        const isCreator = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
+        const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
         const isAdmin = currentUser?.app_role === 'admin';
         const isLeader = currentUser?.app_role === 'leader';
-        const canManage = isCreator || isAdmin || isLeader;
+        const canManage = isSponsor || isAdmin || isLeader;
         const isSubject = selectedSurvey.employee_id === currentUser?.id;
         const isReviewer = selectedSurvey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
         const userCompletedReview = isReviewer && selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.status === 'completed';
 
-        // For finalized surveys, non-creator admins/leaders see read-only view
-        const isFinalizedNonCreatorAdmin = !isCreator && (isAdmin || isLeader) && selectedSurvey.status === 'finalized';
+        // For finalized surveys, non-sponsor admins/leaders see read-only view
+        const isFinalizedNonSponsorAdmin = !isSponsor && (isAdmin || isLeader) && selectedSurvey.status === 'finalized';
 
-        if (!canManage || isFinalizedNonCreatorAdmin) {
+        if (!canManage || isFinalizedNonSponsorAdmin) {
           // Read-only view for reviewers and subject
           // If finalized, subject or admin can see the complete review results
-          const canSeeResults = (isSubject || isFinalizedNonCreatorAdmin) && selectedSurvey.status === 'finalized';
+          const canSeeResults = (isSubject || isFinalizedNonSponsorAdmin) && selectedSurvey.status === 'finalized';
           return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -1694,7 +1671,7 @@ export default function Feedback360Dashboard({
           );
         }
 
-        // Creator view - full management interface
+        // Sponsor view - full management interface
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
@@ -1746,7 +1723,7 @@ export default function Feedback360Dashboard({
                   <h4 className="text-sm font-semibold text-gray-900">
                     Reviewers ({selectedSurvey.completed_count}/{selectedSurvey.reviewers_count} completed)
                   </h4>
-                  {isCreator && (
+                  {isSponsor && (
                   <button
                     onClick={() => setIsAddingReviewer(!isAddingReviewer)}
                     className="text-sm text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 font-medium"
@@ -1896,7 +1873,7 @@ export default function Feedback360Dashboard({
                             {reviewer.reviewer_email} • {formatRelationship(reviewer.relationship)}
                           </div>
                         </div>
-                        {isCreator && (
+                        {(isSponsor || isAdmin) && (
                         <div className="flex items-center gap-6">
                           {reviewer.status !== 'completed' && (
                             remindedReviewers.has(reviewer.id) ? (
@@ -1930,8 +1907,8 @@ export default function Feedback360Dashboard({
                 </div>
               </div>
 
-              {/* Actions - Only visible to creator */}
-              {isCreator && (
+              {/* Actions - Only visible to sponsor */}
+              {isSponsor && (
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                 <div>
                   {/* Send Backward - Always on left, always grey */}
@@ -2213,6 +2190,89 @@ export default function Feedback360Dashboard({
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+
+              {/* Sentiment by Relationship - Sponsor/Admin Only */}
+              {surveyResults.sentiment_by_relationship &&
+               (surveyResults.sentiment_by_relationship.manager !== undefined ||
+                surveyResults.sentiment_by_relationship.peer !== undefined ||
+                surveyResults.sentiment_by_relationship.direct_report !== undefined ||
+                surveyResults.sentiment_by_relationship.cross_functional !== undefined) && (
+                <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-600" />
+                    Sentiment by Relationship Type
+                  </h4>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Sentiment scores (0-100%) from each reviewer group based on feedback tone and constructiveness.
+                  </p>
+                  <div className="space-y-4">
+                    {surveyResults.sentiment_by_relationship.manager !== undefined && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">Manager</span>
+                          <span className="text-sm font-semibold text-blue-700">
+                            {Math.round(surveyResults.sentiment_by_relationship.manager * 100)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300"
+                            style={{ width: `${surveyResults.sentiment_by_relationship.manager * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                    {surveyResults.sentiment_by_relationship.peer !== undefined && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">Peers</span>
+                          <span className="text-sm font-semibold text-green-700">
+                            {Math.round(surveyResults.sentiment_by_relationship.peer * 100)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-300"
+                            style={{ width: `${surveyResults.sentiment_by_relationship.peer * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                    {surveyResults.sentiment_by_relationship.direct_report !== undefined && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">Direct Reports</span>
+                          <span className="text-sm font-semibold text-purple-700">
+                            {Math.round(surveyResults.sentiment_by_relationship.direct_report * 100)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className="bg-gradient-to-r from-purple-500 to-purple-600 h-3 rounded-full transition-all duration-300"
+                            style={{ width: `${surveyResults.sentiment_by_relationship.direct_report * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                    {surveyResults.sentiment_by_relationship.cross_functional !== undefined && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">Cross-Functional</span>
+                          <span className="text-sm font-semibold text-amber-700">
+                            {Math.round(surveyResults.sentiment_by_relationship.cross_functional * 100)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className="bg-gradient-to-r from-amber-500 to-amber-600 h-3 rounded-full transition-all duration-300"
+                            style={{ width: `${surveyResults.sentiment_by_relationship.cross_functional * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

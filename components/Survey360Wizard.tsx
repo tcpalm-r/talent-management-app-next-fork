@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -118,6 +118,10 @@ export default function Survey360Wizard({
   const [raterSearch, setRaterSearch] = useState('');
   const [showRaterPicker, setShowRaterPicker] = useState<number | null>(null);
   const [questionsConfirmed, setQuestionsConfirmed] = useState(false);
+  const [newlyAddedRaterIndex, setNewlyAddedRaterIndex] = useState<number | null>(null);
+  const [highlightedEmployeeIndex, setHighlightedEmployeeIndex] = useState<number>(-1);
+  const raterInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
+  const employeeListRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -414,6 +418,27 @@ export default function Survey360Wizard({
     }
   }, [currentStep]);
 
+  // Auto-focus input when a new reviewer is added
+  useEffect(() => {
+    if (newlyAddedRaterIndex !== null && currentStep === 'raters') {
+      const input = raterInputRefs.current[newlyAddedRaterIndex];
+      if (input) {
+        // Small delay to ensure the DOM has updated
+        setTimeout(() => {
+          input.focus();
+          setNewlyAddedRaterIndex(null);
+        }, 0);
+      }
+    }
+  }, [newlyAddedRaterIndex, currentStep, raters.length]);
+
+  // Reset highlight when picker closes
+  useEffect(() => {
+    if (showRaterPicker === null) {
+      setHighlightedEmployeeIndex(-1);
+    }
+  }, [showRaterPicker]);
+
   // Filter employees based on search
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
@@ -441,6 +466,58 @@ export default function Survey360Wizard({
     setRaters(updated);
     setShowRaterPicker(null);
     setRaterSearch('');
+    setHighlightedEmployeeIndex(-1);
+  };
+
+  // Handle keyboard navigation in employee picker (Step 3)
+  const handleRaterInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (showRaterPicker !== index) return;
+
+    const filtered = filteredRaterEmployees.slice(0, 20);
+    const maxIndex = filtered.length - 1;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedEmployeeIndex((prev) => {
+          const next = prev < maxIndex ? prev + 1 : 0;
+          // Scroll into view
+          setTimeout(() => {
+            const buttonRef = employeeListRefs.current[next];
+            if (buttonRef) {
+              buttonRef.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+          }, 0);
+          return next;
+        });
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedEmployeeIndex((prev) => {
+          const next = prev > 0 ? prev - 1 : maxIndex;
+          // Scroll into view
+          setTimeout(() => {
+            const buttonRef = employeeListRefs.current[next];
+            if (buttonRef) {
+              buttonRef.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+          }, 0);
+          return next;
+        });
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedEmployeeIndex >= 0 && highlightedEmployeeIndex < filtered.length) {
+          selectEmployeeAsRater(filtered[highlightedEmployeeIndex], index);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setShowRaterPicker(null);
+        setRaterSearch('');
+        setHighlightedEmployeeIndex(-1);
+        break;
+    }
   };
 
   const canProceed = () => {
@@ -588,57 +665,6 @@ export default function Survey360Wizard({
     onClose();
   };
 
-  const handleDeleteDraft = async () => {
-    if (!draftSurvey) return;
-
-    if (!confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      // Delete survey questions
-      await supabase
-        .from('feedback_360_survey_questions')
-        .delete()
-        .eq('survey_id', draftSurvey.id);
-
-      // Delete survey reviewers
-      await supabase
-        .from('feedback_360_survey_reviewers')
-        .delete()
-        .eq('survey_id', draftSurvey.id);
-
-      // Delete survey responses if any
-      await supabase
-        .from('feedback_360_responses')
-        .delete()
-        .eq('survey_id', draftSurvey.id);
-
-      // Delete the survey itself
-      const { error } = await supabase
-        .from('feedback_360_surveys')
-        .delete()
-        .eq('id', draftSurvey.id);
-
-      if (error) throw error;
-
-      notify({
-        title: 'Draft deleted',
-        description: 'The review draft has been permanently deleted.',
-        variant: 'success',
-      });
-
-      onSurveyCreated();
-      onClose();
-    } catch (error) {
-      console.error('Error deleting draft:', error);
-      notify({
-        title: 'Error',
-        description: 'Failed to delete the draft.',
-        variant: 'error',
-      });
-    }
-  };
 
   const applyTemplate = (templateId: string) => {
     const template = SURVEY_TEMPLATES.find(t => t.id === templateId);
@@ -1092,23 +1118,19 @@ export default function Survey360Wizard({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                console.log('[Survey360Wizard] "Create with AI" button clicked');
-                setIsAIModalOpen(true);
-              }}
-              className="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded hover:from-purple-700 hover:to-indigo-700 transition-colors text-sm font-medium flex items-center gap-2"
-              title="Create survey with AI assistance"
-            >
-              <Sparkles className="w-4 h-4" />
-              Create with AI
-            </button>
-            {draftSurvey && (
+            {/* AI-assisted review wizard button - disabled and hidden */}
+            {false && (
               <button
-                onClick={handleDeleteDraft}
-                className="px-4 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm font-medium"
+                onClick={() => {
+                  console.log('[Survey360Wizard] "Create with AI" button clicked');
+                  setIsAIModalOpen(true);
+                }}
+                className="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded hover:from-purple-700 hover:to-indigo-700 transition-colors text-sm font-medium flex items-center gap-2"
+                title="Create survey with AI assistance"
+                disabled
               >
-                Delete
+                <Sparkles className="w-4 h-4" />
+                Create with AI
               </button>
             )}
             <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
@@ -1326,10 +1348,25 @@ export default function Survey360Wizard({
                           <div className="relative">
                             <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
+                              ref={(el) => {
+                                raterInputRefs.current[index] = el;
+                              }}
                               type="text"
                               value={raterSearch}
-                              onChange={(e) => setRaterSearch(e.target.value)}
-                              onFocus={() => setShowRaterPicker(index)}
+                              onChange={(e) => {
+                                setRaterSearch(e.target.value);
+                                setHighlightedEmployeeIndex(-1); // Reset highlight when typing
+                              }}
+                              onKeyDown={(e) => handleRaterInputKeyDown(e, index)}
+                              onFocus={() => {
+                                setShowRaterPicker(index);
+                                // Highlight first employee if available
+                                if (filteredRaterEmployees.length > 0) {
+                                  setHighlightedEmployeeIndex(0);
+                                } else {
+                                  setHighlightedEmployeeIndex(-1);
+                                }
+                              }}
                               placeholder="Search employees..."
                               className="w-full pl-9 pr-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
@@ -1392,16 +1429,25 @@ export default function Survey360Wizard({
                           onClick={() => {
                             setShowRaterPicker(null);
                             setRaterSearch('');
+                            setHighlightedEmployeeIndex(-1);
                           }}
                         />
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
                           <div className="p-2">
                             {filteredRaterEmployees.length > 0 ? (
-                              filteredRaterEmployees.slice(0, 20).map(emp => (
+                              filteredRaterEmployees.slice(0, 20).map((emp, empIndex) => (
                                 <button
                                   key={emp.id}
+                                  ref={(el) => {
+                                    employeeListRefs.current[empIndex] = el;
+                                  }}
                                   onClick={() => selectEmployeeAsRater(emp, index)}
-                                  className="w-full text-left p-2 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-2"
+                                  onMouseEnter={() => setHighlightedEmployeeIndex(empIndex)}
+                                  className={`w-full text-left p-2 rounded-lg transition-colors flex items-center gap-2 ${
+                                    highlightedEmployeeIndex === empIndex
+                                      ? 'bg-blue-100 border border-blue-300'
+                                      : 'hover:bg-blue-50'
+                                  }`}
                                 >
                                   <Avatar
                                     name={emp.name}
@@ -1427,6 +1473,7 @@ export default function Survey360Wizard({
                               onClick={() => {
                                 setShowRaterPicker(null);
                                 setRaterSearch('');
+                                setHighlightedEmployeeIndex(-1);
                               }}
                               className="w-full mt-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                             >
@@ -1441,9 +1488,16 @@ export default function Survey360Wizard({
               </div>
 
               <button
-                onClick={() =>
-                  setRaters([...raters, { name: '', email: '', relationship: 'peer' }])
-                }
+                onClick={() => {
+                  const newIndex = raters.length;
+                  setRaters([...raters, { name: '', email: '', relationship: 'peer' }]);
+                  setNewlyAddedRaterIndex(newIndex);
+                  setShowRaterPicker(newIndex);
+                  // Highlight first employee if available
+                  if (filteredRaterEmployees.length > 0) {
+                    setHighlightedEmployeeIndex(0);
+                  }
+                }}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
               >
                 <Users className="w-4 h-4" />

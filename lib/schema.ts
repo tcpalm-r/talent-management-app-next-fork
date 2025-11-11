@@ -267,6 +267,42 @@ export interface Feedback360Response {
   updated_at: string | null;
 }
 
+/**
+ * 360 Feedback Report - AI-generated analysis
+ *
+ * Stores AI-generated analysis of survey responses with role-based access:
+ * - Sponsors/Admins: See full report including sentiment_by_relationship breakdown
+ * - Subjects: See filtered report with only aggregated sentiment (no per-relationship data)
+ */
+export interface Feedback360Report {
+  id: string;
+  survey_id: string;
+  themes: Array<{
+    theme: string;
+    sentiment: 'very_positive' | 'positive' | 'mixed' | 'needs_work' | 'critical';
+    frequency: number;
+    supporting_evidence?: string[];
+    relationships_mentioned?: string[]; // Filtered out for subjects
+  }>;
+  overall_strengths: string[];
+  development_areas: string[];
+  recommendations: string[];
+  sentiment_by_relationship: {
+    overall: number;
+    manager?: number; // Only shown to sponsors/admins
+    peer?: number; // Only shown to sponsors/admins
+    direct_report?: number; // Only shown to sponsors/admins
+    cross_functional?: number; // Only shown to sponsors/admins
+  };
+  key_insights: string[];
+  consensus_areas: string[];
+  outlier_opinions: string[];
+  generated_by: string;
+  generated_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ============================================================================
 // SYSTEM TYPES
 // ============================================================================
