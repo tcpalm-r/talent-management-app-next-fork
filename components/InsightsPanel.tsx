@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { TrendingUp, AlertCircle, CheckCircle, Lightbulb } from 'lucide-react';
 import type { Employee, Department } from '../types';
 
@@ -27,6 +27,36 @@ export default function InsightsPanel({
   organizationId,
 }: InsightsPanelProps) {
   const isAdmin = userRole?.toLowerCase() === 'admin';
+  const [finalizedSurveys, setFinalizedSurveys] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch finalized surveys sponsored by the current user
+  useEffect(() => {
+    const fetchFinalizedSurveys = async () => {
+      if (!organizationId || !currentUserEmployee?.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/surveys/list?organization_id=${organizationId}&status=finalized`);
+        if (response.ok) {
+          const data = await response.json();
+          // Filter surveys sponsored by the current user
+          const sponsoredSurveys = data.surveys.filter(
+            (survey: any) => survey.sponsor_id === currentUserEmployee.id
+          );
+          setFinalizedSurveys(sponsoredSurveys);
+        }
+      } catch (error) {
+        console.error('Failed to fetch finalized surveys:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFinalizedSurveys();
+  }, [organizationId, currentUserEmployee?.id]);
 
   // Get team scope based on role
   const getTeamScope = () => {
@@ -102,6 +132,36 @@ export default function InsightsPanel({
         return 'bg-purple-50 border-purple-200';
     }
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-3 text-sm text-gray-600">Loading insights...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no finalized surveys
+  if (finalizedSurveys.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Lightbulb className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-lg text-gray-600">
+              Sponsor one or more 360° Reviews to see team-level insights
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
