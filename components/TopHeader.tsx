@@ -77,12 +77,12 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
                   </div>
                 </div>
 
-                {/* Sign Out */}
+                {/* Return to Hub */}
                 <button
                   onClick={handleSignOut}
-                  className="w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors font-medium"
+                  className="w-full text-left px-2 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors font-medium"
                 >
-                  Sign out
+                  Return to Hub
                 </button>
               </div>
             )}
