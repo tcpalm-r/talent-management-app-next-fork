@@ -46,7 +46,6 @@ export default function Dashboard({
   const [employeePlans, setEmployeePlans] = useState<Record<string, any>>({});
   const [performanceReviews, setPerformanceReviews] = useState<Record<string, any>>({});
   const [finalizedSurveys, setFinalizedSurveys] = useState<Record<string, number>>({});
-  const [roleOverride, setRoleOverride] = useState<string | null>(null);
 
 
   // Find current user's employee record for 360 dashboard filtering
@@ -54,12 +53,8 @@ export default function Dashboard({
     // Try to find the user in the employees list by email (case-insensitive)
     const matched = employees.find(e => e.email?.toLowerCase() === userProfile.email?.toLowerCase());
 
-    // If found, apply roleOverride if set and return the employee record; otherwise create a minimal one from userProfile
+    // If found, return the employee record; otherwise create a minimal one from userProfile
     if (matched) {
-      // Apply roleOverride to matched employee if in dev mode
-      if (roleOverride) {
-        return { ...matched, role: roleOverride as any };
-      }
       return matched;
     }
 
@@ -76,18 +71,18 @@ export default function Dashboard({
         manager_name: null,
         title: null,
         location: null,
-        role: (roleOverride || userProfile.app_role) as any,
+        role: userProfile.app_role as any,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
     }
 
     return undefined;
-  }, [employees, userProfile, roleOverride]);
+  }, [employees, userProfile]);
 
   // Redirect from restricted views if user no longer has access
   useEffect(() => {
-    const currentRole = (roleOverride || userProfile.app_role)?.toLowerCase();
+    const currentRole = userProfile.app_role?.toLowerCase();
 
     if (currentView === 'admin-settings' && currentRole !== 'admin') {
       setCurrentView('360-feedback');
@@ -96,7 +91,7 @@ export default function Dashboard({
     if (currentView === 'insights' && currentRole !== 'admin' && currentRole !== 'leader') {
       setCurrentView('360-feedback');
     }
-  }, [roleOverride, userProfile.app_role, currentView]);
+  }, [userProfile.app_role, currentView]);
 
   const changeView = useCallback((view: View) => {
     setCurrentView(view);
@@ -229,14 +224,14 @@ export default function Dashboard({
       {/* Top Header */}
       <TopHeader
         userProfile={userProfile}
-        currentRole={roleOverride || userProfile.app_role}
-        onRoleChange={setRoleOverride}
+        currentRole={userProfile.app_role}
+        onRoleChange={() => {}}
       />
 
       {/* Main Content with Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <Sidebar currentView={currentView} onViewChange={changeView} userRole={roleOverride || userProfile.app_role} />
+        <Sidebar currentView={currentView} onViewChange={changeView} userRole={userProfile.app_role} />
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto">
