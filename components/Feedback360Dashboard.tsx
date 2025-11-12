@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2 } from 'lucide-react';
+import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText } from 'lucide-react';
 import type { Employee, Department } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
@@ -2127,6 +2127,17 @@ export default function Feedback360Dashboard({
                   </div>
                 </div>
               </div>
+
+              {/* Executive Summary */}
+              {surveyResults.executive_summary && (
+                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className="w-5 h-5 text-purple-600" />
+                    <h4 className="text-lg font-semibold text-gray-900">Executive Summary</h4>
+                  </div>
+                  <p className="text-gray-700 leading-relaxed">{surveyResults.executive_summary}</p>
+                </div>
+              )}
 
               {/* Key Themes */}
               {surveyResults.themes && surveyResults.themes.length > 0 && (() => {

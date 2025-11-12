@@ -53,6 +53,7 @@ ${structuredResponses}
 IMPORTANT: Respond ONLY with valid JSON. Do not include any explanatory text before or after the JSON object. Return exactly this structure:
 
 {
+  "executive_summary": "A concise 2-3 sentence overview of the employee's overall performance, key strengths, and primary development opportunities based on the 360 feedback. This should provide a high-level snapshot of the entire review.",
   "themes": [
     {
       "theme": "Concise theme name (e.g., 'Strong Communication Skills')",
@@ -113,24 +114,25 @@ CRITICAL - ANONYMITY & AGGREGATION REQUIREMENTS:
   * If a relationship type had no responses, omit that key from the object
 
 ANALYSIS GUIDELINES:
-1. **Themes**: Identify 5-8 major themes. Look for patterns across all responses combined.
-2. **Supporting Evidence**: Paraphrase and synthesize feedback (NO direct quotes). Combine observations from all reviewers into unified statements.
-3. **Sentiment Classification**: Use constructive language:
+1. **Executive Summary**: Write a concise 2-3 sentence overview that captures the employee's overall performance trajectory, highlighting their top 1-2 strengths and 1-2 key development areas. This should give a reader an immediate understanding of the review's key takeaways.
+2. **Themes**: Identify 5-8 major themes. Look for patterns across all responses combined.
+3. **Supporting Evidence**: Paraphrase and synthesize feedback (NO direct quotes). Combine observations from all reviewers into unified statements.
+4. **Sentiment Classification**: Use constructive language:
    - "very_positive": Exceptional strengths with strong consensus
    - "positive": Clear strengths recognized widely
    - "mixed": Balance of positive and constructive feedback
    - "needs_work": Areas requiring attention and development
    - "critical": Serious concerns requiring immediate action
-4. **Sentiment Scores**: Calculate sentiment scores (0-1 scale) based on overall tone and constructiveness:
+5. **Sentiment Scores**: Calculate sentiment scores (0-1 scale) based on overall tone and constructiveness:
    - Overall: Aggregate sentiment across all reviewers
    - Per-relationship: Calculate separate scores for manager, peer, direct_report, and cross_functional groups
    - Base scores on positivity, constructiveness, and supportiveness of feedback from each group
-5. **Strengths**: List 3-5 clear strengths. Synthesize feedback from all sources into unified statements.
-6. **Development Areas**: Identify 3-5 areas for growth. Use paraphrased, aggregated summaries.
-7. **Recommendations**: Provide 4-6 specific, actionable steps based on synthesized feedback.
-8. **Key Insights**: Surface 3-5 important patterns or observations from all feedback combined.
-9. **Consensus**: Highlight areas where there is broad agreement.
-10. **Outliers**: Note any unique or contrasting perspectives, but do NOT attribute to specific relationship types.
+6. **Strengths**: List 3-5 clear strengths. Synthesize feedback from all sources into unified statements.
+7. **Development Areas**: Identify 3-5 areas for growth. Use paraphrased, aggregated summaries.
+8. **Recommendations**: Provide 4-6 specific, actionable steps based on synthesized feedback.
+9. **Key Insights**: Surface 3-5 important patterns or observations from all feedback combined.
+10. **Consensus**: Highlight areas where there is broad agreement.
+11. **Outliers**: Note any unique or contrasting perspectives, but do NOT attribute to specific relationship types.
 
 ABSOLUTELY MAINTAIN STRICT ANONYMITY: Never reveal who said what, how many people in each role responded, or any breakdown by relationship type.`;
 
