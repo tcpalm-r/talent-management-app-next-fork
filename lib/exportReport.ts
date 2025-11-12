@@ -282,22 +282,32 @@ export async function exportReportAsPDF(report: Report360Data) {
     pdf.setDrawColor(251, 191, 36); // Amber-400
     pdf.setLineWidth(1);
     pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 5;
+    yPosition += 8;
 
     // Notice text
-    pdf.setFontSize(10);
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(180, 83, 9); // Amber-700
-    const noticeText = '⚠ The sections below are only visible to Survey Sponsors and Administrators';
-    const noticeText2 = '(not visible to the employee being reviewed)';
-    pdf.text(noticeText, pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 5;
-    pdf.text(noticeText2, pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 8;
+    const noticeText = '⚠ SPONSOR/ADMIN ONLY - The sections below are not visible to the employee being reviewed';
+    const textWidth = pdf.getTextWidth(noticeText);
+    const availableWidth = pageWidth - (2 * margin);
+
+    if (textWidth > availableWidth) {
+      // Split into two lines if too long
+      const line1 = '⚠ SPONSOR/ADMIN ONLY';
+      const line2 = 'The sections below are not visible to the employee being reviewed';
+      pdf.text(line1, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 4;
+      pdf.text(line2, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 8;
+    } else {
+      pdf.text(noticeText, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 8;
+    }
 
     pdf.setDrawColor(251, 191, 36); // Amber-400
     pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 12;
+    yPosition += 10;
 
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');

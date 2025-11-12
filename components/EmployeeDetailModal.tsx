@@ -1098,11 +1098,7 @@ export default function EmployeeDetailModal({
 
                     {/* Create New Survey Section */}
                     <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                      <UsersIcon className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">360° Feedback</h3>
-                      <p className="text-sm text-gray-600 mb-6">
-                        Gather multi-perspective insights from managers, peers, and direct reports.
-                      </p>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-6">360° Feedback</h3>
                       <button
                         onClick={() => setIs360ModalOpen(true)}
                         className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
@@ -1110,6 +1106,9 @@ export default function EmployeeDetailModal({
                         <UsersIcon className="w-5 h-5 inline mr-2" />
                         Launch 360° Survey
                       </button>
+                      <p className="text-sm text-gray-600 mt-4">
+                        Gather multi-perspective insights from managers, peers, and direct reports.
+                      </p>
                     </div>
 
                     {/* Reviews Archive */}
@@ -1154,11 +1153,7 @@ export default function EmployeeDetailModal({
               {/* Create New Survey Section (when no completed reviews) */}
               {!loadingCompleted360 && completed360Surveys.length === 0 && (
                 <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                  <UsersIcon className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">360° Feedback</h3>
-                  <p className="text-sm text-gray-600 mb-6">
-                    Gather multi-perspective insights from managers, peers, and direct reports.
-                  </p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-6">360° Feedback</h3>
                   <button
                     onClick={() => setIs360ModalOpen(true)}
                     className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
@@ -1166,6 +1161,9 @@ export default function EmployeeDetailModal({
                     <UsersIcon className="w-5 h-5 inline mr-2" />
                     Launch 360° Survey
                   </button>
+                  <p className="text-sm text-gray-600 mt-4">
+                    Gather multi-perspective insights from managers, peers, and direct reports.
+                  </p>
                 </div>
               )}
             </div>
