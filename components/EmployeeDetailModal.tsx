@@ -147,20 +147,40 @@ export default function EmployeeDetailModal({
     }
   };
 
+  // Check if current user can view survey results
+  const canViewSurveyResults = (survey: any): boolean => {
+    if (!currentUser) return false;
+
+    // Admins can view everything
+    if (currentUser.app_role === 'admin' || currentUser.role === 'admin') {
+      return true;
+    }
+
+    // Survey sponsor (creator) can view their surveys
+    const isSponsor =
+      currentUser.id === survey.created_by ||
+      currentUser.email === survey.created_by;
+
+    if (isSponsor) {
+      return true;
+    }
+
+    // Subject can ONLY view finalized surveys about themselves
+    const isSubject = currentUser.id === survey.employee_id;
+    const isFinalized = survey.status === 'finalized';
+
+    if (isSubject && isFinalized) {
+      return true;
+    }
+
+    // Everyone else cannot view
+    return false;
+  };
+
   const loadSurveyResults = async (survey: any) => {
     try {
-      // First, try to load from localStorage cache
-      const cacheKey = `survey_report_${survey.id}`;
-      const cachedReport = typeof window !== 'undefined' ? localStorage.getItem(cacheKey) : null;
-
-      if (cachedReport) {
-        console.log('📦 Loading report from cache for survey:', survey.id);
-        setSelectedCompletedSurvey(survey);
-        setCompletedSurveyResults(JSON.parse(cachedReport));
-        return;
-      }
-
-      // If not cached, try to fetch from API
+      // Always fetch from API to validate permissions
+      // Cache is disabled for security - permissions must be checked on every access
       const response = await fetch(`/api/360-generate-report?survey_id=${survey.id}`);
       const data = await response.json();
 
@@ -170,11 +190,6 @@ export default function EmployeeDetailModal({
 
       setSelectedCompletedSurvey(survey);
       setCompletedSurveyResults(data.report);
-
-      // Cache the report if successful
-      if (data.report && typeof window !== 'undefined') {
-        localStorage.setItem(cacheKey, JSON.stringify(data.report));
-      }
     } catch (error: any) {
       console.error('Error loading survey results:', error);
       notify({
@@ -1064,13 +1079,20 @@ export default function EmployeeDetailModal({
                             {mostRecent.status === 'finalized' ? 'Finalized' : 'Completed'} • {new Date(mostRecent.created_at).toLocaleDateString()}
                           </p>
                         </div>
-                        <button
-                          onClick={() => loadSurveyResults(mostRecent)}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2 whitespace-nowrap ml-4"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View Results
-                        </button>
+                        {canViewSurveyResults(mostRecent) ? (
+                          <button
+                            onClick={() => loadSurveyResults(mostRecent)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2 whitespace-nowrap ml-4"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Results
+                          </button>
+                        ) : (
+                          <div className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap ml-4">
+                            <Eye className="w-4 h-4" />
+                            Restricted
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1106,13 +1128,20 @@ export default function EmployeeDetailModal({
                                   {survey.status === 'finalized' ? 'Finalized' : 'Completed'} • {new Date(survey.created_at).toLocaleDateString()}
                                 </p>
                               </div>
-                              <button
-                                onClick={() => loadSurveyResults(survey)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
-                              >
-                                <Eye className="w-4 h-4" />
-                                View Results
-                              </button>
+                              {canViewSurveyResults(survey) ? (
+                                <button
+                                  onClick={() => loadSurveyResults(survey)}
+                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  View Results
+                                </button>
+                              ) : (
+                                <div className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm font-medium flex items-center gap-2">
+                                  <Eye className="w-4 h-4" />
+                                  Restricted
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

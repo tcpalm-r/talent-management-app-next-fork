@@ -474,6 +474,12 @@ export async function GET(req: NextRequest) {
       status: survey.status
     });
 
+    console.log('[GET /api/360-generate-report] Viewer role determined:', viewerRole);
+    console.log('[GET /api/360-generate-report] User ID:', authData.profile.id);
+    console.log('[GET /api/360-generate-report] Employee ID:', survey.employee_id);
+    console.log('[GET /api/360-generate-report] Survey status:', survey.status);
+    console.log('[GET /api/360-generate-report] Created by:', survey.created_by);
+
     if (viewerRole === 'unauthorized') {
       return NextResponse.json({
         error: 'Forbidden',
@@ -485,6 +491,7 @@ export async function GET(req: NextRequest) {
     let filteredReport: any = { ...report };
 
     if (viewerRole === 'subject') {
+      console.log('[GET /api/360-generate-report] Filtering report for subject');
       // Subjects see filtered report without relationship breakdowns
       filteredReport = filterReportForSubject(report as any);
     }

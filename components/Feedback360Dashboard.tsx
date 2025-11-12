@@ -2064,6 +2064,20 @@ export default function Feedback360Dashboard({
                   <button
                     onClick={async () => {
                       try {
+                        // Determine if current user is subject viewing their own report
+                        const isSubject = currentUser?.id === selectedSurvey?.employee_id;
+                        const isSponsor = selectedSurvey?.created_by === currentUser?.id || selectedSurvey?.created_by === currentUser?.email;
+                        const isAdmin = currentUser?.app_role === 'admin';
+
+                        // Filter sentiment data for subjects (they should only see overall, not per-relationship)
+                        let sentimentData = surveyResults.sentiment_by_relationship;
+                        if (isSubject && !isAdmin && !isSponsor) {
+                          // Subject viewing their own report - filter to only show overall
+                          sentimentData = {
+                            overall: surveyResults.sentiment_by_relationship?.overall || 0
+                          };
+                        }
+
                         const reportData = {
                           survey_name: selectedSurvey.survey_name || 'Untitled Survey',
                           employee_name: selectedSurvey.employee?.name || 'Unknown',
@@ -2074,7 +2088,7 @@ export default function Feedback360Dashboard({
                           development_areas: surveyResults.development_areas,
                           recommendations: surveyResults.recommendations,
                           key_insights: surveyResults.key_insights,
-                          sentiment_by_relationship: surveyResults.sentiment_by_relationship,
+                          sentiment_by_relationship: sentimentData,
                           consensus_areas: surveyResults.consensus_areas,
                           outlier_opinions: surveyResults.outlier_opinions
                         };

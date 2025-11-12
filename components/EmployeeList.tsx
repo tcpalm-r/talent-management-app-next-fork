@@ -316,8 +316,7 @@ export default function EmployeeList({
                   </div>
 
                   {/* 360 Review Checkbox */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">360 Review Completed</span>
+                  <div className="flex items-center gap-2">
                     <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                       has360Review
                         ? 'bg-green-500 border-green-500'
@@ -325,6 +324,7 @@ export default function EmployeeList({
                     }`}>
                       {has360Review && <Check className="w-3 h-3 text-white" />}
                     </div>
+                    <span className="text-xs text-gray-600">360° Review Finalized</span>
                   </div>
                 </div>
               );

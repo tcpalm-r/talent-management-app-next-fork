@@ -22,18 +22,26 @@ import type { Feedback360Report } from './schema';
 export function filterReportForSubject(
   fullReport: Feedback360Report
 ): Feedback360Report {
-  return {
+  console.log('[filterReport] Filtering report for subject view');
+  console.log('[filterReport] Before - sentiment_by_relationship keys:', Object.keys(fullReport.sentiment_by_relationship || {}));
+
+  const filtered = {
     ...fullReport,
     // Keep only overall sentiment score, remove per-relationship breakdowns
     sentiment_by_relationship: {
-      overall: fullReport.sentiment_by_relationship.overall || 0,
+      overall: fullReport.sentiment_by_relationship?.overall || 0,
     },
     // Remove relationship attributions from themes
-    themes: fullReport.themes.map((theme) => ({
+    themes: fullReport.themes?.map((theme) => ({
       ...theme,
       relationships_mentioned: undefined,
-    })),
+    })) || [],
   };
+
+  console.log('[filterReport] After - sentiment_by_relationship keys:', Object.keys(filtered.sentiment_by_relationship || {}));
+  console.log('[filterReport] After - sentiment_by_relationship:', JSON.stringify(filtered.sentiment_by_relationship));
+
+  return filtered;
 }
 
 /**
