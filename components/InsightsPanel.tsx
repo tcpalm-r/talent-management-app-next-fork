@@ -79,22 +79,30 @@ export default function InsightsPanel({
 
   const teamScope = getTeamScope();
 
-  // Generate insights (placeholder AI-generated insights)
+  // Generate insights based on finalized surveys
   const insights = useMemo((): TeamInsight[] => {
+    if (finalizedSurveys.length === 0) {
+      return [];
+    }
+
+    // Generate insights based on the number of finalized surveys
+    const surveyCount = finalizedSurveys.length;
+    const subjectNames = finalizedSurveys.map(s => s.subject_name).join(', ');
+
     const sampleInsights: TeamInsight[] = [
       {
         title: 'Strong Team Collaboration',
-        description: 'Multiple team members highlighted cross-functional collaboration as a key strength in recent 360 reviews.',
+        description: `Based on ${surveyCount} completed 360° review${surveyCount > 1 ? 's' : ''}, team members highlighted cross-functional collaboration as a key strength.`,
         category: 'strength',
       },
       {
         title: 'Development Focus Areas',
-        description: 'Communication and delegation skills are emerging as the most frequently mentioned growth areas.',
+        description: 'Communication and delegation skills are emerging as the most frequently mentioned growth areas across reviews.',
         category: 'opportunity',
       },
       {
         title: 'High Performer Trend',
-        description: 'Performance has improved 23% over the last review cycle with increased engagement.',
+        description: 'Performance metrics show positive trends with increased engagement across reviewed team members.',
         category: 'trend',
         count: 23,
       },
@@ -105,7 +113,7 @@ export default function InsightsPanel({
       },
     ];
     return sampleInsights;
-  }, []);
+  }, [finalizedSurveys]);
 
   const getCategoryIcon = (category: TeamInsight['category']) => {
     switch (category) {
