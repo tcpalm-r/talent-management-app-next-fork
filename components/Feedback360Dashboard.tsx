@@ -2477,7 +2477,7 @@ export default function Feedback360Dashboard({
                 );
               })()}
 
-              {/* Sentiment by Relationship - Sponsor/Admin Only */}
+              {/* Divider and Notice - Sponsor/Admin Only Sections */}
               {(() => {
                 // Check if current user is the subject (employee being reviewed)
                 const isSubject = currentUser?.id === selectedSurvey?.employee_id;
@@ -2487,14 +2487,29 @@ export default function Feedback360Dashboard({
                 // Only show relationship breakdown if NOT a pure subject (subjects who are also sponsors/admins can see it)
                 const canSeeRelationshipBreakdown = !isSubject || isAdmin || isSponsor;
 
-                return canSeeRelationshipBreakdown &&
-                       surveyResults.sentiment_by_relationship &&
+                const hasRelationshipData = surveyResults.sentiment_by_relationship &&
                        (surveyResults.sentiment_by_relationship.manager !== undefined ||
                         surveyResults.sentiment_by_relationship.peer !== undefined ||
                         surveyResults.sentiment_by_relationship.direct_report !== undefined ||
                         surveyResults.sentiment_by_relationship.cross_functional !== undefined);
+
+                return canSeeRelationshipBreakdown && hasRelationshipData;
               })() && (
-                <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                <>
+                  {/* Divider with Notice */}
+                  <div className="relative my-8">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t-2 border-amber-300"></div>
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-white px-4 py-2 text-sm font-semibold text-amber-700 border-2 border-amber-300 rounded-lg shadow-sm">
+                        ⚠️ The sections below are only visible to Survey Sponsors and Administrators (not visible to the employee being reviewed)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Sentiment by Relationship - Sponsor/Admin Only */}
+                  <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <Users className="w-5 h-5 text-blue-600" />
                     Sentiment by Relationship Type
@@ -2569,19 +2584,9 @@ export default function Feedback360Dashboard({
                     )}
                   </div>
                 </div>
-              )}
 
               {/* Consensus & Outliers - Sponsor/Admin Only */}
-              {(() => {
-                // Check if current user is the subject (employee being reviewed)
-                const isSubject = currentUser?.id === selectedSurvey?.employee_id;
-                // Check if user is sponsor or admin
-                const isSponsor = selectedSurvey?.created_by === currentUser?.id || selectedSurvey?.created_by === currentUser?.email;
-                const isAdmin = currentUser?.app_role === 'admin';
-                // Only show consensus/outliers if NOT a pure subject (subjects who are also sponsors/admins can see it)
-                const canSeeConsensusOutliers = !isSubject || isAdmin || isSponsor;
-
-                return canSeeConsensusOutliers && (surveyResults.consensus_areas?.length > 0 || surveyResults.outlier_opinions?.length > 0) && (
+              {(surveyResults.consensus_areas?.length > 0 || surveyResults.outlier_opinions?.length > 0) && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {surveyResults.consensus_areas && surveyResults.consensus_areas.length > 0 && (
                       <div className="bg-green-50 rounded-lg p-4 border border-green-200">
@@ -2611,8 +2616,9 @@ export default function Feedback360Dashboard({
                       </div>
                     )}
                   </div>
-                );
-              })()}
+                )}
+                </>
+              )}
             </div>
 
             {/* Actions Footer - Anchored at bottom */}
