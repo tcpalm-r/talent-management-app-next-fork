@@ -53,7 +53,7 @@ ${structuredResponses}
 IMPORTANT: Respond ONLY with valid JSON. Do not include any explanatory text before or after the JSON object. Return exactly this structure:
 
 {
-  "executive_summary": "A concise 2-3 sentence overview of the employee's overall performance, key strengths, and primary development opportunities based on the 360 feedback. This should provide a high-level snapshot of the entire review.",
+  "executive_summary": "A concise 2-3 sentence overview using the employee's actual name (${survey.employee_name}) describing their overall performance, key strengths, and primary development opportunities based on the 360 feedback. This should provide a high-level snapshot of the entire review.",
   "themes": [
     {
       "theme": "Concise theme name (e.g., 'Strong Communication Skills')",
@@ -114,7 +114,7 @@ CRITICAL - ANONYMITY & AGGREGATION REQUIREMENTS:
   * If a relationship type had no responses, omit that key from the object
 
 ANALYSIS GUIDELINES:
-1. **Executive Summary**: Write a concise 2-3 sentence overview that captures the employee's overall performance trajectory, highlighting their top 1-2 strengths and 1-2 key development areas. This should give a reader an immediate understanding of the review's key takeaways.
+1. **Executive Summary**: Write a concise 2-3 sentence overview that uses the employee's actual name (${survey.employee_name}) and captures their overall performance trajectory, highlighting their top 1-2 strengths and 1-2 key development areas. This should give a reader an immediate understanding of the review's key takeaways.
 2. **Themes**: Identify 5-8 major themes. Look for patterns across all responses combined.
 3. **Supporting Evidence**: Paraphrase and synthesize feedback (NO direct quotes). Combine observations from all reviewers into unified statements.
 4. **Sentiment Classification**: Use constructive language:

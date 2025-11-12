@@ -189,11 +189,21 @@ export async function POST(req: NextRequest) {
     // STEP 5: Fetch employee details for context
     // ========================================================================
 
-    // TODO: Fix employee query once 'employees' materialized view is properly set up
-    // For now, use survey data directly
-    const employee: { name?: string; email?: string } | null = null;
+    let employeeName = 'Unknown Employee';
+    let employeeEmail = '';
 
-    // Employee is optional - survey might reference a user not in employees view
+    if (survey.employee_id) {
+      const { data: employeeData } = await supabase
+        .from('user_profiles')
+        .select('full_name, email')
+        .eq('id', survey.employee_id)
+        .single();
+
+      if (employeeData) {
+        employeeName = employeeData.full_name || 'Unknown Employee';
+        employeeEmail = employeeData.email || '';
+      }
+    }
 
     // ========================================================================
     // STEP 6: Transform data for AI analyzer
@@ -274,8 +284,8 @@ export async function POST(req: NextRequest) {
       id: survey.id,
       organization_id: undefined, // Not in DB schema
       employee_id: survey.employee_id,
-      employee_name: 'Unknown Employee', // TODO: populate from employee when available
-      employee_email: '', // TODO: populate from employee when available
+      employee_name: employeeName,
+      employee_email: employeeEmail,
       status: survey.status as 'draft' | 'active' | 'completed' | 'closed',
       created_by: survey.created_by,
       survey_name: survey.survey_name || 'Untitled Survey',

@@ -1349,22 +1349,29 @@ export default function EmployeeDetailModal({
 
           {/* Notes Tab */}
           {activeTab === 'notes' && (
-            <ManagerNotes
-              employeeId={employee.id}
-              employeeName={employee.name || 'Employee'}
-              notes={[]}
-              onAddNote={() => {}}
-              onDeleteNote={() => {}}
-              onAcknowledgeNote={() => {}}
-              currentUserName={currentUser?.name || 'Manager'}
-              isEmployeeView={false}
-            />
+            <div className="text-center text-gray-500 py-8">
+              Notes - Coming Soon
+            </div>
           )}
 
           {/* Performance Review & ITP Matrix Tab (Combined) */}
           {activeTab === 'perf-review' && (
             <div className="text-center text-gray-500 py-8">
               ITP Self-assessment - Coming Soon
+            </div>
+          )}
+
+          {/* PIP Tab */}
+          {activeTab === 'pip' && (
+            <div className="text-center text-gray-500 py-8">
+              PIP - Coming Soon
+            </div>
+          )}
+
+          {/* Succession Tab */}
+          {activeTab === 'succession' && (
+            <div className="text-center text-gray-500 py-8">
+              Succession - Coming Soon
             </div>
           )}
         </div>
