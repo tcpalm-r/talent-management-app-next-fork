@@ -81,6 +81,11 @@ export default function Feedback360Dashboard({
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [aiParsedData, setAiParsedData] = useState<ParsedSurveyData | null>(null);
+  const [selectedThemeIndex, setSelectedThemeIndex] = useState<number | null>(null);
+  const [selectedStrengthIndex, setSelectedStrengthIndex] = useState<number | null>(null);
+  const [selectedDevelopmentIndex, setSelectedDevelopmentIndex] = useState<number | null>(null);
+  const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
+  const [isAdjustingItem, setIsAdjustingItem] = useState(false);
 
   useEffect(() => {
     loadSurveys();
@@ -560,6 +565,93 @@ export default function Feedback360Dashboard({
     }
   };
 
+  const adjustItemSpecificity = async (
+    itemIndex: number,
+    direction: 'more' | 'less',
+    sectionType: 'themes' | 'strengths' | 'development_areas' | 'key_insights'
+  ) => {
+    if (!selectedSurvey || !surveyResults) return;
+
+    setIsAdjustingItem(true);
+    try {
+      let item: any;
+      let sectionKey: string;
+      let sectionLabel: string;
+
+      switch (sectionType) {
+        case 'themes':
+          item = surveyResults.themes[itemIndex];
+          sectionKey = 'themes';
+          sectionLabel = 'theme';
+          break;
+        case 'strengths':
+          item = surveyResults.overall_strengths[itemIndex];
+          sectionKey = 'overall_strengths';
+          sectionLabel = 'strength';
+          break;
+        case 'development_areas':
+          item = surveyResults.development_areas[itemIndex];
+          sectionKey = 'development_areas';
+          sectionLabel = 'development area';
+          break;
+        case 'key_insights':
+          item = surveyResults.key_insights[itemIndex];
+          sectionKey = 'key_insights';
+          sectionLabel = 'insight';
+          break;
+      }
+
+      const response = await fetch('/api/ai/adjust-item-specificity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          survey_id: selectedSurvey.id,
+          item: item,
+          section_type: sectionType,
+          direction: direction,
+          raw_responses: rawSurveyData?.responses || []
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to adjust ${sectionLabel}`);
+      }
+
+      const data = await response.json();
+
+      // Update the item in the results
+      const updatedSection = [...surveyResults[sectionKey]];
+      updatedSection[itemIndex] = data.adjusted_item;
+
+      setSurveyResults({
+        ...surveyResults,
+        [sectionKey]: updatedSection
+      });
+
+      notify({
+        title: `${sectionLabel.charAt(0).toUpperCase() + sectionLabel.slice(1)} Adjusted`,
+        description: `The ${sectionLabel} has been made ${direction} specific.`,
+        variant: 'success',
+      });
+
+      // Deselect item after adjustment
+      setSelectedThemeIndex(null);
+      setSelectedStrengthIndex(null);
+      setSelectedDevelopmentIndex(null);
+      setSelectedInsightIndex(null);
+    } catch (error: any) {
+      console.error('Error adjusting item:', error);
+      notify({
+        title: 'Error',
+        description: error.message || 'Failed to adjust item',
+        variant: 'error',
+      });
+    } finally {
+      setIsAdjustingItem(false);
+    }
+  };
+
   const sendToHR = async (surveyId: string) => {
     try {
       const response = await fetch(`/api/surveys/${surveyId}`, {
@@ -710,8 +802,8 @@ export default function Feedback360Dashboard({
       successMessage = 'The review has been moved back to In Progress status and the reanalysis flag has been cleared.';
     } else if (status === 'in_progress') {
       targetStatus = 'draft';
-      confirmMessage = 'Are you sure you want to send this review back to Draft? Reviewer access links will be invalidated and it will only be visible to you for editing.';
-      successMessage = 'The review has been moved back to Draft status. You can edit and relaunch it whenever you\'re ready.';
+      confirmMessage = 'Are you sure you want to send this review back to Draft? All reviewers will be kept, but the survey will no longer be active.';
+      successMessage = 'The review has been moved back to Draft status. Reviewers have been preserved.';
     } else {
       notify({
         title: 'Error',
@@ -2024,89 +2116,234 @@ export default function Feedback360Dashboard({
               </div>
 
               {/* Key Themes */}
-              {surveyResults.themes && surveyResults.themes.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Sparkles className="w-5 h-5 text-purple-600" />
-                    <h4 className="text-lg font-semibold text-gray-900">Key Themes</h4>
-                  </div>
-                  <div className="space-y-3">
-                    {surveyResults.themes.map((theme: any, idx: number) => (
-                      <div key={idx} className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors">
-                        <div className="flex items-start justify-between mb-2">
-                          <h5 className="font-medium text-gray-900">{theme.theme}</h5>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            theme.sentiment === 'very_positive' ? 'bg-emerald-100 text-emerald-700' :
-                            theme.sentiment === 'positive' ? 'bg-green-100 text-green-700' :
-                            theme.sentiment === 'mixed' ? 'bg-yellow-100 text-yellow-700' :
-                            theme.sentiment === 'needs_work' ? 'bg-orange-100 text-orange-700' :
-                            theme.sentiment === 'critical' ? 'bg-red-100 text-red-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {theme.sentiment === 'very_positive' ? 'Very Positive' :
-                             theme.sentiment === 'positive' ? 'Positive' :
-                             theme.sentiment === 'mixed' ? 'Mixed' :
-                             theme.sentiment === 'needs_work' ? 'Needs Work' :
-                             theme.sentiment === 'critical' ? 'Critical' :
-                             theme.sentiment}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 mb-2">
-                          Mentioned by {theme.frequency} reviewer{theme.frequency !== 1 ? 's' : ''}
-                          {theme.relationships_mentioned && theme.relationships_mentioned.length > 0 && (
-                            <span> ({theme.relationships_mentioned.join(', ')})</span>
-                          )}
-                        </p>
-                        {theme.supporting_evidence && theme.supporting_evidence.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            {theme.supporting_evidence.map((evidence: string, qIdx: number) => (
-                              <p key={qIdx} className="text-sm text-gray-600 pl-3 border-l-2 border-gray-300">
-                                {evidence}
-                              </p>
-                            ))}
+              {surveyResults.themes && surveyResults.themes.length > 0 && (() => {
+                const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
+                const isAdmin = currentUser?.app_role === 'admin';
+                const canAdjustThemes = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
+
+                return (
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Sparkles className="w-5 h-5 text-purple-600" />
+                      <h4 className="text-lg font-semibold text-gray-900">Key Themes</h4>
+                      {canAdjustThemes && (
+                        <span className="text-xs text-gray-500 ml-2">(Click a theme to adjust)</span>
+                      )}
+                    </div>
+                    <div className="space-y-3">
+                      {surveyResults.themes.map((theme: any, idx: number) => (
+                        <div
+                          key={idx}
+                          onClick={() => canAdjustThemes && setSelectedThemeIndex(idx === selectedThemeIndex ? null : idx)}
+                          className={`border rounded-lg p-4 transition-colors ${
+                            canAdjustThemes ? 'cursor-pointer hover:border-purple-400' : ''
+                          } ${
+                            selectedThemeIndex === idx
+                              ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
+                              : 'border-gray-200 hover:border-purple-300'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <h5 className="font-medium text-gray-900">{theme.theme}</h5>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              theme.sentiment === 'very_positive' ? 'bg-emerald-100 text-emerald-700' :
+                              theme.sentiment === 'positive' ? 'bg-green-100 text-green-700' :
+                              theme.sentiment === 'mixed' ? 'bg-yellow-100 text-yellow-700' :
+                              theme.sentiment === 'needs_work' ? 'bg-orange-100 text-orange-700' :
+                              theme.sentiment === 'critical' ? 'bg-red-100 text-red-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {theme.sentiment === 'very_positive' ? 'Very Positive' :
+                               theme.sentiment === 'positive' ? 'Positive' :
+                               theme.sentiment === 'mixed' ? 'Mixed' :
+                               theme.sentiment === 'needs_work' ? 'Needs Work' :
+                               theme.sentiment === 'critical' ? 'Critical' :
+                               theme.sentiment}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          <p className="text-xs text-gray-500 mb-2">
+                            Mentioned by {theme.frequency} reviewer{theme.frequency !== 1 ? 's' : ''}
+                            {theme.relationships_mentioned && theme.relationships_mentioned.length > 0 && (
+                              <span> ({theme.relationships_mentioned.join(', ')})</span>
+                            )}
+                          </p>
+                          {theme.supporting_evidence && theme.supporting_evidence.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {theme.supporting_evidence.map((evidence: string, qIdx: number) => (
+                                <p key={qIdx} className="text-sm text-gray-600 pl-3 border-l-2 border-gray-300">
+                                  {evidence}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Adjustment buttons - only show when this theme is selected */}
+                          {canAdjustThemes && selectedThemeIndex === idx && (
+                            <div className="mt-3 pt-3 border-t border-purple-200 flex gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  adjustItemSpecificity(idx, 'more', 'themes');
+                                }}
+                                disabled={isAdjustingItem}
+                                className="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                              >
+                                <Sparkles className="w-4 h-4" />
+                                {isAdjustingItem ? 'Adjusting...' : 'Make More Specific'}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  adjustItemSpecificity(idx, 'less', 'themes');
+                                }}
+                                disabled={isAdjustingItem}
+                                className="flex-1 px-3 py-2 bg-purple-400 text-white rounded-lg hover:bg-purple-500 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                              >
+                                <Sparkles className="w-4 h-4" />
+                                {isAdjustingItem ? 'Adjusting...' : 'Make Less Specific'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Strengths */}
-              {surveyResults.overall_strengths && surveyResults.overall_strengths.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                    Key Strengths
-                  </h4>
-                  <ul className="space-y-2">
-                    {surveyResults.overall_strengths.map((strength: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="text-green-600 mt-1">•</span>
-                        <span className="text-gray-700">{strength}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {surveyResults.overall_strengths && surveyResults.overall_strengths.length > 0 && (() => {
+                const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
+                const isAdmin = currentUser?.app_role === 'admin';
+                const canAdjustItems = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
+
+                return (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      Key Strengths
+                      {canAdjustItems && (
+                        <span className="text-xs text-gray-500 ml-2">(Click to adjust)</span>
+                      )}
+                    </h4>
+                    <ul className="space-y-2">
+                      {surveyResults.overall_strengths.map((strength: string, idx: number) => (
+                        <li
+                          key={idx}
+                          onClick={() => canAdjustItems && setSelectedStrengthIndex(idx === selectedStrengthIndex ? null : idx)}
+                          className={`flex items-start gap-2 rounded-lg p-3 transition-colors ${
+                            canAdjustItems ? 'cursor-pointer hover:bg-green-50' : ''
+                          } ${
+                            selectedStrengthIndex === idx
+                              ? 'bg-green-50 ring-2 ring-green-200'
+                              : ''
+                          }`}
+                        >
+                          <span className="text-green-600 mt-1">•</span>
+                          <div className="flex-1">
+                            <span className="text-gray-700">{strength}</span>
+
+                            {/* Adjustment buttons */}
+                            {canAdjustItems && selectedStrengthIndex === idx && (
+                              <div className="mt-3 pt-3 border-t border-green-200 flex gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    adjustItemSpecificity(idx, 'more', 'strengths');
+                                  }}
+                                  disabled={isAdjustingItem}
+                                  className="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                  <Sparkles className="w-4 h-4" />
+                                  {isAdjustingItem ? 'Adjusting...' : 'Make More Specific'}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    adjustItemSpecificity(idx, 'less', 'strengths');
+                                  }}
+                                  disabled={isAdjustingItem}
+                                  className="flex-1 px-3 py-2 bg-purple-400 text-white rounded-lg hover:bg-purple-500 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                  <Sparkles className="w-4 h-4" />
+                                  {isAdjustingItem ? 'Adjusting...' : 'Make Less Specific'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
 
               {/* Development Areas */}
-              {surveyResults.development_areas && surveyResults.development_areas.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-600" />
-                    Development Areas
-                  </h4>
-                  <ul className="space-y-2">
-                    {surveyResults.development_areas.map((area: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="text-amber-600 mt-1">•</span>
-                        <span className="text-gray-700">{area}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {surveyResults.development_areas && surveyResults.development_areas.length > 0 && (() => {
+                const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
+                const isAdmin = currentUser?.app_role === 'admin';
+                const canAdjustItems = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
+
+                return (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600" />
+                      Development Areas
+                      {canAdjustItems && (
+                        <span className="text-xs text-gray-500 ml-2">(Click to adjust)</span>
+                      )}
+                    </h4>
+                    <ul className="space-y-2">
+                      {surveyResults.development_areas.map((area: string, idx: number) => (
+                        <li
+                          key={idx}
+                          onClick={() => canAdjustItems && setSelectedDevelopmentIndex(idx === selectedDevelopmentIndex ? null : idx)}
+                          className={`flex items-start gap-2 rounded-lg p-3 transition-colors ${
+                            canAdjustItems ? 'cursor-pointer hover:bg-amber-50' : ''
+                          } ${
+                            selectedDevelopmentIndex === idx
+                              ? 'bg-amber-50 ring-2 ring-amber-200'
+                              : ''
+                          }`}
+                        >
+                          <span className="text-amber-600 mt-1">•</span>
+                          <div className="flex-1">
+                            <span className="text-gray-700">{area}</span>
+
+                            {/* Adjustment buttons */}
+                            {canAdjustItems && selectedDevelopmentIndex === idx && (
+                              <div className="mt-3 pt-3 border-t border-amber-200 flex gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    adjustItemSpecificity(idx, 'more', 'development_areas');
+                                  }}
+                                  disabled={isAdjustingItem}
+                                  className="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                  <Sparkles className="w-4 h-4" />
+                                  {isAdjustingItem ? 'Adjusting...' : 'Make More Specific'}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    adjustItemSpecificity(idx, 'less', 'development_areas');
+                                  }}
+                                  disabled={isAdjustingItem}
+                                  className="flex-1 px-3 py-2 bg-purple-400 text-white rounded-lg hover:bg-purple-500 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                  <Sparkles className="w-4 h-4" />
+                                  {isAdjustingItem ? 'Adjusting...' : 'Make Less Specific'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
 
               {/* Recommendations */}
               {surveyResults.recommendations && surveyResults.recommendations.length > 0 && (
@@ -2126,23 +2363,80 @@ export default function Feedback360Dashboard({
                 </div>
               )}
 
-              {/* Key Insights */}
-              {surveyResults.key_insights && surveyResults.key_insights.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-purple-600" />
-                    Key Insights
-                  </h4>
-                  <ul className="space-y-2">
-                    {surveyResults.key_insights.map((insight: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="text-purple-600 mt-1">💡</span>
-                        <span className="text-gray-700">{insight}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {/* Key Insights - Sponsor/Admin Only */}
+              {surveyResults.key_insights && surveyResults.key_insights.length > 0 && (() => {
+                // Check if current user is the subject (employee being reviewed)
+                const isSubject = currentUser?.id === selectedSurvey?.employee_id;
+                // Check if user is sponsor or admin
+                const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
+                const isAdmin = currentUser?.app_role === 'admin';
+                // Only show key insights if NOT a pure subject (subjects who are also sponsors/admins can see it)
+                const canSeeKeyInsights = !isSubject || isAdmin || isSponsor;
+                const canAdjustItems = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
+
+                // Don't render section at all if user shouldn't see it
+                if (!canSeeKeyInsights) return null;
+
+                return (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-purple-600" />
+                      Key Insights
+                      {canAdjustItems && (
+                        <span className="text-xs text-gray-500 ml-2">(Click to adjust)</span>
+                      )}
+                    </h4>
+                    <ul className="space-y-2">
+                      {surveyResults.key_insights.map((insight: string, idx: number) => (
+                        <li
+                          key={idx}
+                          onClick={() => canAdjustItems && setSelectedInsightIndex(idx === selectedInsightIndex ? null : idx)}
+                          className={`flex items-start gap-2 rounded-lg p-3 transition-colors ${
+                            canAdjustItems ? 'cursor-pointer hover:bg-purple-50' : ''
+                          } ${
+                            selectedInsightIndex === idx
+                              ? 'bg-purple-50 ring-2 ring-purple-200'
+                              : ''
+                          }`}
+                        >
+                          <span className="text-purple-600 mt-1">💡</span>
+                          <div className="flex-1">
+                            <span className="text-gray-700">{insight}</span>
+
+                            {/* Adjustment buttons */}
+                            {canAdjustItems && selectedInsightIndex === idx && (
+                              <div className="mt-3 pt-3 border-t border-purple-200 flex gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    adjustItemSpecificity(idx, 'more', 'key_insights');
+                                  }}
+                                  disabled={isAdjustingItem}
+                                  className="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                  <Sparkles className="w-4 h-4" />
+                                  {isAdjustingItem ? 'Adjusting...' : 'Make More Specific'}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    adjustItemSpecificity(idx, 'less', 'key_insights');
+                                  }}
+                                  disabled={isAdjustingItem}
+                                  className="flex-1 px-3 py-2 bg-purple-400 text-white rounded-lg hover:bg-purple-500 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                  <Sparkles className="w-4 h-4" />
+                                  {isAdjustingItem ? 'Adjusting...' : 'Make Less Specific'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
 
               {/* Sentiment by Relationship - Sponsor/Admin Only */}
               {(() => {
@@ -2238,36 +2532,48 @@ export default function Feedback360Dashboard({
                 </div>
               )}
 
-              {/* Consensus & Outliers */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {surveyResults.consensus_areas && surveyResults.consensus_areas.length > 0 && (
-                  <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      Strong Consensus
-                    </h4>
-                    <ul className="space-y-1 text-sm">
-                      {surveyResults.consensus_areas.map((area: string, idx: number) => (
-                        <li key={idx} className="text-gray-700">• {area}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+              {/* Consensus & Outliers - Sponsor/Admin Only */}
+              {(() => {
+                // Check if current user is the subject (employee being reviewed)
+                const isSubject = currentUser?.id === selectedSurvey?.employee_id;
+                // Check if user is sponsor or admin
+                const isSponsor = selectedSurvey?.created_by === currentUser?.id || selectedSurvey?.created_by === currentUser?.email;
+                const isAdmin = currentUser?.app_role === 'admin';
+                // Only show consensus/outliers if NOT a pure subject (subjects who are also sponsors/admins can see it)
+                const canSeeConsensusOutliers = !isSubject || isAdmin || isSponsor;
 
-                {surveyResults.outlier_opinions && surveyResults.outlier_opinions.length > 0 && (
-                  <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-600" />
-                      Unique Perspectives
-                    </h4>
-                    <ul className="space-y-1 text-sm">
-                      {surveyResults.outlier_opinions.map((opinion: string, idx: number) => (
-                        <li key={idx} className="text-gray-700">• {opinion}</li>
-                      ))}
-                    </ul>
+                return canSeeConsensusOutliers && (surveyResults.consensus_areas?.length > 0 || surveyResults.outlier_opinions?.length > 0) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {surveyResults.consensus_areas && surveyResults.consensus_areas.length > 0 && (
+                      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                        <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          Strong Consensus
+                        </h4>
+                        <ul className="space-y-1 text-sm">
+                          {surveyResults.consensus_areas.map((area: string, idx: number) => (
+                            <li key={idx} className="text-gray-700">• {area}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {surveyResults.outlier_opinions && surveyResults.outlier_opinions.length > 0 && (
+                      <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                        <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-600" />
+                          Unique Perspectives
+                        </h4>
+                        <ul className="space-y-1 text-sm">
+                          {surveyResults.outlier_opinions.map((opinion: string, idx: number) => (
+                            <li key={idx} className="text-gray-700">• {opinion}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })()}
             </div>
 
             {/* Actions Footer - Anchored at bottom */}

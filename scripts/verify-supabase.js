@@ -75,10 +75,7 @@ async function testTables(client) {
     'performance_reviews',
     'feedback_360_surveys',
     'feedback_360_survey_reviewers',
-    'feedback_360_responses',
-    'nine_box_assessments',
-    'performance_improvement_plans',
-    'succession_plans'
+    'feedback_360_responses'
   ];
 
   let allPresent = true;

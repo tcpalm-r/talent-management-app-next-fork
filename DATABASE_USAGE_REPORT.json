@@ -1,0 +1,521 @@
+[
+  {
+    "name": "user_profiles",
+    "exists": true,
+    "rowCount": 393,
+    "codeReferences": 11,
+    "files": [
+      {
+        "file": "app/api/ai/parse-survey-description/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/auth/callback/route.ts",
+        "count": 3
+      },
+      {
+        "file": "app/api/auth/switch-user/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/[id]/details/route.ts",
+        "count": 2
+      },
+      {
+        "file": "app/api/surveys/[id]/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/list/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/users/list/route.ts",
+        "count": 1
+      },
+      {
+        "file": "lib/auth-supabase.ts",
+        "count": 9
+      },
+      {
+        "file": "lib/database.ts",
+        "count": 9
+      },
+      {
+        "file": "lib/supabase-admin.ts",
+        "count": 6
+      },
+      {
+        "file": "scripts/verify-supabase.js",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "name": "employees",
+    "exists": true,
+    "rowCount": 386,
+    "codeReferences": 2,
+    "files": [
+      {
+        "file": "scripts/generate-test-360-data.ts",
+        "count": 1
+      },
+      {
+        "file": "scripts/verify-supabase.js",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "name": "performance_reviews",
+    "exists": true,
+    "rowCount": 1,
+    "codeReferences": 2,
+    "files": [
+      {
+        "file": "lib/database.ts",
+        "count": 3
+      },
+      {
+        "file": "lib/supabase-admin.ts",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "name": "performance_review_participants",
+    "exists": false,
+    "rowCount": null,
+    "codeReferences": 0,
+    "files": []
+  },
+  {
+    "name": "performance_review_deadlines",
+    "exists": false,
+    "rowCount": null,
+    "codeReferences": 0,
+    "files": []
+  },
+  {
+    "name": "ideal_team_player_matrix",
+    "exists": true,
+    "rowCount": 18,
+    "codeReferences": 0,
+    "files": []
+  },
+  {
+    "name": "assessments",
+    "exists": true,
+    "rowCount": 1,
+    "codeReferences": 2,
+    "files": [
+      {
+        "file": "app/api/dashboard/data/route.ts",
+        "count": 1
+      },
+      {
+        "file": "lib/database.ts",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "name": "assessment_responses",
+    "exists": true,
+    "rowCount": 1257,
+    "codeReferences": 1,
+    "files": [
+      {
+        "file": "lib/database.ts",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "name": "feedback_360_questions",
+    "exists": true,
+    "rowCount": 17,
+    "codeReferences": 5,
+    "files": [
+      {
+        "file": "app/api/surveys/create/route.ts",
+        "count": 2
+      },
+      {
+        "file": "app/api/surveys/save-draft/route.ts",
+        "count": 2
+      },
+      {
+        "file": "app/api/surveys/update-draft/route.ts",
+        "count": 2
+      },
+      {
+        "file": "lib/database.ts",
+        "count": 2
+      },
+      {
+        "file": "scripts/generate-test-360-data.ts",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "name": "feedback_360_surveys",
+    "exists": true,
+    "rowCount": 2,
+    "codeReferences": 24,
+    "files": [
+      {
+        "file": "app/api/360-generate-report/route.ts",
+        "count": 2
+      },
+      {
+        "file": "app/api/employees/[id]/surveys/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/send-survey-invitation/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/survey-completion/submit/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/survey-completion/survey/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/[id]/details/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/[id]/finalize/route.ts",
+        "count": 2
+      },
+      {
+        "file": "app/api/surveys/[id]/revert-draft/route.ts",
+        "count": 2
+      },
+      {
+        "file": "app/api/surveys/[id]/reviewers/[reviewerId]/route.ts",
+        "count": 3
+      },
+      {
+        "file": "app/api/surveys/[id]/reviewers/route.ts",
+        "count": 3
+      },
+      {
+        "file": "app/api/surveys/[id]/route.ts",
+        "count": 4
+      },
+      {
+        "file": "app/api/surveys/[id]/send-reminders/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/create/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/list/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/save-draft/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/update-draft/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/update-status/route.ts",
+        "count": 1
+      },
+      {
+        "file": "lib/database.ts",
+        "count": 2
+      },
+      {
+        "file": "lib/supabase-admin.ts",
+        "count": 3
+      },
+      {
+        "file": "scripts/check-real-report.js",
+        "count": 1
+      },
+      {
+        "file": "scripts/generate-test-360-data.ts",
+        "count": 1
+      },
+      {
+        "file": "scripts/list-surveys.js",
+        "count": 1
+      },
+      {
+        "file": "scripts/test-report-filtering.js",
+        "count": 1
+      },
+      {
+        "file": "scripts/verify-supabase.js",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "name": "feedback_360_survey_questions",
+    "exists": true,
+    "rowCount": 6,
+    "codeReferences": 10,
+    "files": [
+      {
+        "file": "app/api/360-generate-report/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/survey-completion/questions/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/[id]/details/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/[id]/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/create/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/load-draft/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/save-draft/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/update-draft/route.ts",
+        "count": 2
+      },
+      {
+        "file": "lib/database.ts",
+        "count": 1
+      },
+      {
+        "file": "scripts/generate-test-360-data.ts",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "name": "feedback_360_survey_reviewers",
+    "exists": true,
+    "rowCount": 9,
+    "codeReferences": 16,
+    "files": [
+      {
+        "file": "app/api/360-generate-report/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/send-survey-invitation/route.ts",
+        "count": 4
+      },
+      {
+        "file": "app/api/survey-completion/start/route.ts",
+        "count": 2
+      },
+      {
+        "file": "app/api/survey-completion/submit/route.ts",
+        "count": 3
+      },
+      {
+        "file": "app/api/survey-completion/survey/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/[id]/revert-draft/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/[id]/reviewers/[reviewerId]/route.ts",
+        "count": 3
+      },
+      {
+        "file": "app/api/surveys/[id]/reviewers/route.ts",
+        "count": 3
+      },
+      {
+        "file": "app/api/surveys/[id]/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/[id]/send-reminders/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/create/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/load-draft/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/save-draft/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/update-draft/route.ts",
+        "count": 2
+      },
+      {
+        "file": "lib/database.ts",
+        "count": 2
+      },
+      {
+        "file": "scripts/generate-test-360-data.ts",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "name": "feedback_360_responses",
+    "exists": true,
+    "rowCount": 18,
+    "codeReferences": 6,
+    "files": [
+      {
+        "file": "app/api/360-generate-report/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/survey-completion/submit/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/[id]/details/route.ts",
+        "count": 1
+      },
+      {
+        "file": "app/api/surveys/[id]/route.ts",
+        "count": 1
+      },
+      {
+        "file": "lib/database.ts",
+        "count": 1
+      },
+      {
+        "file": "scripts/generate-test-360-data.ts",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "name": "feedback_360_reports",
+    "exists": true,
+    "rowCount": 1,
+    "codeReferences": 6,
+    "files": [
+      {
+        "file": "app/api/360-generate-report/route.ts",
+        "count": 2
+      },
+      {
+        "file": "scripts/check-real-report.js",
+        "count": 1
+      },
+      {
+        "file": "scripts/check-report-data.js",
+        "count": 1
+      },
+      {
+        "file": "scripts/list-surveys.js",
+        "count": 1
+      },
+      {
+        "file": "scripts/test-db-upsert.js",
+        "count": 3
+      },
+      {
+        "file": "scripts/test-report-filtering.js",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "name": "nine_box_assessments",
+    "exists": false,
+    "rowCount": null,
+    "codeReferences": 0,
+    "files": []
+  },
+  {
+    "name": "performance_improvement_plans",
+    "exists": false,
+    "rowCount": null,
+    "codeReferences": 0,
+    "files": []
+  },
+  {
+    "name": "succession_plans",
+    "exists": false,
+    "rowCount": null,
+    "codeReferences": 0,
+    "files": []
+  },
+  {
+    "name": "hr_modules",
+    "exists": true,
+    "rowCount": 1,
+    "codeReferences": 0,
+    "files": []
+  },
+  {
+    "name": "sync_history",
+    "exists": true,
+    "rowCount": 12,
+    "codeReferences": 0,
+    "files": []
+  },
+  {
+    "name": "user_profile_changes",
+    "exists": false,
+    "rowCount": null,
+    "codeReferences": 0,
+    "files": []
+  },
+  {
+    "name": "departments",
+    "exists": true,
+    "rowCount": 5,
+    "codeReferences": 0,
+    "files": []
+  },
+  {
+    "name": "active_users",
+    "exists": false,
+    "rowCount": null,
+    "codeReferences": 0,
+    "files": []
+  },
+  {
+    "name": "pending_users",
+    "exists": false,
+    "rowCount": null,
+    "codeReferences": 0,
+    "files": []
+  },
+  {
+    "name": "active_performance_reviews",
+    "exists": false,
+    "rowCount": null,
+    "codeReferences": 0,
+    "files": []
+  }
+]

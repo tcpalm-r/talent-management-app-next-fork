@@ -1,12 +1,12 @@
 /**
  * POST /api/surveys/[id]/revert-draft
  *
- * Send survey back to draft status:
- * - Change status to 'draft'
- * - Clear reanalysis flag
- * - Delete all reviewers (invalidate access links)
+ * Send survey backward to previous status:
+ * - finalized → completed (no data loss, just status change)
+ * - completed → in_progress (clear AI report, clear reanalysis flag)
+ * - in_progress → draft (delete reviewers, invalidate access links)
  *
- * Replaces sendBackward() logic in Feedback360Dashboard when moving to draft.
+ * Replaces sendBackward() logic in Feedback360Dashboard.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -31,6 +31,10 @@ export async function POST(
 
     const { user, profile } = authData;
     const surveyId = params.id;
+
+    // Get current status from request body
+    const body = await request.json();
+    const currentStatus = body.currentStatus;
 
     // Check if survey exists
     const { data: survey, error: surveyError } = await supabaseAdmin
@@ -58,28 +62,57 @@ export async function POST(
       );
     }
 
-    // Delete all reviewers (invalidate access links)
-    const { error: deleteReviewersError } = await supabaseAdmin
-      .from('feedback_360_survey_reviewers')
-      .delete()
-      .eq('survey_id', surveyId);
+    // Determine target status and what data to clear
+    // IMPORTANT: Send Backward should NEVER delete reviewers or responses
+    // It only changes status and optionally clears the AI report
+    let targetStatus: string;
+    let shouldClearReport = false;
 
-    if (deleteReviewersError) {
-      console.error('Error deleting reviewers:', deleteReviewersError);
+    if (currentStatus === 'finalized') {
+      // finalized → completed: Just change status, keep everything
+      targetStatus = 'completed';
+    } else if (currentStatus === 'completed') {
+      // completed → in_progress: Change status and clear AI report
+      targetStatus = 'in_progress';
+      shouldClearReport = true;
+    } else if (currentStatus === 'in_progress') {
+      // in_progress → draft: Just change status, keep reviewers
+      targetStatus = 'draft';
+    } else {
       return NextResponse.json(
-        { error: 'Failed to remove reviewers', details: deleteReviewersError.message },
-        { status: 500 }
+        { error: 'Cannot send backward from this status' },
+        { status: 400 }
       );
     }
 
-    // Update survey status to draft
+    // Clear AI report when going back to in_progress
+    if (shouldClearReport) {
+      const { error: deleteReportError } = await supabaseAdmin
+        .from('feedback_360_reports')
+        .delete()
+        .eq('survey_id', surveyId);
+
+      if (deleteReportError) {
+        console.error('Error deleting report:', deleteReportError);
+        // Don't fail the request if report deletion fails
+      }
+    }
+
+    // Update survey status
+    const updateData: any = {
+      status: targetStatus,
+      flagged_for_reanalysis: false,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Clear flagged_for_admin when going back from completed
+    if (currentStatus === 'completed') {
+      updateData.flagged_for_admin = false;
+    }
+
     const { data: updatedSurvey, error: updateError } = await supabaseAdmin
       .from('feedback_360_surveys')
-      .update({
-        status: 'draft',
-        flagged_for_reanalysis: false,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', surveyId)
       .select()
       .single();
@@ -94,7 +127,7 @@ export async function POST(
 
     return NextResponse.json({
       survey: updatedSurvey,
-      message: 'Survey reverted to draft successfully',
+      message: `Survey moved back to ${targetStatus} status successfully`,
     });
 
   } catch (error) {

@@ -597,6 +597,16 @@ export default function Survey360Wizard({
   const filteredRaterEmployees = employees.filter(emp => {
     // Don't show the selected employee as a rater option
     if (selectedEmployee && emp.id === selectedEmployee.id) return false;
+
+    // Don't show employees who are already selected as raters (prevent duplicates)
+    const isAlreadySelected = raters.some(
+      (rater, raterIndex) =>
+        rater.email &&
+        rater.email.toLowerCase() === emp.email?.toLowerCase() &&
+        raterIndex !== showRaterPicker // Allow the current picker to show the currently selected employee
+    );
+    if (isAlreadySelected) return false;
+
     // Apply search filter
     if (raterSearch) {
       return emp.name.toLowerCase().includes(raterSearch.toLowerCase()) ||

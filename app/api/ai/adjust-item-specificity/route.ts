@@ -1,0 +1,179 @@
+import { NextRequest, NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
+
+export const dynamic = 'force-dynamic';
+
+interface AdjustItemRequest {
+  survey_id: string;
+  item: any;
+  section_type: 'themes' | 'strengths' | 'development_areas' | 'key_insights';
+  direction: 'more' | 'less';
+  raw_responses?: any[];
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    console.log('[adjust-item-specificity API] POST request received');
+
+    // Check for API key
+    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+    console.log('[adjust-item-specificity API] API Key present:', !!apiKey);
+
+    if (!apiKey) {
+      console.error('[adjust-item-specificity API] ANTHROPIC_API_KEY is not configured');
+      return NextResponse.json(
+        { error: 'ANTHROPIC_API_KEY is not configured. Please add it to your .env.local file.' },
+        { status: 500 }
+      );
+    }
+
+    // Initialize Anthropic client
+    const anthropic = new Anthropic({
+      apiKey: apiKey,
+    });
+
+    const body: AdjustItemRequest = await request.json();
+    const { item, section_type, direction, raw_responses } = body;
+
+    console.log('[adjust-item-specificity API] Section type:', section_type);
+    console.log('[adjust-item-specificity API] Direction:', direction);
+    console.log('[adjust-item-specificity API] Raw responses count:', raw_responses?.length || 0);
+
+    if (!item) {
+      console.log('[adjust-item-specificity API] Error: Missing item');
+      return NextResponse.json(
+        { error: 'Item is required' },
+        { status: 400 }
+      );
+    }
+
+    if (direction !== 'more' && direction !== 'less') {
+      console.log('[adjust-item-specificity API] Error: Invalid direction');
+      return NextResponse.json(
+        { error: 'Direction must be "more" or "less"' },
+        { status: 400 }
+      );
+    }
+
+    console.log('[adjust-item-specificity API] Calling Claude API...');
+
+    const directionInstruction = direction === 'more'
+      ? `Make the item MORE SPECIFIC by:
+- Adding concrete examples, behaviors, or situations
+- Being more precise about what the feedback is referring to
+- Including specific skills, actions, or outcomes
+- Making it more actionable and detailed
+- Using specific terminology from the supporting evidence`
+      : `Make the item LESS SPECIFIC by:
+- Using broader, more general language
+- Removing overly specific examples or details
+- Making it more high-level and conceptual
+- Focusing on the overarching pattern rather than individual instances
+- Making it more universally applicable`;
+
+    let itemText: string;
+    let contextInfo = '';
+    let sectionLabel: string;
+
+    switch (section_type) {
+      case 'themes':
+        itemText = item.theme;
+        sectionLabel = 'theme';
+        if (item.supporting_evidence && item.supporting_evidence.length > 0) {
+          contextInfo = `\n\nSUPPORTING EVIDENCE FROM REVIEWERS:\n${item.supporting_evidence.map((e: string, i: number) => `${i + 1}. "${e}"`).join('\n')}`;
+        }
+        if (item.relationships_mentioned && item.relationships_mentioned.length > 0) {
+          contextInfo += `\n\nMentioned by: ${item.relationships_mentioned.join(', ')}`;
+        }
+        contextInfo += `\n\nSENTIMENT: ${item.sentiment}\nFREQUENCY: Mentioned by ${item.frequency} reviewer(s)`;
+        break;
+
+      case 'strengths':
+        itemText = item;
+        sectionLabel = 'strength';
+        contextInfo = '\n\nThis is a key strength identified from 360 feedback.';
+        break;
+
+      case 'development_areas':
+        itemText = item;
+        sectionLabel = 'development area';
+        contextInfo = '\n\nThis is a development area identified from 360 feedback.';
+        break;
+
+      case 'key_insights':
+        itemText = item;
+        sectionLabel = 'insight';
+        contextInfo = '\n\nThis is a key insight synthesized from 360 feedback.';
+        break;
+
+      default:
+        throw new Error(`Invalid section type: ${section_type}`);
+    }
+
+    const prompt = `You are an expert HR analyst helping refine 360-degree feedback report items. You have a ${sectionLabel} from an AI-generated report that needs to be adjusted for specificity.
+
+CURRENT ${sectionLabel.toUpperCase()}:
+"${itemText}"${contextInfo}
+
+YOUR TASK:
+${directionInstruction}
+
+IMPORTANT GUIDELINES:
+1. Maintain the same sentiment and general meaning
+2. Keep the ${sectionLabel} concise (1-2 sentences typically)
+3. Ensure it still accurately reflects the supporting evidence (if available)
+4. Make sure it's appropriate for a professional 360 feedback report
+5. The adjusted ${sectionLabel} should feel natural and well-written
+6. For strengths, maintain a positive tone
+7. For development areas, maintain a constructive tone
+8. For insights, maintain an analytical tone
+9. For themes, maintain consistency with the sentiment rating
+
+Return ONLY the adjusted ${sectionLabel} text. Do not include any preamble, explanation, quotes, or additional formatting. Just the adjusted text itself.`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 512,
+      temperature: 0.4,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    console.log('[adjust-item-specificity API] Claude response received');
+
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      console.error('[adjust-item-specificity API] Unexpected response type:', content.type);
+      throw new Error('Unexpected response type from Claude');
+    }
+
+    const adjustedText = content.text.trim();
+    console.log('[adjust-item-specificity API] Adjusted text:', adjustedText);
+
+    // Return the adjusted item - for themes, return the full object; for others, just the text
+    let adjustedItem: any;
+    if (section_type === 'themes') {
+      adjustedItem = {
+        ...item,
+        theme: adjustedText,
+      };
+    } else {
+      adjustedItem = adjustedText;
+    }
+
+    return NextResponse.json({
+      success: true,
+      adjusted_item: adjustedItem,
+    });
+  } catch (error) {
+    console.error('[adjust-item-specificity API] Error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to adjust item specificity' },
+      { status: 500 }
+    );
+  }
+}
