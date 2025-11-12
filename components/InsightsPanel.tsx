@@ -42,10 +42,13 @@ export default function InsightsPanel({
         const response = await fetch(`/api/surveys/list?organization_id=${organizationId}&status=finalized`);
         if (response.ok) {
           const data = await response.json();
-          // Filter surveys sponsored by the current user
+          // Filter surveys sponsored by the current user (created_by field)
           const sponsoredSurveys = data.surveys.filter(
-            (survey: any) => survey.sponsor_id === currentUserEmployee.id
+            (survey: any) => survey.created_by === currentUserEmployee.id
           );
+          console.log('[InsightsPanel] Current user ID:', currentUserEmployee.id);
+          console.log('[InsightsPanel] Finalized surveys:', data.surveys.length);
+          console.log('[InsightsPanel] Sponsored by current user:', sponsoredSurveys.length);
           setFinalizedSurveys(sponsoredSurveys);
         }
       } catch (error) {
@@ -87,7 +90,6 @@ export default function InsightsPanel({
 
     // Generate insights based on the number of finalized surveys
     const surveyCount = finalizedSurveys.length;
-    const subjectNames = finalizedSurveys.map(s => s.subject_name).join(', ');
 
     const sampleInsights: TeamInsight[] = [
       {
