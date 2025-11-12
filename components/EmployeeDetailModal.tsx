@@ -1223,191 +1223,10 @@ export default function EmployeeDetailModal({
 
           {/* Plan Tab */}
           {activeTab === 'plan' && (
-            <div className="space-y-6">
-              {currentPlan ? (
-                <>
-                  {/* Plan Overview */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
-                    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {getPlanTypeMeta(currentPlan.plan_type).label}
-                        </h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPlanTypeMeta(currentPlan.plan_type).badgeClass}`}>
-                          {currentPlan.plan_type?.replace('_', ' ').toUpperCase()}
-                        </span>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        currentPlan.status === 'active' ? 'bg-green-100 text-green-800' :
-                        currentPlan.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {currentPlan.status?.toUpperCase()}
-                      </span>
-                    </div>
-
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">Overall Progress</span>
-                        <span className="text-sm font-bold text-blue-600">{getPlanProgress()}%</span>
-                      </div>
-                      <div className="h-2 bg-white rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-500"
-                          style={{ width: `${getPlanProgress()}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {currentPlan.goals && (
-                      <div className="bg-white rounded-lg p-4 border border-blue-200">
-                        <p className="text-sm text-gray-600 font-medium mb-2">Goals</p>
-                        <p className="text-sm text-gray-700 whitespace-pre-line">{currentPlan.goals}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Action Items */}
-                  {currentPlan.action_items && currentPlan.action_items.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Action Items</h3>
-                      <div className="space-y-3">
-                        {currentPlan.action_items.map((item: ActionItem, index: number) => (
-                          <div
-                            key={item.id || index}
-                            className={`p-4 rounded-lg border-2 transition-all ${
-                              item.completed
-                                ? 'bg-green-50 border-green-200'
-                                : 'bg-white border-gray-200 hover:border-blue-300'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <p className={`text-sm font-medium ${
-                                  item.completed ? 'text-gray-500 line-through' : 'text-gray-900'
-                                }`}>
-                                  {item.description}
-                                </p>
-                                <div className="flex items-center space-x-4 mt-2">
-                                  <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                                    item.priority === 'high' ? 'bg-red-100 text-red-700' :
-                                    item.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                                    'bg-gray-100 text-gray-700'
-                                  }`}>
-                                    {item.priority?.toUpperCase()}
-                                  </span>
-                                  {item.owner && (
-                                    <span className="text-xs text-gray-600">👤 {item.owner}</span>
-                                  )}
-                                  {item.dueDate && (
-                                    <span className="text-xs text-gray-600">
-                                      📅 {new Date(item.dueDate).toLocaleDateString()}
-                                    </span>
-                                  )}
-                                  {item.skillArea && (
-                                    <span className="text-xs text-gray-600">🎯 {item.skillArea}</span>
-                                  )}
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleActionItem(index)}
-                                className={`ml-4 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors ${
-                                  item.completed
-                                    ? 'border-green-500 bg-green-50 text-green-600 hover:bg-green-100'
-                                    : 'border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500'
-                                }`}
-                                aria-pressed={item.completed}
-                                aria-label={item.completed ? 'Mark action item as incomplete' : 'Mark action item as complete'}
-                              >
-                                {item.completed ? (
-                                  <CheckCircle className="w-4 h-4" />
-                                ) : (
-                                  <Circle className="w-4 h-4" />
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Strengths and Development Areas */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {currentPlan.strengths && (
-                      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                        <p className="text-sm text-gray-600 font-medium mb-2">💪 Strengths</p>
-                        <p className="text-sm text-gray-700 whitespace-pre-line">{currentPlan.strengths}</p>
-                      </div>
-                    )}
-                    {currentPlan.development_areas && (
-                      <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-                        <p className="text-sm text-gray-600 font-medium mb-2">🎯 Development Areas</p>
-                        <p className="text-sm text-gray-700 whitespace-pre-line">{currentPlan.development_areas}</p>
-                      </div>
-                    )}
-                    {currentPlan.objectives && currentPlan.objectives.length > 0 && (
-                      <div className="bg-white rounded-lg p-4 border border-blue-200 lg:col-span-2">
-                        <p className="text-sm text-gray-600 font-medium mb-2">🎯 Objectives</p>
-                        <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
-                          {(Array.isArray(currentPlan.objectives) ? currentPlan.objectives : [currentPlan.objectives])
-                            .filter(Boolean)
-                            .map((objective: string, index: number) => (
-                              <li key={`objective-${index}`}>{objective}</li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Success Metrics */}
-                  {currentPlan.success_metrics && (
-                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                      <p className="text-sm text-gray-600 font-medium mb-2">📊 Success Metrics</p>
-                      <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
-                        {(Array.isArray(currentPlan.success_metrics)
-                          ? currentPlan.success_metrics
-                          : [currentPlan.success_metrics]
-                        ).filter(Boolean).map((metric: string, index: number) => (
-                          <li key={`metric-${index}`}>{metric}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-              <div className="flex justify-end gap-2">
-                {currentPlan?.plan_type === 'retention' && (
-                  <button
-                    onClick={() => setIsRetentionPlanModalOpen(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 mt-4 border border-amber-200 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors"
-                  >
-                    <Shield className="w-4 h-4" />
-                    View Retention Details
-                  </button>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-12">
-              <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Development Plan</h3>
-              <p className="text-sm text-gray-600 mb-6">
-                This employee doesn&apos;t have a development plan yet.
-              </p>
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={() => setIsRetentionPlanModalOpen(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-lg hover:from-amber-700 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
-                >
-                  <Shield className="w-4 h-4" />
-                  Create Retention Plan
-                </button>
-              </div>
+            <div className="text-center text-gray-500 py-8">
+              Dev Plan - Coming Soon
             </div>
           )}
-        </div>
-      )}
 
           {/* 360 Feedback Tab */}
           {activeTab === '360' && (
@@ -1516,35 +1335,15 @@ export default function EmployeeDetailModal({
 
           {/* One-on-One Tab */}
           {activeTab === 'one-on-one' && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="text-center mb-6">
-                <Calendar className="w-16 h-16 text-purple-600 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  One-on-One Meetings
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Schedule and manage one-on-one meetings with{' '}
-                  <EmployeeNameLink
-                    employee={employee}
-                    className="font-semibold text-blue-600 hover:text-blue-700 focus-visible:ring-blue-500"
-                    onClick={(event) => event.stopPropagation()}
-                  />
-                </p>
-              </div>
-              <button
-                onClick={() => setIsOneOnOneModalOpen(true)}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all flex items-center gap-2"
-              >
-                <Calendar className="w-5 h-5" />
-                Manage One-on-One Meetings
-              </button>
+            <div className="text-center text-gray-500 py-8">
+              1:1 - Coming Soon
             </div>
           )}
 
           {/* Job Description Tab */}
           {activeTab === 'job-description' && (
             <div className="text-center text-gray-500 py-8">
-              Job Description Management - Coming Soon
+              Job Description - Coming Soon
             </div>
           )}
 
@@ -1564,95 +1363,8 @@ export default function EmployeeDetailModal({
 
           {/* Performance Review & ITP Matrix Tab (Combined) */}
           {activeTab === 'perf-review' && (
-            <div className="space-y-6">
-              {/* Create New Review Section */}
-              <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-8 border-4 border-indigo-300 shadow-xl">
-                <div className="flex items-start space-x-4 mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                    <ClipboardList className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Performance Review & ITP Matrix</h3>
-                    <p className="text-base text-gray-700 leading-relaxed">
-                      Complete comprehensive performance reviews with the <strong>Ideal Team Player</strong> matrix (Humble, Hungry, Smart), OKRs, and development areas.
-                    </p>
-                  </div>
-                </div>
-
-
-                <div className="mt-6 bg-white/80 rounded-lg p-4 border-2 border-indigo-200">
-                  <h4 className="text-sm font-bold text-gray-900 mb-2 flex items-center">
-                    <Award className="w-4 h-4 mr-2 text-indigo-600" />
-                    What's Included:
-                  </h4>
-                  <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
-                    <li>Accomplishments, Impact &amp; OKRs</li>
-                    <li>Growth &amp; Development Areas</li>
-                    <li>Support &amp; Feedback Needs</li>
-                    <li><strong>Ideal Team Player Matrix</strong> (Humble, Hungry, Smart) with detailed 12-behavior scoring</li>
-                    <li>Performance Summary &amp; Additional Comments</li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* Existing Reviews with ITP Details */}
-              {performanceReviews.length > 0 ? (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Review History & ITP Matrix Scores</h3>
-                  <div className="space-y-4">
-                    {performanceReviews.map((review) => (
-                      <div
-                        key={review.id}
-                        className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-purple-300 transition-all"
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            {review.review_type === 'self' ? (
-                              <User className="w-6 h-6 text-green-600" />
-                            ) : (
-                              <UsersIcon className="w-6 h-6 text-blue-600" />
-                            )}
-                            <div>
-                              <h4 className="font-bold text-gray-900 text-lg">
-                                {review.review_type === 'self' ? 'Self-Assessment' : 'Manager Assessment'}
-                              </h4>
-                              <p className="text-sm text-gray-600">
-                                {review.updated_at && `Last updated: ${new Date(review.updated_at).toLocaleDateString()}`}
-                              </p>
-                            </div>
-                          </div>
-                          {review.status && (
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                              review.status === 'submitted' || review.status === 'completed'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {review.status.toUpperCase()}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Overall ITP Scores */}
-                        {/* TODO: Add ITP scores once database schema is updated with these fields */}
-                        <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-600">
-                          ITP scores coming soon
-                        </div>
-
-                        {/* Detailed Behavior Scores */}
-                        {/* TODO: Add detailed behavior scores once database schema is updated */}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                  <ClipboardList className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Performance Reviews Yet</h3>
-                  <p className="text-sm text-gray-600">
-                    Start by creating a manager review or requesting a self-reflection above.
-                  </p>
-                </div>
-              )}
+            <div className="text-center text-gray-500 py-8">
+              ITP Self-assessment - Coming Soon
             </div>
           )}
         </div>

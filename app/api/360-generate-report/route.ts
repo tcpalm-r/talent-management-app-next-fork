@@ -317,6 +317,7 @@ export async function POST(req: NextRequest) {
       .upsert(
         {
           survey_id: survey_id,
+          executive_summary: analysisResult.executive_summary || null,
           themes: analysisResult.themes as any || [],
           overall_strengths: analysisResult.overall_strengths || [],
           development_areas: analysisResult.development_areas || [],

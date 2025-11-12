@@ -13,7 +13,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Sonance Talent Management",
+  title: "Sonance 360° Reviews",
   description: "Talent Management and 360° Feedback Review Platform",
 };
 

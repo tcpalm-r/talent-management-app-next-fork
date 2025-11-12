@@ -173,6 +173,7 @@ ABSOLUTELY MAINTAIN STRICT ANONYMITY: Never reveal who said what, how many peopl
 
     return {
       survey_id: survey.id,
+      executive_summary: analysis.executive_summary || null,
       themes: analysis.themes || [],
       overall_strengths: analysis.overall_strengths || [],
       development_areas: analysis.development_areas || [],
