@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-11-12T19:28:26.023Z",
+  "summary": {
+    "total_tables": 0,
+    "total_views": 0,
+    "total_indexes": 0,
+    "missing_indexes": 0,
+    "total_foreign_keys": 0,
+    "tables_without_rls": 0,
+    "total_policies": 0,
+    "unused_tables_db": 0,
+    "unused_tables_code": 0
+  },
+  "sections": {}
+}

@@ -436,7 +436,7 @@ export default function Feedback360Dashboard({
       const response = await fetch(`/api/surveys/${surveyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'needs_review' }),
+        body: JSON.stringify({ flagged_for_reanalysis: true }),
       });
 
       if (!response.ok) {
@@ -482,9 +482,11 @@ export default function Feedback360Dashboard({
     // Check if 70% of reviewers have completed (minimum completion requirement)
     const completionPercent = selectedSurvey.reviewers_count ? (selectedSurvey.completed_count ?? 0) / selectedSurvey.reviewers_count : 0;
     const minCompletionMet = completionPercent >= 0.7;
+    const isAdmin = currentUser?.app_role === 'admin';
 
     // If minimum completion not met and user hasn't confirmed, show warning
-    if (!minCompletionMet && !proceedWithIncomplete) {
+    // Admins can bypass the warning and proceed directly
+    if (!minCompletionMet && !proceedWithIncomplete && !isAdmin) {
       setShowIncompleteWarning(true);
       return;
     }
@@ -512,10 +514,18 @@ export default function Feedback360Dashboard({
       setSurveyResults(data.report);
 
       setIsDetailsModalOpen(false);
-      setIsResultsModalOpen(true);
 
       // Reload surveys to update status
       await loadSurveys();
+
+      // Fetch the updated survey data to ensure modal shows correct state
+      const updatedSurveyResponse = await fetch(`/api/surveys/${selectedSurvey.id}/details`);
+      if (updatedSurveyResponse.ok) {
+        const updatedSurveyData = await updatedSurveyResponse.json();
+        setSelectedSurvey(updatedSurveyData.survey);
+      }
+
+      setIsResultsModalOpen(true);
 
       notify({
         title: 'Success',
@@ -736,7 +746,12 @@ export default function Feedback360Dashboard({
 
       const data = await response.json();
 
-      setRawSurveyData(data.survey);
+      // Transform API response to UI-expected format using utility
+      // This enriches responses with full question and reviewer data
+      const { transformSurveyDetailsForUI } = await import('@/lib/survey-data-transformer');
+      const transformedData = transformSurveyDetailsForUI(data);
+
+      setRawSurveyData(transformedData);
       setShowRawData(true);
     } catch (error: any) {
       console.error('Error loading raw survey data:', error);
@@ -1965,42 +1980,40 @@ export default function Feedback360Dashboard({
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  {/* Complete with AI for in_progress - greyed out if below 70% but still clickable */}
-                  {selectedSurvey.status === 'in_progress' && (
-                    <button
-                      onClick={() => {
-                        const completionPercent = (selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1);
-                        // Admins can complete at any time, others need 70% completion
-                        if (currentUser?.app_role !== 'admin' && completionPercent < 0.7) {
-                          notify({
-                            title: 'Cannot Complete Review',
-                            description: 'At least 70% of reviewers must submit their feedback before completing the review.',
-                            variant: 'warning',
-                          });
-                          return;
-                        }
-                        completeSurveyWithAI();
-                      }}
-                      disabled={isGeneratingAnalysis}
-                      className={`px-4 py-2 bg-gradient-to-r rounded-lg font-medium flex items-center ${
-                        currentUser?.app_role === 'admin' || ((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1)) >= 0.7
-                          ? 'from-purple-600 to-indigo-700 text-white'
-                          : 'from-purple-500 to-indigo-600 text-white/70'
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {isGeneratingAnalysis ? (
-                        <>
-                          <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
-                          Generating Analysis...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Complete Review with AI Analysis
-                        </>
-                      )}
-                    </button>
-                  )}
+                  {/* Complete with AI for in_progress - disabled if below 70% completion threshold */}
+                  {selectedSurvey.status === 'in_progress' && (() => {
+                    const completionPercent = (selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1);
+                    const isAdmin = currentUser?.app_role === 'admin';
+                    const meetsThreshold = completionPercent >= 0.7;
+                    const canComplete = isAdmin || meetsThreshold;
+
+                    return (
+                      <button
+                        onClick={() => {
+                          completeSurveyWithAI();
+                        }}
+                        disabled={isGeneratingAnalysis || !canComplete}
+                        className={`px-4 py-2 bg-gradient-to-r rounded-lg font-medium flex items-center ${
+                          canComplete
+                            ? 'from-purple-600 to-indigo-700 text-white hover:from-purple-700 hover:to-indigo-800'
+                            : 'from-gray-400 to-gray-500 text-gray-200 cursor-not-allowed'
+                        } disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
+                        title={!canComplete ? 'At least 70% of reviewers must submit their feedback before completing the review.' : ''}
+                      >
+                        {isGeneratingAnalysis ? (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
+                            Generating Analysis...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Complete Review with AI Analysis
+                          </>
+                        )}
+                      </button>
+                    );
+                  })()}
                   {/* View Completed Review for completed or finalized status */}
                   {/* Only sponsors and admins can view results - leaders who are reviewers should not see this */}
                   {(selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (isSponsor || isAdmin) && (

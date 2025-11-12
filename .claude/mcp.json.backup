@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-supabase",
+        "ynycbfyzbavbgxvniylt"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlueWNiZnl6YmF2Ymd4dm5peWx0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODEyMTUyMiwiZXhwIjoyMDczNjk3NTIyfQ.xCyvrSs3RH1fZXqkh7NllVVY9vR-IDLlMFuwqHo96RE"
+      }
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ]
+    },
+    "vercel": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-vercel"
+      ],
+      "env": {
+        "VERCEL_API_TOKEN": "WFh4BNMKKCBjZKREjNz8SW9n"
+      }
+    }
+  }
+}

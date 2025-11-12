@@ -1,0 +1,260 @@
+# Cursor Rules for Supabase MCP Usage
+
+## CRITICAL: Backend Operations Require Maximum Reliability
+
+**These are backend/database operations. Accuracy, precision, and reliability are NON-NEGOTIABLE.**
+
+- **ALWAYS cross-check your work via multiple methods**
+- **NEVER report findings without verification from at least 2 independent sources**
+- **Database operations affect production systems - errors have real consequences**
+- **When in doubt, query again. When still in doubt, query a third time using a different method**
+
+## Database Analysis and Verification Rules
+
+### CRITICAL: Always Verify Counts and Data
+
+1. **Never report counts without verification**
+   - Always count actual results from MCP responses
+   - Never assume or guess numbers
+   - If uncertain, explicitly state "I need to verify this"
+
+2. **Query ALL object types when analyzing database structure**
+   - Base tables: `information_schema.tables` WHERE `table_type = 'BASE TABLE'`
+   - Views: `information_schema.tables` WHERE `table_type = 'VIEW'`
+   - Materialized views: `pg_matviews` (NOT in information_schema.tables!)
+   - Sequences: `information_schema.sequences`
+   - Functions: `information_schema.routines`
+   - Indexes: `pg_indexes`
+   - Foreign keys: `information_schema.table_constraints` + `key_column_usage`
+
+3. **MANDATORY: Use multiple verification queries (CRITICAL for backend operations)**
+   - **ALWAYS** cross-reference `mcp_supabase_list_tables` with `information_schema.tables`
+   - **ALWAYS** verify counts with aggregation queries (COUNT(*) from multiple sources)
+   - **ALWAYS** use at least 2 different query methods to verify the same information
+   - When discrepancies appear, investigate immediately - don't guess
+   - **Example:** If counting tables, use BOTH `mcp_supabase_list_tables` AND `SELECT COUNT(*) FROM information_schema.tables`
+   - **Example:** If checking for materialized views, use BOTH `pg_matviews` AND check `pg_stat_user_tables` for discrepancies
+
+4. **Materialized Views are Special**
+   - Materialized views are NOT in `information_schema.tables`
+   - Always query `pg_matviews` separately
+   - Check `ispopulated` status
+   - Note that `pg_stat_user_tables` includes materialized views in statistics
+
+5. **When Reporting Database Structure**
+   - List exact counts by type (tables, views, materialized views, etc.)
+   - Provide complete inventory before making recommendations
+   - If a table appears in stats but not in table list, investigate (likely materialized view)
+
+### Query Patterns for Complete Analysis
+
+**Complete Object Inventory:**
+```sql
+-- Base tables
+SELECT COUNT(*) FROM information_schema.tables 
+WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
+
+-- Views  
+SELECT COUNT(*) FROM information_schema.tables 
+WHERE table_schema = 'public' AND table_type = 'VIEW';
+
+-- Materialized views
+SELECT COUNT(*) FROM pg_matviews WHERE schemaname = 'public';
+
+-- Sequences
+SELECT COUNT(*) FROM information_schema.sequences 
+WHERE sequence_schema = 'public';
+
+-- Functions
+SELECT COUNT(*) FROM information_schema.routines 
+WHERE routine_schema = 'public';
+```
+
+**When Analyzing Table Structure:**
+- Always use `mcp_supabase_list_tables` for detailed schema info
+- Cross-reference with `information_schema.columns` for complete column details
+- Check `pg_stat_user_tables` for usage statistics
+- Verify foreign keys with `information_schema.table_constraints`
+
+### Error Prevention Checklist (MANDATORY for Backend Operations)
+
+**Before reporting ANY database analysis, verify ALL of the following:**
+
+- [ ] Counted actual results from MCP responses (don't trust memory or assumptions)
+- [ ] Queried all object types (tables, views, materialized views, sequences, functions)
+- [ ] **Cross-checked counts using at least 2 different query methods**
+- [ ] Verified counts with aggregation queries (COUNT(*) from information_schema)
+- [ ] Cross-referenced `mcp_supabase_list_tables` with `information_schema.tables`
+- [ ] Checked `pg_matviews` separately (materialized views are NOT in information_schema.tables)
+- [ ] Checked for discrepancies between different query methods
+- [ ] Investigated any objects appearing in stats but not in table lists
+- [ ] Explicitly stated uncertainty if any verification is incomplete
+- [ ] **If any count or finding cannot be verified by 2+ methods, explicitly state this limitation**
+
+### Cross-Checking Requirements
+
+**For EVERY database analysis task:**
+
+1. **Primary Method:** Use MCP function (e.g., `mcp_supabase_list_tables`)
+2. **Secondary Method:** Use direct SQL query (e.g., `information_schema.tables`)
+3. **Tertiary Method (when applicable):** Use system catalogs (e.g., `pg_matviews`, `pg_indexes`)
+4. **Verification:** Compare all three results - they MUST match or discrepancies MUST be explained
+
+**Example Cross-Check Pattern:**
+```sql
+-- Method 1: MCP function
+mcp_supabase_list_tables(project_id)
+
+-- Method 2: information_schema
+SELECT COUNT(*) FROM information_schema.tables 
+WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
+
+-- Method 3: pg_class (system catalog)
+SELECT COUNT(*) FROM pg_class 
+WHERE relkind = 'r' AND relnamespace = 'public'::regnamespace;
+
+-- All three should match or explain why they don't
+```
+
+### Communication Standards (Backend Operations)
+
+**When reporting findings, ALWAYS include verification method:**
+
+- **DO:** "I found 17 base tables, 3 views, and 1 materialized view. Verified via: (1) mcp_supabase_list_tables returned 17 tables, (2) information_schema.tables shows 17 BASE TABLE + 3 VIEW, (3) pg_matviews shows 1 materialized view"
+- **DON'T:** "There are 19 base tables" (without verification)
+
+- **DO:** "Let me verify this count with a separate query using a different method"
+- **DON'T:** Assume numbers are correct without checking
+
+- **DO:** "I see `employees` in pg_stat_user_tables but not in list_tables - let me check pg_matviews to verify"
+- **DON'T:** "employees is likely a materialized view" (verify first with actual query)
+
+- **DO:** "I need to cross-check this finding using [specific method] before reporting"
+- **DON'T:** Report findings from a single source without verification
+
+**Backend operations require:**
+- Explicit verification statements
+- Multiple source citations
+- Clear explanation of verification methods used
+- Acknowledgment of any limitations or uncertainties
+
+### When User Corrects You
+
+- Acknowledge the mistake immediately
+- Explain what went wrong specifically
+- Fix the issue completely
+- Learn from the mistake to prevent recurrence
+- Don't make excuses - take responsibility
+- **For backend operations:** Immediately re-verify ALL related findings using multiple methods
+- **For backend operations:** Review the entire analysis for similar errors that may have been missed
+
+## Schema Refresh and Migration Handling
+
+### Force Schema Refresh After Changes
+
+**MANDATORY:** After any migration or schema change operation:
+
+1. **Always refresh schema cache** before querying or analyzing
+   - Use MCP refresh capabilities if available
+   - Re-query `information_schema` tables to get latest structure
+   - Don't rely on cached schema information after DDL operations
+
+2. **After applying migrations:**
+   ```sql
+   -- Refresh by re-querying schema
+   SELECT * FROM information_schema.tables WHERE table_schema = 'public';
+   SELECT * FROM pg_matviews WHERE schemaname = 'public';
+   ```
+
+3. **After creating/modifying tables:**
+   - Immediately re-run `mcp_supabase_list_tables` to verify changes
+   - Cross-check with `information_schema.columns` for new columns
+   - Verify indexes were created: `SELECT * FROM pg_indexes WHERE tablename = 'new_table'`
+
+4. **After dropping objects:**
+   - Verify deletion with multiple queries
+   - Check both `information_schema` and `pg_class` to confirm removal
+   - Don't assume deletion succeeded - verify it
+
+### Critical Findings Verification
+
+**Before recommending or executing DESTRUCTIVE operations:**
+
+1. **For "unused" or "orphaned" tables:**
+   - **MANDATORY:** Cross-check with `pg_stat_user_tables` for actual usage
+   - Query application code/dependencies to verify table is truly unused
+   - Check for foreign key dependencies from other tables
+   - Verify no views or functions depend on the table
+   - **NEVER recommend deletion without explicit user confirmation**
+
+2. **For "duplicate" indexes:**
+   - Verify indexes are truly identical (same columns, same order)
+   - Check if one is a unique constraint vs regular index (constraints provide indexes)
+   - Verify usage patterns before recommending removal
+   - Consider partial indexes vs full indexes - they may serve different purposes
+
+3. **For "missing" indexes:**
+   - Verify query patterns actually use the column
+   - Check `pg_stat_user_indexes` to see if similar indexes exist
+   - Consider composite indexes that might cover the use case
+   - Don't recommend indexes without understanding query patterns
+
+4. **Verification queries for critical findings:**
+   ```sql
+   -- Check table dependencies before deletion
+   SELECT * FROM pg_depend 
+   WHERE refobjid = (SELECT oid FROM pg_class WHERE relname = 'table_name');
+   
+   -- Check index usage before removal
+   SELECT * FROM pg_stat_user_indexes 
+   WHERE indexrelname = 'index_name';
+   
+   -- Verify foreign key relationships
+   SELECT * FROM information_schema.table_constraints 
+   WHERE constraint_type = 'FOREIGN KEY' 
+   AND (table_name = 'table_name' OR constraint_name LIKE '%table_name%');
+   ```
+
+### Explicit Context in Queries
+
+**Reduce hallucination by being explicit:**
+
+1. **Always include table names explicitly in SQL queries:**
+   - **DO:** `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user_profiles'`
+   - **DON'T:** `SELECT COUNT(*) FROM tables` (ambiguous)
+
+2. **When querying specific tables, list them explicitly:**
+   - **DO:** Query each table individually: `SELECT * FROM user_profiles`, `SELECT * FROM organizations`
+   - **DON'T:** Assume table names or use generic queries without table names
+
+3. **Include schema names in all queries:**
+   - **DO:** `SELECT * FROM information_schema.tables WHERE table_schema = 'public'`
+   - **DON'T:** `SELECT * FROM information_schema.tables` (may include system schemas)
+
+4. **When comparing tables, list both explicitly:**
+   - **DO:** `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('table1', 'table2')`
+   - **DON'T:** Use vague comparisons without explicit table names
+
+5. **For foreign key queries, include both table names:**
+   - **DO:** `SELECT * FROM information_schema.table_constraints WHERE table_name = 'child_table' AND constraint_name LIKE '%parent_table%'`
+   - **DON'T:** Query foreign keys without specifying which tables
+
+6. **When reporting findings, include the exact table/object names:**
+   - **DO:** "Table `user_profiles` has 37 columns (verified via information_schema.columns WHERE table_name = 'user_profiles')"
+   - **DON'T:** "The user table has many columns" (vague, no verification)
+
+## Backend Operation Reliability Standards
+
+**When working with database operations, these are NOT optional:**
+
+1. **Multiple Verification:** Every finding must be verified by at least 2 independent methods
+2. **Explicit Citations:** Always state which methods were used to verify each finding
+3. **Discrepancy Investigation:** If methods disagree, investigate before reporting
+4. **Uncertainty Acknowledgment:** If verification is incomplete, explicitly state this
+5. **Error Impact Consideration:** Remember that database errors affect production systems
+6. **Schema Refresh:** Always refresh schema information after migrations or DDL changes
+7. **Critical Verification:** Cross-check all critical findings (especially deletions) before recommending
+8. **Explicit Context:** Always include explicit table/object names in queries to reduce hallucination
+
+**Remember: Backend operations are critical infrastructure. Precision and reliability are paramount.**
+

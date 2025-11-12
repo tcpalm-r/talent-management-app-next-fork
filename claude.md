@@ -451,6 +451,17 @@ Located in `scripts/`:
 - **verify-supabase.js** - Database verification
 - **smart-supabase-mcp.js** - Database tooling
 
+### MCP Integration
+This project has **Model Context Protocol (MCP) servers** configured and available:
+
+- **GitHub MCP** - Repository and code management
+  - Available tools for repository operations
+  - Code search and file management
+  - Issue and PR management
+  - Use `mcp_github_*` functions for GitHub operations
+
+**Note:** This MCP server is configured in the Cursor IDE environment. When working on this codebase, Claude has direct access to these tools and should use them for GitHub operations rather than suggesting manual steps.
+
 ### NPM Scripts
 ```json
 {

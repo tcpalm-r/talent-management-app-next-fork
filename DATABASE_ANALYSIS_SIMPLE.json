@@ -1,0 +1,411 @@
+{
+  "timestamp": "2025-11-12T19:42:51.774Z",
+  "database": "https://ynycbfyzbavbgxvniylt.supabase.co",
+  "sections": {
+    "tableAnalysis": [
+      {
+        "table": "user_profiles",
+        "rowCount": 393,
+        "accessible": true
+      },
+      {
+        "table": "assessment_responses",
+        "rowCount": 1257,
+        "accessible": true
+      },
+      {
+        "table": "box_definitions",
+        "rowCount": 9,
+        "accessible": true
+      },
+      {
+        "table": "departments",
+        "rowCount": 5,
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_questions",
+        "rowCount": 17,
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_reports",
+        "rowCount": 0,
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_responses",
+        "rowCount": 9,
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_survey_questions",
+        "rowCount": 3,
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_survey_reviewers",
+        "rowCount": 6,
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_surveys",
+        "rowCount": 1,
+        "accessible": true
+      },
+      {
+        "table": "hr_modules",
+        "rowCount": 1,
+        "accessible": true
+      },
+      {
+        "table": "ideal_team_player_matrix",
+        "rowCount": 18,
+        "accessible": true
+      },
+      {
+        "table": "itp_assessments",
+        "rowCount": 104,
+        "accessible": true
+      },
+      {
+        "table": "organizations",
+        "rowCount": 1,
+        "accessible": true
+      },
+      {
+        "table": "performance_reviews",
+        "rowCount": 1,
+        "accessible": true
+      },
+      {
+        "table": "sync_history",
+        "rowCount": 12,
+        "accessible": true
+      },
+      {
+        "table": "talent_grid_assessments",
+        "rowCount": 1,
+        "accessible": true
+      },
+      {
+        "table": "employees",
+        "rowCount": 386,
+        "accessible": true
+      },
+      {
+        "table": "assessments",
+        "rowCount": 1,
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_question_usage_stats",
+        "rowCount": 17,
+        "accessible": true
+      },
+      {
+        "table": "recent_syncs",
+        "rowCount": 1,
+        "accessible": true
+      }
+    ],
+    "codebaseReferences": [
+      {
+        "table": "feedback_360_surveys",
+        "fileCount": 38,
+        "files": [
+          "/app/api/360-generate-report/route.ts",
+          "/app/api/360-generate-report/route.ts",
+          "/app/api/employees/[id]/surveys/route.ts",
+          "/app/api/send-survey-invitation/route.ts",
+          "/app/api/survey-completion/submit/route.ts"
+        ]
+      },
+      {
+        "table": "user_profiles",
+        "fileCount": 37,
+        "files": [
+          "/app/api/ai/parse-survey-description/route.ts",
+          "/app/api/auth/callback/route.ts",
+          "/app/api/auth/callback/route.ts",
+          "/app/api/auth/callback/route.ts",
+          "/app/api/auth/switch-user/route.ts"
+        ]
+      },
+      {
+        "table": "feedback_360_survey_reviewers",
+        "fileCount": 28,
+        "files": [
+          "/app/api/360-generate-report/route.ts",
+          "/app/api/send-survey-invitation/route.ts",
+          "/app/api/send-survey-invitation/route.ts",
+          "/app/api/send-survey-invitation/route.ts",
+          "/app/api/send-survey-invitation/route.ts"
+        ]
+      },
+      {
+        "table": "feedback_360_survey_questions",
+        "fileCount": 11,
+        "files": [
+          "/app/api/360-generate-report/route.ts",
+          "/app/api/survey-completion/questions/route.ts",
+          "/app/api/surveys/[id]/details/route.ts",
+          "/app/api/surveys/[id]/route.ts",
+          "/app/api/surveys/create/route.ts"
+        ]
+      },
+      {
+        "table": "feedback_360_reports",
+        "fileCount": 11,
+        "files": [
+          "/app/api/360-generate-report/route.ts",
+          "/app/api/360-generate-report/route.ts",
+          "/app/api/surveys/[id]/revert-draft/route.ts",
+          "/scripts/check-real-report.js",
+          "/scripts/check-report-data.js"
+        ]
+      },
+      {
+        "table": "feedback_360_questions",
+        "fileCount": 9,
+        "files": [
+          "/app/api/surveys/create/route.ts",
+          "/app/api/surveys/create/route.ts",
+          "/app/api/surveys/save-draft/route.ts",
+          "/app/api/surveys/save-draft/route.ts",
+          "/app/api/surveys/update-draft/route.ts"
+        ]
+      },
+      {
+        "table": "feedback_360_responses",
+        "fileCount": 6,
+        "files": [
+          "/app/api/360-generate-report/route.ts",
+          "/app/api/survey-completion/submit/route.ts",
+          "/app/api/surveys/[id]/details/route.ts",
+          "/app/api/surveys/[id]/route.ts",
+          "/lib/database.ts"
+        ]
+      },
+      {
+        "table": "performance_reviews",
+        "fileCount": 5,
+        "files": [
+          "/lib/database.ts",
+          "/lib/database.ts",
+          "/lib/database.ts",
+          "/lib/supabase-admin.ts",
+          "/lib/supabase-admin.ts"
+        ]
+      },
+      {
+        "table": "assessments",
+        "fileCount": 3,
+        "files": [
+          "/app/api/dashboard/data/route.ts",
+          "/lib/database.ts",
+          "/lib/database.ts"
+        ]
+      },
+      {
+        "table": "table_name",
+        "fileCount": 2,
+        "files": [
+          "/scripts/analyze-db-simple.js",
+          "/scripts/comprehensive-db-analysis-direct.js"
+        ]
+      },
+      {
+        "table": "employees",
+        "fileCount": 2,
+        "files": [
+          "/scripts/generate-test-360-data.ts",
+          "/scripts/verify-supabase.js"
+        ]
+      },
+      {
+        "table": "assessment_responses",
+        "fileCount": 1,
+        "files": [
+          "/lib/database.ts"
+        ]
+      }
+    ],
+    "unusedTables": [],
+    "lowUsageTables": [
+      {
+        "table": "box_definitions",
+        "rowCount": 9,
+        "accessible": true
+      },
+      {
+        "table": "departments",
+        "rowCount": 5,
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_reports",
+        "rowCount": 0,
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_survey_questions",
+        "rowCount": 3,
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_surveys",
+        "rowCount": 1,
+        "accessible": true
+      },
+      {
+        "table": "hr_modules",
+        "rowCount": 1,
+        "accessible": true
+      },
+      {
+        "table": "ideal_team_player_matrix",
+        "rowCount": 18,
+        "accessible": true
+      },
+      {
+        "table": "itp_assessments",
+        "rowCount": 104,
+        "accessible": true
+      },
+      {
+        "table": "organizations",
+        "rowCount": 1,
+        "accessible": true
+      },
+      {
+        "table": "performance_reviews",
+        "rowCount": 1,
+        "accessible": true
+      },
+      {
+        "table": "sync_history",
+        "rowCount": 12,
+        "accessible": true
+      },
+      {
+        "table": "talent_grid_assessments",
+        "rowCount": 1,
+        "accessible": true
+      },
+      {
+        "table": "assessments",
+        "rowCount": 1,
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_question_usage_stats",
+        "rowCount": 17,
+        "accessible": true
+      },
+      {
+        "table": "recent_syncs",
+        "rowCount": 1,
+        "accessible": true
+      }
+    ],
+    "rlsCheck": [
+      {
+        "table": "user_profiles",
+        "accessible": true
+      },
+      {
+        "table": "assessment_responses",
+        "accessible": true
+      },
+      {
+        "table": "box_definitions",
+        "accessible": true
+      },
+      {
+        "table": "departments",
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_questions",
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_reports",
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_responses",
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_survey_questions",
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_survey_reviewers",
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_surveys",
+        "accessible": true
+      },
+      {
+        "table": "hr_modules",
+        "accessible": true
+      },
+      {
+        "table": "ideal_team_player_matrix",
+        "accessible": true
+      },
+      {
+        "table": "itp_assessments",
+        "accessible": true
+      },
+      {
+        "table": "organizations",
+        "accessible": true
+      },
+      {
+        "table": "performance_reviews",
+        "accessible": true
+      },
+      {
+        "table": "sync_history",
+        "accessible": true
+      },
+      {
+        "table": "talent_grid_assessments",
+        "accessible": true
+      },
+      {
+        "table": "employees",
+        "accessible": true
+      },
+      {
+        "table": "assessments",
+        "accessible": true
+      },
+      {
+        "table": "feedback_360_question_usage_stats",
+        "accessible": true
+      },
+      {
+        "table": "recent_syncs",
+        "accessible": true
+      }
+    ]
+  },
+  "executiveSummary": {
+    "baseTables": 17,
+    "materializedViews": 1,
+    "views": 3,
+    "totalObjects": 21,
+    "accessibleTables": 21,
+    "totalRows": 2243,
+    "tablesWithCodeReferences": 12,
+    "rlsProtectedTables": 0,
+    "unusedTablesCount": 0,
+    "lowUsageTablesCount": 15
+  }
+}
