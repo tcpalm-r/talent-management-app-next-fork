@@ -276,7 +276,28 @@ export async function exportReportAsPDF(report: Report360Data) {
      report.sentiment_by_relationship.cross_functional !== undefined);
 
   if (hasRelationshipData) {
-    checkPageBreak(40);
+    checkPageBreak(60);
+
+    // Add divider and notice before sponsor/admin-only sections
+    pdf.setDrawColor(251, 191, 36); // Amber-400
+    pdf.setLineWidth(1);
+    pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 5;
+
+    // Notice text
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(180, 83, 9); // Amber-700
+    const noticeText = '⚠ The sections below are only visible to Survey Sponsors and Administrators';
+    const noticeText2 = '(not visible to the employee being reviewed)';
+    pdf.text(noticeText, pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 5;
+    pdf.text(noticeText2, pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 8;
+
+    pdf.setDrawColor(251, 191, 36); // Amber-400
+    pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 12;
 
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
