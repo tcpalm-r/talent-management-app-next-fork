@@ -1146,7 +1146,7 @@ export default function Feedback360Dashboard({
             }}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
-            Create 360° Review
+            Launch 360° Review
           </button>
           {/* AI-assisted review wizard button - disabled and hidden */}
           {false && (
