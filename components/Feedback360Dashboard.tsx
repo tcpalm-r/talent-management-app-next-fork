@@ -260,29 +260,72 @@ export default function Feedback360Dashboard({
       if (error) throw error;
 
       // Send reminder emails to all incomplete reviewers
-      const emailPromises = (reviewers || []).map(async (reviewer) => {
-        try {
-          await fetch('/api/send-survey-invitation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              surveyId,
-              reviewerId: reviewer.id,
-              isReminder: true,
-            }),
-          });
-        } catch (error) {
-          console.error(`Failed to send reminder to ${reviewer.reviewer_email}:`, error);
-        }
-      });
+      const emailResults = await Promise.allSettled(
+        (reviewers || []).map(async (reviewer) => {
+          try {
+            const response = await fetch('/api/send-survey-invitation', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                surveyId,
+                reviewerId: reviewer.id,
+                isReminder: true,
+              }),
+            });
 
-      await Promise.allSettled(emailPromises);
+            if (!response.ok) {
+              let errorData;
+              try {
+                errorData = await response.json();
+              } catch (parseError) {
+                const statusText = response.statusText || 'Unknown error';
+                console.error(`Failed to send reminder to ${reviewer.reviewer_email}:`, {
+                  status: response.status,
+                  statusText,
+                  parseError,
+                });
+                throw new Error(`HTTP ${response.status}: ${statusText}`);
+              }
+              
+              const errorMessage = errorData.details || errorData.error || 'Failed to send email';
+              const errorHint = errorData.hint || '';
+              console.error(`Failed to send reminder to ${reviewer.reviewer_email}:`, {
+                status: response.status,
+                error: errorData,
+                fullResponse: errorData,
+              });
+              throw new Error(errorHint ? `${errorMessage} (${errorHint})` : errorMessage);
+            }
 
-      notify({
-        title: 'Reminders sent',
-        description: `Reminder emails sent to ${reviewers?.length || 0} reviewers.`,
-        variant: 'success',
-      });
+            return { reviewer, success: true };
+          } catch (error: any) {
+            console.error(`Failed to send reminder to ${reviewer.reviewer_email}:`, error);
+            return { reviewer, success: false, error: error.message || 'Unknown error' };
+          }
+        })
+      );
+
+      const successful = emailResults.filter(r => r.status === 'fulfilled' && r.value.success).length;
+      const failed = emailResults.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success));
+      
+      if (failed.length > 0) {
+        const failedEmails = emailResults
+          .filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
+          .map(r => r.status === 'fulfilled' ? r.value.reviewer.reviewer_email : 'unknown')
+          .slice(0, 3);
+        
+        notify({
+          title: `Reminders sent with errors`,
+          description: `${successful} sent successfully, ${failed.length} failed. ${failedEmails.length > 0 ? `Failed: ${failedEmails.join(', ')}` : ''}`,
+          variant: 'error',
+        });
+      } else {
+        notify({
+          title: 'Reminders sent',
+          description: `Reminder emails sent to ${reviewers?.length || 0} reviewers.`,
+          variant: 'success',
+        });
+      }
     } catch (error) {
       console.error('Error sending reminders:', error);
       notify({
@@ -297,7 +340,7 @@ export default function Feedback360Dashboard({
     if (!selectedSurvey) return;
 
     try {
-      await fetch('/api/send-survey-invitation', {
+      const response = await fetch('/api/send-survey-invitation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -307,6 +350,42 @@ export default function Feedback360Dashboard({
         }),
       });
 
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          const statusText = response.statusText || 'Unknown error';
+          console.error('Failed to send reminder - invalid JSON response:', {
+            status: response.status,
+            statusText,
+            parseError,
+          });
+          notify({
+            title: 'Failed to send reminder',
+            description: `HTTP ${response.status}: ${statusText}`,
+            variant: 'error',
+          });
+          return;
+        }
+        
+        const errorMessage = errorData.details || errorData.error || 'Failed to send email';
+        const errorHint = errorData.hint || '';
+        
+        console.error('Failed to send reminder:', {
+          status: response.status,
+          error: errorData,
+          fullResponse: errorData,
+        });
+        
+        notify({
+          title: 'Failed to send reminder',
+          description: errorHint ? `${errorMessage} (${errorHint})` : errorMessage,
+          variant: 'error',
+        });
+        return;
+      }
+
       // Add to reminded set
       setRemindedReviewers(prev => new Set(prev).add(reviewerId));
 
@@ -315,11 +394,11 @@ export default function Feedback360Dashboard({
         description: `Reminder email sent to ${reviewerEmail}`,
         variant: 'success',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending reminder:', error);
       notify({
-        title: 'Error',
-        description: 'Failed to send reminder',
+        title: 'Failed to send reminder',
+        description: error.message || 'Network error occurred',
         variant: 'error',
       });
     }

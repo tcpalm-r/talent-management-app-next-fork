@@ -5,6 +5,7 @@ import { filterReportForSubject } from '@/lib/filterReport';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 import type { Database } from '@/types/supabase';
 import type { ParticipantRelationship } from '@/types';
+import type { UserProfile } from '@/lib/schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,7 @@ const getSupabaseClient = () => {
  * @returns 'sponsor' | 'subject' | 'admin' | 'unauthorized'
  */
 function determineViewerRole(
-  user: { id: string; email?: string; app_role?: string },
+  user: UserProfile,
   survey: { created_by: string; employee_id: string; status: string | null }
 ): 'sponsor' | 'subject' | 'admin' | 'unauthorized' {
   // Admins can see everything
@@ -316,18 +317,18 @@ export async function POST(req: NextRequest) {
       .upsert(
         {
           survey_id: survey_id,
-          themes: analysisResult.themes || [],
+          themes: analysisResult.themes as any || [],
           overall_strengths: analysisResult.overall_strengths || [],
           development_areas: analysisResult.development_areas || [],
           recommendations: analysisResult.recommendations || [],
-          sentiment_by_relationship: analysisResult.sentiment_by_relationship || {},
+          sentiment_by_relationship: analysisResult.sentiment_by_relationship as any || {},
           key_insights: analysisResult.key_insights || [],
           consensus_areas: analysisResult.consensus_areas || [],
           outlier_opinions: analysisResult.outlier_opinions || [],
           generated_by: analysisResult.generated_by || 'claude-sonnet-4',
           generated_at: analysisResult.generated_at || new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        },
+        } as any,
         {
           onConflict: 'survey_id',
         }
@@ -353,12 +354,25 @@ export async function POST(req: NextRequest) {
       .eq('id', survey_id);
 
     // ========================================================================
-    // STEP 10: Return success response
+    // STEP 10: Apply role-based filtering and return response
     // ========================================================================
+
+    // Determine viewer role for the person who generated the report
+    const generatorRole = determineViewerRole(authData.profile, survey);
+
+    // Filter report based on viewer role
+    let filteredReport: any = analysisResult;
+
+    if (generatorRole === 'subject') {
+      // Subjects see filtered report without relationship breakdowns
+      filteredReport = filterReportForSubject(analysisResult as any);
+    }
+    // Sponsors and admins see full report (no filtering needed)
 
     return NextResponse.json({
       success: true,
-      report: analysisResult,
+      report: filteredReport,
+      viewerRole: generatorRole, // Include viewer role for debugging/frontend awareness
       message: 'AI analysis completed successfully'
     });
 
@@ -457,11 +471,11 @@ export async function GET(req: NextRequest) {
     }
 
     // Filter report data based on viewer role
-    let filteredReport = { ...report };
+    let filteredReport: any = { ...report };
 
     if (viewerRole === 'subject') {
       // Subjects see filtered report without relationship breakdowns
-      filteredReport = filterReportForSubject(filteredReport as any);
+      filteredReport = filterReportForSubject(report as any);
     }
 
     // Sponsors and admins see full report (no filtering needed)

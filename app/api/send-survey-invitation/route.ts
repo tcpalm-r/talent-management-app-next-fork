@@ -4,9 +4,24 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
+// Helper to mask sensitive values in logs
+const maskSecret = (value: string | undefined): string => {
+  if (!value) return 'NOT SET';
+  if (value === 'placeholder-key') return 'PLACEHOLDER (INVALID)';
+  return `***${value.slice(-6)}`;
+};
+
 // Lazy initialize Resend - needed because API key might not be available at build time
 const getResend = () => {
   const apiKey = process.env.RESEND_API_KEY || 'placeholder-key';
+  
+  // Log API key status (masked) for debugging
+  console.log('[Resend] API Key status:', maskSecret(apiKey));
+  
+  if (!apiKey || apiKey === 'placeholder-key') {
+    throw new Error('RESEND_API_KEY environment variable is not set or is using placeholder value');
+  }
+  
   return new Resend(apiKey);
 };
 
@@ -27,7 +42,59 @@ const getSupabaseClient = () => {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    // Validate environment variables at the start
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const resendFromEmail = process.env.RESEND_FROM_EMAIL;
+    
+    console.log('[Email Send] Environment check:', {
+      apiKeySet: !!resendApiKey && resendApiKey !== 'placeholder-key',
+      apiKeyMasked: maskSecret(resendApiKey),
+      fromEmailSet: !!resendFromEmail,
+      fromEmail: resendFromEmail || 'NOT SET',
+    });
+
+    if (!resendApiKey || resendApiKey === 'placeholder-key') {
+      const errorMsg = 'RESEND_API_KEY environment variable is not configured. Please set it in Vercel environment variables.';
+      console.error('[Email Send] Configuration error:', errorMsg);
+      return NextResponse.json(
+        { 
+          error: 'Email service not configured',
+          details: errorMsg,
+          hint: 'Check Vercel environment variables: Settings → Environment Variables → RESEND_API_KEY'
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!resendFromEmail) {
+      const errorMsg = 'RESEND_FROM_EMAIL environment variable is not configured. Please set it in Vercel environment variables.';
+      console.error('[Email Send] Configuration error:', errorMsg);
+      return NextResponse.json(
+        { 
+          error: 'Email service not configured',
+          details: errorMsg,
+          hint: 'Check Vercel environment variables: Settings → Environment Variables → RESEND_FROM_EMAIL'
+        },
+        { status: 500 }
+      );
+    }
+
+    // Parse request body with error handling
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError: any) {
+      console.error('[Email Send] Failed to parse request body:', parseError);
+      return NextResponse.json(
+        { 
+          error: 'Invalid request body',
+          details: parseError.message || 'Request body must be valid JSON',
+          hint: 'Check that the request includes valid JSON with surveyId and reviewerId'
+        },
+        { status: 400 }
+      );
+    }
+
     const { surveyId, reviewerId, isReminder } = body;
 
     if (!surveyId || !reviewerId) {
@@ -105,20 +172,34 @@ export async function POST(request: Request) {
     }
 
     // Send email using Resend
-    console.log('Sending email to:', reviewer.reviewer_email);
-    console.log('From:', process.env.RESEND_FROM_EMAIL);
-    console.log('Employee data:', survey.employee);
-
-    // Build subject line
-    const subject = isReminder && daysRemaining !== null
-      ? `Reminder: 360° Feedback Due in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} - ${survey.employee?.name || 'Team Member'}`
-      : `360° Feedback Request for ${survey.employee?.name || 'Team Member'}`;
-
-    const emailResult = await getResend().emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'feedback@yourdomain.com',
+    console.log('[Email Send] Preparing to send:', {
       to: reviewer.reviewer_email,
-      subject,
-      html: `
+      from: resendFromEmail,
+      subject: isReminder ? 'Reminder' : 'Initial invitation',
+      employee: survey.employee?.name,
+    });
+
+    // Build subject line with unique survey ID to prevent email threading
+    // Use last 6 characters of survey ID to keep it short but unique
+    const surveyIdShort = survey.id ? survey.id.slice(-6).toUpperCase() : '';
+    const surveyIdSuffix = surveyIdShort ? ` [${surveyIdShort}]` : '';
+    
+    const subject = isReminder && daysRemaining !== null
+      ? `Reminder: 360° Feedback Due in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} - ${survey.employee?.name || 'Team Member'}${surveyIdSuffix}`
+      : `360° Feedback Request for ${survey.employee?.name || 'Team Member'}${surveyIdSuffix}`;
+
+    let emailResult;
+    try {
+      // Initialize Resend client (will throw if API key is invalid)
+      const resend = getResend();
+      
+      console.log('[Email Send] Resend client initialized, sending email...');
+      
+      emailResult = await resend.emails.send({
+        from: resendFromEmail,
+        to: reviewer.reviewer_email,
+        subject,
+        html: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -180,33 +261,111 @@ export async function POST(request: Request) {
 </body>
 </html>
       `,
-    });
+      });
 
-    if (emailResult.error) {
-      console.error('Resend email error:', emailResult.error);
+      console.log('[Email Send] Resend API response:', {
+        hasError: !!emailResult.error,
+        hasData: !!emailResult.data,
+        messageId: emailResult.data?.id,
+        error: emailResult.error,
+      });
+    } catch (resendError: any) {
+      // Catch errors from Resend API call (network errors, invalid API key, etc.)
+      console.error('[Email Send] Resend API call failed:', {
+        error: resendError.message,
+        stack: resendError.stack,
+        name: resendError.name,
+      });
 
-      // Update reviewer with email error
-      await supabase
-        .from('feedback_360_survey_reviewers')
-        .update({
-          email_error: JSON.stringify(emailResult.error),
-        })
-        .eq('id', reviewerId);
+      // Try to update reviewer with email error (don't fail if this fails)
+      try {
+        await supabase
+          .from('feedback_360_survey_reviewers')
+          .update({
+            email_error: JSON.stringify({
+              type: 'api_call_error',
+              message: resendError.message,
+              details: resendError.toString(),
+            }),
+          })
+          .eq('id', reviewerId);
+      } catch (dbError: any) {
+        console.error('[Email Send] Failed to update reviewer error status:', dbError);
+        // Continue anyway - we still want to return the error to the client
+      }
 
       return NextResponse.json(
-        { error: 'Failed to send email', details: emailResult.error },
+        { 
+          error: 'Failed to send email via Resend API',
+          details: resendError.message || 'Unknown error',
+          hint: 'Check Vercel logs and verify RESEND_API_KEY is correct'
+        },
         { status: 500 }
       );
     }
 
-    // Update reviewer with successful email send
-    await supabase
-      .from('feedback_360_survey_reviewers')
-      .update({
-        email_sent_at: new Date().toISOString(),
-        email_error: null,
-      })
-      .eq('id', reviewerId);
+    if (emailResult.error) {
+      console.error('[Email Send] Resend returned error:', emailResult.error);
+
+      // Check for specific error types and provide helpful hints
+      let errorMessage = emailResult.error.message || 'Failed to send email';
+      let errorHint = 'Check Resend dashboard for more details';
+      
+      // Handle domain verification error
+      if (emailResult.error.message?.includes('domain is not verified')) {
+        errorMessage = `Domain not verified: ${emailResult.error.message}`;
+        errorHint = 'RESEND_FROM_EMAIL is not set or uses an unverified domain. Set RESEND_FROM_EMAIL in Vercel environment variables to a verified domain (e.g., feedback@aiintranet.sonance.com)';
+      }
+      
+      // Handle missing from email
+      if (emailResult.error.message?.includes('yourdomain.com') || !resendFromEmail) {
+        errorMessage = 'RESEND_FROM_EMAIL environment variable is not configured';
+        errorHint = 'Set RESEND_FROM_EMAIL in Vercel environment variables (e.g., feedback@aiintranet.sonance.com)';
+      }
+
+      // Try to update reviewer with email error (don't fail if this fails)
+      try {
+        await supabase
+          .from('feedback_360_survey_reviewers')
+          .update({
+            email_error: JSON.stringify(emailResult.error),
+          })
+          .eq('id', reviewerId);
+      } catch (dbError: any) {
+        console.error('[Email Send] Failed to update reviewer error status:', dbError);
+        // Continue anyway - we still want to return the error to the client
+      }
+
+      return NextResponse.json(
+        { 
+          error: 'Failed to send email',
+          details: errorMessage,
+          hint: errorHint,
+          resendError: emailResult.error
+        },
+        { status: 500 }
+      );
+    }
+
+    // Success - log and update reviewer
+    console.log('[Email Send] Success:', {
+      messageId: emailResult.data?.id,
+      to: reviewer.reviewer_email,
+    });
+
+    // Update reviewer with successful email send (don't fail if this fails)
+    try {
+      await supabase
+        .from('feedback_360_survey_reviewers')
+        .update({
+          email_sent_at: new Date().toISOString(),
+          email_error: null,
+        })
+        .eq('id', reviewerId);
+    } catch (dbError: any) {
+      console.error('[Email Send] Failed to update reviewer success status:', dbError);
+      // Continue anyway - email was sent successfully, just couldn't update DB
+    }
 
     return NextResponse.json({
       success: true,
@@ -214,9 +373,17 @@ export async function POST(request: Request) {
       reviewerEmail: reviewer.reviewer_email,
     });
   } catch (error: any) {
-    console.error('Error sending survey invitation:', error);
+    console.error('[Email Send] Unexpected error:', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { 
+        error: 'Internal server error',
+        details: error.message || 'Unknown error occurred',
+        hint: 'Check server logs for more details'
+      },
       { status: 500 }
     );
   }
