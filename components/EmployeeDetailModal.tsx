@@ -21,7 +21,6 @@ import CriticalRoleSetupModal from './CriticalRoleSetupModal';
 import { useToast, EmployeeNameLink } from './unified';
 import { AICoachMicroPanel, getEmployeeModalSuggestions } from './AICoachMicroPanel';
 import { useUnifiedAICoach } from '../context/UnifiedAICoachContext';
-import { supabase } from '../lib/supabase';
 
 // Simplified navigation structure
 type PanelKey = 'overview' | 'performance' | 'development' | 'notes' | 'advanced'
@@ -133,15 +132,14 @@ export default function EmployeeDetailModal({
   const loadCompletedSurveys = async () => {
     setLoadingCompleted360(true);
     try {
-      const { data, error } = await supabase
-        .from('feedback_360_surveys')
-        .select('*')
-        .eq('employee_id', employee.id)
-        .in('status', ['completed', 'finalized'])
-        .order('created_at', { ascending: false });
+      const response = await fetch(`/api/employees/${employee.id}/surveys`);
 
-      if (error) throw error;
-      setCompleted360Surveys(data || []);
+      if (!response.ok) {
+        throw new Error('Failed to fetch surveys');
+      }
+
+      const data = await response.json();
+      setCompleted360Surveys(data.surveys || []);
     } catch (error) {
       console.error('Error loading completed 360 surveys:', error);
     } finally {

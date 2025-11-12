@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '../../../../lib/supabase';
 import { CheckCircle, AlertCircle, Send, Loader, Sparkles } from 'lucide-react';
 import SurveyAIAssistant from '../../../../components/SurveyAIAssistant';
 
@@ -65,101 +64,57 @@ export default function SurveyCompletionPage() {
       setLoading(true);
       setError(null);
 
-      // Find reviewer by access token
-      const { data: reviewerData, error: reviewerError } = await supabase
-        .from('feedback_360_survey_reviewers')
-        .select('*')
-        .eq('access_token', token)
-        .single();
+      // Step 1: Start the survey (validate token and update status)
+      const startResponse = await fetch('/api/survey-completion/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
 
-      if (reviewerError || !reviewerData) {
-        setError('Invalid or expired survey link. Please contact your HR department.');
+      const startData = await startResponse.json();
+
+      if (!startResponse.ok || !startData.success) {
+        setError(startData.error || 'Invalid or expired survey link. Please contact your HR department.');
         setLoading(false);
         return;
       }
 
-      // Ensure reviewer_name has a value
-      const safeReviewerData = {
-        ...reviewerData,
-        reviewer_name: reviewerData.reviewer_name || 'Reviewer'
-      };
-
-      setReviewer(safeReviewerData);
+      setReviewer(startData.reviewer);
 
       // Check if already completed
-      if (safeReviewerData.status === 'completed') {
+      if (startData.reviewer.status === 'completed') {
         setSuccess(true);
         setLoading(false);
         return;
       }
 
-      // Update status to in_progress if pending
-      if (reviewerData.status === 'pending') {
-        await supabase
-          .from('feedback_360_survey_reviewers')
-          .update({
-            status: 'in_progress',
-            started_at: new Date().toISOString(),
-          })
-          .eq('id', reviewerData.id);
-      }
+      // Step 2: Load survey details
+      const surveyResponse = await fetch(`/api/survey-completion/survey?token=${token}`);
+      const surveyData = await surveyResponse.json();
 
-      // Load survey details with employee name
-      const { data: surveyData, error: surveyError } = await supabase
-        .from('feedback_360_surveys')
-        .select('id, survey_name, due_date, status, sent_at, employee:user_profiles!feedback_360_surveys_employee_id_fkey(full_name)')
-        .eq('id', reviewerData.survey_id)
-        .single();
-
-      if (surveyError || !surveyData) {
-        setError('Survey not found. Please contact your HR department.');
+      if (!surveyResponse.ok || !surveyData.success) {
+        setError(surveyData.error || 'Survey not found. Please contact your HR department.');
         setLoading(false);
         return;
       }
 
-      // Check if survey was cancelled (sent but then moved back to draft)
-      if (surveyData.status === 'draft' && surveyData.sent_at) {
-        setError('The creator of this survey has decided to scrap this review draft.');
+      setSurvey(surveyData.survey);
+
+      // Step 3: Load survey questions
+      const questionsResponse = await fetch(`/api/survey-completion/questions?surveyId=${startData.surveyId}`);
+      const questionsData = await questionsResponse.json();
+
+      if (!questionsResponse.ok || !questionsData.success) {
+        setError(questionsData.error || 'Failed to load questions. Please try again.');
         setLoading(false);
         return;
       }
 
-      // Check if survey is not active
-      if (surveyData.status !== 'in_progress') {
-        setError('This survey is no longer active.');
-        setLoading(false);
-        return;
-      }
-
-      setSurvey({
-        id: surveyData.id,
-        survey_name: surveyData.survey_name || 'Untitled Survey',
-        employee_name: surveyData.employee?.full_name || 'Unknown Employee',
-        due_date: surveyData.due_date || '',
-      });
-
-      // Load survey questions
-      const { data: surveyQuestions, error: questionsError } = await supabase
-        .from('feedback_360_survey_questions')
-        .select('question:feedback_360_questions(id, question_text, category)')
-        .eq('survey_id', reviewerData.survey_id)
-        .order('question_order');
-
-      if (questionsError) {
-        setError('Failed to load questions. Please try again.');
-        setLoading(false);
-        return;
-      }
-
-      const loadedQuestions = surveyQuestions
-        .map((sq: any) => sq.question)
-        .filter(Boolean);
-
-      setQuestions(loadedQuestions);
+      setQuestions(questionsData.questions);
 
       // Initialize responses - check for saved draft first
       const initialResponses: Record<string, string> = {};
-      loadedQuestions.forEach((q: Question) => {
+      questionsData.questions.forEach((q: Question) => {
         initialResponses[q.id] = '';
       });
 
@@ -218,48 +173,22 @@ export default function SurveyCompletionPage() {
     setError(null);
 
     try {
-      // Insert all responses
-      const responsesToInsert = Object.entries(responses).map(([questionId, response]) => ({
-        survey_id: survey.id,
-        question_id: questionId,
-        reviewer_email: reviewer.reviewer_email,
-        response_text: response,
+      // Submit all responses
+      const responsesToSubmit = Object.entries(responses).map(([questionId, responseText]) => ({
+        questionId,
+        responseText,
       }));
 
-      const { error: insertError } = await supabase
-        .from('feedback_360_responses')
-        .insert(responsesToInsert);
+      const submitResponse = await fetch('/api/survey-completion/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, responses: responsesToSubmit }),
+      });
 
-      if (insertError) throw insertError;
+      const submitData = await submitResponse.json();
 
-      // Mark reviewer as completed
-      const { error: updateError } = await supabase
-        .from('feedback_360_survey_reviewers')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', reviewer.id);
-
-      if (updateError) throw updateError;
-
-      // Update survey status to 'in_progress' if first reviewer completing
-      const { data: allReviewers } = await supabase
-        .from('feedback_360_survey_reviewers')
-        .select('status')
-        .eq('survey_id', survey.id);
-
-      if (allReviewers) {
-        const completedCount = allReviewers.filter(r => r.status === 'completed').length;
-
-        // Update to 'in_progress' if at least one reviewer completed
-        // Note: Status stays 'in_progress' until creator manually completes with AI analysis
-        if (completedCount > 0) {
-          await supabase
-            .from('feedback_360_surveys')
-            .update({ status: 'in_progress' })
-            .eq('id', survey.id);
-        }
+      if (!submitResponse.ok || !submitData.success) {
+        throw new Error(submitData.error || 'Failed to submit survey');
       }
 
       // Clear draft from localStorage on successful submission

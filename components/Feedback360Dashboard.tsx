@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import type { Employee, Department } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
@@ -138,20 +137,17 @@ export default function Feedback360Dashboard({
   const loadSurveys = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('feedback_360_surveys')
-        .select(`
-          *,
-          reviewers:feedback_360_survey_reviewers(id, status, reviewer_email, access_token)
-        `)
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false });
+      const response = await fetch(`/api/surveys/list?organization_id=${organizationId}`);
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to load surveys');
+      }
 
+      const data = await response.json();
 
       // Enhance surveys with employee data and reviewer counts
-      let enhancedSurveys = data?.map((survey: any) => {
+      let enhancedSurveys = data.surveys?.map((survey: any) => {
         const employee = employees.find(e => e.id === survey.employee_id);
         const reviewers = survey.reviewers || [];
         return {
@@ -250,87 +246,36 @@ export default function Feedback360Dashboard({
 
   const sendReminders = async (surveyId: string) => {
     try {
-      // Get incomplete reviewers
-      const { data: reviewers, error } = await supabase
-        .from('feedback_360_survey_reviewers')
-        .select('*')
-        .eq('survey_id', surveyId)
-        .neq('status', 'completed');
+      const response = await fetch(`/api/surveys/${surveyId}/send-reminders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send reminders');
+      }
 
-      // Send reminder emails to all incomplete reviewers
-      const emailResults = await Promise.allSettled(
-        (reviewers || []).map(async (reviewer) => {
-          try {
-            const response = await fetch('/api/send-survey-invitation', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                surveyId,
-                reviewerId: reviewer.id,
-                isReminder: true,
-              }),
-            });
+      const data = await response.json();
 
-            if (!response.ok) {
-              let errorData;
-              try {
-                errorData = await response.json();
-              } catch (parseError) {
-                const statusText = response.statusText || 'Unknown error';
-                console.error(`Failed to send reminder to ${reviewer.reviewer_email}:`, {
-                  status: response.status,
-                  statusText,
-                  parseError,
-                });
-                throw new Error(`HTTP ${response.status}: ${statusText}`);
-              }
-              
-              const errorMessage = errorData.details || errorData.error || 'Failed to send email';
-              const errorHint = errorData.hint || '';
-              console.error(`Failed to send reminder to ${reviewer.reviewer_email}:`, {
-                status: response.status,
-                error: errorData,
-                fullResponse: errorData,
-              });
-              throw new Error(errorHint ? `${errorMessage} (${errorHint})` : errorMessage);
-            }
-
-            return { reviewer, success: true };
-          } catch (error: any) {
-            console.error(`Failed to send reminder to ${reviewer.reviewer_email}:`, error);
-            return { reviewer, success: false, error: error.message || 'Unknown error' };
-          }
-        })
-      );
-
-      const successful = emailResults.filter(r => r.status === 'fulfilled' && r.value.success).length;
-      const failed = emailResults.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success));
-      
-      if (failed.length > 0) {
-        const failedEmails = emailResults
-          .filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
-          .map(r => r.status === 'fulfilled' ? r.value.reviewer.reviewer_email : 'unknown')
-          .slice(0, 3);
-        
+      if (data.results.failed > 0) {
         notify({
           title: `Reminders sent with errors`,
-          description: `${successful} sent successfully, ${failed.length} failed. ${failedEmails.length > 0 ? `Failed: ${failedEmails.join(', ')}` : ''}`,
+          description: `${data.results.successful} sent successfully, ${data.results.failed} failed.`,
           variant: 'error',
         });
       } else {
         notify({
           title: 'Reminders sent',
-          description: `Reminder emails sent to ${reviewers?.length || 0} reviewers.`,
+          description: `Reminder emails sent to ${data.results.successful} reviewers.`,
           variant: 'success',
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending reminders:', error);
       notify({
         title: 'Error',
-        description: 'Failed to send reminders',
+        description: error.message || 'Failed to send reminders',
         variant: 'error',
       });
     }
@@ -406,14 +351,14 @@ export default function Feedback360Dashboard({
 
   const deleteDraftSurvey = async (surveyId: string) => {
     try {
-      // Delete the draft survey from the database
-      const { error } = await supabase
-        .from('feedback_360_surveys')
-        .delete()
-        .eq('id', surveyId)
-        .eq('status', 'draft');
+      const response = await fetch(`/api/surveys/${surveyId}?status=draft`, {
+        method: 'DELETE',
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete draft survey');
+      }
 
       notify({
         title: 'Draft deleted',
@@ -423,11 +368,11 @@ export default function Feedback360Dashboard({
 
       // Reload surveys
       await loadSurveys();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting draft survey:', error);
       notify({
         title: 'Error',
-        description: 'Failed to delete draft survey',
+        description: error.message || 'Failed to delete draft survey',
         variant: 'error',
       });
     }
@@ -453,31 +398,14 @@ export default function Feedback360Dashboard({
     }
 
     try {
-      // Delete survey responses
-      await supabase
-        .from('feedback_360_responses')
-        .delete()
-        .eq('survey_id', surveyId);
+      const response = await fetch(`/api/surveys/${surveyId}`, {
+        method: 'DELETE',
+      });
 
-      // Delete survey reviewers
-      await supabase
-        .from('feedback_360_survey_reviewers')
-        .delete()
-        .eq('survey_id', surveyId);
-
-      // Delete survey questions
-      await supabase
-        .from('feedback_360_survey_questions')
-        .delete()
-        .eq('survey_id', surveyId);
-
-      // Delete the survey itself
-      const { error } = await supabase
-        .from('feedback_360_surveys')
-        .delete()
-        .eq('id', surveyId);
-
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete review');
+      }
 
       notify({
         title: 'Review deleted',
@@ -488,11 +416,11 @@ export default function Feedback360Dashboard({
       // Close any open modals and reload
       setIsDetailsModalOpen(false);
       await loadSurveys();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting in-progress survey:', error);
       notify({
         title: 'Error',
-        description: 'Failed to delete review',
+        description: error.message || 'Failed to delete review',
         variant: 'error',
       });
     }
@@ -500,16 +428,15 @@ export default function Feedback360Dashboard({
 
   const sendToHRForReanalysis = async (surveyId: string) => {
     try {
-      const { error } = await supabase
-        .from('feedback_360_surveys')
-        .update({
-          status: 'needs_review',
-        })
-        .eq('id', surveyId);
+      const response = await fetch(`/api/surveys/${surveyId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'needs_review' }),
+      });
 
-      if (error) {
-        console.error('Full error details:', error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send review to HR for reanalysis');
       }
 
       console.log('✅ Successfully flagged survey for reanalysis');
@@ -534,11 +461,11 @@ export default function Feedback360Dashboard({
 
       // Reload surveys to update all views
       await loadSurveys();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending review to HR for Reanalysis:', error);
       notify({
         title: 'Error',
-        description: 'Failed to send review to HR for Reanalysis',
+        description: error.message || 'Failed to send review to HR for Reanalysis',
         variant: 'error',
       });
     }
@@ -606,18 +533,13 @@ export default function Feedback360Dashboard({
 
   const finalizeSurvey = async (surveyId: string) => {
     try {
-      // Update survey status to finalized and clear the "needs review" flag
-      const { error } = await supabase
-        .from('feedback_360_surveys')
-        .update({
-          status: 'finalized',
-          flagged_for_admin: false  // Clear the "needs review" tag
-        })
-        .eq('id', surveyId);
+      const response = await fetch(`/api/surveys/${surveyId}/finalize`, {
+        method: 'POST',
+      });
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to finalize review');
       }
 
       notify({
@@ -628,11 +550,11 @@ export default function Feedback360Dashboard({
 
       setIsResultsModalOpen(false);
       loadSurveys();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error finalizing survey:', error);
       notify({
         title: 'Error',
-        description: 'Failed to finalize review',
+        description: error.message || 'Failed to finalize review',
         variant: 'error',
       });
     }
@@ -640,15 +562,15 @@ export default function Feedback360Dashboard({
 
   const sendToHR = async (surveyId: string) => {
     try {
-      // Flag the survey for admin review and keep status as completed
-      const { error } = await supabase
-        .from('feedback_360_surveys')
-        .update({ flagged_for_admin: true })
-        .eq('id', surveyId);
+      const response = await fetch(`/api/surveys/${surveyId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flagged_for_admin: true }),
+      });
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to flag review for admin');
       }
 
       notify({
@@ -659,11 +581,11 @@ export default function Feedback360Dashboard({
 
       setIsResultsModalOpen(false);
       loadSurveys();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error flagging for admin:', error);
       notify({
         title: 'Error',
-        description: 'Failed to flag review for admin',
+        description: error.message || 'Failed to flag review for admin',
         variant: 'error',
       });
     }
@@ -671,15 +593,15 @@ export default function Feedback360Dashboard({
 
   const resolveNeedsReview = async (surveyId: string) => {
     try {
-      // Clear the reanalysis flag
-      const { error } = await supabase
-        .from('feedback_360_surveys')
-        .update({ flagged_for_reanalysis: false })
-        .eq('id', surveyId);
+      const response = await fetch(`/api/surveys/${surveyId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flagged_for_reanalysis: false }),
+      });
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to resolve review');
       }
 
       // Update selectedSurvey to remove the tag immediately
@@ -701,11 +623,11 @@ export default function Feedback360Dashboard({
       });
 
       setIsResultsModalOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error resolving review:', error);
       notify({
         title: 'Error',
-        description: 'Failed to resolve review',
+        description: error.message || 'Failed to resolve review',
         variant: 'error',
       });
     }
@@ -713,66 +635,22 @@ export default function Feedback360Dashboard({
 
   const loadRawSurveyData = async (surveyId: string) => {
     try {
-      // Fetch survey data
-      const { data: survey, error: surveyError } = await supabase
-        .from('feedback_360_surveys')
-        .select('*')
-        .eq('id', surveyId)
-        .single();
+      const response = await fetch(`/api/surveys/${surveyId}/details`);
 
-      if (surveyError) throw surveyError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to load raw survey data');
+      }
 
-      // Fetch employee data separately
-      const { data: employee } = await supabase
-        .from('user_profiles')
-        .select('id, full_name, email, title')
-        .eq('id', survey.employee_id)
-        .single();
+      const data = await response.json();
 
-      // Fetch reviewers separately
-      const { data: reviewers } = await supabase
-        .from('feedback_360_survey_reviewers')
-        .select('id, reviewer_name, reviewer_email, relationship, status')
-        .eq('survey_id', surveyId);
-
-      // Fetch survey questions with question details in one query
-      const { data: surveyQuestions } = await supabase
-        .from('feedback_360_survey_questions')
-        .select(`
-          id,
-          question_id,
-          question_order,
-          question:feedback_360_questions(id, question_text, category)
-        `)
-        .eq('survey_id', surveyId)
-        .order('question_order');
-
-      // Fetch responses separately
-      const { data: responses } = await supabase
-        .from('feedback_360_responses')
-        .select('id, reviewer_email, question_id, response_text, rating')
-        .eq('survey_id', surveyId);
-
-      // Combine the data
-      const rawData = {
-        ...survey,
-        employee: employee || null,
-        reviewers: reviewers || [],
-        questions: surveyQuestions || [],
-        responses: (responses || []).map((r: any) => ({
-          ...r,
-          reviewer: (reviewers || []).find((rev: any) => rev.reviewer_email === r.reviewer_email),
-          question: (surveyQuestions || []).find((sq: any) => sq.question_id === r.question_id)?.question,
-        })),
-      };
-
-      setRawSurveyData(rawData);
+      setRawSurveyData(data.survey);
       setShowRawData(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading raw survey data:', error);
       notify({
         title: 'Error',
-        description: 'Failed to load raw survey data',
+        description: error.message || 'Failed to load raw survey data',
         variant: 'error',
       });
     }
@@ -821,7 +699,6 @@ export default function Feedback360Dashboard({
     let targetStatus: string;
     let confirmMessage: string;
     let successMessage: string;
-    let deleteParticipants = false;
 
     if (status === 'finalized') {
       targetStatus = 'completed';
@@ -835,7 +712,6 @@ export default function Feedback360Dashboard({
       targetStatus = 'draft';
       confirmMessage = 'Are you sure you want to send this review back to Draft? Reviewer access links will be invalidated and it will only be visible to you for editing.';
       successMessage = 'The review has been moved back to Draft status. You can edit and relaunch it whenever you\'re ready.';
-      deleteParticipants = false;
     } else {
       notify({
         title: 'Error',
@@ -850,35 +726,18 @@ export default function Feedback360Dashboard({
     }
 
     try {
-      // If going back to draft, delete all participants first (this breaks their survey links)
-      if (deleteParticipants) {
-        const { error: deleteError } = await supabase
-          .from('feedback_360_survey_reviewers')
-          .delete()
-          .eq('survey_id', surveyId);
+      const response = await fetch(`/api/surveys/${surveyId}/revert-draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentStatus: status }),
+      });
 
-        if (deleteError) {
-          console.error('Error deleting participants:', deleteError);
-          throw deleteError;
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send review backward');
       }
 
-      // Update survey status and clear reanalysis flag if moving back from completed
-      const updateData: any = { status: targetStatus };
-      if (status === 'completed' || status === 'finalized') {
-        updateData.flagged_for_reanalysis = false;
-      }
-
-      const { error } = await supabase
-        .from('feedback_360_surveys')
-        .update(updateData)
-        .eq('id', surveyId);
-
-      if (error) {
-        console.error('Supabase error:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
-        throw error;
-      }
+      const data = await response.json();
 
       notify({
         title: 'Review sent backward',
@@ -891,7 +750,7 @@ export default function Feedback360Dashboard({
       if (selectedSurvey) {
         setSelectedSurvey({
           ...selectedSurvey,
-          status: targetStatus,
+          status: data.survey.status,
           flagged_for_reanalysis: false
         });
       }
@@ -901,40 +760,37 @@ export default function Feedback360Dashboard({
 
       // After surveys are reloaded, update selectedSurvey with fresh data
       if (selectedSurvey) {
-        const { data } = await supabase
-          .from('feedback_360_surveys')
-          .select(`
-            *,
-            reviewers:feedback_360_survey_reviewers(id, status, reviewer_email, access_token)
-          `)
-          .eq('id', selectedSurvey.id)
-          .single();
+        const response = await fetch(`/api/surveys/list?organization_id=${organizationId}`);
+        if (response.ok) {
+          const listData = await response.json();
+          const updatedSurveyData = listData.surveys?.find((s: any) => s.id === selectedSurvey.id);
 
-        if (data) {
-          const updatedSurvey = {
-            ...data,
-            employee: selectedSurvey.employee,
-            reviewers_count: data.reviewers?.length || 0,
-            completed_count: data.reviewers?.filter((r: any) => r.status === 'completed').length || 0
-          };
-          setSelectedSurvey(updatedSurvey);
+          if (updatedSurveyData) {
+            const updatedSurvey = {
+              ...updatedSurveyData,
+              employee: selectedSurvey.employee,
+              reviewers_count: updatedSurveyData.reviewers?.length || 0,
+              completed_count: updatedSurveyData.reviewers?.filter((r: any) => r.status === 'completed').length || 0
+            };
+            setSelectedSurvey(updatedSurvey);
 
-          // Reload reviewers data
-          await loadReviewers(selectedSurvey.id);
+            // Reload reviewers data
+            await loadReviewers(selectedSurvey.id);
 
-          // If the results modal was open, close it and reopen the details modal
-          // This ensures the correct modal content is shown for the new status
-          if (isResultsModalOpen) {
-            setIsResultsModalOpen(false);
-            setIsDetailsModalOpen(true);
+            // If the results modal was open, close it and reopen the details modal
+            // This ensures the correct modal content is shown for the new status
+            if (isResultsModalOpen) {
+              setIsResultsModalOpen(false);
+              setIsDetailsModalOpen(true);
+            }
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending survey backward:', error);
       notify({
         title: 'Error',
-        description: 'Failed to send review backward',
+        description: error.message || 'Failed to send review backward',
         variant: 'error',
       });
     }
@@ -942,14 +798,15 @@ export default function Feedback360Dashboard({
 
   const loadReviewers = async (surveyId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('feedback_360_survey_reviewers')
-        .select('*')
-        .eq('survey_id', surveyId)
-        .order('created_at', { ascending: true });
+      const response = await fetch(`/api/surveys/${surveyId}/reviewers`);
 
-      if (error) throw error;
-      setSurveyReviewers(data || []);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to load reviewers');
+      }
+
+      const data = await response.json();
+      setSurveyReviewers(data.reviewers || []);
     } catch (error) {
       console.error('Error loading reviewers:', error);
     }
@@ -959,43 +816,15 @@ export default function Feedback360Dashboard({
     if (!confirm('Are you sure you want to remove this reviewer?')) return;
 
     try {
-      const { error } = await supabase
-        .from('feedback_360_survey_reviewers')
-        .delete()
-        .eq('id', reviewerId);
+      if (!selectedSurvey) return;
 
-      if (error) throw error;
+      const response = await fetch(`/api/surveys/${selectedSurvey.id}/reviewers/${reviewerId}`, {
+        method: 'DELETE',
+      });
 
-      // Recalculate survey status after removing reviewer
-      if (selectedSurvey) {
-        const { data: allReviewers } = await supabase
-          .from('feedback_360_survey_reviewers')
-          .select('status')
-          .eq('survey_id', selectedSurvey.id);
-
-        if (allReviewers) {
-          const completedCount = allReviewers.filter(r => r.status === 'completed').length;
-          const totalCount = allReviewers.length;
-
-          let newStatus = selectedSurvey.status;
-          if (totalCount === 0) {
-            // No reviewers left - back to draft
-            newStatus = 'draft';
-          } else if (completedCount > 0) {
-            // At least one completed - stays in progress until manual completion
-            newStatus = 'in_progress';
-          } else {
-            // None completed yet
-            newStatus = 'in_progress';
-          }
-
-          if (newStatus !== selectedSurvey.status) {
-            await supabase
-              .from('feedback_360_surveys')
-              .update({ status: newStatus })
-              .eq('id', selectedSurvey.id);
-          }
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remove reviewer');
       }
 
       notify({
@@ -1008,11 +837,11 @@ export default function Feedback360Dashboard({
         loadReviewers(selectedSurvey.id);
         loadSurveys(); // Refresh to update counts
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error removing reviewer:', error);
       notify({
         title: 'Error',
-        description: 'Failed to remove reviewer',
+        description: error.message || 'Failed to remove reviewer',
         variant: 'error',
       });
     }
@@ -1041,64 +870,36 @@ export default function Feedback360Dashboard({
     }
 
     try {
-      const { data, error } = await supabase
-        .from('feedback_360_survey_reviewers')
-        .insert({
-          survey_id: selectedSurvey.id,
+      const response = await fetch(`/api/surveys/${selectedSurvey.id}/reviewers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           reviewer_name: selectedReviewerEmployee.name || '',
           reviewer_email: selectedReviewerEmployee.email || '',
           relationship: newReviewerRelationship,
-          status: 'pending',
-          access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        } as any)
-        .select()
-        .single();
+        }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add reviewer');
+      }
+
+      const data = await response.json();
 
       // Send invitation email
-      if (data) {
+      if (data.reviewer) {
         try {
           await fetch('/api/send-survey-invitation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               surveyId: selectedSurvey.id,
-              reviewerId: data.id,
+              reviewerId: data.reviewer.id,
             }),
           });
         } catch (emailError) {
           console.error('Failed to send invitation email:', emailError);
-        }
-      }
-
-      // Recalculate survey status after adding reviewer
-      const { data: allReviewers } = await supabase
-        .from('feedback_360_survey_reviewers')
-        .select('status')
-        .eq('survey_id', selectedSurvey.id);
-
-      if (allReviewers) {
-        const completedCount = allReviewers.filter(r => r.status === 'completed').length;
-        const totalCount = allReviewers.length;
-
-        let newStatus = selectedSurvey.status;
-        if (completedCount === totalCount && completedCount > 0) {
-          // All reviewers completed (but we just added one, so back to in_progress)
-          newStatus = 'in_progress';
-        } else if (completedCount > 0) {
-          // Some completed
-          newStatus = 'in_progress';
-        } else if (totalCount > 0) {
-          // None completed yet, at least one reviewer exists
-          newStatus = 'in_progress';
-        }
-
-        if (newStatus !== selectedSurvey.status) {
-          await supabase
-            .from('feedback_360_surveys')
-            .update({ status: newStatus })
-            .eq('id', selectedSurvey.id);
         }
       }
 
@@ -1120,11 +921,11 @@ export default function Feedback360Dashboard({
       // Refresh data
       loadReviewers(selectedSurvey.id);
       loadSurveys();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding reviewer:', error);
       notify({
         title: 'Error',
-        description: 'Failed to add reviewer',
+        description: error.message || 'Failed to add reviewer',
         variant: 'error',
       });
     }
@@ -1435,32 +1236,47 @@ export default function Feedback360Dashboard({
                     setIsWizardOpen(true);
                   } else if (survey.status === 'finalized' && hasSurveyBeenViewed(survey.id)) {
                     // If it's a finalized survey that has been viewed before, go straight to results
-                    loadAndShowResults(survey);
+                    // But only if user is sponsor, admin, or subject - leaders who are reviewers should not see results
+                    const isSurveySponsor = survey.created_by === currentUser?.id || survey.created_by === currentUser?.email;
+                    const isSurveySubject = survey.employee_id === currentUser?.id;
+                    const isSurveyAdmin = currentUser?.app_role === 'admin';
+                    const isSurveyReviewer = survey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
+                    const isLeaderReviewer = currentUser?.app_role === 'leader' && isSurveyReviewer && !isSurveySponsor;
+                    
+                    // Only allow viewing results if user is sponsor, admin, or subject (not leader reviewers)
+                    if (isSurveySponsor || isSurveyAdmin || (isSurveySubject && !isLeaderReviewer)) {
+                      loadAndShowResults(survey);
+                    } else {
+                      // For leader reviewers, open details modal instead (which will show completion message)
+                      setSelectedSurvey(survey);
+                      setIsDetailsModalOpen(true);
+                    }
                   } else {
                     // Open details modal for other statuses
                     // First fetch fresh data to ensure completed_count is accurate
                     const fetchAndOpenModal = async () => {
                       try {
-                        const { data } = await supabase
-                          .from('feedback_360_surveys')
-                          .select(`
-                            *,
-                            reviewers:feedback_360_survey_reviewers(id, status, reviewer_email, access_token)
-                          `)
-                          .eq('id', survey.id)
-                          .single();
+                        const response = await fetch(`/api/surveys/list?organization_id=${organizationId}`);
+                        if (response.ok) {
+                          const listData = await response.json();
+                          const data = listData.surveys?.find((s: any) => s.id === survey.id);
 
-                        if (data) {
-                          const reviewers = data.reviewers || [];
-                          const freshSurvey = {
-                            ...data,
-                            employee: survey.employee,
-                            reviewers_count: reviewers.length,
-                            completed_count: reviewers.filter((r: any) => r.status === 'completed').length
-                          };
-                          setSelectedSurvey(freshSurvey);
-                          setIsDetailsModalOpen(true);
+                          if (data) {
+                            const reviewers = data.reviewers || [];
+                            const freshSurvey = {
+                              ...data,
+                              employee: survey.employee,
+                              reviewers_count: reviewers.length,
+                              completed_count: reviewers.filter((r: any) => r.status === 'completed').length
+                            };
+                            setSelectedSurvey(freshSurvey);
+                            setIsDetailsModalOpen(true);
+                            return;
+                          }
                         }
+                        // Fallback to original survey data
+                        setSelectedSurvey(survey);
+                        setIsDetailsModalOpen(true);
                       } catch (error) {
                         console.error('Error fetching survey data:', error);
                         // Fallback to original survey data
@@ -1645,17 +1461,27 @@ export default function Feedback360Dashboard({
         const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
         const isAdmin = currentUser?.app_role === 'admin';
         const isLeader = currentUser?.app_role === 'leader';
-        const canManage = isSponsor || isAdmin || isLeader;
         const isSubject = selectedSurvey.employee_id === currentUser?.id;
         const isReviewer = selectedSurvey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
         const userCompletedReview = isReviewer && selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.status === 'completed';
 
-        // For finalized surveys, non-sponsor admins/leaders see read-only view
-        const isFinalizedNonSponsorAdmin = !isSponsor && (isAdmin || isLeader) && selectedSurvey.status === 'finalized';
+        // Only sponsors and admins can manage surveys
+        // Leaders can only manage if they are the sponsor
+        const canManage = isSponsor || isAdmin;
 
-        if (!canManage || isFinalizedNonSponsorAdmin) {
+        // For finalized surveys, only non-sponsor admins can see read-only view
+        // Leaders who are reviewers should see the completion message, not results
+        const isFinalizedNonSponsorAdmin = !isSponsor && isAdmin && selectedSurvey.status === 'finalized';
+        
+        // Leaders who are reviewers on finalized surveys should see read-only view, not sponsor view
+        const isLeaderReviewerOnFinalized = isLeader && isReviewer && !isSponsor && selectedSurvey.status === 'finalized';
+
+        // Leaders who are reviewers (not sponsors) should always see read-only view
+        const isLeaderReviewer = isLeader && isReviewer && !isSponsor;
+
+        if (!canManage || isFinalizedNonSponsorAdmin || isLeaderReviewerOnFinalized || isLeaderReviewer) {
           // Read-only view for reviewers and subject
-          // If finalized, subject or admin can see the complete review results
+          // If finalized, only subject or admin (not leaders) can see the complete review results
           const canSeeResults = (isSubject || isFinalizedNonSponsorAdmin) && selectedSurvey.status === 'finalized';
           return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -2084,7 +1910,8 @@ export default function Feedback360Dashboard({
                     </button>
                   )}
                   {/* View Completed Review for completed or finalized status */}
-                  {(selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (
+                  {/* Only sponsors and admins can view results - leaders who are reviewers should not see this */}
+                  {(selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (isSponsor || isAdmin) && (
                     <button
                       onClick={() => {
                         setIsDetailsModalOpen(false);

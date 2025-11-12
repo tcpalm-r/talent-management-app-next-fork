@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserProfile } from '@/lib/database';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 
 export const dynamic = 'force-dynamic';
@@ -34,11 +34,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch the user to switch to
-    const user = await getUserProfile(userId);
+    // Fetch the user to switch to using admin client (bypasses RLS)
+    const { data: user, error } = await supabaseAdmin
+      .from('user_profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
 
-    if (!user) {
-      console.log('[switch-user] Error - User not found:', userId);
+    if (error || !user) {
+      console.log('[switch-user] Error - User not found:', userId, error);
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }

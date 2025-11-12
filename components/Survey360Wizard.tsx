@@ -307,12 +307,16 @@ export default function Survey360Wizard({
           setSelectedEmployee(employee);
         }
 
-        // Load survey questions
-        const { data: surveyQuestions } = await supabase
-          .from('feedback_360_survey_questions')
-          .select('*, feedback_360_questions(question_text, category)')
-          .eq('survey_id', draftSurvey.id)
-          .order('question_order', { ascending: true });
+        // Load survey questions and reviewers via API
+        const response = await fetch(`/api/surveys/load-draft?surveyId=${draftSurvey.id}`);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Error loading draft survey data:', errorData);
+          throw new Error(errorData.error || 'Failed to load draft survey data');
+        }
+
+        const { surveyQuestions, reviewers } = await response.json();
 
         if (surveyQuestions && surveyQuestions.length > 0) {
           const allQuestions: string[] = surveyQuestions
@@ -332,12 +336,6 @@ export default function Survey360Wizard({
             }
           }
         }
-
-        // Load reviewers
-        const { data: reviewers } = await supabase
-          .from('feedback_360_survey_reviewers')
-          .select('*')
-          .eq('survey_id', draftSurvey.id);
 
         if (reviewers) {
           setRaters(reviewers.map((r: any) => ({
@@ -770,85 +768,27 @@ export default function Survey360Wizard({
 
     if (hasProgress) {
       try {
-        // Create draft survey
-        const { data: survey, error: surveyError } = await supabase
-          .from('feedback_360_surveys')
-          .insert({
-            organization_id: organizationId,
-            employee_id: selectedEmployee.id,
-            survey_name: surveyTitle || `360° Feedback - ${selectedEmployee.name}`,
-            status: 'draft',
-            due_date: dueDate || null,
-            created_by: currentUser?.id || currentUser?.email || 'unknown',
-          })
-          .select()
-          .single();
+        // Create draft survey via API
+        const response = await fetch('/api/surveys/save-draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            organizationId,
+            employeeId: selectedEmployee.id,
+            surveyTitle: surveyTitle || `360° Feedback - ${selectedEmployee.name}`,
+            dueDate: dueDate || null,
+            createdBy: currentUser?.id || currentUser?.email || 'unknown',
+            requiredQuestions: requiredQuestions.filter(q => q.trim()),
+            customQuestions,
+            raters: raters.filter(r => r.name && r.email),
+            questionsConfirmed,
+          }),
+        });
 
-        if (surveyError) {
-          console.error('[handleClose] Survey insert error:', surveyError);
-          throw surveyError;
-        }
-
-        // Save questions only if confirmed or if custom questions were added
-        // Don't save unconfirmed default questions (they'll be loaded fresh when draft is reopened)
-        const shouldSaveQuestions = questionsConfirmed || customQuestions.length > 0;
-        const allQuestions = shouldSaveQuestions ? [...requiredQuestions.filter(q => q.trim()), ...customQuestions] : [];
-        if (allQuestions.length > 0 && shouldSaveQuestions) {
-          const questionUUIDs: string[] = [];
-
-          for (const questionText of allQuestions) {
-            let { data: existingQuestion } = await supabase
-              .from('feedback_360_questions')
-              .select('id')
-              .eq('question_text', questionText)
-              .maybeSingle(); // Use maybeSingle instead of single to avoid errors
-
-            if (!existingQuestion) {
-              const { data: newQuestion } = await supabase
-                .from('feedback_360_questions')
-                .insert({
-                  question_text: questionText,
-                  category: 'general',
-                  is_default: false,
-                  is_active: true,
-                })
-                .select('id')
-                .single();
-
-              if (newQuestion) questionUUIDs.push(newQuestion.id);
-            } else {
-              questionUUIDs.push(existingQuestion.id);
-            }
-          }
-
-          if (questionUUIDs.length > 0) {
-            const questionsToInsert = questionUUIDs.map((questionUUID, index) => ({
-              survey_id: survey.id,
-              question_id: questionUUID,
-              question_order: index,
-            }));
-
-            await supabase
-              .from('feedback_360_survey_questions')
-              .insert(questionsToInsert);
-          }
-        }
-
-        // Save raters if any are added
-        const validRaters = raters.filter(r => r.name && r.email);
-        if (validRaters.length > 0) {
-          const reviewersToInsert = validRaters.map(r => ({
-            survey_id: survey.id,
-            reviewer_name: r.name,
-            reviewer_email: r.email,
-            relationship: r.relationship,
-            status: 'pending',
-            access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          }));
-
-          await supabase
-            .from('feedback_360_survey_reviewers')
-            .insert(reviewersToInsert);
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('[handleClose] API error:', errorData);
+          throw new Error(errorData.error || 'Failed to save draft');
         }
 
         notify({
@@ -859,7 +799,7 @@ export default function Survey360Wizard({
 
         // Refresh the survey list to show the new draft
         onSurveyCreated();
-      } catch (error) {
+      } catch (error: any) {
         console.error('[handleClose] Error saving draft:', error);
         // Don't show error notification, just close silently
       }
@@ -938,139 +878,158 @@ export default function Survey360Wizard({
       // If editing a draft, work with just that draft
       if (draftSurvey) {
         try {
+          // Update draft survey via API
+          const updateResponse = await fetch('/api/surveys/update-draft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              surveyId: draftSurvey.id,
+              surveyName: surveyTitle || `360° Feedback - ${selectedEmployee?.name}`,
+              dueDate,
+              requiredQuestions,
+              customQuestions,
+              raters: raters.filter(r => r.name && r.name.trim()),
+            }),
+          });
 
-          // Delete existing questions (but keep reviewers so they can be re-launched)
-          const { error: deleteQuestionsError } = await supabase
-            .from('feedback_360_survey_questions')
-            .delete()
-            .eq('survey_id', draftSurvey.id);
-
-          if (deleteQuestionsError) {
-            console.error('[DRAFT UPDATE] Error deleting questions:', deleteQuestionsError);
-            throw deleteQuestionsError;
+          if (!updateResponse.ok) {
+            const errorData = await updateResponse.json();
+            console.error('[DRAFT UPDATE] API error:', errorData);
+            throw new Error(errorData.error || 'Failed to update draft');
           }
 
-          // Update survey with new data
-          const { error: updateError } = await supabase
-            .from('feedback_360_surveys')
-            .update({
-              survey_name: surveyTitle || `360° Feedback - ${selectedEmployee?.name}`,
-              due_date: dueDate,
-            })
-            .eq('id', draftSurvey.id);
+          const { reviewers: insertedReviewers } = await updateResponse.json();
 
-          if (updateError) {
-            console.error('[DRAFT UPDATE] Error updating survey:', updateError);
-            throw updateError;
-          }
+          // Send invitation emails to each reviewer (with delay to avoid rate limiting)
+          if (insertedReviewers && insertedReviewers.length > 0) {
+            const emailErrors: Array<{ email: string; error: string }> = [];
 
-          // Use the draft survey ID
-          const survey = draftSurvey;
+            for (let i = 0; i < insertedReviewers.length; i++) {
+              const reviewer = insertedReviewers[i];
+              try {
+                const response = await fetch('/api/send-survey-invitation', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    surveyId: draftSurvey.id,
+                    reviewerId: reviewer.id,
+                  }),
+                });
 
-          // Combine required and custom questions
-          const allQuestions = [...requiredQuestions, ...customQuestions];
-          const questionUUIDs: string[] = [];
+                if (!response.ok) {
+                  let errorData;
+                  try {
+                    errorData = await response.json();
+                  } catch (parseError) {
+                    // If response isn't JSON, use status text
+                    const statusText = response.statusText || 'Unknown error';
+                    console.error(`Failed to send email to ${reviewer.reviewer_email}:`, {
+                      status: response.status,
+                      statusText,
+                      parseError,
+                    });
+                    emailErrors.push({
+                      email: reviewer.reviewer_email,
+                      error: `HTTP ${response.status}: ${statusText}`,
+                    });
+                    continue;
+                  }
 
-          for (const questionText of allQuestions) {
-            // Check if question exists, if not create it
-            let { data: existingQuestion, error: checkError } = await supabase
-              .from('feedback_360_questions')
-              .select('id')
-              .eq('question_text', questionText)
-              .single();
+                  const errorMessage = errorData.details || errorData.error || 'Unknown error';
+                  const errorHint = errorData.hint || '';
 
-            if (checkError && checkError.code !== 'PGRST116') {
-              // PGRST116 = no rows returned, which is fine
-              console.error('[DRAFT UPDATE] Error checking question:', checkError);
-              throw checkError;
-            }
+                  console.error(`Failed to send email to ${reviewer.reviewer_email}:`, {
+                    status: response.status,
+                    error: errorData,
+                    fullResponse: errorData,
+                  });
+                  emailErrors.push({
+                    email: reviewer.reviewer_email,
+                    error: errorHint ? `${errorMessage} (${errorHint})` : errorMessage,
+                  });
+                }
 
-            if (!existingQuestion) {
-              // Create the question
-              const { data: newQuestion, error: createError } = await supabase
-                .from('feedback_360_questions')
-                .insert({
-                  question_text: questionText,
-                  category: 'general',
-                  is_default: false,
-                  is_active: true,
-                })
-                .select('id')
-                .single();
-
-              if (createError) {
-                console.error('[DRAFT UPDATE] Error creating question:', createError);
-                throw createError;
+                // Add 600ms delay between emails to respect rate limit (2 per second)
+                if (i < insertedReviewers.length - 1) {
+                  await new Promise(resolve => setTimeout(resolve, 600));
+                }
+              } catch (error: any) {
+                console.error(`Error sending email to ${reviewer.reviewer_email}:`, error);
+                emailErrors.push({
+                  email: reviewer.reviewer_email,
+                  error: error.message || 'Network error occurred',
+                });
               }
-              questionUUIDs.push(newQuestion.id);
-            } else {
-              questionUUIDs.push(existingQuestion.id);
             }
-          }
 
-
-          // Create survey questions with UUIDs
-          const questionsToInsert = questionUUIDs.map((questionUUID, index) => ({
-            survey_id: survey.id,
-            question_id: questionUUID,
-            question_order: index,
-          }));
-
-          if (questionsToInsert.length > 0) {
-            const { error: questionsError } = await supabase
-              .from('feedback_360_survey_questions')
-              .insert(questionsToInsert);
-
-            if (questionsError) {
-              console.error('[DRAFT UPDATE] Error inserting survey questions:', questionsError);
-              throw questionsError;
-            }
-          }
-
-          // Delete existing reviewers before inserting new ones
-          const { error: deleteReviewersError } = await supabase
-            .from('feedback_360_survey_reviewers')
-            .delete()
-            .eq('survey_id', survey.id);
-
-          if (deleteReviewersError) {
-            console.error('[DRAFT UPDATE] Error deleting existing reviewers:', deleteReviewersError);
-            throw deleteReviewersError;
-          }
-
-          // Create reviewers (filter for those with at least a name)
-          const reviewersToInsert = raters
-            .filter(r => r.name && r.name.trim())
-            .map(r => ({
-              survey_id: survey.id,
-              reviewer_name: r.name,
-              reviewer_email: r.email || 'pending-email@example.com', // Use placeholder if email is missing
-              relationship: r.relationship,
-              status: 'pending',
-              access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            }));
-
-
-          if (reviewersToInsert.length > 0) {
-            const { data: insertedReviewers, error: reviewersError } = await supabase
-              .from('feedback_360_survey_reviewers')
-              .insert(reviewersToInsert)
-              .select();
-
-            if (reviewersError) {
-              console.error('[DRAFT UPDATE] ERROR inserting reviewers (409 likely):', {
-                error: reviewersError,
-                code: reviewersError.code,
-                message: reviewersError.message,
-                details: reviewersError.details,
+            // Show error notification if any emails failed
+            if (emailErrors.length > 0) {
+              const errorCount = emailErrors.length;
+              const totalCount = insertedReviewers.length;
+              notify({
+                title: `Failed to send ${errorCount} of ${totalCount} email${errorCount > 1 ? 's' : ''}`,
+                description: emailErrors.length <= 3
+                  ? emailErrors.map(e => `${e.email}: ${e.error}`).join('; ')
+                  : `${errorCount} emails failed. Check console for details.`,
+                variant: 'error',
               });
-              throw reviewersError;
             }
+
+            // Update survey status to 'in_progress' after emails are sent
+            await fetch('/api/surveys/update-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                surveyId: draftSurvey.id,
+                status: 'in_progress',
+              }),
+            });
+          }
+
+          successCount++;
+        } catch (error: any) {
+          console.error('[DRAFT UPDATE] FINAL ERROR updating draft survey:', {
+            error,
+            message: error?.message,
+            code: error?.code,
+            status: error?.status,
+            details: error?.details,
+            errorMsg: error?.message,
+            toString: error?.toString(),
+          });
+          failCount++;
+        }
+      } else {
+        // Create new surveys via API
+        for (const employee of employeesToProcess) {
+          try {
+            // Create survey via API
+            const createResponse = await fetch('/api/surveys/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                employeeId: employee.id,
+                surveyName: surveyTitle || `360° Feedback - ${employee.name}`,
+                dueDate,
+                createdBy: currentUser?.id || currentUser?.email || 'unknown',
+                requiredQuestions,
+                customQuestions,
+                raters: raters.filter(r => r.name && r.name.trim()),
+              }),
+            });
+
+            if (!createResponse.ok) {
+              const errorData = await createResponse.json();
+              console.error(`Error creating survey for ${employee.name}:`, errorData);
+              throw new Error(errorData.error || 'Failed to create survey');
+            }
+
+            const { survey, reviewers: insertedReviewers } = await createResponse.json();
 
             // Send invitation emails to each reviewer (with delay to avoid rate limiting)
             if (insertedReviewers && insertedReviewers.length > 0) {
               const emailErrors: Array<{ email: string; error: string }> = [];
-              
+
               for (let i = 0; i < insertedReviewers.length; i++) {
                 const reviewer = insertedReviewers[i];
                 try {
@@ -1101,10 +1060,10 @@ export default function Survey360Wizard({
                       });
                       continue;
                     }
-                    
+
                     const errorMessage = errorData.details || errorData.error || 'Unknown error';
                     const errorHint = errorData.hint || '';
-                    
+
                     console.error(`Failed to send email to ${reviewer.reviewer_email}:`, {
                       status: response.status,
                       error: errorData,
@@ -1135,7 +1094,7 @@ export default function Survey360Wizard({
                 const totalCount = insertedReviewers.length;
                 notify({
                   title: `Failed to send ${errorCount} of ${totalCount} email${errorCount > 1 ? 's' : ''}`,
-                  description: emailErrors.length <= 3 
+                  description: emailErrors.length <= 3
                     ? emailErrors.map(e => `${e.email}: ${e.error}`).join('; ')
                     : `${errorCount} emails failed. Check console for details.`,
                   variant: 'error',
@@ -1143,202 +1102,18 @@ export default function Survey360Wizard({
               }
 
               // Update survey status to 'in_progress' after emails are sent
-              await supabase
-                .from('feedback_360_surveys')
-                .update({ status: 'in_progress' })
-                .eq('id', survey.id);
-            }
-          }
-
-          successCount++;
-        } catch (error: any) {
-          console.error('[DRAFT UPDATE] FINAL ERROR updating draft survey:', {
-            error,
-            message: error?.message,
-            code: error?.code,
-            status: error?.status,
-            details: error?.details,
-            errorMsg: error?.message,
-            toString: error?.toString(),
-          });
-          failCount++;
-        }
-      } else {
-        // Create new surveys (original logic)
-        for (const employee of employeesToProcess) {
-          try {
-            // Create survey
-            const { data: survey, error: surveyError } = await supabase
-              .from('feedback_360_surveys')
-              .insert({
-                employee_id: employee.id,
-                survey_name: surveyTitle || `360° Feedback - ${employee.name}`,
-                status: 'draft',
-                due_date: dueDate,
-                created_by: currentUser?.id || currentUser?.email || 'unknown',
-              })
-              .select()
-              .single();
-
-            if (surveyError) throw surveyError;
-
-            // Combine required and custom questions
-            const allQuestions = [...requiredQuestions, ...customQuestions];
-            const questionUUIDs: string[] = [];
-
-            for (const questionText of allQuestions) {
-              // Check if question exists, if not create it
-              let { data: existingQuestion, error: checkError } = await supabase
-                .from('feedback_360_questions')
-                .select('id')
-                .eq('question_text', questionText)
-                .single();
-
-              if (checkError && checkError.code !== 'PGRST116') {
-                // PGRST116 = no rows returned, which is fine
-                throw checkError;
-              }
-
-              if (!existingQuestion) {
-                // Create the question
-                const { data: newQuestion, error: createError } = await supabase
-                  .from('feedback_360_questions')
-                  .insert({
-                    question_text: questionText,
-                    category: 'general',
-                    is_default: false,
-                    is_active: true,
-                  })
-                  .select('id')
-                  .single();
-
-                if (createError) throw createError;
-                questionUUIDs.push(newQuestion.id);
-              } else {
-                questionUUIDs.push(existingQuestion.id);
-              }
-            }
-
-            // Create survey questions with UUIDs
-            const questionsToInsert = questionUUIDs.map((questionUUID, index) => ({
-              survey_id: survey.id,
-              question_id: questionUUID,
-              question_order: index,
-            }));
-
-            if (questionsToInsert.length > 0) {
-              const { error: questionsError } = await supabase
-                .from('feedback_360_survey_questions')
-                .insert(questionsToInsert);
-
-              if (questionsError) throw questionsError;
-            }
-
-            // Create reviewers (filter for those with at least a name)
-            const reviewersToInsert = raters
-              .filter(r => r.name && r.name.trim())
-              .map(r => ({
-                survey_id: survey.id,
-                reviewer_name: r.name,
-                reviewer_email: r.email || 'pending-email@example.com', // Use placeholder if email is missing
-                relationship: r.relationship,
-                status: 'pending',
-                access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              }));
-
-            if (reviewersToInsert.length > 0) {
-              const { data: insertedReviewers, error: reviewersError } = await supabase
-                .from('feedback_360_survey_reviewers')
-                .insert(reviewersToInsert)
-                .select();
-
-              if (reviewersError) throw reviewersError;
-
-              // Send invitation emails to each reviewer (with delay to avoid rate limiting)
-              if (insertedReviewers && insertedReviewers.length > 0) {
-                const emailErrors: Array<{ email: string; error: string }> = [];
-                
-                for (let i = 0; i < insertedReviewers.length; i++) {
-                  const reviewer = insertedReviewers[i];
-                  try {
-                    const response = await fetch('/api/send-survey-invitation', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        surveyId: survey.id,
-                        reviewerId: reviewer.id,
-                      }),
-                    });
-
-                    if (!response.ok) {
-                      let errorData;
-                      try {
-                        errorData = await response.json();
-                      } catch (parseError) {
-                        // If response isn't JSON, use status text
-                        const statusText = response.statusText || 'Unknown error';
-                        console.error(`Failed to send email to ${reviewer.reviewer_email}:`, {
-                          status: response.status,
-                          statusText,
-                          parseError,
-                        });
-                        emailErrors.push({
-                          email: reviewer.reviewer_email,
-                          error: `HTTP ${response.status}: ${statusText}`,
-                        });
-                        continue;
-                      }
-                      
-                      const errorMessage = errorData.details || errorData.error || 'Unknown error';
-                      const errorHint = errorData.hint || '';
-                      
-                      console.error(`Failed to send email to ${reviewer.reviewer_email}:`, {
-                        status: response.status,
-                        error: errorData,
-                        fullResponse: errorData,
-                      });
-                      emailErrors.push({
-                        email: reviewer.reviewer_email,
-                        error: errorHint ? `${errorMessage} (${errorHint})` : errorMessage,
-                      });
-                    }
-
-                    // Add 600ms delay between emails to respect rate limit (2 per second)
-                    if (i < insertedReviewers.length - 1) {
-                      await new Promise(resolve => setTimeout(resolve, 600));
-                    }
-                  } catch (error: any) {
-                    console.error(`Error sending email to ${reviewer.reviewer_email}:`, error);
-                    emailErrors.push({
-                      email: reviewer.reviewer_email,
-                      error: error.message || 'Network error occurred',
-                    });
-                  }
-                }
-
-                // Show error notification if any emails failed
-                if (emailErrors.length > 0) {
-                  const errorCount = emailErrors.length;
-                  const totalCount = insertedReviewers.length;
-                  notify({
-                    title: `Failed to send ${errorCount} of ${totalCount} email${errorCount > 1 ? 's' : ''}`,
-                    description: emailErrors.length <= 3 
-                      ? emailErrors.map(e => `${e.email}: ${e.error}`).join('; ')
-                      : `${errorCount} emails failed. Check console for details.`,
-                    variant: 'error',
-                  });
-                }
-
-                // Update survey status to 'in_progress' after emails are sent
-                await supabase
-                  .from('feedback_360_surveys')
-                  .update({ status: 'in_progress' })
-                  .eq('id', survey.id);
-              }
+              await fetch('/api/surveys/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  surveyId: survey.id,
+                  status: 'in_progress',
+                }),
+              });
             }
 
             successCount++;
-          } catch (error) {
+          } catch (error: any) {
             console.error(`Error creating survey for ${employee.name}:`, error);
             failCount++;
           }

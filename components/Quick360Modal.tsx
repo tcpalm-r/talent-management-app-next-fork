@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { X, Send, Plus, Trash2, Edit2, Check, Mail, Sparkles } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import type { Employee } from '../types';
 import { useToast, EmployeeNameLink } from './unified';
 import {
@@ -156,42 +155,31 @@ export default function Quick360Modal({
 
     setLoading(true);
     try {
-      // Create survey
-      const { data: survey, error: surveyError } = await supabase
-        .from('feedback_360_surveys')
-        .insert({
-          employee_id: employee.id,
-          survey_name: `360° Feedback - ${employee.name}`,
-          status: 'active',
-          due_date: dueDate || null,
-          created_by: 'current-user'
-        })
-        .select()
-        .single();
+      // Prepare questions as text strings
+      const requiredQuestions = selectedQuestions.map(q => q.text);
 
-      if (surveyError) throw surveyError;
+      // Call the API endpoint
+      const response = await fetch('/api/surveys/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          employeeId: employee.id,
+          surveyName: `360° Feedback - ${employee.name}`,
+          dueDate: dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 30 days
+          createdBy: 'current-user',
+          requiredQuestions,
+          customQuestions: [],
+          raters: reviewers,
+        }),
+      });
 
-      // Note: Question linking would require question IDs from feedback_360_questions table
-      // This is a simplified version - in production, you'd need to:
-      // 1. Get or create questions in feedback_360_questions
-      // 2. Link them via feedback_360_survey_questions junction table
+      const data = await response.json();
 
-      // Add reviewers
-      const reviewerRecords = reviewers.map(r => ({
-        survey_id: survey.id,
-        reviewer_name: r.name,
-        reviewer_email: r.email,
-        relationship: r.relationship,
-        access_token: `${Math.random().toString(36).substring(2)}-${Date.now()}`,
-        status: 'pending',
-        invited_at: new Date().toISOString()
-      }));
-
-      const { error: reviewersError } = await supabase
-        .from('feedback_360_survey_reviewers')
-        .insert(reviewerRecords);
-
-      if (reviewersError) throw reviewersError;
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create survey');
+      }
 
       notify({
         title: '360° survey sent',
@@ -204,7 +192,7 @@ export default function Quick360Modal({
       console.error('Error creating survey:', error);
       notify({
         title: 'Failed to create survey',
-        description: 'Please try again or reach out if the problem continues.',
+        description: error instanceof Error ? error.message : 'Please try again or reach out if the problem continues.',
         variant: 'error',
       });
     } finally {

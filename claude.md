@@ -1,10 +1,5 @@
 # Talent Management App - Software Stack Documentation
 
-## Overview
-This is a full-stack TypeScript application focused on talent management, performance reviews, and AI-assisted HR workflows.
-
----
-
 ## Frontend Framework & UI Layer
 
 ### Core Framework
@@ -25,11 +20,9 @@ This is a full-stack TypeScript application focused on talent management, perfor
   - Custom color palette (primary 50-900 shades)
   - Extended grid templates (3x3 layouts)
 - **Lucide React** (Icon library)
-- **clsx + tailwind-merge** (Dynamic class composition)
 - **Custom CSS** (globals.css with design system)
 
 ### Specialized UI Libraries
-- **React Flow** (Org charts, visual workflows) - Note: reactflow package not directly listed
 - **@dnd-kit** (Drag & drop functionality)
   - @dnd-kit/core
   - @dnd-kit/utilities
@@ -40,29 +33,124 @@ This is a full-stack TypeScript application focused on talent management, perfor
 
 ## Authentication & Authorization
 
-### Auth Provider
-- **Auth0** (Custom implementation)
-  - SSO support
-  - OAuth integration
-  - JWT token management
-  - Note: @auth0/nextjs-auth0 package not directly in dependencies
+### Auth Architecture Overview
+This app uses a **custom "Sonance Auth" system** that integrates with the **AI Intranet (Sonance hub)** for centralized authentication across Sonance applications.
 
-### Custom Auth Layer
+**Production Authentication Flow:**
+- **Primary Auth Provider**: AI Intranet (https://aiintranet.sonance.com)
+- **OAuth Provider**: Auth0 (used by AI Intranet for SSO)
+- **Authentication Flow**: User → AI Intranet → Auth0 OAuth → JWT token → This app
+- **Token Validation**: Middleware validates JWT by calling AI Intranet's `/api/auth/validate-token`
+- **Session Management**: JWT stored in cookies (`ai-intranet-session`, `ai-intranet-user`)
+- **Cross-Domain Auth**: Tokens can be passed via URL parameter (`?auth_token=...`)
+
+**Development Authentication Mode:**
+- Set `DISABLE_AUTH=true` or `NEXT_PUBLIC_DISABLE_AUTH=true` in environment
+- Mock user automatically injected into all requests
+- No external authentication calls required
+- Useful for local development and testing
+
+### Custom Auth Layer Files
 - **lib/auth.ts** - Core auth utilities
+  - AI Intranet token validation logic
+  - Mock user constants for development
+  - Session helper functions
+  - `AUTH_DISABLED` constant exports
 - **lib/auth-wrapper.ts** - Auth wrapper components
+  - Client-side auth state management
+  - User context providers
 - **lib/auth-supabase.ts** - Supabase auth integration
-- **Features:**
-  - Mock user support for local development
-  - Protected route middleware
-  - Role-based access control (admin/leader/user)
-  - Dev bypass mode with `AUTH_DISABLED` flag
+  - Syncs authenticated users with Supabase user_profiles table
 
 ### Middleware
-- **middleware.ts**
-  - Route protection for authenticated pages
-  - AI Intranet URL routing (local/prod switching)
-  - Environment-based configuration
-  - Auth bypass for development mode
+- **middleware.ts** - Route protection and auth enforcement
+  - Checks authentication for all non-public routes
+  - Validates JWT tokens with AI Intranet in production
+  - Injects mock user headers/cookies in development mode
+  - Handles cross-domain authentication via URL tokens
+  - Skips auth for public paths (API routes, static assets, etc.)
+
+### Auth API Routes
+Located in `app/api/auth/`:
+
+- **`/login`** - Initiates Auth0 login flow (redirects to AI Intranet)
+  - Bypasses in development mode (when `DISABLE_AUTH=true`)
+
+- **`/logout`** - Clears session cookies and logs user out
+
+- **`/callback`** - Handles Auth0 OAuth callback after successful login
+  - Exchanges authorization code for tokens
+  - Sets session cookies
+
+- **`/validate-token`** - Validates JWT token with AI Intranet API
+  - Called by middleware on each request
+
+- **`/me`** - Returns current authenticated user data
+  - Reads from session cookies
+
+- **`/switch-user`** - Development mode: Switch between mock users
+  - Only available when `DISABLE_AUTH=true`
+  - Allows testing different user roles
+
+- **`/sync`** - Syncs user data from Auth0/AI Intranet to Supabase
+  - Updates user_profiles table with latest user information
+
+### Environment Variables
+
+**Required for Production:**
+```bash
+# AI Intranet Integration (Primary Auth)
+AI_INTRANET_URL=https://aiintranet.sonance.com
+# or for local testing:
+# AI_INTRANET_URL_LOCAL=http://localhost:3001
+# AI_INTRANET_URL_PROD=https://aiintranet.sonance.com
+
+APP_ID=talent-management-app
+NEXT_PUBLIC_APP_ID=talent-management-app
+APP_API_KEY=<secret-api-key>
+
+# Auth0 Configuration (OAuth Provider)
+AUTH0_ISSUER_BASE_URL=https://<tenant>.auth0.com
+AUTH0_CLIENT_ID=<client-id>
+AUTH0_CLIENT_SECRET=<secret>
+AUTH0_BASE_URL=https://your-app-url.com
+AUTH0_SECRET=<secret-for-session-encryption>
+```
+
+**Development Mode:**
+```bash
+# Bypass all authentication
+DISABLE_AUTH=true
+# or
+NEXT_PUBLIC_DISABLE_AUTH=true
+```
+
+### Role-Based Access Control (RBAC)
+User roles are stored in `user_profiles.app_role` field with three levels:
+
+- **Admin** - Full system access
+  - Can view all surveys across the organization
+  - Can manage all users and settings
+  - Can delete, finalize, or revert any survey
+  - Can access admin settings panel
+
+- **Leader** - Team management access
+  - Can view surveys they created
+  - Can view surveys where they are the subject
+  - Can view surveys for their direct reports
+  - Can view surveys where they are a reviewer (except drafts)
+  - Cannot see other leaders' draft surveys
+
+- **User** - Individual contributor access
+  - Can view surveys they created
+  - Can view surveys where they are the subject
+  - Can view surveys where they are a reviewer (except drafts)
+  - Cannot see drafts created by others
+
+**Permission Enforcement:**
+- Client-side: Role-based filtering in components (Dashboard, Feedback360Dashboard)
+- Server-side: API routes rely on authenticated user context
+- Middleware: Ensures all requests have valid authentication
 
 ---
 
@@ -72,10 +160,8 @@ This is a full-stack TypeScript application focused on talent management, perfor
 Located in `app/api/`:
 
 - **`/api/auth/*`**
-  - Auth0 handlers
-  - Custom sync endpoints
-  - Token validation
-  - Logout handling
+  - AI Intranet authentication handlers (see Authentication & Authorization section above for details)
+  - Routes: login, logout, callback, validate-token, me, switch-user, sync
 
 - **`/api/360-default-questions`**
   - GET: Retrieve default 360 question settings
@@ -85,6 +171,49 @@ Located in `app/api/`:
 - **`/api/send-survey-invitation`**
   - Email workflow for 360 feedback surveys
   - Reviewer invitation management
+
+- **`/api/surveys/*`** - Survey management
+  - `/api/surveys/list` - List surveys with role-based filtering
+  - `/api/surveys/create` - Create new survey
+  - `/api/surveys/[id]` - Get/update survey by ID
+  - `/api/surveys/[id]/details` - Get survey with full details
+  - `/api/surveys/[id]/finalize` - Finalize survey
+  - `/api/surveys/[id]/revert-draft` - Revert finalized survey to draft
+  - `/api/surveys/[id]/reviewers` - Manage survey reviewers
+  - `/api/surveys/[id]/reviewers/[reviewerId]` - Individual reviewer operations
+  - `/api/surveys/[id]/send-reminders` - Send reminder emails
+  - `/api/surveys/save-draft` - Save survey draft
+  - `/api/surveys/load-draft` - Load saved draft
+  - `/api/surveys/update-draft` - Update draft
+  - `/api/surveys/update-status` - Update survey status
+
+- **`/api/survey-completion/*`** - Survey completion workflow
+  - `/api/survey-completion/survey` - Get survey for completion
+  - `/api/survey-completion/questions` - Get survey questions
+  - `/api/survey-completion/start` - Start survey completion
+  - `/api/survey-completion/submit` - Submit completed survey
+
+- **`/api/360-generate-report`**
+  - Generate PDF reports from survey data
+  - Export functionality for completed surveys
+
+- **`/api/ai/*`** - AI integration endpoints
+  - `/api/ai/generate-survey-response` - AI-assisted response generation
+  - `/api/ai/parse-survey-description` - Parse natural language survey descriptions
+  - `/api/ai/parse-survey-responses` - Analyze survey responses
+
+- **`/api/dashboard/*`** - Dashboard data endpoints
+  - `/api/dashboard/data` - Dashboard statistics
+  - `/api/dashboard/surveys` - Dashboard survey data
+
+- **`/api/employees/[id]/surveys`**
+  - Get all surveys for a specific employee
+
+- **`/api/users/list`**
+  - List users with filtering and pagination
+
+- **`/api/debug/env`**
+  - Debug endpoint for environment variable inspection (development only)
 
 ### Email Service
 - **Resend v6.2.2**
@@ -98,10 +227,9 @@ Located in `app/api/`:
   - Claude API integration
   - Features:
     - AI Coach micro-panel
-    - PIP document generation (lib/pipDocumentGenerator.ts)
     - Action item generation (lib/actionItemGenerator.ts)
     - Survey analysis & insights (lib/survey360Analyzer.ts)
-    - Conversation scripts (lib/pipConversationScripts.ts)
+    - Review analysis (lib/reviewAnalyzer.ts)
 
 ---
 
@@ -112,14 +240,7 @@ Located in `app/api/`:
   - @supabase/supabase-js v2.76.1 (Client SDK)
   - Direct postgres connection via connection pooler
   - Materialized views for performance optimization
-  - Connection: `aws-0-us-west-1.pooler.supabase.com:6543`
-
-### ORM Layer
-- **Drizzle ORM v0.44.5**
-  - Type-safe queries
-  - postgres-js v3.4.7 (Database driver)
-  - Schema definitions in lib/schema.ts
-  - Transaction support
+  - Connection via Supabase connection pooler
 
 ### Database Abstractions
 - **lib/database.ts** - Query helper functions
@@ -137,11 +258,6 @@ Located in `app/api/`:
   - Server-side only
   - Privileged operations
   - Service role key access
-
-- **lib/db.ts** - Drizzle client setup
-  - Connection management
-  - Transaction helpers
-  - Raw query execution
 
 ### Database Schema
 Key tables:
@@ -231,12 +347,17 @@ Materialized views:
 
 **Features:**
 - Survey creation wizard
+- Survey draft saving/loading (persistent drafts)
 - Reviewer invitations via email
+- Survey reminders (automated email reminders)
 - Anonymous feedback collection
 - Custom & template questions
 - AI-powered analysis
+- AI-assisted response generation (`/api/ai/generate-survey-response`)
 - Response tracking
-- Survey status management (draft/active/closed)
+- Survey status management (draft/active/closed/finalized)
+- Survey finalization workflow (revert finalized surveys back to draft)
+- Survey report generation (`/api/360-generate-report` - PDF export)
 - Role-based filtering (admin/leader view)
 
 ### 3. 9-Box Talent Grid
@@ -254,12 +375,12 @@ Performance vs. Potential assessment matrix
 
 ### 5. Employee Management
 **Components:**
-- `EmployeeDetailModal.tsx` - Employee details (85KB, feature-rich)
+- `EmployeeDetailModal.tsx` - Employee details (feature-rich)
 - `EmployeeList.tsx` - List view
 - `EmployeeCardUnified.tsx` - Unified card component (in unified/ directory)
 
 **Features:**
-- Org chart visualization (React Flow)
+- Org chart visualization
 - Department filtering
 - Skills & capabilities tracking
 - Import/export functionality
@@ -297,6 +418,8 @@ Performance vs. Potential assessment matrix
 - **next.config.mjs** - Next.js configuration
   - React strict mode
   - Transpile packages: lucide-react
+  - TypeScript build errors ignored (`ignoreBuildErrors: true`) - TODO: Fix schema mismatches
+  - ESLint build errors ignored (`ignoreDuringBuilds: true`)
 
 - **tailwind.config.ts** - Tailwind configuration
   - Custom color palette
@@ -306,7 +429,7 @@ Performance vs. Potential assessment matrix
 - **tsconfig.json** - TypeScript configuration
   - Strict mode enabled
   - Path aliases (@/*)
-  - ESNext target
+  - ES2018 target
 
 - **postcss.config.mjs** - PostCSS configuration
 
@@ -314,7 +437,13 @@ Performance vs. Potential assessment matrix
 - TypeScript strict mode
 - React Strict Mode
 - ESLint Next.js config
-- No unit test framework currently
+- **Jest** - Unit testing framework (configured in jest.config.js)
+  - Test files in `__tests__/` and `**/__tests__/` directories
+  - Coverage thresholds: 50% for branches, functions, lines, statements
+  - Test utilities: @testing-library/react, @testing-library/jest-dom
+- **Playwright** - E2E testing framework
+  - E2E tests in `e2e/` directory
+  - Test files: `360-survey.spec.ts`
 
 ### Custom Scripts
 Located in `scripts/`:
@@ -325,18 +454,31 @@ Located in `scripts/`:
 ### NPM Scripts
 ```json
 {
-  "dev": "next dev -p 3004",
-  "dev:open": "next dev -p 3004 --turbo",
-  "dev:local": "LOCAL_TESTING_MODE=true next dev -p 3004",
-  "dev:prod": "LOCAL_TESTING_MODE=false next dev -p 3004",
+  "dev": "bash ./run-dev.sh",
+  "dev:open": "bash ./run-dev.sh --turbo",
+  "dev:local": "LOCAL_TESTING_MODE=true bash ./run-dev.sh",
+  "dev:prod": "LOCAL_TESTING_MODE=false bash ./run-dev.sh",
+  "dev:360": "PORT=${PORT:-3005} bash ./run-dev.sh",
+  "dev:employee": "PORT=${PORT:-3006} bash ./run-dev.sh",
+  "dev:performance": "PORT=${PORT:-3007} bash ./run-dev.sh",
   "build": "next build",
   "start": "next start -p 3004",
   "lint": "next lint",
+  "test": "jest",
+  "test:watch": "jest --watch",
+  "test:coverage": "jest --coverage",
+  "e2e": "playwright test",
+  "e2e:ui": "playwright test --ui",
   "setup-mcp": "node scripts/setup-mcp.js",
   "verify-db": "node scripts/verify-supabase.js",
-  "mcp": "node scripts/smart-supabase-mcp.js"
+  "mcp": "node scripts/smart-supabase-mcp.js",
+  "generate-test-360": "npx ts-node scripts/generate-test-360-data.ts",
+  "ts-prune": "ts-prune",
+  "knip": "knip"
 }
 ```
+
+**Note:** All `dev` scripts use `run-dev.sh` wrapper script which handles environment variable loading and port configuration.
 
 ---
 
@@ -359,13 +501,26 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ```
 
-**Auth0:**
+**Authentication:**
 ```
-AUTH0_SECRET=...
-AUTH0_BASE_URL=http://localhost:3004 (or production URL)
+# Development Mode - Bypass Auth
+DISABLE_AUTH=true
+# or
+NEXT_PUBLIC_DISABLE_AUTH=true
+
+# Production Mode - AI Intranet + Auth0
+AI_INTRANET_URL=https://aiintranet.sonance.com
+AI_INTRANET_URL_LOCAL=http://localhost:3001
+AI_INTRANET_URL_PROD=https://aiintranet.sonance.com
+APP_ID=talent-management-app
+NEXT_PUBLIC_APP_ID=talent-management-app
+APP_API_KEY=<secret-api-key>
+
 AUTH0_ISSUER_BASE_URL=https://[tenant].auth0.com
 AUTH0_CLIENT_ID=...
 AUTH0_CLIENT_SECRET=...
+AUTH0_BASE_URL=http://localhost:3004 (or production URL)
+AUTH0_SECRET=...
 ```
 
 **AI Services:**
@@ -378,82 +533,75 @@ ANTHROPIC_API_KEY=sk-ant-...
 RESEND_API_KEY=re_...
 ```
 
-**AI Intranet:**
-```
-AI_INTRANET_URL_LOCAL=http://localhost:3001
-AI_INTRANET_URL_PROD=https://aiintranet.sonance.com
-```
-
 ---
 
 ## Component Architecture
 
 ### Overview
-- **Total Components:** 26 React components across 3 locations
-- **Total Lines of Code:** ~14,458 lines
-- **Average Component Size:** 535 lines
-- **Root Level:** 18 feature components
-- **Design System:** 7 unified/reusable components (plus index.ts)
+- Components organized across 3 locations:
+  - Root-level feature components
+  - Unified design system components
+  - Index re-export file
 
 ### Component Organization
 
 **Directory Structure:**
 ```
 components/
-├── Root (18 components) - Feature-specific components
-├── unified/ (7 components + index.ts) - Design system & reusable patterns
+├── Root - Feature-specific components
+├── unified/ - Design system & reusable patterns
 └── admin/ (empty)
 ```
 
 ### Distribution by Size & Complexity
 
-**Large Components (>1500 LOC) - 44% of total code:**
-1. `Feedback360Dashboard.tsx` (2,584 lines) - 360° feedback hub & survey management
-2. `OneOnOneModal.tsx` (2,101 lines) - 1-on-1 meeting management + transcripts
-3. `EmployeeDetailModal.tsx` (1,834 lines) - Central employee profile (9 sub-panels)
-4. `Survey360Wizard.tsx` (1,611 lines) - Multi-step survey builder
+**Large Components (>1500 LOC):**
+- `Feedback360Dashboard.tsx` - 360° feedback hub & survey management
+- `OneOnOneModal.tsx` - 1-on-1 meeting management + transcripts
+- `EmployeeDetailModal.tsx` - Central employee profile (9 sub-panels)
+- `Survey360Wizard.tsx` - Multi-step survey builder
 
-**Medium Components (500-1500 LOC) - 35% of total code:**
-- `RetentionPlanModal.tsx` (790) - Retention strategy & stay interviews
-- `AdminSettings.tsx` (672) - Employee management + question configuration
-- `EmployeeCardUnified.tsx` (616) - Flexible card with 4 layout variants
-- `ManagerNotes.tsx` (518) - Feedback notes with severity tracking
-- `Quick360Modal.tsx` (476) - Fast survey creation
-- `CreateWithAIModal.tsx` (427) - AI-powered survey generation
-- `CriticalRoleSetupModal.tsx` (389) - Succession planning
+**Medium Components (500-1500 LOC):**
+- `RetentionPlanModal.tsx` - Retention strategy & stay interviews
+- `AdminSettings.tsx` - Employee management + question configuration
+- `EmployeeCardUnified.tsx` - Flexible card with multiple layout variants
+- `ManagerNotes.tsx` - Feedback notes with severity tracking
+- `Quick360Modal.tsx` - Fast survey creation
+- `CreateWithAIModal.tsx` - AI-powered survey generation
+- `CriticalRoleSetupModal.tsx` - Succession planning
 
-**Small Components (<500 LOC) - 21% of total code:**
-- Navigation: `Dashboard.tsx` (339), `Sidebar.tsx` (~100), `TopHeader.tsx` (177)
-- Utilities: `EmployeeList.tsx` (377), `AICoachMicroPanel.tsx` (284), `SurveyAIAssistant.tsx` (241)
-- Layout: `PeopleDashboard.tsx` (~150), `InsightsPanel.tsx` (145), `Avatar.tsx` (~50)
+**Small Components (<500 LOC):**
+- Navigation: `Dashboard.tsx`, `Sidebar.tsx`, `TopHeader.tsx`
+- Utilities: `EmployeeList.tsx`, `AICoachMicroPanel.tsx`, `SurveyAIAssistant.tsx`
+- Layout: `PeopleDashboard.tsx`, `InsightsPanel.tsx`, `Avatar.tsx`
 
 ### Feature Area Organization
 
-**1. 360° Feedback Management (5 components)**
+**1. 360° Feedback Management**
 - `Feedback360Dashboard.tsx` - Main hub for survey creation and tracking
 - `Survey360Wizard.tsx` - Step-by-step survey builder
 - `Quick360Modal.tsx` - Fast survey creation shortcut
 - `CreateWithAIModal.tsx` - AI-assisted survey generation
 - `SurveyAIAssistant.tsx` - AI response helper
 
-**2. Employee Management (4 + design system)**
+**2. Employee Management**
 - `PeopleDashboard.tsx` - Directory container
 - `EmployeeList.tsx` - Searchable employee grid/list
 - `EmployeeDetailModal.tsx` - Comprehensive profile modal
-- `EmployeeCardUnified.tsx` - Reusable card (grid/list/compact/detailed variants)
+- `EmployeeCardUnified.tsx` - Reusable card with multiple layout variants
 
-**3. Performance & Development (4 nested modals)**
-- `OneOnOneModal.tsx` - 1-on-1 meeting management (2,101 lines)
+**3. Performance & Development**
+- `OneOnOneModal.tsx` - 1-on-1 meeting management
 - `RetentionPlanModal.tsx` - Retention strategy planning
 - `CriticalRoleSetupModal.tsx` - Succession planning
 - `ManagerNotes.tsx` - Feedback notes display
 *(All nested within EmployeeDetailModal)*
 
-**4. Admin & Configuration (2 components)**
+**4. Admin & Configuration**
 - `AdminSettings.tsx` - Employee management + 360 default questions
 - `Dashboard.tsx` - Main router (includes admin view)
 
-**5. Navigation & Layout (6 components)**
+**5. Navigation & Layout**
 - `Dashboard.tsx` - Main application orchestrator
 - `Sidebar.tsx` - Navigation sidebar with role-based menu
 - `TopHeader.tsx` - Application header + user menu
@@ -461,9 +609,9 @@ components/
 - `InsightsPanel.tsx` - Team insights dashboard
 - `AICoachMicroPanel.tsx` - Contextual AI suggestions
 
-**6. Design System (7 components + index.ts in `unified/` subdirectory)**
-- `EmployeeCardUnified.tsx` - Flexible card component (4 variants)
-- `BadgeSystem.tsx` - Status indicators (8 badge types)
+**6. Design System (in `unified/` subdirectory)**
+- `EmployeeCardUnified.tsx` - Flexible card component with multiple variants
+- `BadgeSystem.tsx` - Status indicators with multiple badge types
 - `NavigationTabs.tsx` - Tab navigation pattern
 - `ModalLayout.tsx` - Standardized modal wrapper
 - `EmptyState.tsx` - Consistent empty state pattern
@@ -474,7 +622,7 @@ components/
 ### Dependency Analysis
 
 **Hub Components (Highest Centrality):**
-1. `EmployeeDetailModal.tsx` - Imports 5+ nested modals (OneOnOne, Retention, CriticalRole)
+1. `EmployeeDetailModal.tsx` - Imports multiple nested modals (OneOnOne, Retention, CriticalRole)
 2. `Dashboard.tsx` - Orchestrates all major feature areas
 3. `Feedback360Dashboard.tsx` - Composes wizard, AI modal, and analytics
 4. `EmployeeList.tsx` - Imports detail modal and card component
@@ -500,18 +648,18 @@ Dashboard (Router)
 └── Views:
     ├── PeopleDashboard
     │  └── EmployeeList
-    │     ├── EmployeeCardUnified (4 variants)
-    │     └── EmployeeDetailModal (1,834 lines - 9 panels)
-    │        ├── OneOnOneModal (2,101 lines)
-    │        ├── RetentionPlanModal (790 lines)
-    │        ├── CriticalRoleSetupModal (389 lines)
-    │        └── Survey360Wizard (1,611 lines)
-    ├── Feedback360Dashboard (2,584 lines - hub)
+    │     ├── EmployeeCardUnified
+    │     └── EmployeeDetailModal (9 panels)
+    │        ├── OneOnOneModal
+    │        ├── RetentionPlanModal
+    │        ├── CriticalRoleSetupModal
+    │        └── Survey360Wizard
+    ├── Feedback360Dashboard (hub)
     │  ├── Survey360Wizard
     │  ├── Quick360Modal
     │  ├── CreateWithAIModal
     │  └── SurveyAIAssistant
-    ├── AdminSettings (672 lines)
+    ├── AdminSettings
     └── InsightsPanel
 ```
 
@@ -519,16 +667,16 @@ Dashboard (Router)
 
 ✅ **Well-Implemented Patterns:**
 - **Modular Modal System** - Consistent modal patterns with ModalLayout base
-- **Design System Integration** - 8 unified components provide consistency
+- **Design System Integration** - Unified components provide consistency
 - **Context-Driven Navigation** - EmployeeNameLink enables global profile access
 - **Nested Modal Composition** - Complex workflows compose simple modals effectively
 - **AI Integration Points** - Three distinct AI features (Survey generation, Response help, Suggestions)
 
 ⚠️ **Areas for Improvement:**
-- **Large Component Size** - Top 4 components range 1,600-2,600 lines (candidates for decomposition)
-- **Modal Nesting** - EmployeeDetailModal contains 5+ nested modals (could flatten with modal router)
-- **Prop Drilling** - Multiple components pass 10+ props (context providers would help)
-- **No Test Coverage** - jest.config.js exists but no test files present
+- **Large Component Size** - Several large components are candidates for decomposition
+- **Modal Nesting** - EmployeeDetailModal contains multiple nested modals (could flatten with modal router)
+- **Prop Drilling** - Multiple components pass many props (context providers would help)
+- **Test Coverage** - Jest is configured with test files, but coverage could be expanded
 - **Limited Documentation** - Components lack JSDoc/TSDoc for complex logic
 
 ### Recommended Review Sequence
@@ -585,63 +733,6 @@ Dashboard (Router)
 
 ---
 
-## Recent Updates
-
-### Component Architecture Analysis (2025-11-03)
-
-**Comprehensive Component Audit Completed:**
-- Analyzed all 27 components across 3 locations
-- Total codebase: ~14,458 lines of component code
-- Created 3 detailed analysis documents:
-  - `COMPONENT_ANALYSIS.md` - Technical deep dive (19 KB)
-  - `COMPONENT_QUICK_REFERENCE.txt` - Quick lookup guide (11 KB)
-  - `COMPONENT_REVIEW_PLAN.md` - 6-phase review framework (14 KB)
-
-**Key Findings:**
-- 4 large components (>1,500 LOC) contain 44% of code - refactoring candidates
-- Well-organized design system with 8 unified components
-- Clear feature area separation: 360° Feedback, Employee Management, Performance, Admin, Navigation
-- 3 hub components with high centrality: Dashboard, EmployeeDetailModal, Feedback360Dashboard
-- Context-driven navigation pattern enables global employee profile access
-- No unit test coverage despite jest.config.js present
-
-**Recommended Action Items:**
-- Phase 1-6 component review plan outlined in this section
-- Consider decomposing top 4 components (1,600+ lines each)
-- Add JSDoc/TSDoc documentation to complex components
-- Implement component testing framework (Jest/Vitest)
-- Flatten modal composition hierarchy (EmployeeDetailModal nests 5+ modals)
-
----
-
-### Latest Commit (Previous)
-
-**Commit:** a670cae
-**Date:** 2025-10-28
-
-### Previous Changes:
-1. **Admin Settings Panel**
-   - Complete employee management interface
-   - Search-based with scrollable results
-   - Inline editing for all employee fields
-   - Role management with visual badges
-   - Soft delete functionality
-
-2. **360 Default Questions**
-   - Configure 3 default questions
-   - Template question library
-   - Custom question creation
-   - Mix template and custom questions
-   - Persistent settings via API
-
-3. **Technical Additions**
-   - New API route: `/api/360-default-questions`
-   - Added 'role' field to UserProfile schema
-   - Migration script for organization_settings table
-   - Data directory for local settings storage
-   - Updated .gitignore
-
----
 
 ## Architecture Patterns
 
@@ -663,9 +754,10 @@ app/
 - Client-side state management with hooks
 
 ### Database Access Pattern
-1. **Client Components:** Use Supabase SDK (lib/supabase.ts)
+1. **Client Components:** Use Supabase SDK (lib/supabase.ts) - respects Row Level Security (RLS)
 2. **Server Components/API Routes:** Use Supabase admin SDK (lib/supabase-admin.ts) or database helpers (lib/database.ts)
-3. **Type Safety:** TypeScript types from lib/schema.ts
+3. **Type Safety:** TypeScript types from lib/schema.ts (type definitions only, not ORM schema)
+4. **Note:** All database operations use Supabase client directly - no ORM layer (Drizzle or similar)
 
 ### Auth Pattern
 1. Middleware checks authentication
@@ -681,8 +773,8 @@ app/
 ```
 talent-management-next/
 ├── app/                    # Next.js app router
-├── components/             # React components (34 files)
-├── lib/                    # Utilities & services (26 files)
+├── components/             # React components
+├── lib/                    # Utilities & services
 ├── context/                # React contexts
 ├── hooks/                  # Custom hooks
 ├── scripts/                # Build/dev scripts
@@ -725,8 +817,9 @@ talent-management-next/
 - Accessible components
 
 ### Database
-- Type-safe queries with Drizzle
-- Supabase for client operations
+- Type-safe queries with Supabase client
+- Supabase SDK for all database operations (no ORM layer)
+- TypeScript types from lib/schema.ts for type safety
 - Materialized views for performance
 - Proper indexing
 
@@ -742,9 +835,9 @@ talent-management-next/
 
 ### Potential Enhancements
 1. **Testing:**
-   - Expand Jest test coverage (currently 1 test file)
+   - Expand Jest test coverage
    - Add component testing
-   - Expand Playwright E2E tests (currently 1 test file)
+   - Expand Playwright E2E tests
 
 2. **Database:**
    - Implement organization_settings table
@@ -767,7 +860,7 @@ talent-management-next/
 ## Troubleshooting
 
 ### Common Issues
-1. **Auth not working:** Check AUTH_DISABLED and environment variables
+1. **Auth not working:** Check DISABLE_AUTH environment variable and AI Intranet configuration
 2. **Database connection:** Verify Supabase credentials
 3. **Build errors:** Clear .next directory and rebuild
 4. **Type errors:** Run `npm run lint` and check imports
@@ -784,7 +877,6 @@ talent-management-next/
 ### Documentation Links
 - Next.js: https://nextjs.org/docs
 - Supabase: https://supabase.com/docs
-- Drizzle ORM: https://orm.drizzle.team
 - Auth0: https://auth0.com/docs
 - Anthropic: https://docs.anthropic.com
 
@@ -796,8 +888,8 @@ talent-management-next/
 
 ---
 
-Last Updated: 2025-11-03
-Version: 0.2.0 (Component Architecture Analysis Added)
+Last Updated: 2025-01-27
+Version: 0.3.0 (Documentation Audit - Fixed CRITICAL/HIGH/MEDIUM/LOW inconsistencies)
 
 ## Important Naming Note
 

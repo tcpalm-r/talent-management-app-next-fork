@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useToast } from './unified';
-import { supabase } from '../lib/supabase';
 import type { User, Organization, Employee, Department } from '../types';
 import PeopleDashboard from './PeopleDashboard';
 import Feedback360Dashboard from './Feedback360Dashboard';
@@ -131,89 +130,54 @@ export default function Dashboard({
   const loadEmployees = useCallback(async (): Promise<void> => {
     if (!organization?.id) return;
 
-    // Using 'any' type for Supabase queries since employees/departments are views not in generated types
-    const [employeesResult, departmentsResult, assessmentsResult] = await Promise.all([
-      supabase
-        .from('employees' as any)
-        .select('*')
-        .eq('organization_id', organization.id),
-      supabase
-        .from('departments' as any)
-        .select('*')
-        .eq('organization_id', organization.id),
-      supabase
-        .from('assessments')
-        .select('*')
-        .eq('organization_id', organization.id)
-    ]);
+    try {
+      const response = await fetch(`/api/dashboard/data?organization_id=${organization.id}`);
 
-    if (employeesResult.error) {
-      console.error('Error loading employees:', employeesResult.error);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error loading dashboard data:', errorData);
+        notify({
+          title: 'Unable to load team members',
+          description: 'Check your connection and try again.',
+          variant: 'error'
+        });
+        return;
+      }
+
+      const { employees: employeesWithRelations, departments: departmentsData } = await response.json();
+
+      setEmployees(employeesWithRelations as unknown as Employee[]);
+      setDepartments(departmentsData as unknown as Department[]);
+      onEmployeesChange?.(employeesWithRelations);
+      onDepartmentsChange?.(departmentsData.map((d: any) => d.id) || []);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
       notify({
         title: 'Unable to load team members',
-        description: 'Check your connection or Supabase credentials and try again.',
+        description: 'Check your connection and try again.',
         variant: 'error'
       });
-      return;
     }
+  }, [organization?.id, notify, onEmployeesChange, onDepartmentsChange]);
 
-    const employeesWithRelations = (employeesResult.data || []).map((employee: any) => ({
-      ...employee,
-      department: departmentsResult.data?.find((d: any) => d.id === employee.department_id) || null,
-      assessment: assessmentsResult.data?.find((a: any) => a.employee_id === employee.id) || null
-    })) as unknown as Employee[];
-
-    setEmployees(employeesWithRelations);
-    onEmployeesChange?.(employeesWithRelations);
-  }, [organization?.id, notify, onEmployeesChange]);
-
-  const loadDepartments = useCallback(async (): Promise<void> => {
-    if (!organization?.id) return;
-
-    const { data, error } = await supabase
-      .from('departments' as any)
-      .select('*')
-      .eq('organization_id', organization.id)
-      .order('name');
-
-    if (error) {
-      console.error('Error loading departments:', error);
-      notify({
-        title: 'Unable to load departments',
-        description: 'Department data could not be retrieved. Please refresh.',
-        variant: 'error'
-      });
-      return;
-    }
-
-    const departments = (data || []) as unknown as Department[];
-    setDepartments(departments);
-    onDepartmentsChange?.(departments.map((d: Department) => d.id) || []);
-  }, [organization?.id, notify, onDepartmentsChange]);
 
   const loadFinalizedSurveys = useCallback(async (): Promise<void> => {
     if (!organization?.id) return;
 
-    const { data, error } = await supabase
-      .from('feedback_360_surveys' as any)
-      .select('employee_id, id')
-      .eq('organization_id', organization.id)
-      .eq('status', 'finalized');
+    try {
+      const response = await fetch(`/api/dashboard/surveys?organization_id=${organization.id}&status=finalized`);
 
-    if (error) {
-      console.error('Error loading finalized surveys:', error);
-      return;
-    }
-
-    // Group surveys by employee_id and count them
-    const surveyCount: Record<string, number> = {};
-    (data || []).forEach((survey: any) => {
-      if (survey.employee_id) {
-        surveyCount[survey.employee_id] = (surveyCount[survey.employee_id] || 0) + 1;
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error loading finalized surveys:', errorData);
+        return;
       }
-    });
 
-    setFinalizedSurveys(surveyCount);
+      const { surveyCountByEmployee } = await response.json();
+      setFinalizedSurveys(surveyCountByEmployee || {});
+    } catch (error) {
+      console.error('Error loading finalized surveys:', error);
+    }
   }, [organization?.id]);
 
   const loadData = useCallback(async (): Promise<void> => {
@@ -221,7 +185,7 @@ export default function Dashboard({
 
     setLoading(true);
     try {
-      await Promise.all([loadEmployees(), loadDepartments(), loadFinalizedSurveys()]);
+      await Promise.all([loadEmployees(), loadFinalizedSurveys()]);
     } catch (error) {
       console.error('Error loading data:', error);
       notify({
@@ -232,7 +196,7 @@ export default function Dashboard({
     } finally {
       setLoading(false);
     }
-  }, [organization?.id, loadEmployees, loadDepartments, loadFinalizedSurveys, notify]);
+  }, [organization?.id, loadEmployees, loadFinalizedSurveys, notify]);
 
   useEffect(() => {
     loadData();

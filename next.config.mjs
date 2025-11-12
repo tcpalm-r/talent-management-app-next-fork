@@ -12,10 +12,6 @@ const nextConfig = {
   },
   // Increase timeout for static page generation to handle slower builds
   staticPageGenerationTimeout: 120,
-  // Experimental: optimize memory cache for incremental static regeneration
-  experimental: {
-    cacheMaxMemorySize: 52 * 1024 * 1024,
-  },
 };
 
 export default nextConfig;

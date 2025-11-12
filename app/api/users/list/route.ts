@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getActiveUsers } from '@/lib/database';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 
 export const dynamic = 'force-dynamic';
@@ -22,8 +22,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all active users from database
-    const users = await getActiveUsers();
+    // Get all active users from database using admin client (bypasses RLS)
+    const { data: users, error } = await supabaseAdmin
+      .from('user_profiles')
+      .select('*')
+      .eq('is_active', true)
+      .order('full_name');
+
+    if (error) {
+      console.error('[API] Error fetching users:', error);
+      throw error;
+    }
 
     return NextResponse.json({
       success: true,
