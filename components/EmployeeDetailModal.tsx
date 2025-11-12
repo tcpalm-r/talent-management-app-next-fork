@@ -766,245 +766,54 @@ export default function EmployeeDetailModal({
           {/* Details Tab */}
           {activeTab === 'details' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-                <div className="xl:col-span-2 space-y-4">
-                  {(!currentPlan && !analysisResult) && (
-                    <div className="bg-gradient-to-r from-purple-100 via-indigo-100 to-blue-100 border border-purple-200 rounded-xl p-5">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-purple-600 shadow-inner">
-                          <Sparkles className="h-5 w-5" />
-                        </div>
-                        <div className="space-y-2">
-                          <h3 className="text-lg font-semibold text-gray-900">Jump-start this card with a review</h3>
-                          <p className="text-sm text-gray-700">
-                            Paste the latest performance review and we&apos;ll auto-fill placement, strengths, growth areas, and draft a plan so you can coach with context.
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              activatePanel('review');
-                              setTimeout(() => {
-                                const textarea = document.querySelector<HTMLTextAreaElement>('textarea');
-                                textarea?.focus();
-                              }, 150);
-                            }}
-                            className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-purple-700"
-                          >
-                            <Upload className="h-4 w-4" />
-                            Ingest a performance review
-                          </button>
-                        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Contact Information</h3>
+                  <div className="space-y-3 text-sm text-gray-700">
+                    {employee.email ? (
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-blue-500" />
+                        <span>{employee.email}</span>
                       </div>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-3">Contact Information</h3>
-                      <div className="space-y-3 text-sm text-gray-700">
-                        {employee.email ? (
-                          <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-blue-500" />
-                            <span>{employee.email}</span>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-gray-500">Email not captured yet.</p>
-                        )}
-                        {employee.location ? (
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-green-500" />
-                            <span>{employee.location}</span>
-                          </div>
-                        ) : null}
-                        {employee.manager_name ? (
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-purple-500" />
-                            <span>Reports to {employee.manager_name}</span>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-3">Employment Snapshot</h3>
-                      <div className="space-y-3 text-sm text-gray-700">
-                        {employee.title && (
-                          <div className="flex items-center gap-2">
-                            <Briefcase className="h-4 w-4 text-indigo-500" />
-                            <span>{employee.title}</span>
-                          </div>
-                        )}
-                        {department && (
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-amber-500" />
-                            <span>{department.name}</span>
-                          </div>
-                        )}
-                        {employee.created_at && (
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-pink-500" />
-                            <span>Added {new Date(employee.created_at).toLocaleDateString()}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {employee.assessment && (
-                      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
-                        <h3 className="text-sm font-semibold text-blue-900 mb-3">Current 9-box placement</h3>
-                        <div className="grid grid-cols-2 gap-3 text-xs">
-                          <div className="rounded-lg border border-blue-200 bg-white px-3 py-2 font-semibold text-blue-700">
-                            📊 Performance: {employee.assessment.performance?.toUpperCase()}
-                          </div>
-                          <div className="rounded-lg border border-green-200 bg-white px-3 py-2 font-semibold text-green-700">
-                            🚀 Potential: {employee.assessment.potential?.toUpperCase()}
-                          </div>
-                          <div className="col-span-2 text-gray-600 text-xs">
-                            Box key: {employee.assessment.box_key ?? 'Not assigned'}
-                          </div>
-                        </div>
-                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500">Email not captured yet.</p>
                     )}
-
-                    {/* Critical Role Card - Only show for non-users */}
-                    {currentUser?.role !== 'user' && (
-                      <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 shadow-sm">
-                        <h3 className="text-sm font-semibold text-amber-900 mb-3 flex items-center gap-2">
-                          <Shield className="h-4 w-4" />
-                          Critical Role Status
-                        </h3>
-                        {employee.is_critical_role ? (
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-xs font-semibold text-amber-800 bg-amber-100 px-3 py-2 rounded-lg border border-amber-300">
-                              <CheckCircle className="h-4 w-4 text-amber-600" />
-                              Designated Critical Role
-                            </div>
-                            <button
-                              onClick={() => {
-                                if (onUpdateEmployee) {
-                                  onUpdateEmployee({ ...employee, is_critical_role: false, critical_role_id: undefined });
-                                }
-                                notify({ title: 'Removed from critical roles', variant: 'info' });
-                              }}
-                              className="w-full text-xs font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-3 py-2 rounded-lg border border-gray-300 transition-colors"
-                            >
-                              Remove Critical Role Status
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <p className="text-xs text-gray-600 mb-3">
-                              Mark this position as critical to begin succession planning and identify potential successors.
-                            </p>
-                            <button
-                              onClick={() => setIsCriticalRoleSetupOpen(true)}
-                              className="w-full text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                            >
-                              <Shield className="h-4 w-4" />
-                              Mark as Critical Role
-                            </button>
-                          </div>
-                        )}
+                    {employee.location ? (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-green-500" />
+                        <span>{employee.location}</span>
                       </div>
-                    )}
-
-                    {analysisResult && (
-                      <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 shadow-sm">
-                        <h3 className="text-sm font-semibold text-purple-900 mb-3">Latest AI insights</h3>
-                        <p className="text-xs text-gray-600 mb-3">{analysisResult.reasoning || 'Review analyzed.'}</p>
-                        <div className="space-y-2 text-xs text-gray-700">
-                          {analysisResult.strengths && analysisResult.strengths.length > 0 && (
-                            <div>
-                              <p className="font-semibold text-purple-800">Top strengths</p>
-                              <ul className="list-disc pl-5 space-y-1">
-                                {analysisResult.strengths.map((item, index) => (
-                                  <li key={`detail-strength-${index}`}>{item}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          {analysisResult.developmentAreas && analysisResult.developmentAreas.length > 0 && (
-                            <div>
-                              <p className="font-semibold text-purple-800">Focus next</p>
-                              <ul className="list-disc pl-5 space-y-1">
-                                {analysisResult.developmentAreas.map((item, index) => (
-                                  <li key={`detail-dev-${index}`}>{item}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
+                    ) : null}
+                    {employee.manager_name ? (
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-purple-500" />
+                        <span>Reports to {employee.manager_name}</span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  {currentPlan ? (
-                    <div className="rounded-2xl border border-green-200 bg-white p-4 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-gray-900">Plan status</h3>
-                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${getPlanTypeMeta(currentPlan.plan_type).badgeClass}`}>
-                          {getPlanTypeMeta(currentPlan.plan_type).label}
-                        </span>
+                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Employment Snapshot</h3>
+                  <div className="space-y-3 text-sm text-gray-700">
+                    {employee.title && (
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4 text-indigo-500" />
+                        <span>{employee.title}</span>
                       </div>
-                      <div className="mt-3 space-y-2 text-xs text-gray-700">
-                        <div className="flex items-center justify-between">
-                          <span>Progress</span>
-                          <span className="font-semibold text-blue-600">{getPlanProgress()}%</span>
-                        </div>
-                        <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600" style={{ width: `${getPlanProgress()}%` }} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5">
-                            <p className="text-[11px] text-gray-500">Actions</p>
-                            <p className="text-sm font-semibold text-gray-900">{currentPlan.action_items?.length ?? 0}</p>
-                          </div>
-                          <div className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5">
-                            <p className="text-[11px] text-gray-500">Next check-in</p>
-                            <p className="text-sm font-semibold text-gray-900">{currentPlan.next_review_date ?? 'Set date'}</p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => activatePanel('plan')}
-                          className="mt-3 inline-flex items-center gap-2 rounded-md border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50"
-                        >
-                          <FileText className="h-4 w-4" />
-                          View full plan
-                        </button>
+                    )}
+                    {department && (
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-amber-500" />
+                        <span>{department.name}</span>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-blue-300 bg-blue-50/70 p-5 text-sm text-blue-800">
-                      <p className="font-semibold mb-2">No plan created yet</p>
-                      <p className="text-xs mb-3">Draft a plan or PIP after analyzing a review so this card always shows the latest commitments.</p>
-                      <button
-                        type="button"
-                        onClick={() => activatePanel('plan')}
-                        className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-                      >
-                        <PenSquare className="h-4 w-4" />
-                        Create plan now
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Guided next steps</h3>
-                    <div className="space-y-2">
-                      {(analysisResult?.recommendations ?? buildNextSteps(
-                        employee.assessment?.performance ?? undefined,
-                        employee.assessment?.potential ?? undefined,
-                        currentPlan?.plan_type ?? undefined,
-                      )).slice(0, 3).map((step) => (
-                        <div key={`detail-next-${step.id}`} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                          <p className="text-xs font-semibold text-gray-800">{step.title}</p>
-                          <p className="text-[11px] text-gray-600">{step.description}</p>
-                        </div>
-                      ))}
-                    </div>
+                    )}
+                    {employee.created_at && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-pink-500" />
+                        <span>Added {new Date(employee.created_at).toLocaleDateString()}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

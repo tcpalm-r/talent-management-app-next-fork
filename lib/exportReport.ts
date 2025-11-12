@@ -268,7 +268,14 @@ export async function exportReportAsPDF(report: Report360Data) {
   }
 
   // Sentiment by Relationship
-  if (report.sentiment_by_relationship) {
+  // Only show this section if there's per-relationship data (not just overall score)
+  const hasRelationshipData = report.sentiment_by_relationship &&
+    (report.sentiment_by_relationship.manager !== undefined ||
+     report.sentiment_by_relationship.peer !== undefined ||
+     report.sentiment_by_relationship.direct_report !== undefined ||
+     report.sentiment_by_relationship.cross_functional !== undefined);
+
+  if (hasRelationshipData) {
     checkPageBreak(40);
 
     pdf.setFontSize(14);
