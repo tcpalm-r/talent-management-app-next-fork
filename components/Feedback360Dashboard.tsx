@@ -2068,14 +2068,21 @@ export default function Feedback360Dashboard({
                         const isSubject = currentUser?.id === selectedSurvey?.employee_id;
                         const isSponsor = selectedSurvey?.created_by === currentUser?.id || selectedSurvey?.created_by === currentUser?.email;
                         const isAdmin = currentUser?.app_role === 'admin';
+                        const isPureSubject = isSubject && !isAdmin && !isSponsor;
 
-                        // Filter sentiment data for subjects (they should only see overall, not per-relationship)
+                        // Filter data for subjects (they should not see relationship-specific details)
                         let sentimentData = surveyResults.sentiment_by_relationship;
-                        if (isSubject && !isAdmin && !isSponsor) {
-                          // Subject viewing their own report - filter to only show overall
+                        let consensusData = surveyResults.consensus_areas;
+                        let outlierData = surveyResults.outlier_opinions;
+
+                        if (isPureSubject) {
+                          // Subject viewing their own report - filter sensitive data
                           sentimentData = {
                             overall: surveyResults.sentiment_by_relationship?.overall || 0
                           };
+                          // Remove consensus and outlier sections as they may reveal relationship patterns
+                          consensusData = [];
+                          outlierData = [];
                         }
 
                         const reportData = {
@@ -2089,8 +2096,8 @@ export default function Feedback360Dashboard({
                           recommendations: surveyResults.recommendations,
                           key_insights: surveyResults.key_insights,
                           sentiment_by_relationship: sentimentData,
-                          consensus_areas: surveyResults.consensus_areas,
-                          outlier_opinions: surveyResults.outlier_opinions
+                          consensus_areas: consensusData,
+                          outlier_opinions: outlierData
                         };
 
                         const filename = await exportReportAsPDF(reportData);
