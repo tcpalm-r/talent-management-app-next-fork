@@ -1,124 +1,188 @@
-name: CI
+name: CI - Tests & Security Checks
 
 on:
   push:
-    branches: ['**']  # Run on all branches
+    branches: [ main, develop ]
   pull_request:
-    branches: [main]
+    branches: [ main, develop ]
 
 jobs:
-  quality:
-    name: Code Quality
+  test:
     runs-on: ubuntu-latest
+    
     strategy:
       matrix:
         node-version: [20.x]
+    
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-
+      
       - name: Install dependencies
         run: npm ci
-
+      
       - name: Run linter
         run: npm run lint
-
-      - name: Type check
-        run: npx tsc --noEmit
-        continue-on-error: true
-
-      - name: Check for unused code
-        run: npx knip
-        continue-on-error: true
-
-      - name: Check for unused exports
-        run: npm run ts-prune
-        continue-on-error: true
-
-  test:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20.x]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
+      
       - name: Run unit tests
-        run: npm test -- --passWithNoTests 2>&1 || true
+        run: npm test -- --ci --coverage --maxWorkers=2
+        env:
+          # Use development mode for tests
+          DISABLE_AUTH: true
+          NEXT_PUBLIC_DISABLE_AUTH: true
+      
+      - name: Run integration tests
+        run: npm test -- __tests__/integration --ci --maxWorkers=2
+        env:
+          DISABLE_AUTH: true
+          NEXT_PUBLIC_DISABLE_AUTH: true
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+      
+      - name: Check for security vulnerabilities
+        run: |
+          echo "🔍 Checking for authentication issues..."
+          
+          # Check for client-provided user IDs in API routes
+          if grep -r "createdBy.*await request.json()" app/api/; then
+            echo "❌ ERROR: Found API routes accepting createdBy from client!"
+            echo "This can cause security issues. Use getAuthenticatedUser() instead."
+            exit 1
+          fi
+          
+          # Check for missing authentication in survey routes
+          if ! grep -r "getAuthenticatedUser" app/api/surveys/create/route.ts; then
+            echo "❌ ERROR: /api/surveys/create missing authentication check!"
+            exit 1
+          fi
+          
+          if ! grep -r "getAuthenticatedUser" app/api/surveys/save-draft/route.ts; then
+            echo "❌ ERROR: /api/surveys/save-draft missing authentication check!"
+            exit 1
+          fi
+          
+          echo "✅ Security checks passed"
+      
+      - name: Verify survey creation uses authenticated user
+        run: |
+          echo "🔍 Verifying survey creation security..."
+          
+          # Check that survey creation uses authData.profile.id
+          if ! grep -q "authData.profile.id" app/api/surveys/create/route.ts; then
+            echo "❌ ERROR: /api/surveys/create not using authData.profile.id!"
+            exit 1
+          fi
+          
+          if ! grep -q "authData.profile.id" app/api/surveys/save-draft/route.ts; then
+            echo "❌ ERROR: /api/surveys/save-draft not using authData.profile.id!"
+            exit 1
+          fi
+          
+          # Check that client components don't send createdBy
+          if grep -q "createdBy:" components/Survey360Wizard.tsx; then
+            if grep -q "createdBy: currentUser" components/Survey360Wizard.tsx; then
+              echo "❌ ERROR: Survey360Wizard still sending createdBy from client!"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ Survey creation security verified"
+      
+      - name: Test build
+        run: npm run build
+        env:
+          # Required for build
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder_key
+          SUPABASE_SERVICE_ROLE_KEY: placeholder_key
+          DISABLE_AUTH: true
+          NEXT_PUBLIC_DISABLE_AUTH: true
 
-  security:
-    name: Security
+  e2e-tests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20.x]
+    
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 20.x
           cache: 'npm'
-
+      
       - name: Install dependencies
         run: npm ci
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      
+      - name: Run E2E tests
+        run: npm run e2e
+        env:
+          DISABLE_AUTH: true
+          NEXT_PUBLIC_DISABLE_AUTH: true
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder_key
+      
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
 
+  security-audit:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+      
       - name: Run npm audit
         run: npm audit --audit-level=moderate
         continue-on-error: true
-
-      - name: Check for hardcoded secrets
+      
+      - name: Check for known vulnerabilities
         run: |
-          if grep -r "ANTHROPIC_API_KEY\|AUTH0_SECRET\|SUPABASE_KEY" lib/ components/ app/ --include="*.ts" --include="*.tsx" | grep -v node_modules | grep -v ".next" | grep -v "process.env"; then
-            echo "⚠️  Potential hardcoded secrets found"
-          else
-            echo "✅ No hardcoded secrets detected"
+          echo "🔍 Running security audit..."
+          
+          # Check for dangerous patterns
+          echo "Checking for dangerous patterns..."
+          
+          # Check for eval() usage
+          if grep -r "eval(" app/ lib/ components/ --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx"; then
+            echo "⚠️  WARNING: Found eval() usage - review for security"
           fi
-        continue-on-error: true
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: quality
-    strategy:
-      matrix:
-        node-version: [20.x]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build project
-        run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          AI_INTRANET_URL_LOCAL: ${{ secrets.AI_INTRANET_URL_LOCAL }}
-          AI_INTRANET_URL_PROD: ${{ secrets.AI_INTRANET_URL_PROD }}
-          DISABLE_AUTH: 'true'
+          
+          # Check for dangerouslySetInnerHTML
+          if grep -r "dangerouslySetInnerHTML" components/ --include="*.tsx" --include="*.jsx"; then
+            echo "⚠️  WARNING: Found dangerouslySetInnerHTML usage - review for XSS"
+          fi
+          
+          # Check for process.env in client components
+          if grep -r "process.env" components/ --include="*.tsx" | grep -v "NEXT_PUBLIC_"; then
+            echo "⚠️  WARNING: Found process.env usage in client components without NEXT_PUBLIC_ prefix"
+          fi
+          
+          echo "✅ Security audit complete"

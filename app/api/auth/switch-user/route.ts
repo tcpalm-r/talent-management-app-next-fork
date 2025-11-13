@@ -9,9 +9,25 @@ export const dynamic = 'force-dynamic';
  *
  * Dev-only endpoint to switch to a different user for testing.
  * Stores the switched user ID in a cookie that the app can read.
+ * 
+ * SECURITY: Only works when DISABLE_AUTH or NEXT_PUBLIC_DISABLE_AUTH is set to 'true'.
+ * This ensures it's never available in production Vercel deployments.
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check if auth is disabled (dev mode only)
+    const authDisabled =
+      process.env.NEXT_PUBLIC_DISABLE_AUTH?.trim() === 'true' ||
+      process.env.DISABLE_AUTH?.trim() === 'true';
+
+    if (!authDisabled) {
+      console.log('[switch-user] Blocked - not in dev mode');
+      return NextResponse.json(
+        { error: 'User switching is only available in development mode' },
+        { status: 403 }
+      );
+    }
+
     console.log('[switch-user] Request received');
     const authData = await getAuthenticatedUser(request);
 

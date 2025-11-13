@@ -8,10 +8,26 @@ export const dynamic = 'force-dynamic';
  * GET /api/users/list
  *
  * Returns list of all active users for the dev user switcher.
- * Only available to authenticated users.
+ * Only available to authenticated users in development mode.
+ * 
+ * SECURITY: Only works when DISABLE_AUTH or NEXT_PUBLIC_DISABLE_AUTH is set to 'true'.
+ * This ensures it's never available in production Vercel deployments.
  */
 export async function GET(request: NextRequest) {
   try {
+    // Check if auth is disabled (dev mode only)
+    const authDisabled =
+      process.env.NEXT_PUBLIC_DISABLE_AUTH?.trim() === 'true' ||
+      process.env.DISABLE_AUTH?.trim() === 'true';
+
+    if (!authDisabled) {
+      console.log('[users/list] Blocked - not in dev mode');
+      return NextResponse.json(
+        { error: 'User list is only available in development mode' },
+        { status: 403 }
+      );
+    }
+
     // Use custom auth instead of Auth0
     const authData = await getAuthenticatedUser(request);
 

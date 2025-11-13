@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
 import { UserContext } from '@/context/UserContext';
+import UserSwitcher from './UserSwitcher';
 
 interface TopHeaderProps {
   userProfile: any;
@@ -42,6 +43,14 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
       <div className="h-12 px-6 flex items-center justify-end relative">
         {/* Right Section */}
         <div className="flex items-center gap-2 flex-shrink-0 absolute right-6">
+          {/* User Switcher (dev mode only) */}
+          <UserSwitcher
+            currentUserId={userProfile?.id || ''}
+            onUserSwitch={() => {
+              // User switch will reload the page, so no action needed here
+            }}
+          />
+          
           {/* Avatar */}
           <div className="relative" ref={avatarRef}>
             <button

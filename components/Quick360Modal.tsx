@@ -168,7 +168,7 @@ export default function Quick360Modal({
           employeeId: employee.id,
           surveyName: `360° Feedback - ${employee.name}`,
           dueDate: dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 30 days
-          createdBy: 'current-user',
+          // createdBy is now handled by the API from the authenticated session
           requiredQuestions,
           customQuestions: [],
           raters: reviewers,
