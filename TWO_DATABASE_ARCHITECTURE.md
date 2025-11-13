@@ -153,8 +153,16 @@ Check these variables are set to **ynycbfyzbavbgxvniylt** values:
 
 1. Update environment variables in Vercel
 2. Redeploy: Deployments → (latest) → ⋯ → Redeploy
+   - **OR** push to `main` branch to trigger new deployment:
+   ```bash
+   git checkout main
+   git commit --allow-empty -m "Trigger redeploy"
+   git push origin main
+   ```
 3. Wait for deployment to complete
 4. Test: Visit `/api/debug/database-info`
+
+**Note:** Production deployments only trigger from the `main` branch.
 
 ---
 

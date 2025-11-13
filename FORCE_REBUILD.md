@@ -17,13 +17,19 @@ When you change `NEXT_PUBLIC_*` environment variables in Vercel, the JavaScript 
 7. **IMPORTANT:** Uncheck "Use existing Build Cache"
 8. Click **Redeploy**
 
-### Method 2: Push New Commit
+### Method 2: Push New Commit to Main Branch
 
 ```bash
+# Make sure you're on main branch
+git checkout main
+git pull origin main
+
 # Make a trivial change to force rebuild
 git commit --allow-empty -m "Force rebuild with updated env vars"
 git push origin main
 ```
+
+**Important:** Production deployments only trigger from the `main` branch. Feature branches create preview deployments.
 
 ### Method 3: Manual Build via Vercel CLI
 

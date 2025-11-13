@@ -48,9 +48,12 @@ Each refresh hits a different node = different result.
 
 **Via Git Push:** (Already done)
 ```bash
+git checkout main
 git commit --allow-empty -m "Force CDN cache purge"
-git push
+git push origin main
 ```
+
+**Note:** Production deployments are triggered by pushes to the `main` branch only.
 
 This triggers:
 - New deployment

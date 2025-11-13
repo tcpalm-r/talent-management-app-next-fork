@@ -82,7 +82,15 @@ After updating environment variables:
 
 **OR**
 
-Push a new commit to your repository to trigger an automatic deployment.
+Push a new commit to the `main` branch to trigger an automatic production deployment:
+
+```bash
+git checkout main
+git commit --allow-empty -m "Redeploy with updated env vars"
+git push origin main
+```
+
+**Note:** Only pushes to `main` trigger production deployments. Feature branches create preview deployments.
 
 ---
 
