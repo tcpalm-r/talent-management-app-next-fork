@@ -309,19 +309,38 @@ export function getClientUser(): SessionUser | null {
   }
 
   // Priority 2: Check for real authenticated user session (ALWAYS CHECK THIS FIRST)
-  const userCookie = cookies
+  // Check for ai-intranet-user cookie (preferred)
+  let userCookie = cookies
     .find(c => c.trim().startsWith(`${USER_COOKIE}=`))
     ?.split('=')[1];
 
   if (userCookie) {
     try {
       const user = JSON.parse(decodeURIComponent(userCookie));
-      console.log('[getClientUser] Found real session for:', user.email);
+      console.log('[getClientUser] Found ai-intranet-user session for:', user.email);
       return user;
     } catch (error) {
-      console.error('[getClientUser] Failed to parse user cookie:', error);
+      console.error('[getClientUser] Failed to parse ai-intranet-user cookie:', error);
     }
   }
+
+  // Fallback: Check for user-session cookie (backward compatibility)
+  userCookie = cookies
+    .find(c => c.trim().startsWith('user-session='))
+    ?.split('=')[1];
+
+  if (userCookie) {
+    try {
+      const user = JSON.parse(decodeURIComponent(userCookie));
+      console.log('[getClientUser] Found user-session cookie (legacy) for:', user.email);
+      console.warn('[getClientUser] Consider migrating to ai-intranet-user cookie name');
+      return user;
+    } catch (error) {
+      console.error('[getClientUser] Failed to parse user-session cookie:', error);
+    }
+  }
+
+  console.log('[getClientUser] No authenticated session cookie found');
 
   // Priority 3: Check for dev bypass mode (ONLY if no real session exists and not in production)
   if (!isProduction) {
