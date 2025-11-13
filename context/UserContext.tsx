@@ -8,7 +8,7 @@
 'use client';
 
 import React, { createContext, useState, useEffect, useCallback } from 'react';
-import { getClientUser, logout as logoutUser } from '@/lib/auth';
+import { getClientUser, logout as logoutUser, clearStaleDevCookies } from '@/lib/auth';
 import type { SessionUser } from '@/lib/schema';
 
 // ============================================================================
@@ -80,6 +80,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   // Initial load
   useEffect(() => {
+    // Clear stale dev cookies in production to prevent interference
+    if (process.env.NODE_ENV === 'production') {
+      clearStaleDevCookies();
+    }
+
     fetchUser();
   }, [fetchUser]);
 
