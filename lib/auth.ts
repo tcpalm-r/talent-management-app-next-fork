@@ -273,49 +273,112 @@ export async function exchangeAIIntranetToken(
 
 /**
  * Get user from cookie (client-side)
+ *
+ * IMPORTANT: Cookie priority order matters!
+ * 1. x-switched-user (dev testing only)
+ * 2. ai-intranet-user (real authenticated session) <- CHECK THIS FIRST
+ * 3. x-auth-disabled (dev bypass mode) <- CHECK THIS LAST
+ *
+ * This ensures production always uses real sessions even if stale dev cookies exist.
  */
 export function getClientUser(): SessionUser | null {
   if (typeof window === 'undefined') return null;
 
   const cookies = document.cookie.split(';');
+  // Force production mode if on production domain (not localhost)
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    (typeof window !== 'undefined' && !window.location.hostname.includes('localhost'));
 
-  // Check for switched user first (testing purposes)
-  const switchedUserCookie = cookies
-    .find(c => c.trim().startsWith('x-switched-user='))
-    ?.split('=')[1];
+  // Priority 1: Check for switched user (dev testing only - never in production)
+  if (!isProduction) {
+    const switchedUserCookie = cookies
+      .find(c => c.trim().startsWith('x-switched-user='))
+      ?.split('=')[1];
 
-  if (switchedUserCookie) {
-    try {
-      console.log('[getClientUser] Found x-switched-user cookie');
-      const switchedUser = JSON.parse(decodeURIComponent(switchedUserCookie));
-      console.log('[getClientUser] Parsed switched user:', switchedUser.email);
-      return switchedUser;
-    } catch (error) {
-      console.error('[getClientUser] Failed to parse x-switched-user cookie:', error);
+    if (switchedUserCookie) {
+      try {
+        console.log('[getClientUser] Found x-switched-user cookie');
+        const switchedUser = JSON.parse(decodeURIComponent(switchedUserCookie));
+        console.log('[getClientUser] Parsed switched user:', switchedUser.email);
+        return switchedUser;
+      } catch (error) {
+        console.error('[getClientUser] Failed to parse x-switched-user cookie:', error);
+      }
     }
   }
 
-  // Dev bypass mode - check for auth-disabled cookie set by middleware
-  const authDisabledCookie = cookies
-    .find(c => c.trim().startsWith('x-auth-disabled='))
-    ?.split('=')[1];
-
-  if (authDisabledCookie === 'true') {
-    return MOCK_USER;
-  }
-
-  // Also check for the user cookie
-  const userCookie = cookies
+  // Priority 2: Check for real authenticated user session (ALWAYS CHECK THIS FIRST)
+  // Check for ai-intranet-user cookie (preferred)
+  let userCookie = cookies
     .find(c => c.trim().startsWith(`${USER_COOKIE}=`))
     ?.split('=')[1];
 
-  if (!userCookie) return null;
-
-  try {
-    return JSON.parse(decodeURIComponent(userCookie));
-  } catch {
-    return null;
+  if (userCookie) {
+    try {
+      const user = JSON.parse(decodeURIComponent(userCookie));
+      console.log('[getClientUser] Found ai-intranet-user session for:', user.email);
+      return user;
+    } catch (error) {
+      console.error('[getClientUser] Failed to parse ai-intranet-user cookie:', error);
+    }
   }
+
+  // Fallback: Check for user-session cookie (backward compatibility)
+  userCookie = cookies
+    .find(c => c.trim().startsWith('user-session='))
+    ?.split('=')[1];
+
+  if (userCookie) {
+    try {
+      const user = JSON.parse(decodeURIComponent(userCookie));
+      console.log('[getClientUser] Found user-session cookie (legacy) for:', user.email);
+      console.warn('[getClientUser] Consider migrating to ai-intranet-user cookie name');
+      return user;
+    } catch (error) {
+      console.error('[getClientUser] Failed to parse user-session cookie:', error);
+    }
+  }
+
+  console.log('[getClientUser] No authenticated session cookie found');
+
+  // Priority 3: Check for dev bypass mode (ONLY if no real session exists and not in production)
+  if (!isProduction) {
+    const authDisabledCookie = cookies
+      .find(c => c.trim().startsWith('x-auth-disabled='))
+      ?.split('=')[1];
+
+    if (authDisabledCookie === 'true') {
+      console.log('[getClientUser] Using dev bypass mode (MOCK_USER)');
+      return MOCK_USER;
+    }
+  }
+
+  // No valid session found
+  return null;
+}
+
+/**
+ * Clear stale development cookies (client-side)
+ *
+ * Removes old dev-mode cookies that may interfere with production authentication.
+ * Safe to call in production - only removes dev-specific cookies.
+ */
+export function clearStaleDevCookies(): void {
+  if (typeof window === 'undefined') return;
+
+  const devCookiesToClear = [
+    'x-auth-disabled',    // Old dev bypass flag
+    'user-session',       // Old dev session cookie
+    'x-switched-user',    // Dev user switcher cookie
+  ];
+
+  // Clear each stale cookie by setting expiry to the past
+  devCookiesToClear.forEach(cookieName => {
+    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  });
+
+  console.log('[Auth] Cleared stale dev cookies:', devCookiesToClear.join(', '));
 }
 
 /**
