@@ -81,7 +81,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // Initial load
   useEffect(() => {
     // Clear stale dev cookies in production to prevent interference
-    if (process.env.NODE_ENV === 'production') {
+    // Force production mode check based on hostname (not localhost = production)
+    const isProduction =
+      process.env.NODE_ENV === 'production' ||
+      (typeof window !== 'undefined' && !window.location.hostname.includes('localhost'));
+
+    if (isProduction) {
       clearStaleDevCookies();
     }
 

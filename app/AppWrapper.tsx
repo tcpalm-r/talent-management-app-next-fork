@@ -51,7 +51,19 @@ export default function AppWrapper() {
       console.log('[AppWrapper] loadUserDataAndOrganization called');
 
       // Use actual user or mock user for development
-      const currentUser = user || MOCK_USER;
+      // Never use MOCK_USER on production domains
+      const isProduction =
+        process.env.NODE_ENV === 'production' ||
+        (typeof window !== 'undefined' && !window.location.hostname.includes('localhost'));
+      const currentUser = user || (isProduction ? null : MOCK_USER);
+
+      // If no user in production, don't try to load data
+      if (!currentUser) {
+        console.log('[AppWrapper] No user available, skipping data load');
+        setLoading(false);
+        return;
+      }
+
       console.log('[AppWrapper] Current user:', { id: currentUser.id, email: currentUser.email });
 
       // Map SessionUser to AppUser format
@@ -166,8 +178,11 @@ export default function AppWrapper() {
   }
 
   // Use mock user if no user is authenticated (for development/demo)
-  // SECURITY: Only use MOCK_USER in development mode
-  const activeUser = process.env.NODE_ENV === 'production' ? user : (user || MOCK_USER);
+  // SECURITY: Only use MOCK_USER in development mode (never on production domains)
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    (typeof window !== 'undefined' && !window.location.hostname.includes('localhost'));
+  const activeUser = isProduction ? user : (user || MOCK_USER);
 
   // Show error if actually no user and not loading
   if (!activeUser && !authLoading) {

@@ -285,7 +285,10 @@ export function getClientUser(): SessionUser | null {
   if (typeof window === 'undefined') return null;
 
   const cookies = document.cookie.split(';');
-  const isProduction = process.env.NODE_ENV === 'production';
+  // Force production mode if on production domain (not localhost)
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    (typeof window !== 'undefined' && !window.location.hostname.includes('localhost'));
 
   // Priority 1: Check for switched user (dev testing only - never in production)
   if (!isProduction) {
