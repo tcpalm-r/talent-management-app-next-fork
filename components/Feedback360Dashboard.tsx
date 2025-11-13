@@ -1328,6 +1328,18 @@ export default function Feedback360Dashboard({
           {filteredSurveys.map((survey) => {
             // Determine user's relationship to this survey
             const isSponsor = survey.created_by === currentUser?.id || survey.created_by === currentUser?.email;
+
+            // DEBUG: Log sponsor check
+            if (survey.survey_name?.includes('Elliott') || survey.survey_name?.includes('Leader')) {
+              console.log('[Feedback360Dashboard] Sponsor check for:', survey.survey_name);
+              console.log('  survey.created_by:', survey.created_by);
+              console.log('  currentUser?.id:', currentUser?.id);
+              console.log('  currentUser?.email:', currentUser?.email);
+              console.log('  IDs match?', survey.created_by === currentUser?.id);
+              console.log('  Emails match?', survey.created_by === currentUser?.email);
+              console.log('  => isSponsor:', isSponsor);
+            }
+
             const isReviewee = survey.employee_id === currentUser?.id;
             const isReviewer = survey.reviewers?.some((r: any) =>
               r.reviewer_email === currentUser?.email
