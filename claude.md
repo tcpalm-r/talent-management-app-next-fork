@@ -905,5 +905,6 @@ Version: 0.3.0 (Documentation Audit - Fixed CRITICAL/HIGH/MEDIUM/LOW inconsisten
 ## Important Naming Note
 
   **Local Directory & GitHub Repository:** `talent-management-next` (https://github.com/tcpalm-r/talent-management-app-next-fork)
-  **Vercel Deployment Project:** `employee-self-assessment` (https://vercel.com/elliottamadors-projects/employee-self-assessment)
-  When working on this project, remember that pushes to the GitHub repo automatically deploy to the employee-self-assessment Vercel project, NOT to a project named talent-management-next.
+  **Vercel Deployment Project:** `sonance-360-review` (https://vercel.com/elliottamadors-projects/sonance-360-review)
+  **Production URL:** `https://sonance-360-review.vercel.app`
+  When working on this project, remember that pushes to the GitHub repo automatically deploy to the sonance-360-review Vercel project, NOT to a project named talent-management-next or employee-self-assessment.

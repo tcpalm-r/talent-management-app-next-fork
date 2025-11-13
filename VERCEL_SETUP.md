@@ -17,7 +17,7 @@ The environment variables `DISABLE_AUTH=true` and/or `NEXT_PUBLIC_DISABLE_AUTH=t
 ### 1. Access Vercel Dashboard
 
 1. Go to [vercel.com](https://vercel.com) and log in
-2. Navigate to your project: **employee-self-assessment** (or the project name)
+2. Navigate to your project: **sonance-360-review**
 3. Click on **Settings** tab
 4. Click on **Environment Variables** in the left sidebar
 
