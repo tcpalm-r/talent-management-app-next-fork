@@ -166,7 +166,8 @@ export default function AppWrapper() {
   }
 
   // Use mock user if no user is authenticated (for development/demo)
-  const activeUser = user || MOCK_USER;
+  // SECURITY: Only use MOCK_USER in development mode
+  const activeUser = process.env.NODE_ENV === 'production' ? user : (user || MOCK_USER);
 
   // Show error if actually no user and not loading
   if (!activeUser && !authLoading) {

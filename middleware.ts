@@ -214,42 +214,45 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check for dev user switch (testing purposes - overrides session)
-    const switchedUserCookie = request.cookies.get('x-switched-user');
-    console.log('[Sonance Auth] Checking for x-switched-user cookie:', switchedUserCookie ? 'FOUND' : 'NOT FOUND');
-    if (switchedUserCookie) {
-      try {
-        const switchedUser = JSON.parse(switchedUserCookie.value);
-        console.log('[Sonance Auth] ✓ Using switched user from cookie:', switchedUser.email);
+    // SECURITY: Only allow in development mode to prevent production bypass
+    if (process.env.NODE_ENV !== 'production') {
+      const switchedUserCookie = request.cookies.get('x-switched-user');
+      console.log('[Sonance Auth] Checking for x-switched-user cookie:', switchedUserCookie ? 'FOUND' : 'NOT FOUND');
+      if (switchedUserCookie) {
+        try {
+          const switchedUser = JSON.parse(switchedUserCookie.value);
+          console.log('[Sonance Auth] ✓ Using switched user from cookie:', switchedUser.email);
 
-        // Add switched user data to request headers
-        const requestHeaders = new Headers(request.headers);
-        requestHeaders.set('x-user-data', JSON.stringify(switchedUser));
-        requestHeaders.set('x-user-id', switchedUser.id);
-        requestHeaders.set('x-user-role', switchedUser.app_role || 'user');
-        requestHeaders.set('x-user-email', switchedUser.email);
+          // Add switched user data to request headers
+          const requestHeaders = new Headers(request.headers);
+          requestHeaders.set('x-user-data', JSON.stringify(switchedUser));
+          requestHeaders.set('x-user-id', switchedUser.id);
+          requestHeaders.set('x-user-role', switchedUser.app_role || 'user');
+          requestHeaders.set('x-user-email', switchedUser.email);
 
-        const response = NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
+          const response = NextResponse.next({
+            request: {
+              headers: requestHeaders,
+            },
+          });
 
-        // Keep the cookie fresh
-        response.cookies.set('x-switched-user', switchedUserCookie.value, {
-          httpOnly: false,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 7 * 24 * 60 * 60, // 7 days
-          path: '/',
-        });
+          // Keep the cookie fresh
+          response.cookies.set('x-switched-user', switchedUserCookie.value, {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 7 * 24 * 60 * 60, // 7 days
+            path: '/',
+          });
 
-        console.log('[Sonance Auth] ✓ Switched user middleware response created and returning');
-        return response;
-      } catch (error) {
-        console.error('[Sonance Auth] Failed to parse switched user cookie:', error);
+          console.log('[Sonance Auth] ✓ Switched user middleware response created and returning');
+          return response;
+        } catch (error) {
+          console.error('[Sonance Auth] Failed to parse switched user cookie:', error);
+        }
+      } else {
+        console.log('[Sonance Auth] No x-switched-user cookie found, continuing with session checks');
       }
-    } else {
-      console.log('[Sonance Auth] No x-switched-user cookie found, continuing with session checks');
     }
 
     // Check for existing session cookie
