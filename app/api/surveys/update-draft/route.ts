@@ -1,17 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
 
     const body = await request.json();
     const {
@@ -32,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Delete existing questions
-    const { error: deleteQuestionsError } = await supabase
+    const { error: deleteQuestionsError } = await supabaseAdmin
       .from('feedback_360_survey_questions')
       .delete()
       .eq('survey_id', surveyId);
@@ -46,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update survey with new data
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('feedback_360_surveys')
       .update({
         survey_name: surveyName,
@@ -68,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     for (const questionText of allQuestions) {
       // Check if question exists
-      let { data: existingQuestion, error: checkError } = await supabase
+      let { data: existingQuestion, error: checkError } = await supabaseAdmin
         .from('feedback_360_questions')
         .select('id')
         .eq('question_text', questionText)
@@ -84,7 +75,7 @@ export async function POST(request: NextRequest) {
 
       if (!existingQuestion) {
         // Create the question
-        const { data: newQuestion, error: createError } = await supabase
+        const { data: newQuestion, error: createError } = await supabaseAdmin
           .from('feedback_360_questions')
           .insert({
             question_text: questionText,
@@ -116,7 +107,7 @@ export async function POST(request: NextRequest) {
         question_order: index,
       }));
 
-      const { error: questionsError } = await supabase
+      const { error: questionsError } = await supabaseAdmin
         .from('feedback_360_survey_questions')
         .insert(questionsToInsert);
 
@@ -130,7 +121,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Delete existing reviewers before inserting new ones
-    const { error: deleteReviewersError } = await supabase
+    const { error: deleteReviewersError } = await supabaseAdmin
       .from('feedback_360_survey_reviewers')
       .delete()
       .eq('survey_id', surveyId);
@@ -155,7 +146,7 @@ export async function POST(request: NextRequest) {
         access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       }));
 
-      const { data: insertedReviewers, error: reviewersError } = await supabase
+      const { data: insertedReviewers, error: reviewersError } = await supabaseAdmin
         .from('feedback_360_survey_reviewers')
         .insert(reviewersToInsert)
         .select();

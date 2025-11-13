@@ -1,17 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
 
     const { searchParams } = new URL(request.url);
     const surveyId = searchParams.get('surveyId');
@@ -24,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Load survey questions
-    const { data: surveyQuestions, error: questionsError } = await supabase
+    const { data: surveyQuestions, error: questionsError } = await supabaseAdmin
       .from('feedback_360_survey_questions')
       .select('*, feedback_360_questions(question_text, category)')
       .eq('survey_id', surveyId)
@@ -39,7 +30,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Load reviewers
-    const { data: reviewers, error: reviewersError } = await supabase
+    const { data: reviewers, error: reviewersError } = await supabaseAdmin
       .from('feedback_360_survey_reviewers')
       .select('*')
       .eq('survey_id', surveyId);

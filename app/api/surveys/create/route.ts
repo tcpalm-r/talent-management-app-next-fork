@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,13 +12,6 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
 
     const body = await request.json();
     const {
@@ -42,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create survey - use authenticated user's profile ID
-    const { data: survey, error: surveyError } = await supabase
+    const { data: survey, error: surveyError } = await supabaseAdmin
       .from('feedback_360_surveys')
       .insert({
         employee_id: employeeId,
@@ -68,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     for (const questionText of allQuestions) {
       // Check if question exists
-      let { data: existingQuestion, error: checkError } = await supabase
+      let { data: existingQuestion, error: checkError } = await supabaseAdmin
         .from('feedback_360_questions')
         .select('id')
         .eq('question_text', questionText)
@@ -84,7 +74,7 @@ export async function POST(request: NextRequest) {
 
       if (!existingQuestion) {
         // Create the question
-        const { data: newQuestion, error: createError } = await supabase
+        const { data: newQuestion, error: createError } = await supabaseAdmin
           .from('feedback_360_questions')
           .insert({
             question_text: questionText,
@@ -116,7 +106,7 @@ export async function POST(request: NextRequest) {
         question_order: index,
       }));
 
-      const { error: questionsError } = await supabase
+      const { error: questionsError } = await supabaseAdmin
         .from('feedback_360_survey_questions')
         .insert(questionsToInsert);
 
@@ -141,7 +131,7 @@ export async function POST(request: NextRequest) {
         access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       }));
 
-      const { data: insertedReviewers, error: reviewersError } = await supabase
+      const { data: insertedReviewers, error: reviewersError } = await supabaseAdmin
         .from('feedback_360_survey_reviewers')
         .insert(reviewersToInsert)
         .select();
