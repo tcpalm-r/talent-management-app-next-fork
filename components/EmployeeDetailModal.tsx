@@ -148,33 +148,23 @@ export default function EmployeeDetailModal({
   };
 
   // Check if current user can view survey results
+  // NOTE: Authorization is handled by the API endpoint (/api/360-generate-report)
+  // The API uses the authenticated user's profile.id and applies correct
+  // server-side permission checks. If the user doesn't have access, the API
+  // will return a 403 Forbidden response.
+  //
+  // Client-side checks were causing ID mismatch issues where:
+  // - survey.created_by was a UUID from authData.profile.id
+  // - currentUser.id might be different (from employees view)
+  // - Result: User couldn't view their own surveys
+  //
+  // Solution: Trust the API authorization and handle errors gracefully.
   const canViewSurveyResults = (survey: any): boolean => {
     if (!currentUser) return false;
-
-    // Admins can view everything
-    if (currentUser.app_role === 'admin' || currentUser.role === 'admin') {
-      return true;
-    }
-
-    // Survey sponsor (creator) can view their surveys
-    const isSponsor =
-      currentUser.id === survey.created_by ||
-      currentUser.email === survey.created_by;
-
-    if (isSponsor) {
-      return true;
-    }
-
-    // Subject can ONLY view finalized surveys about themselves
-    const isSubject = currentUser.id === survey.employee_id;
-    const isFinalized = survey.status === 'finalized';
-
-    if (isSubject && isFinalized) {
-      return true;
-    }
-
-    // Everyone else cannot view
-    return false;
+    
+    // Allow the attempt - API will handle authorization
+    // If unauthorized, loadSurveyResults will handle the 403 error
+    return true;
   };
 
   const loadSurveyResults = async (survey: any) => {
