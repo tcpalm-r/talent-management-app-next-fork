@@ -83,8 +83,8 @@ describe('Survey Creation Integration Tests', () => {
         profile: mockProfile as any,
       });
 
-      // Mock Supabase insert
-      const mockInsert = jest.fn().mockReturnValue({
+      // Mock Supabase operations for ALL tables the API uses
+      const mockSurveyInsert = jest.fn().mockReturnValue({
         select: jest.fn().mockReturnValue({
           single: jest.fn().mockResolvedValue({
             data: {
@@ -92,7 +92,7 @@ describe('Survey Creation Integration Tests', () => {
               employee_id: 'employee-456',
               survey_name: 'Test Survey',
               status: 'draft',
-              created_by: mockProfile.id, // Should use authenticated user's ID
+              created_by: mockProfile.id,
             },
             error: null,
           }),
@@ -100,8 +100,48 @@ describe('Survey Creation Integration Tests', () => {
       });
 
       const { supabaseAdmin } = require('@/lib/supabase-admin');
-      supabaseAdmin.from.mockReturnValue({
-        insert: mockInsert,
+      
+      // Mock different operations based on table name
+      supabaseAdmin.from.mockImplementation((tableName: string) => {
+        if (tableName === 'feedback_360_surveys') {
+          return { insert: mockSurveyInsert };
+        }
+        if (tableName === 'feedback_360_questions') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockResolvedValue({
+                  data: { id: 'question-123' },
+                  error: null,
+                }),
+              }),
+            }),
+            insert: jest.fn().mockReturnValue({
+              select: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: { id: 'question-123' },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (tableName === 'feedback_360_survey_questions') {
+          return {
+            insert: jest.fn().mockResolvedValue({ error: null }),
+          };
+        }
+        if (tableName === 'feedback_360_survey_reviewers') {
+          return {
+            insert: jest.fn().mockReturnValue({
+              select: jest.fn().mockResolvedValue({
+                data: [{ id: 'reviewer-123' }],
+                error: null,
+              }),
+            }),
+          };
+        }
+        return {};
       });
 
       // Create request with WRONG user ID (simulating client tampering)
@@ -125,7 +165,7 @@ describe('Survey Creation Integration Tests', () => {
       expect(mockAuthenticatedUser).toHaveBeenCalledWith(request);
 
       // Verify insert was called with authenticated user's ID
-      expect(mockInsert).toHaveBeenCalledWith(
+      expect(mockSurveyInsert).toHaveBeenCalledWith(
         expect.objectContaining({
           created_by: mockProfile.id, // Should use authenticated user's ID
         })
@@ -165,7 +205,7 @@ describe('Survey Creation Integration Tests', () => {
         profile: mockProfile as any,
       });
 
-      const mockInsert = jest.fn().mockReturnValue({
+      const mockSurveyInsert = jest.fn().mockReturnValue({
         select: jest.fn().mockReturnValue({
           single: jest.fn().mockResolvedValue({
             data: {
@@ -178,8 +218,40 @@ describe('Survey Creation Integration Tests', () => {
       });
 
       const { supabaseAdmin } = require('@/lib/supabase-admin');
-      supabaseAdmin.from.mockReturnValue({
-        insert: mockInsert,
+      
+      // Mock different operations based on table name
+      supabaseAdmin.from.mockImplementation((tableName: string) => {
+        if (tableName === 'feedback_360_surveys') {
+          return { insert: mockSurveyInsert };
+        }
+        if (tableName === 'feedback_360_questions') {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockResolvedValue({
+                  data: { id: 'question-123' },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (tableName === 'feedback_360_survey_questions') {
+          return {
+            insert: jest.fn().mockResolvedValue({ error: null }),
+          };
+        }
+        if (tableName === 'feedback_360_survey_reviewers') {
+          return {
+            insert: jest.fn().mockReturnValue({
+              select: jest.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          };
+        }
+        return {};
       });
 
       // Try to send a fake createdBy (client tampering attempt)
@@ -199,7 +271,7 @@ describe('Survey Creation Integration Tests', () => {
       await createSurvey(request);
 
       // Verify the HACKER-ID was ignored and authenticated ID was used
-      expect(mockInsert).toHaveBeenCalledWith(
+      expect(mockSurveyInsert).toHaveBeenCalledWith(
         expect.objectContaining({
           created_by: mockProfile.id, // Should use authenticated user's ID, not 'HACKER-ID'
         })
@@ -214,7 +286,7 @@ describe('Survey Creation Integration Tests', () => {
         profile: mockProfile as any,
       });
 
-      const mockInsert = jest.fn().mockReturnValue({
+      const mockSurveyInsert = jest.fn().mockReturnValue({
         select: jest.fn().mockReturnValue({
           single: jest.fn().mockResolvedValue({
             data: {
@@ -228,8 +300,21 @@ describe('Survey Creation Integration Tests', () => {
       });
 
       const { supabaseAdmin } = require('@/lib/supabase-admin');
-      supabaseAdmin.from.mockReturnValue({
-        insert: mockInsert,
+      
+      // Mock all tables the save-draft API might use
+      supabaseAdmin.from.mockImplementation((tableName: string) => {
+        if (tableName === 'feedback_360_surveys') {
+          return { insert: mockSurveyInsert };
+        }
+        // Mock other tables in case they're needed
+        return {
+          insert: jest.fn().mockResolvedValue({ error: null }),
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+        };
       });
 
       const request = createMockRequest('http://localhost:3000/api/surveys/save-draft', {
@@ -252,7 +337,7 @@ describe('Survey Creation Integration Tests', () => {
       expect(mockAuthenticatedUser).toHaveBeenCalledWith(request);
 
       // Verify created_by uses authenticated user's ID
-      expect(mockInsert).toHaveBeenCalledWith(
+      expect(mockSurveyInsert).toHaveBeenCalledWith(
         expect.objectContaining({
           created_by: mockProfile.id,
         })

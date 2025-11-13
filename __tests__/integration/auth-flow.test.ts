@@ -44,17 +44,42 @@ describe('Authentication Flow Tests', () => {
         updated_at: '2024-01-01',
       };
 
-      // Mock database lookup - need to setup the mock chain BEFORE calling syncUserProfile
+      // Mock database lookup AND update - syncUserProfile does both
       const { supabaseAdmin } = require('@/lib/supabase-admin');
-      const mockSingle = jest.fn().mockResolvedValue({
-        data: databaseProfile,
-        error: null,
-      });
-      const mockEq = jest.fn().mockReturnValue({ single: mockSingle });
-      const mockSelect = jest.fn().mockReturnValue({ eq: mockEq });
-      const mockFrom = jest.fn().mockReturnValue({ select: mockSelect });
       
-      supabaseAdmin.from = mockFrom;
+      // Track which operation we're on
+      let callCount = 0;
+      supabaseAdmin.from.mockImplementation((tableName: string) => {
+        callCount++;
+        
+        if (callCount === 1) {
+          // First call: SELECT to check if user exists
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: databaseProfile,
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        } else {
+          // Second call: UPDATE existing user
+          return {
+            update: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                select: jest.fn().mockReturnValue({
+                  single: jest.fn().mockResolvedValue({
+                    data: databaseProfile,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+      });
 
       const result = await syncUserProfile(sessionUser);
 
@@ -228,15 +253,40 @@ describe('Authentication Flow Tests', () => {
       };
       
       const { supabaseAdmin } = require('@/lib/supabase-admin');
-      const mockSingle = jest.fn().mockResolvedValue({
-        data: databaseProfile,
-        error: null,
-      });
-      const mockEq = jest.fn().mockReturnValue({ single: mockSingle });
-      const mockSelect = jest.fn().mockReturnValue({ eq: mockEq });
-      const mockFrom = jest.fn().mockReturnValue({ select: mockSelect });
       
-      supabaseAdmin.from = mockFrom;
+      // Track which operation we're on
+      let callCount = 0;
+      supabaseAdmin.from.mockImplementation((tableName: string) => {
+        callCount++;
+        
+        if (callCount === 1) {
+          // First call: SELECT to check if user exists
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: databaseProfile,
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        } else {
+          // Second call: UPDATE existing user
+          return {
+            update: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                select: jest.fn().mockReturnValue({
+                  single: jest.fn().mockResolvedValue({
+                    data: databaseProfile,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+      });
       
       const result = await syncUserProfile(sessionUser);
       
