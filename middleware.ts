@@ -42,8 +42,13 @@ export async function middleware(request: NextRequest) {
     console.log('[Sonance Auth] Processing request to:', request.nextUrl.pathname);
 
     // Skip middleware for specific paths
+    // IMPORTANT: Only skip public auth endpoints (login, logout, callback)
+    // DO NOT skip /api/auth/me, /api/auth/sync, /api/auth/switch-user - they need auth!
     const skipPaths = [
-      '/api/auth/',
+      '/api/auth/login',
+      '/api/auth/logout',
+      '/api/auth/callback',
+      '/api/auth/validate-token',
       '/_next/',
       '/favicon',
       '/unauthorized',
