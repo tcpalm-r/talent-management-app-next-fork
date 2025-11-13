@@ -96,9 +96,9 @@ export async function middleware(request: NextRequest) {
         },
       });
 
-      // Set mock session cookie
-      response.cookies.set('user-session', JSON.stringify(MOCK_USER), {
-        httpOnly: true,
+      // Set mock session cookie (matches lib/auth.ts USER_COOKIE constant)
+      response.cookies.set('ai-intranet-user', JSON.stringify(MOCK_USER), {
+        httpOnly: false, // Accessible to JavaScript for client-side auth checks
         secure: false, // Not secure in development
         sameSite: 'lax',
         maxAge: 86400 // 24 hours
@@ -197,9 +197,9 @@ export async function middleware(request: NextRequest) {
 
             const response = NextResponse.redirect(cleanUrl);
 
-            // Store user data in encrypted cookie (expires in 24 hours)
-            response.cookies.set('user-session', JSON.stringify(mappedUser), {
-              httpOnly: true,
+            // Store user data in cookie (expires in 24 hours) - matches lib/auth.ts USER_COOKIE
+            response.cookies.set('ai-intranet-user', JSON.stringify(mappedUser), {
+              httpOnly: false, // Accessible to JavaScript for client-side auth checks
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
               maxAge: 86400 // 24 hours
@@ -260,8 +260,8 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Check for existing session cookie
-    const sessionCookie = request.cookies.get('user-session');
+    // Check for existing session cookie (matches lib/auth.ts USER_COOKIE)
+    const sessionCookie = request.cookies.get('ai-intranet-user');
 
     if (sessionCookie) {
       console.log('[Sonance Auth] Session cookie found, checking validity');
@@ -407,9 +407,9 @@ export async function middleware(request: NextRequest) {
         },
       });
 
-      // Store user data in session cookie
-      response.cookies.set('user-session', JSON.stringify(mappedUser), {
-        httpOnly: true,
+      // Store user data in session cookie (matches lib/auth.ts USER_COOKIE)
+      response.cookies.set('ai-intranet-user', JSON.stringify(mappedUser), {
+        httpOnly: false, // Accessible to JavaScript for client-side auth checks
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 86400 // 24 hours
