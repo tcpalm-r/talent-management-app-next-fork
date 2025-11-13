@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 /**
  * GET /api/dashboard/surveys
@@ -32,11 +29,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Create admin client with service role key
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Build query
-    let query = supabase
+    // Build query using admin client
+    let query = supabaseAdmin
       .from('feedback_360_surveys' as any)
       .select('employee_id, id, status, survey_name, created_at, updated_at')
       .eq('organization_id', organizationId);

@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 /**
  * GET /api/dashboard/data
@@ -28,21 +25,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Create admin client with service role key
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Load employees, departments, and assessments in parallel
+    // Load employees, departments, and assessments in parallel using admin client
     const [employeesResult, departmentsResult, assessmentsResult] = await Promise.all([
-      supabase
+      supabaseAdmin
         .from('employees' as any)
         .select('*')
         .eq('organization_id', organizationId),
-      supabase
+      supabaseAdmin
         .from('departments' as any)
         .select('*')
         .eq('organization_id', organizationId)
         .order('name'),
-      supabase
+      supabaseAdmin
         .from('assessments')
         .select('*')
         .eq('organization_id', organizationId)

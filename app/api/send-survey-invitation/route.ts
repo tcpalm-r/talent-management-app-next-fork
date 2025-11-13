@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getValidatedAppUrl } from '@/lib/url-validator';
 
 export const dynamic = 'force-dynamic';
@@ -26,20 +26,7 @@ const getResend = () => {
   return new Resend(apiKey);
 };
 
-// Initialize Supabase client with service role for server-side operations
-// Service role bypasses RLS policies
-const getSupabaseClient = () => {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-
-  return createClient(url, serviceRoleKey || anonKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
-};
+// Use singleton supabaseAdmin client (service role, bypasses RLS)
 
 export async function POST(request: Request) {
   try {
@@ -105,17 +92,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get Supabase client with service role
-    const supabase = getSupabaseClient();
-
-    // Fetch survey and reviewer details
+    // Fetch survey and reviewer details using admin client
     const [surveyResult, reviewerResult] = await Promise.all([
-      supabase
+      supabaseAdmin
         .from('feedback_360_surveys')
         .select('*')
         .eq('id', surveyId)
         .single(),
-      supabase
+      supabaseAdmin
         .from('feedback_360_survey_reviewers')
         .select('*')
         .eq('id', reviewerId)
@@ -125,7 +109,7 @@ export async function POST(request: Request) {
     // Fetch employee details separately from employees view
     let employeeData = null;
     if (surveyResult.data?.employee_id) {
-      const { data: empData } = await supabase
+      const { data: empData } = await supabaseAdmin
         .from('employees' as any)
         .select('name, email')
         .eq('id', surveyResult.data.employee_id)
@@ -293,7 +277,7 @@ export async function POST(request: Request) {
 
       // Try to update reviewer with email error (don't fail if this fails)
       try {
-        await supabase
+        await supabaseAdmin
           .from('feedback_360_survey_reviewers')
           .update({
             email_error: JSON.stringify({
@@ -339,7 +323,7 @@ export async function POST(request: Request) {
 
       // Try to update reviewer with email error (don't fail if this fails)
       try {
-        await supabase
+        await supabaseAdmin
           .from('feedback_360_survey_reviewers')
           .update({
             email_error: JSON.stringify(emailResult.error),

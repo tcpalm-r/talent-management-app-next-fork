@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { analyzeSurvey360Responses } from '@/lib/survey360Analyzer';
 import { filterReportForSubject } from '@/lib/filterReport';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
@@ -16,19 +16,7 @@ export const dynamic = 'force-dynamic';
  * GET: Retrieve existing report for a survey
  */
 
-// Initialize Supabase client with service role for server-side operations
-const getSupabaseClient = () => {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-
-  return createClient<Database>(url, serviceRoleKey || anonKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
-};
+// Use singleton supabaseAdmin client (service role, bypasses RLS)
 
 /**
  * Determine the viewer's role for a given survey
@@ -93,13 +81,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = getSupabaseClient();
+    // Use singleton admin client
 
     // ========================================================================
     // STEP 1: Fetch survey data
     // ========================================================================
 
-    const { data: survey, error: surveyError } = await supabase
+    const { data: survey, error: surveyError } = await supabaseAdmin
       .from('feedback_360_surveys')
       .select('*')
       .eq('id', survey_id)
@@ -125,7 +113,7 @@ export async function POST(req: NextRequest) {
     // STEP 2: Fetch reviewers (participants)
     // ========================================================================
 
-    const { data: reviewers, error: reviewersError } = await supabase
+    const { data: reviewers, error: reviewersError } = await supabaseAdmin
       .from('feedback_360_survey_reviewers')
       .select('*')
       .eq('survey_id', survey_id);
@@ -147,7 +135,7 @@ export async function POST(req: NextRequest) {
     // STEP 3: Fetch responses
     // ========================================================================
 
-    const { data: responses, error: responsesError } = await supabase
+    const { data: responses, error: responsesError } = await supabaseAdmin
       .from('feedback_360_responses')
       .select('*')
       .eq('survey_id', survey_id);
@@ -169,7 +157,7 @@ export async function POST(req: NextRequest) {
     // STEP 4: Fetch questions linked to this survey
     // ========================================================================
 
-    const { data: surveyQuestions, error: questionsError } = await supabase
+    const { data: surveyQuestions, error: questionsError } = await supabaseAdmin
       .from('feedback_360_survey_questions')
       .select(`
         *,
@@ -193,7 +181,7 @@ export async function POST(req: NextRequest) {
     let employeeEmail = '';
 
     if (survey.employee_id) {
-      const { data: employeeData } = await supabase
+      const { data: employeeData } = await supabaseAdmin
         .from('user_profiles')
         .select('full_name, email')
         .eq('id', survey.employee_id)
@@ -322,7 +310,7 @@ export async function POST(req: NextRequest) {
 
     console.log('💾 Saving report to database...');
 
-    const { error: upsertError } = await supabase
+    const { error: upsertError } = await supabaseAdmin
       .from('feedback_360_reports')
       .upsert(
         {
@@ -356,7 +344,7 @@ export async function POST(req: NextRequest) {
     // STEP 9: Update survey status to 'completed'
     // ========================================================================
 
-    await supabase
+    await supabaseAdmin
       .from('feedback_360_surveys')
       .update({
         status: 'completed',
@@ -424,10 +412,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = getSupabaseClient();
+    // Use singleton admin client
 
     // Fetch report with survey details
-    const { data: report, error } = await supabase
+    const { data: report, error } = await supabaseAdmin
       .from('feedback_360_reports')
       .select(`
         *,

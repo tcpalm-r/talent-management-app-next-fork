@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { supabaseAdminAdmin } from '@/lib/supabaseAdmin-admin';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { token, responses } = await request.json();
 
     if (!token || !responses) {
@@ -17,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate token and get reviewer info
-    const { data: reviewerData, error: reviewerError } = await supabase
+    const { data: reviewerData, error: reviewerError } = await supabaseAdmin
       .from('feedback_360_survey_reviewers')
       .select('id, survey_id, reviewer_email, status')
       .eq('access_token', token)
@@ -46,7 +42,7 @@ export async function POST(request: NextRequest) {
       response_text: response.responseText,
     }));
 
-    const { error: insertError } = await supabase
+    const { error: insertError } = await supabaseAdmin
       .from('feedback_360_responses')
       .insert(responsesToInsert);
 
@@ -59,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark reviewer as completed
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('feedback_360_survey_reviewers')
       .update({
         status: 'completed',
@@ -76,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if all reviewers have completed and update survey status
-    const { data: allReviewers } = await supabase
+    const { data: allReviewers } = await supabaseAdmin
       .from('feedback_360_survey_reviewers')
       .select('status')
       .eq('survey_id', reviewerData.survey_id);
@@ -87,7 +83,7 @@ export async function POST(request: NextRequest) {
       // Update to 'in_progress' if at least one reviewer completed
       // Note: Status stays 'in_progress' until creator manually completes with AI analysis
       if (completedCount > 0) {
-        await supabase
+        await supabaseAdmin
           .from('feedback_360_surveys')
           .update({ status: 'in_progress' })
           .eq('id', reviewerData.survey_id);

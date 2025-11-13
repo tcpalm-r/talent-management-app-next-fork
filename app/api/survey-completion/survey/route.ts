@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 
@@ -20,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Validate token and get survey_id
-    const { data: reviewerData, error: reviewerError } = await supabase
+    const { data: reviewerData, error: reviewerError } = await supabaseAdmin
       .from('feedback_360_survey_reviewers')
       .select('survey_id')
       .eq('access_token', token)
@@ -34,7 +30,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Load survey details with employee name
-    const { data: surveyData, error: surveyError } = await supabase
+    const { data: surveyData, error: surveyError } = await supabaseAdmin
       .from('feedback_360_surveys')
       .select('id, survey_name, due_date, status, sent_at, employee:user_profiles!feedback_360_surveys_employee_id_fkey(full_name)')
       .eq('id', reviewerData.survey_id)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,30 +11,11 @@ const DEFAULT_QUESTIONS = [
 
 const SETTING_KEY = '360_default_questions';
 
-// Get Supabase client
-function getSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase configuration missing');
-  }
-
-  return createClient(supabaseUrl, supabaseKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
-}
-
 // GET: Retrieve the current default question IDs
 export async function GET() {
   try {
-    const supabase = getSupabaseClient();
-
-    // Query the organization_settings table
-    const { data, error } = await supabase
+    // Query the organization_settings table using admin client
+    const { data, error } = await supabaseAdmin
       .from('organization_settings')
       .select('setting_value')
       .eq('setting_key', SETTING_KEY)
@@ -92,16 +73,14 @@ export async function POST(request: NextRequest) {
     // Get authenticated user from headers (set by middleware)
     const userEmail = request.headers.get('x-user-email') || 'unknown';
 
-    const supabase = getSupabaseClient();
-
     // Prepare the setting value
     const settingValue = {
       defaultQuestionIds,
       customQuestions: customQuestions || {}
     };
 
-    // Upsert the setting (insert or update)
-    const { error } = await supabase
+    // Upsert the setting (insert or update) using admin client
+    const { error } = await supabaseAdmin
       .from('organization_settings')
       .upsert({
         setting_key: SETTING_KEY,

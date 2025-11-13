@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { supabaseAdminAdmin } from '@/lib/supabaseAdmin-admin';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { token } = await request.json();
 
     if (!token) {
@@ -17,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find reviewer by access token
-    const { data: reviewerData, error: reviewerError } = await supabase
+    const { data: reviewerData, error: reviewerError } = await supabaseAdmin
       .from('feedback_360_survey_reviewers')
       .select('*')
       .eq('access_token', token)
@@ -38,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // Update status to in_progress if pending
     if (reviewerData.status === 'pending') {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from('feedback_360_survey_reviewers')
         .update({
           status: 'in_progress',
