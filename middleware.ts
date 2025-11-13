@@ -438,12 +438,19 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      // Redirect to unauthorized if all auth methods fail
-      return NextResponse.redirect(new URL('/unauthorized', request.url));
+      // Redirect to AI Intranet login if all auth methods fail
+      console.log('[Sonance Auth] No valid session, redirecting to AI Intranet login');
+      const loginUrl = new URL('/login', process.env.AI_INTRANET_URL);
+      loginUrl.searchParams.set('returnTo', request.url);
+      loginUrl.searchParams.set('app', process.env.APP_ID || '');
+      return NextResponse.redirect(loginUrl);
     }
   } catch (error) {
     console.error('[Sonance Auth] Unexpected middleware error:', error);
-    return NextResponse.redirect(new URL('/unauthorized', request.url));
+    const loginUrl = new URL('/login', process.env.AI_INTRANET_URL);
+    loginUrl.searchParams.set('returnTo', request.url);
+    loginUrl.searchParams.set('app', process.env.APP_ID || '');
+    return NextResponse.redirect(loginUrl);
   }
 }
 
