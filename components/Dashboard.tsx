@@ -55,6 +55,21 @@ export default function Dashboard({
 
     // If found, return the employee record; otherwise create a minimal one from userProfile
     if (matched) {
+      console.log('[Dashboard] Found currentUserEmployee in employees list:');
+      console.log('  - email:', matched.email);
+      console.log('  - id from employees:', matched.id);
+      console.log('  - id from userProfile:', userProfile.id);
+      console.log('  - IDs match?', matched.id === userProfile.id);
+
+      // IMPORTANT: If IDs don't match, use userProfile ID (source of truth)
+      if (matched.id !== userProfile.id) {
+        console.warn('[Dashboard] ⚠️  ID MISMATCH! Using userProfile ID as source of truth');
+        return {
+          ...matched,
+          id: userProfile.id, // Override with correct ID from userProfile
+        };
+      }
+
       return matched;
     }
 
