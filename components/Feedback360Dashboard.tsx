@@ -163,83 +163,16 @@ export default function Feedback360Dashboard({
         };
       }) || [];
 
-      // Filter surveys based on user role
-      if (currentUser) {
-        const userRole = currentUser.app_role || 'user';
-
-        if (userRole === 'admin') {
-          // Admin can see all surveys
-          // No filtering needed
-        } else if (userRole === 'leader') {
-          // Leaders can see:
-          // 1. Surveys they created (including drafts)
-          // 2. Surveys where they are the subject (employee_id matches)
-          // 3. Surveys where they are a reviewer (but NOT if draft - those are sponsor-only)
-          // 4. Surveys for their direct reports
-          const directReportIds = employees
-            .filter(e => e.reports_to_id === currentUser.id)
-            .map(e => e.id);
-
-          enhancedSurveys = enhancedSurveys.filter((survey: any) => {
-            // Survey created by the leader (must match exactly)
-            const isSponsor = survey.created_by && (
-              survey.created_by === currentUser.id ||
-              (currentUser.email && survey.created_by === currentUser.email)
-            );
-            if (isSponsor) return true;
-
-            // Draft surveys should only be visible to their sponsor
-            if (survey.status === 'draft') return false;
-
-            // Survey about the leader themselves
-            if (survey.employee_id && survey.employee_id === currentUser.id) return true;
-
-            // Survey where leader is a reviewer
-            const isReviewer = currentUser.email ? survey.reviewers?.some((r: any) =>
-              r.reviewer_email && r.reviewer_email.toLowerCase() === currentUser.email!.toLowerCase()
-            ) : false;
-            if (isReviewer) return true;
-
-            // Survey about a direct report
-            if (survey.employee_id && directReportIds.includes(survey.employee_id)) return true;
-
-            return false;
-          });
-        } else {
-          // Regular users can see ONLY:
-          // 1. Surveys they created (including drafts)
-          // 2. Surveys where they are the subject (employee_id matches)
-          // 3. Surveys where they are a reviewer (but NOT if draft - those are sponsor-only)
-          enhancedSurveys = enhancedSurveys.filter((survey: any) => {
-            // Survey created by the user (must match exactly)
-            const isSponsor = survey.created_by && (
-              survey.created_by === currentUser.id ||
-              (currentUser.email && survey.created_by === currentUser.email)
-            );
-            if (isSponsor) return true;
-
-            // Draft surveys should only be visible to their sponsor
-            if (survey.status === 'draft') return false;
-
-            // Survey about the user themselves (only finalized surveys)
-            const isReviewee = survey.employee_id && survey.employee_id === currentUser.id;
-            if (isReviewee && survey.status === 'finalized') return true;
-
-            // Survey where user is a reviewer (check email match)
-            const isReviewer = currentUser.email ? survey.reviewers?.some((r: any) =>
-              r.reviewer_email && r.reviewer_email.toLowerCase() === currentUser.email!.toLowerCase()
-            ) : false;
-            if (isReviewer) return true;
-
-            // If none of the above, explicitly exclude
-            return false;
-          });
-        }
-      } else {
-        // If no currentUser, show nothing for safety
-        enhancedSurveys = [];
-      }
-
+      // NOTE: Role-based filtering is now handled entirely by the API (/api/surveys/list)
+      // The API uses the authenticated user's profile.id from getAuthenticatedUser()
+      // and applies correct role-based filtering on the server side.
+      // 
+      // Client-side filtering was causing issues where:
+      // - Draft surveys saved with authData.profile.id
+      // - But client-side currentUser.id might be different (email vs UUID mismatch)
+      // - Result: drafts appeared "saved" but were immediately filtered out client-side
+      //
+      // Solution: Trust the API filtering and only do UI enhancements here.
 
       setSurveys(enhancedSurveys);
     } catch (error) {
