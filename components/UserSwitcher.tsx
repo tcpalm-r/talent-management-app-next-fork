@@ -33,7 +33,9 @@ export default function UserSwitcher({ currentUserId, onUserSwitch }: UserSwitch
 
   // Check if we're in dev mode (client-side check)
   // Only NEXT_PUBLIC_ prefixed env vars are available on the client
-  const isDevMode = typeof window !== 'undefined' && 
+  // Double safety: Check both NODE_ENV and DISABLE_AUTH to prevent showing in production
+  const isDevMode = typeof window !== 'undefined' &&
+    process.env.NODE_ENV !== 'production' &&
     process.env.NEXT_PUBLIC_DISABLE_AUTH?.trim() === 'true';
 
   // Fetch users when dropdown opens

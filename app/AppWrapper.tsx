@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
-import { MOCK_USER } from '@/lib/auth';
 import type { User as AppUser, Organization } from '@/types';
 import Dashboard from '@/components/Dashboard';
 import { TalentAppProvider } from '@/context/TalentAppContext';
@@ -50,8 +49,17 @@ export default function AppWrapper() {
       setError(null);
       console.log('[AppWrapper] loadUserDataAndOrganization called');
 
-      // Use actual user or mock user for development
-      const currentUser = user || MOCK_USER;
+      // SECURITY: Always use authenticated user (no MOCK_USER fallback)
+      // Development mode (DISABLE_AUTH=true) provides MOCK_USER via middleware/auth
+      const currentUser = user;
+
+      // If no authenticated user, don't try to load data
+      if (!currentUser) {
+        console.log('[AppWrapper] No authenticated user available, skipping data load');
+        setLoading(false);
+        return;
+      }
+
       console.log('[AppWrapper] Current user:', { id: currentUser.id, email: currentUser.email });
 
       // Map SessionUser to AppUser format
@@ -165,18 +173,17 @@ export default function AppWrapper() {
     );
   }
 
-  // Use mock user if no user is authenticated (for development/demo)
-  const activeUser = user || MOCK_USER;
-
-  // Show error if actually no user and not loading
-  if (!activeUser && !authLoading) {
+  // SECURITY FIX: Production requires real authentication (no MOCK_USER fallback)
+  // Development mode (DISABLE_AUTH=true) still uses MOCK_USER via middleware/auth system
+  if (!user && !authLoading) {
+    console.error('[AppWrapper] No authenticated user found - authentication required');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
           <h2 className="text-lg font-semibold mb-2 text-gray-900">Authentication Required</h2>
           <p className="text-sm text-gray-600 mb-6">Please sign in to access Sonance Talent Management.</p>
-          <a href="/unauthorized" className="btn-primary">
-            Learn More
+          <a href="/api/auth/login" className="btn-primary">
+            Sign In
           </a>
         </div>
       </div>

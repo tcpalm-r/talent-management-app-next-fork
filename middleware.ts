@@ -42,8 +42,13 @@ export async function middleware(request: NextRequest) {
     console.log('[Sonance Auth] Processing request to:', request.nextUrl.pathname);
 
     // Skip middleware for specific paths
+    // IMPORTANT: Only skip public auth endpoints (login, logout, callback)
+    // DO NOT skip /api/auth/me, /api/auth/sync, /api/auth/switch-user - they need auth!
     const skipPaths = [
-      '/api/auth/',
+      '/api/auth/login',
+      '/api/auth/logout',
+      '/api/auth/callback',
+      '/api/auth/validate-token',
       '/_next/',
       '/favicon',
       '/unauthorized',
@@ -62,9 +67,18 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check if authentication is disabled (mock mode)
-    const authDisabled =
+    let authDisabled =
       process.env.NEXT_PUBLIC_DISABLE_AUTH?.trim() === 'true' ||
       process.env.DISABLE_AUTH?.trim() === 'true';
+
+    // PRODUCTION FAIL-SAFE: Never allow auth bypass in production
+    // This prevents accidental authentication bypass if environment variables are misconfigured
+    if (process.env.NODE_ENV === 'production' && authDisabled) {
+      console.error('[SECURITY WARNING] Auth bypass detected in production environment!');
+      console.error('[SECURITY WARNING] DISABLE_AUTH is set to true but NODE_ENV is production.');
+      console.error('[SECURITY WARNING] Forcing authentication to be ENABLED for security.');
+      authDisabled = false; // Override to enforce real authentication
+    }
 
     if (authDisabled) {
       console.log('[Sonance Auth] Authentication bypassed for local development');
@@ -82,9 +96,9 @@ export async function middleware(request: NextRequest) {
         },
       });
 
-      // Set mock session cookie
-      response.cookies.set('user-session', JSON.stringify(MOCK_USER), {
-        httpOnly: true,
+      // Set mock session cookie (matches lib/auth.ts USER_COOKIE constant)
+      response.cookies.set('ai-intranet-user', JSON.stringify(MOCK_USER), {
+        httpOnly: false, // Accessible to JavaScript for client-side auth checks
         secure: false, // Not secure in development
         sameSite: 'lax',
         maxAge: 86400 // 24 hours
@@ -183,9 +197,9 @@ export async function middleware(request: NextRequest) {
 
             const response = NextResponse.redirect(cleanUrl);
 
-            // Store user data in encrypted cookie (expires in 24 hours)
-            response.cookies.set('user-session', JSON.stringify(mappedUser), {
-              httpOnly: true,
+            // Store user data in cookie (expires in 24 hours) - matches lib/auth.ts USER_COOKIE
+            response.cookies.set('ai-intranet-user', JSON.stringify(mappedUser), {
+              httpOnly: false, // Accessible to JavaScript for client-side auth checks
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
               maxAge: 86400 // 24 hours
@@ -205,46 +219,49 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check for dev user switch (testing purposes - overrides session)
-    const switchedUserCookie = request.cookies.get('x-switched-user');
-    console.log('[Sonance Auth] Checking for x-switched-user cookie:', switchedUserCookie ? 'FOUND' : 'NOT FOUND');
-    if (switchedUserCookie) {
-      try {
-        const switchedUser = JSON.parse(switchedUserCookie.value);
-        console.log('[Sonance Auth] ✓ Using switched user from cookie:', switchedUser.email);
+    // SECURITY: Only allow in development mode to prevent production bypass
+    if (process.env.NODE_ENV !== 'production') {
+      const switchedUserCookie = request.cookies.get('x-switched-user');
+      console.log('[Sonance Auth] Checking for x-switched-user cookie:', switchedUserCookie ? 'FOUND' : 'NOT FOUND');
+      if (switchedUserCookie) {
+        try {
+          const switchedUser = JSON.parse(switchedUserCookie.value);
+          console.log('[Sonance Auth] ✓ Using switched user from cookie:', switchedUser.email);
 
-        // Add switched user data to request headers
-        const requestHeaders = new Headers(request.headers);
-        requestHeaders.set('x-user-data', JSON.stringify(switchedUser));
-        requestHeaders.set('x-user-id', switchedUser.id);
-        requestHeaders.set('x-user-role', switchedUser.app_role || 'user');
-        requestHeaders.set('x-user-email', switchedUser.email);
+          // Add switched user data to request headers
+          const requestHeaders = new Headers(request.headers);
+          requestHeaders.set('x-user-data', JSON.stringify(switchedUser));
+          requestHeaders.set('x-user-id', switchedUser.id);
+          requestHeaders.set('x-user-role', switchedUser.app_role || 'user');
+          requestHeaders.set('x-user-email', switchedUser.email);
 
-        const response = NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
+          const response = NextResponse.next({
+            request: {
+              headers: requestHeaders,
+            },
+          });
 
-        // Keep the cookie fresh
-        response.cookies.set('x-switched-user', switchedUserCookie.value, {
-          httpOnly: false,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 7 * 24 * 60 * 60, // 7 days
-          path: '/',
-        });
+          // Keep the cookie fresh
+          response.cookies.set('x-switched-user', switchedUserCookie.value, {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 7 * 24 * 60 * 60, // 7 days
+            path: '/',
+          });
 
-        console.log('[Sonance Auth] ✓ Switched user middleware response created and returning');
-        return response;
-      } catch (error) {
-        console.error('[Sonance Auth] Failed to parse switched user cookie:', error);
+          console.log('[Sonance Auth] ✓ Switched user middleware response created and returning');
+          return response;
+        } catch (error) {
+          console.error('[Sonance Auth] Failed to parse switched user cookie:', error);
+        }
+      } else {
+        console.log('[Sonance Auth] No x-switched-user cookie found, continuing with session checks');
       }
-    } else {
-      console.log('[Sonance Auth] No x-switched-user cookie found, continuing with session checks');
     }
 
-    // Check for existing session cookie
-    const sessionCookie = request.cookies.get('user-session');
+    // Check for existing session cookie (matches lib/auth.ts USER_COOKIE)
+    const sessionCookie = request.cookies.get('ai-intranet-user');
 
     if (sessionCookie) {
       console.log('[Sonance Auth] Session cookie found, checking validity');
@@ -390,9 +407,9 @@ export async function middleware(request: NextRequest) {
         },
       });
 
-      // Store user data in session cookie
-      response.cookies.set('user-session', JSON.stringify(mappedUser), {
-        httpOnly: true,
+      // Store user data in session cookie (matches lib/auth.ts USER_COOKIE)
+      response.cookies.set('ai-intranet-user', JSON.stringify(mappedUser), {
+        httpOnly: false, // Accessible to JavaScript for client-side auth checks
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 86400 // 24 hours
@@ -426,12 +443,19 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      // Redirect to unauthorized if all auth methods fail
-      return NextResponse.redirect(new URL('/unauthorized', request.url));
+      // Redirect to AI Intranet login if all auth methods fail
+      console.log('[Sonance Auth] No valid session, redirecting to AI Intranet login');
+      const loginUrl = new URL('/login', process.env.AI_INTRANET_URL);
+      loginUrl.searchParams.set('returnTo', request.url);
+      loginUrl.searchParams.set('app', process.env.APP_ID || '');
+      return NextResponse.redirect(loginUrl);
     }
   } catch (error) {
     console.error('[Sonance Auth] Unexpected middleware error:', error);
-    return NextResponse.redirect(new URL('/unauthorized', request.url));
+    const loginUrl = new URL('/login', process.env.AI_INTRANET_URL);
+    loginUrl.searchParams.set('returnTo', request.url);
+    loginUrl.searchParams.set('app', process.env.APP_ID || '');
+    return NextResponse.redirect(loginUrl);
   }
 }
 
