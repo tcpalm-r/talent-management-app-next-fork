@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function POST(request: NextRequest) {
   try {
+    // Get authenticated user from session
+    const authData = await getAuthenticatedUser(request);
+    if (!authData) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -18,7 +28,6 @@ export async function POST(request: NextRequest) {
       employeeId,
       surveyName,
       dueDate,
-      createdBy,
       requiredQuestions,
       customQuestions,
       raters,
@@ -32,7 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create survey
+    // Create survey - use authenticated user's profile ID
     const { data: survey, error: surveyError } = await supabase
       .from('feedback_360_surveys')
       .insert({
@@ -40,7 +49,7 @@ export async function POST(request: NextRequest) {
         survey_name: surveyName,
         status: 'draft',
         due_date: dueDate,
-        created_by: createdBy || 'unknown',
+        created_by: authData.profile.id, // Use authenticated user's ID
       })
       .select()
       .single();

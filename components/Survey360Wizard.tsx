@@ -1021,7 +1021,7 @@ export default function Survey360Wizard({
                 employeeId: employee.id,
                 surveyName: surveyTitle || `360° Feedback - ${employee.name}`,
                 dueDate,
-                createdBy: currentUser?.id || currentUser?.email || 'unknown',
+                // createdBy is now handled by the API from the authenticated session
                 requiredQuestions,
                 customQuestions,
                 raters: raters.filter(r => r.name && r.name.trim()),
