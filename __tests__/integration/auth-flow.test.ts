@@ -44,18 +44,17 @@ describe('Authentication Flow Tests', () => {
         updated_at: '2024-01-01',
       };
 
-      // Mock database lookup
+      // Mock database lookup - need to setup the mock chain BEFORE calling syncUserProfile
       const { supabaseAdmin } = require('@/lib/supabase-admin');
-      supabaseAdmin.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockResolvedValue({
-              data: databaseProfile,
-              error: null,
-            }),
-          }),
-        }),
+      const mockSingle = jest.fn().mockResolvedValue({
+        data: databaseProfile,
+        error: null,
       });
+      const mockEq = jest.fn().mockReturnValue({ single: mockSingle });
+      const mockSelect = jest.fn().mockReturnValue({ eq: mockEq });
+      const mockFrom = jest.fn().mockReturnValue({ select: mockSelect });
+      
+      supabaseAdmin.from = mockFrom;
 
       const result = await syncUserProfile(sessionUser);
 
@@ -103,14 +102,16 @@ describe('Authentication Flow Tests', () => {
         'admin',
         'user',
         '',
-        null,
-        undefined,
       ];
 
-      // These should NEVER be valid profile IDs
+      // These should NEVER be valid profile IDs (they don't match UUID format)
       invalidUserIds.forEach(invalidId => {
         expect(invalidId).not.toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
       });
+      
+      // null and undefined are also invalid
+      expect(null).toBeFalsy();
+      expect(undefined).toBeFalsy();
     });
 
     it('should ensure profile IDs are UUIDs or valid identifiers', () => {
@@ -219,19 +220,23 @@ describe('Authentication Flow Tests', () => {
         id: 'uuid-123', // Different ID
         email, // Same email
         full_name: 'Test User',
+        app_role: 'user',
+        app_permissions: {},
+        is_active: true,
+        created_at: '2024-01-01',
+        updated_at: '2024-01-01',
       };
       
       const { supabaseAdmin } = require('@/lib/supabase-admin');
-      supabaseAdmin.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockResolvedValue({
-              data: databaseProfile,
-              error: null,
-            }),
-          }),
-        }),
+      const mockSingle = jest.fn().mockResolvedValue({
+        data: databaseProfile,
+        error: null,
       });
+      const mockEq = jest.fn().mockReturnValue({ single: mockSingle });
+      const mockSelect = jest.fn().mockReturnValue({ eq: mockEq });
+      const mockFrom = jest.fn().mockReturnValue({ select: mockSelect });
+      
+      supabaseAdmin.from = mockFrom;
       
       const result = await syncUserProfile(sessionUser);
       

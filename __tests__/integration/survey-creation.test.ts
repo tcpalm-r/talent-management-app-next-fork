@@ -23,6 +23,28 @@ jest.mock('@/lib/supabase-admin', () => ({
   },
 }));
 
+// Helper to create mock request
+function createMockRequest(url: string, options: any = {}) {
+  const headers = new Headers(options.headers || {});
+  if (options.body) {
+    headers.set('Content-Type', 'application/json');
+  }
+  
+  return {
+    method: options.method || 'GET',
+    url,
+    headers,
+    json: async () => JSON.parse(options.body || '{}'),
+    cookies: {
+      get: jest.fn(),
+      getAll: jest.fn(() => []),
+      has: jest.fn(() => false),
+      set: jest.fn(),
+      delete: jest.fn(),
+    },
+  } as unknown as NextRequest;
+}
+
 const mockAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
 
 describe('Survey Creation Integration Tests', () => {
@@ -83,7 +105,7 @@ describe('Survey Creation Integration Tests', () => {
       });
 
       // Create request with WRONG user ID (simulating client tampering)
-      const request = new NextRequest('http://localhost:3000/api/surveys/create', {
+      const request = createMockRequest('http://localhost:3000/api/surveys/create', {
         method: 'POST',
         body: JSON.stringify({
           employeeId: 'employee-456',
@@ -118,7 +140,7 @@ describe('Survey Creation Integration Tests', () => {
       // Mock failed authentication
       mockAuthenticatedUser.mockResolvedValue(null);
 
-      const request = new NextRequest('http://localhost:3000/api/surveys/create', {
+      const request = createMockRequest('http://localhost:3000/api/surveys/create', {
         method: 'POST',
         body: JSON.stringify({
           employeeId: 'employee-456',
@@ -161,7 +183,7 @@ describe('Survey Creation Integration Tests', () => {
       });
 
       // Try to send a fake createdBy (client tampering attempt)
-      const request = new NextRequest('http://localhost:3000/api/surveys/create', {
+      const request = createMockRequest('http://localhost:3000/api/surveys/create', {
         method: 'POST',
         body: JSON.stringify({
           employeeId: 'employee-456',
@@ -210,7 +232,7 @@ describe('Survey Creation Integration Tests', () => {
         insert: mockInsert,
       });
 
-      const request = new NextRequest('http://localhost:3000/api/surveys/save-draft', {
+      const request = createMockRequest('http://localhost:3000/api/surveys/save-draft', {
         method: 'POST',
         body: JSON.stringify({
           organizationId: 'org-123',
@@ -242,7 +264,7 @@ describe('Survey Creation Integration Tests', () => {
     it('should reject unauthenticated draft save requests', async () => {
       mockAuthenticatedUser.mockResolvedValue(null);
 
-      const request = new NextRequest('http://localhost:3000/api/surveys/save-draft', {
+      const request = createMockRequest('http://localhost:3000/api/surveys/save-draft', {
         method: 'POST',
         body: JSON.stringify({
           employeeId: 'employee-456',
@@ -292,7 +314,7 @@ describe('Survey Creation Integration Tests', () => {
       });
 
       // List surveys
-      const request = new NextRequest('http://localhost:3000/api/surveys/list');
+      const request = createMockRequest('http://localhost:3000/api/surveys/list');
       const response = await listSurveys(request);
       const data = await response.json();
 
@@ -352,7 +374,7 @@ describe('Survey Creation Integration Tests', () => {
         }),
       });
 
-      const request = new NextRequest('http://localhost:3000/api/surveys/list');
+      const request = createMockRequest('http://localhost:3000/api/surveys/list');
       const response = await listSurveys(request);
       const data = await response.json();
 
@@ -398,7 +420,7 @@ describe('Survey Creation Integration Tests', () => {
         }),
       });
 
-      const request = new NextRequest('http://localhost:3000/api/surveys/list');
+      const request = createMockRequest('http://localhost:3000/api/surveys/list');
       const response = await listSurveys(request);
       const data = await response.json();
 
@@ -438,7 +460,7 @@ describe('Survey Creation Integration Tests', () => {
         }),
       });
 
-      const request = new NextRequest('http://localhost:3000/api/surveys/list');
+      const request = createMockRequest('http://localhost:3000/api/surveys/list');
       const response = await listSurveys(request);
       const data = await response.json();
 

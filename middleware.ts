@@ -7,8 +7,8 @@ import type { NextRequest } from 'next/server';
 const MOCK_USER = {
   id: 'dev-user-1',
   auth0_id: 'auth0|dev-user',
-  email: 'developer@test.com',
-  full_name: 'Test Developer',
+  email: 'thomas.palmer@sonance.com',
+  full_name: 'Thomas Palmer',
   app_role: 'admin',
   app_permissions: {
     manage_users: true,

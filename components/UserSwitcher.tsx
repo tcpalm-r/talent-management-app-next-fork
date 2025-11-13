@@ -36,11 +36,6 @@ export default function UserSwitcher({ currentUserId, onUserSwitch }: UserSwitch
   const isDevMode = typeof window !== 'undefined' && 
     process.env.NEXT_PUBLIC_DISABLE_AUTH?.trim() === 'true';
 
-  // Don't render if not in dev mode
-  if (!isDevMode) {
-    return null;
-  }
-
   // Fetch users when dropdown opens
   useEffect(() => {
     if (isOpen && users.length === 0) {
@@ -75,6 +70,11 @@ export default function UserSwitcher({ currentUserId, onUserSwitch }: UserSwitch
       setSearchQuery('');
     }
   }, [isOpen]);
+
+  // Don't render if not in dev mode (moved AFTER hooks to comply with Rules of Hooks)
+  if (!isDevMode) {
+    return null;
+  }
 
   const fetchUsers = async () => {
     try {
