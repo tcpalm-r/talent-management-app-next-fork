@@ -62,9 +62,18 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check if authentication is disabled (mock mode)
-    const authDisabled =
+    let authDisabled =
       process.env.NEXT_PUBLIC_DISABLE_AUTH?.trim() === 'true' ||
       process.env.DISABLE_AUTH?.trim() === 'true';
+
+    // PRODUCTION FAIL-SAFE: Never allow auth bypass in production
+    // This prevents accidental authentication bypass if environment variables are misconfigured
+    if (process.env.NODE_ENV === 'production' && authDisabled) {
+      console.error('[SECURITY WARNING] Auth bypass detected in production environment!');
+      console.error('[SECURITY WARNING] DISABLE_AUTH is set to true but NODE_ENV is production.');
+      console.error('[SECURITY WARNING] Forcing authentication to be ENABLED for security.');
+      authDisabled = false; // Override to enforce real authentication
+    }
 
     if (authDisabled) {
       console.log('[Sonance Auth] Authentication bypassed for local development');
