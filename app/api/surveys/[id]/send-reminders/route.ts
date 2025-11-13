@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { Resend } from 'resend';
+import { getValidatedAppUrl } from '@/lib/url-validator';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,9 +85,21 @@ export async function POST(
     const results = [];
     const errors = [];
 
+    // Get validated base URL
+    let baseUrl: string;
+    try {
+      baseUrl = getValidatedAppUrl('NEXT_PUBLIC_APP_URL');
+    } catch (error: any) {
+      console.error('URL validation error:', error.message);
+      return NextResponse.json(
+        { error: 'Application URL is not configured correctly', details: error.message },
+        { status: 500 }
+      );
+    }
+
     for (const reviewer of incompleteReviewers) {
       try {
-        const surveyUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3004'}/survey/complete/${reviewer.access_token}`;
+        const surveyUrl = `${baseUrl}/survey/complete/${reviewer.access_token}`;
 
         const emailResult = await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL || 'feedback@aiintranet.sonance.com',

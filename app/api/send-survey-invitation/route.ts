@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
+import { getValidatedAppUrl } from '@/lib/url-validator';
 
 export const dynamic = 'force-dynamic';
 
@@ -149,8 +150,21 @@ export async function POST(request: Request) {
     const survey = { ...surveyResult.data, employee: employeeData };
     const reviewer = reviewerResult.data;
 
-    // Generate survey URL with access token
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+    // Generate survey URL with access token - validate URL first
+    let baseUrl: string;
+    try {
+      baseUrl = getValidatedAppUrl('NEXT_PUBLIC_APP_URL');
+    } catch (error: any) {
+      console.error('[Email Send] URL validation error:', error.message);
+      return NextResponse.json(
+        {
+          error: 'Application URL is not configured correctly',
+          details: error.message,
+          hint: 'Check Vercel environment variables: Settings → Environment Variables → NEXT_PUBLIC_APP_URL'
+        },
+        { status: 500 }
+      );
+    }
     const surveyUrl = `${baseUrl}/survey/complete/${reviewer.access_token}`;
 
     // Format due date and calculate days remaining
