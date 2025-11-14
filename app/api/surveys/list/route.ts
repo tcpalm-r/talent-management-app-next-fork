@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { SurveyListResponseSchema, validateSchema } from '@/lib/api-schemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -139,11 +140,34 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    // Prepare response
+    const responseData = {
       surveys: filteredSurveys,
       count: filteredSurveys.length,
       role: user.app_role,
-    });
+    };
+
+    // Validate response before sending (observability only - doesn't block)
+    const validation = validateSchema(
+      SurveyListResponseSchema,
+      responseData,
+      'GET /api/surveys/list'
+    );
+
+    if (!validation.success) {
+      // Log validation errors but still return data (passthrough mode)
+      console.warn('[API /surveys/list] Response validation failed:', {
+        errors: validation.error?.errors?.slice(0, 5) || [], // First 5 errors
+        surveyCount: filteredSurveys.length,
+      });
+    } else {
+      // Validation passed - log success in dev mode
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[API /surveys/list] ✓ Response validation passed (${filteredSurveys.length} surveys)`);
+      }
+    }
+
+    return NextResponse.json(responseData);
 
   } catch (error) {
     console.error('Error in /api/surveys/list:', error);

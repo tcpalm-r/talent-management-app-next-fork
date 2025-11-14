@@ -6,6 +6,17 @@ import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
 import Avatar from './Avatar';
 import { useToast } from './unified';
 import { exportReportAsPDF } from '../lib/exportReport';
+import { fetchWithFallback, fetchWithValidation } from '@/lib/api-client';
+import {
+  SurveyListResponseSchema,
+  Report360ResponseSchema,
+  SendRemindersResponseSchema,
+  GenericSuccessResponseSchema,
+  SurveyDetailResponseSchema,
+  SurveyUpdateResponseSchema,
+  SurveyDeleteResponseSchema,
+  ReviewersListResponseSchema
+} from '@/lib/api-schemas';
 
 interface Feedback360DashboardProps {
   employees: Employee[];
@@ -112,12 +123,14 @@ export default function Feedback360Dashboard({
   // Function to load and display survey results
   const loadAndShowResults = async (survey: Survey) => {
     try {
-      // Fetch report from API with role-based filtering
-      const response = await fetch(`/api/360-generate-report?survey_id=${survey.id}`);
-      const data = await response.json();
+      // Fetch report with validation
+      const data = await fetchWithValidation(
+        Report360ResponseSchema,
+        `/api/360-generate-report?survey_id=${survey.id}`
+      );
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to load report');
+      if (!data) {
+        throw new Error('Failed to load report - no data returned');
       }
 
       setSelectedSurvey(survey);
@@ -142,31 +155,29 @@ export default function Feedback360Dashboard({
   const loadSurveys = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/surveys/list?organization_id=${organizationId}`);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to load surveys');
-      }
-
-      const data = await response.json();
+      // Fetch with validation and automatic fallback
+      const data = await fetchWithFallback(
+        SurveyListResponseSchema,
+        `/api/surveys/list?organization_id=${organizationId}`,
+        { surveys: [], count: 0, role: 'user' } // Safe fallback
+      );
 
       // Enhance surveys with employee data and reviewer counts
-      let enhancedSurveys = data.surveys?.map((survey: any) => {
+      let enhancedSurveys = data.surveys.map((survey) => {
         const employee = employees.find(e => e.id === survey.employee_id);
         const reviewers = survey.reviewers || [];
         return {
           ...survey,
           employee,
           reviewers_count: reviewers.length,
-          completed_count: reviewers.filter((r: any) => r.status === 'completed').length
+          completed_count: reviewers.filter((r) => r.status === 'completed').length
         };
-      }) || [];
+      });
 
       // NOTE: Role-based filtering is now handled entirely by the API (/api/surveys/list)
       // The API uses the authenticated user's profile.id from getAuthenticatedUser()
       // and applies correct role-based filtering on the server side.
-      // 
+      //
       // Client-side filtering was causing issues where:
       // - Draft surveys saved with authData.profile.id
       // - But client-side currentUser.id might be different (email vs UUID mismatch)
@@ -177,6 +188,16 @@ export default function Feedback360Dashboard({
       setSurveys(enhancedSurveys);
     } catch (error) {
       console.error('[loadSurveys] Error loading surveys:', error);
+
+      // Show user-friendly error notification
+      notify({
+        title: 'Error loading surveys',
+        description: error instanceof Error ? error.message : 'Failed to load surveys',
+        variant: 'error',
+      });
+
+      // Set empty surveys array as fallback
+      setSurveys([]);
     } finally {
       setLoading(false);
     }
@@ -184,28 +205,26 @@ export default function Feedback360Dashboard({
 
   const sendReminders = async (surveyId: string) => {
     try {
-      const response = await fetch(`/api/surveys/${surveyId}/send-reminders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const data = await fetchWithValidation(
+        SendRemindersResponseSchema,
+        `/api/surveys/${surveyId}/send-reminders`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send reminders');
+      if (!data || !data.results) {
+        throw new Error('Failed to send reminders - invalid response');
       }
-
-      const data = await response.json();
 
       if (data.results.failed > 0) {
         notify({
           title: `Reminders sent with errors`,
-          description: `${data.results.successful} sent successfully, ${data.results.failed} failed.`,
+          description: `${data.results.sent} sent successfully, ${data.results.failed} failed.`,
           variant: 'error',
         });
       } else {
         notify({
           title: 'Reminders sent',
-          description: `Reminder emails sent to ${data.results.successful} reviewers.`,
+          description: `Reminder emails sent to ${data.results.sent} reviewers.`,
           variant: 'success',
         });
       }
@@ -289,13 +308,14 @@ export default function Feedback360Dashboard({
 
   const deleteDraftSurvey = async (surveyId: string) => {
     try {
-      const response = await fetch(`/api/surveys/${surveyId}?status=draft`, {
-        method: 'DELETE',
-      });
+      const data = await fetchWithValidation(
+        SurveyDeleteResponseSchema,
+        `/api/surveys/${surveyId}?status=draft`,
+        { method: 'DELETE' }
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete draft survey');
+      if (!data) {
+        throw new Error('Failed to delete draft survey');
       }
 
       notify({
@@ -336,13 +356,14 @@ export default function Feedback360Dashboard({
     }
 
     try {
-      const response = await fetch(`/api/surveys/${surveyId}`, {
-        method: 'DELETE',
-      });
+      const data = await fetchWithValidation(
+        SurveyDeleteResponseSchema,
+        `/api/surveys/${surveyId}`,
+        { method: 'DELETE' }
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete review');
+      if (!data) {
+        throw new Error('Failed to delete review');
       }
 
       notify({
@@ -487,13 +508,14 @@ export default function Feedback360Dashboard({
 
   const finalizeSurvey = async (surveyId: string) => {
     try {
-      const response = await fetch(`/api/surveys/${surveyId}/finalize`, {
-        method: 'POST',
-      });
+      const data = await fetchWithValidation(
+        SurveyUpdateResponseSchema,
+        `/api/surveys/${surveyId}/finalize`,
+        { method: 'POST' }
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to finalize review');
+      if (!data) {
+        throw new Error('Failed to finalize review');
       }
 
       notify({
@@ -676,14 +698,14 @@ export default function Feedback360Dashboard({
 
   const loadRawSurveyData = async (surveyId: string) => {
     try {
-      const response = await fetch(`/api/surveys/${surveyId}/details`);
+      const data = await fetchWithValidation(
+        SurveyDetailResponseSchema,
+        `/api/surveys/${surveyId}/details`
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to load raw survey data');
+      if (!data) {
+        throw new Error('Failed to load raw survey data');
       }
-
-      const data = await response.json();
 
       // Transform API response to UI-expected format using utility
       // This enriches responses with full question and reviewer data
