@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createAuthenticatedResponse, MOCK_USER } from '@/lib/auth';
 import type { SessionUser } from '@/lib/schema';
 
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
 
     // Check if user exists in Supabase
     console.log('[Auth0 Callback] Looking up user in Supabase with email:', email);
-    const { data: existingUser, error: lookupError } = await supabase
+    const { data: existingUser, error: lookupError } = await supabaseAdmin
       .from('user_profiles')
       .select('*')
       .eq('email', email)
@@ -157,7 +157,7 @@ export async function GET(request: NextRequest) {
         full_name: fullName,
       });
 
-      const { data: newUser, error: createError } = await supabase
+      const { data: newUser, error: createError } = await supabaseAdmin
         .from('user_profiles')
         .insert({
           auth0_id: auth0Id,
@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
       });
       console.log('[Auth0 Callback] Updating last login...');
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from('user_profiles')
         .update({
           auth0_id: auth0Id, // Update in case it changed

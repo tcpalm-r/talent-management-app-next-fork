@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -239,7 +239,7 @@ CRITICAL:
 
         // Try to find the employee in the database by name
         try {
-          const { data: employee } = await supabase
+          const { data: employee } = await supabaseAdmin
             .from('user_profiles')
             .select('email')
             .ilike('full_name', `%${rater.name}%`)
