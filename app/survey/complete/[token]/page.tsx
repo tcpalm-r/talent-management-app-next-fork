@@ -360,6 +360,7 @@ export default function SurveyCompletionPage() {
           onClose={() => setActiveQuestionForAI(null)}
           question={questions.find(q => q.id === activeQuestionForAI)}
           subjectName={survey?.employee_name || 'the employee'}
+          currentText={responses[activeQuestionForAI] || ''}
           onComplete={handleAIAssistantComplete}
         />
       )}

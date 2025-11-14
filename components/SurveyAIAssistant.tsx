@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Sparkles, Loader, AlertCircle, Mic, MicOff } from 'lucide-react';
 import { useSpeechToText } from '../hooks/useSpeechToText';
 
@@ -15,6 +15,7 @@ interface SurveyAIAssistantProps {
   onClose: () => void;
   question: Question | undefined;
   subjectName: string;
+  currentText?: string;
   onComplete: (responseText: string) => void;
 }
 
@@ -23,11 +24,19 @@ export default function SurveyAIAssistant({
   onClose,
   question,
   subjectName,
+  currentText,
   onComplete,
 }: SurveyAIAssistantProps) {
-  const [feedback, setFeedback] = useState('');
+  const [feedback, setFeedback] = useState(currentText || '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update feedback when currentText changes (e.g., when modal reopens)
+  useEffect(() => {
+    if (isOpen && currentText !== undefined) {
+      setFeedback(currentText);
+    }
+  }, [isOpen, currentText]);
 
   // Speech-to-text hook
   const {
