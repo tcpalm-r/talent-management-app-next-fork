@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText } from 'lucide-react';
+import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare } from 'lucide-react';
 import type { Employee, Department } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
 import Avatar from './Avatar';
 import { useToast } from './unified';
+import NavigationTabs from './unified/NavigationTabs';
 import { exportReportAsPDF } from '../lib/exportReport';
 import { fetchWithFallback, fetchWithValidation } from '@/lib/api-client';
 import {
@@ -97,6 +98,7 @@ export default function Feedback360Dashboard({
   const [selectedDevelopmentIndex, setSelectedDevelopmentIndex] = useState<number | null>(null);
   const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
   const [isAdjustingItem, setIsAdjustingItem] = useState(false);
+  const [activeReportTab, setActiveReportTab] = useState<string>('summary');
 
   useEffect(() => {
     loadSurveys();
@@ -2011,23 +2013,51 @@ export default function Feedback360Dashboard({
       })()}
 
       {/* Review Results Modal */}
-      {isResultsModalOpen && surveyResults && selectedSurvey && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-xl font-bold text-gray-900">{selectedSurvey.survey_name}</h2>
-                    <span className="text-sm text-gray-600">
-                      Reviewers: <span className="font-medium">{selectedSurvey.completed_count} of {selectedSurvey.reviewers_count} completed</span>
-                    </span>
+      {isResultsModalOpen && surveyResults && selectedSurvey && (() => {
+        // Check permissions for advanced insights tabs
+        const isSubject = currentUser?.id === selectedSurvey?.employee_id;
+        const isSponsor = selectedSurvey?.created_by === currentUser?.id || selectedSurvey?.created_by === currentUser?.email;
+        const isAdmin = currentUser?.app_role === 'admin';
+        const canSeeAdvanced = !isSubject || isAdmin || isSponsor;
+
+        // Check if we have sentiment/consensus data
+        const hasSentimentData = surveyResults.sentiment_by_relationship &&
+          (surveyResults.sentiment_by_relationship.manager !== undefined ||
+           surveyResults.sentiment_by_relationship.peer !== undefined ||
+           surveyResults.sentiment_by_relationship.direct_report !== undefined ||
+           surveyResults.sentiment_by_relationship.cross_functional !== undefined);
+
+        const hasConsensusData = (surveyResults.consensus_areas?.length > 0 || surveyResults.outlier_opinions?.length > 0);
+
+        // Define tabs
+        const reportTabs = [
+          { id: 'summary', label: 'Executive Summary', icon: FileText },
+          { id: 'themes', label: 'Key Themes', icon: Sparkles },
+          { id: 'strengths', label: 'Strengths', icon: CheckCircle },
+          { id: 'development', label: 'Development Areas', icon: AlertTriangle },
+          ...(surveyResults.key_insights && surveyResults.key_insights.length > 0 ? [{ id: 'insights', label: 'Key Insights', icon: Lightbulb }] : []),
+          { id: 'recommendations', label: 'Recommendations', icon: Target },
+          ...(canSeeAdvanced && hasSentimentData ? [{ id: 'sentiment', label: 'Sentiment Analysis', icon: BarChart3 }] : []),
+          ...(canSeeAdvanced && hasConsensusData ? [{ id: 'consensus', label: 'Consensus & Outliers', icon: GitCompare }] : [])
+        ];
+
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+              <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-xl font-bold text-gray-900">{selectedSurvey.survey_name}</h2>
+                      <span className="text-sm text-gray-600">
+                        Reviewers: <span className="font-medium">{selectedSurvey.completed_count} of {selectedSurvey.reviewers_count} completed</span>
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Generated by {surveyResults.generated_by || 'Claude AI'} on {new Date(surveyResults.generated_at || Date.now()).toLocaleDateString()}
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Generated by {surveyResults.generated_by || 'Claude AI'} on {new Date(surveyResults.generated_at || Date.now()).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3">
                   <button
                     onClick={async () => {
                       try {
@@ -2100,29 +2130,41 @@ export default function Feedback360Dashboard({
                     </button>
                   )}
                   <button
-                    onClick={() => setIsResultsModalOpen(false)}
+                    onClick={() => {
+                      setIsResultsModalOpen(false);
+                      setActiveReportTab('summary'); // Reset to first tab when closing
+                    }}
                     className="text-gray-400 hover:text-gray-600"
                   >
                     <X className="w-6 h-6" />
                   </button>
                 </div>
               </div>
+
+              {/* Tabs Navigation */}
+              <NavigationTabs
+                tabs={reportTabs}
+                activeTab={activeReportTab}
+                onTabChange={setActiveReportTab}
+                variant="underline"
+                className="px-6"
+              />
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* Executive Summary */}
-              {surveyResults.executive_summary && (
+              {/* Executive Summary Tab */}
+              {activeReportTab === 'summary' && surveyResults.executive_summary && (
                 <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-6">
                   <div className="flex items-center gap-2 mb-3">
                     <FileText className="w-5 h-5 text-purple-600" />
                     <h4 className="text-lg font-semibold text-gray-900">Executive Summary</h4>
                   </div>
-                  <p className="text-gray-700 leading-relaxed">{surveyResults.executive_summary}</p>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{surveyResults.executive_summary}</p>
                 </div>
               )}
 
-              {/* Key Themes */}
-              {surveyResults.themes && surveyResults.themes.length > 0 && (() => {
+              {/* Key Themes Tab */}
+              {activeReportTab === 'themes' && surveyResults.themes && surveyResults.themes.length > 0 && (() => {
                 const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
                 const isAdmin = currentUser?.app_role === 'admin';
                 const canAdjustThemes = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
@@ -2217,8 +2259,8 @@ export default function Feedback360Dashboard({
                 );
               })()}
 
-              {/* Strengths */}
-              {surveyResults.overall_strengths && surveyResults.overall_strengths.length > 0 && (() => {
+              {/* Strengths Tab */}
+              {activeReportTab === 'strengths' && surveyResults.overall_strengths && surveyResults.overall_strengths.length > 0 && (() => {
                 const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
                 const isAdmin = currentUser?.app_role === 'admin';
                 const canAdjustItems = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
@@ -2284,8 +2326,8 @@ export default function Feedback360Dashboard({
                 );
               })()}
 
-              {/* Development Areas */}
-              {surveyResults.development_areas && surveyResults.development_areas.length > 0 && (() => {
+              {/* Development Areas Tab */}
+              {activeReportTab === 'development' && surveyResults.development_areas && surveyResults.development_areas.length > 0 && (() => {
                 const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
                 const isAdmin = currentUser?.app_role === 'admin';
                 const canAdjustItems = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
@@ -2351,37 +2393,12 @@ export default function Feedback360Dashboard({
                 );
               })()}
 
-              {/* Recommendations */}
-              {surveyResults.recommendations && surveyResults.recommendations.length > 0 && (
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Users className="w-4 h-4 text-blue-600" />
-                    Recommended Actions
-                  </h4>
-                  <ul className="space-y-2">
-                    {surveyResults.recommendations.map((rec: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="text-blue-600 mt-1">{idx + 1}.</span>
-                        <span className="text-gray-700">{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Key Insights - Sponsor/Admin Only */}
-              {surveyResults.key_insights && surveyResults.key_insights.length > 0 && (() => {
-                // Check if current user is the subject (employee being reviewed)
-                const isSubject = currentUser?.id === selectedSurvey?.employee_id;
-                // Check if user is sponsor or admin
+              {/* Key Insights Tab - Visible to All */}
+              {activeReportTab === 'insights' && surveyResults.key_insights && surveyResults.key_insights.length > 0 && (() => {
+                // Check if user is sponsor or admin for adjustment capabilities
                 const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
                 const isAdmin = currentUser?.app_role === 'admin';
-                // Only show key insights if NOT a pure subject (subjects who are also sponsors/admins can see it)
-                const canSeeKeyInsights = !isSubject || isAdmin || isSponsor;
                 const canAdjustItems = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
-
-                // Don't render section at all if user shouldn't see it
-                if (!canSeeKeyInsights) return null;
 
                 return (
                   <div>
@@ -2444,8 +2461,26 @@ export default function Feedback360Dashboard({
                 );
               })()}
 
-              {/* Divider and Notice - Sponsor/Admin Only Sections */}
-              {(() => {
+              {/* Recommendations Tab */}
+              {activeReportTab === 'recommendations' && surveyResults.recommendations && surveyResults.recommendations.length > 0 && (
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Target className="w-5 h-5 text-blue-600" />
+                    Recommended Actions
+                  </h4>
+                  <ul className="space-y-2">
+                    {surveyResults.recommendations.map((rec: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="text-blue-600 mt-1">{idx + 1}.</span>
+                        <span className="text-gray-700">{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Sentiment Analysis Tab - Sponsor/Admin Only */}
+              {activeReportTab === 'sentiment' && (() => {
                 // Check if current user is the subject (employee being reviewed)
                 const isSubject = currentUser?.id === selectedSurvey?.employee_id;
                 // Check if user is sponsor or admin
@@ -2463,19 +2498,22 @@ export default function Feedback360Dashboard({
                 return canSeeRelationshipBreakdown && hasRelationshipData;
               })() && (
                 <>
-                  {/* Divider with Notice */}
-                  <div className="relative my-8">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t-2 border-amber-300"></div>
-                    </div>
-                    <div className="relative flex justify-center">
-                      <span className="bg-white px-4 py-2 text-sm font-semibold text-amber-700 border-2 border-amber-300 rounded-lg shadow-sm">
-                        ⚠️ The sections below are only visible to Survey Sponsors and Administrators (not visible to the employee being reviewed)
-                      </span>
+                  {/* Privacy Notice Banner */}
+                  <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6">
+                    <div className="flex items-start">
+                      <AlertTriangle className="w-5 h-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-amber-800">
+                          Sponsor/Admin Only Section
+                        </p>
+                        <p className="text-sm text-amber-700 mt-1">
+                          This sentiment breakdown by relationship type is <strong>not visible to {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'}</strong>.
+                          Only survey sponsors and administrators can see this data to maintain reviewer confidentiality.
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Sentiment by Relationship - Sponsor/Admin Only */}
                   <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <Users className="w-5 h-5 text-blue-600" />
@@ -2551,9 +2589,28 @@ export default function Feedback360Dashboard({
                     )}
                   </div>
                 </div>
+                </>
+              )}
 
-              {/* Consensus & Outliers - Sponsor/Admin Only */}
-              {(surveyResults.consensus_areas?.length > 0 || surveyResults.outlier_opinions?.length > 0) && (
+              {/* Consensus & Outliers Tab - Sponsor/Admin Only */}
+              {activeReportTab === 'consensus' && (surveyResults.consensus_areas?.length > 0 || surveyResults.outlier_opinions?.length > 0) && (
+                <>
+                  {/* Privacy Notice Banner */}
+                  <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6">
+                    <div className="flex items-start">
+                      <AlertTriangle className="w-5 h-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-amber-800">
+                          Sponsor/Admin Only Section
+                        </p>
+                        <p className="text-sm text-amber-700 mt-1">
+                          This consensus and outlier analysis is <strong>not visible to {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'}</strong>.
+                          Only survey sponsors and administrators can see this data to maintain reviewer confidentiality.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {surveyResults.consensus_areas && surveyResults.consensus_areas.length > 0 && (
                       <div className="bg-green-50 rounded-lg p-4 border border-green-200">
@@ -2583,7 +2640,6 @@ export default function Feedback360Dashboard({
                       </div>
                     )}
                   </div>
-                )}
                 </>
               )}
             </div>
@@ -2718,7 +2774,8 @@ export default function Feedback360Dashboard({
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Raw Data Modal */}
       {showRawData && rawSurveyData && (
