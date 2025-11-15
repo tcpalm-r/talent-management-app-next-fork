@@ -1,22 +1,99 @@
 'use client';
 
-import { Settings, Pencil, Save, X, User, Shield, HelpCircle, Search, Trash2 } from 'lucide-react';
+import { Settings, Pencil, Save, X, User, Shield, HelpCircle, Search, Trash2, GripVertical } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getActiveUsers, updateUserProfile, UserProfile } from '@/lib/supabase';
-import { QUESTION_LIBRARY, DEFAULT_QUESTION_IDS } from '@/lib/feedback360QuestionBank';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 type EditableEmployee = UserProfile & {
   isEditing?: boolean;
 };
 
+// Sortable question item component
+function SortableQuestionItem({
+  id,
+  text,
+  index,
+  onDelete
+}: {
+  id: string;
+  text: string;
+  index: number;
+  onDelete: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="flex-shrink-0 mr-3 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+      >
+        <GripVertical className="w-5 h-5" />
+      </button>
+      <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">
+        {index + 1}
+      </span>
+      <p className="text-sm text-gray-700 flex-1">{text}</p>
+      <button
+        onClick={onDelete}
+        className="ml-3 p-1 text-red-600 hover:bg-red-50 rounded"
+        title="Delete question"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
 // Component for managing default 360 questions
 function Default360QuestionsManager() {
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>(DEFAULT_QUESTION_IDS);
-  const [customQuestions, setCustomQuestions] = useState<Record<string, string>>({});
+  const [questions, setQuestions] = useState<Array<{ id: string; text: string }>>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customQuestionText, setCustomQuestionText] = useState('');
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     loadDefaultQuestions();
@@ -27,11 +104,8 @@ function Default360QuestionsManager() {
       const response = await fetch('/api/360-default-questions');
       if (response.ok) {
         const data = await response.json();
-        if (data.defaultQuestionIds && data.defaultQuestionIds.length === 3) {
-          setSelectedQuestions(data.defaultQuestionIds);
-        }
-        if (data.customQuestions) {
-          setCustomQuestions(data.customQuestions);
+        if (data.questions && Array.isArray(data.questions)) {
+          setQuestions(data.questions);
         }
       }
     } catch (error) {
@@ -40,20 +114,12 @@ function Default360QuestionsManager() {
   };
 
   const saveDefaultQuestions = async () => {
-    if (selectedQuestions.length !== 3) {
-      alert('Please select exactly 3 questions');
-      return;
-    }
-
     setSaving(true);
     try {
       const response = await fetch('/api/360-default-questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          defaultQuestionIds: selectedQuestions,
-          customQuestions: customQuestions
-        }),
+        body: JSON.stringify({ questions }),
       });
 
       if (response.ok) {
@@ -62,7 +128,8 @@ function Default360QuestionsManager() {
         setCustomQuestionText('');
         alert('Default questions updated successfully!');
       } else {
-        alert('Failed to save default questions');
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to save default questions');
       }
     } catch (error) {
       console.error('Error saving default questions:', error);
@@ -77,55 +144,30 @@ function Default360QuestionsManager() {
       return;
     }
 
-    const customId = `custom-${Date.now()}`;
-    setCustomQuestions(prev => ({
-      ...prev,
-      [customId]: customQuestionText.trim()
-    }));
+    const newQuestion = {
+      id: `custom-${Date.now()}`,
+      text: customQuestionText.trim()
+    };
 
-    if (selectedQuestions.length < 3) {
-      setSelectedQuestions(prev => [...prev, customId]);
-    }
-
+    setQuestions(prev => [...prev, newQuestion]);
     setCustomQuestionText('');
     setShowCustomInput(false);
   };
 
-  const toggleQuestion = (questionId: string) => {
-    if (selectedQuestions.includes(questionId)) {
-      setSelectedQuestions(prev => prev.filter(id => id !== questionId));
-    } else {
-      if (selectedQuestions.length < 3) {
-        setSelectedQuestions(prev => [...prev, questionId]);
-      }
-    }
+  const deleteQuestion = (id: string) => {
+    setQuestions(prev => prev.filter(q => q.id !== id));
   };
 
-  const getQuestionText = (questionId: string): string => {
-    // Check if it's a custom question
-    if (customQuestions[questionId]) {
-      return customQuestions[questionId];
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setQuestions((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
     }
-
-    // Check template questions
-    for (const category of QUESTION_LIBRARY) {
-      const question = category.questions.find(q => q.id === questionId);
-      if (question) return question.text;
-    }
-    return questionId;
-  };
-
-  const isCustomQuestion = (questionId: string): boolean => {
-    return questionId.startsWith('custom-');
-  };
-
-  const deleteCustomQuestion = (questionId: string) => {
-    setCustomQuestions(prev => {
-      const newCustom = { ...prev };
-      delete newCustom[questionId];
-      return newCustom;
-    });
-    setSelectedQuestions(prev => prev.filter(id => id !== questionId));
   };
 
   return (
@@ -138,7 +180,7 @@ function Default360QuestionsManager() {
               360 Review Default Questions
             </h3>
             <p className="text-sm text-gray-600 mt-1">
-              Select 3 questions that everyone must answer in 360 reviews
+              Configure the required questions for all 360 reviews
             </p>
           </div>
           {!isEditing ? (
@@ -146,13 +188,13 @@ function Default360QuestionsManager() {
               onClick={() => setIsEditing(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
             >
-              Change Questions
+              Manage Questions
             </button>
           ) : (
             <div className="flex space-x-2">
               <button
                 onClick={saveDefaultQuestions}
-                disabled={saving || selectedQuestions.length !== 3}
+                disabled={saving}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
@@ -175,68 +217,55 @@ function Default360QuestionsManager() {
       <div className="p-6">
         {!isEditing ? (
           <div className="space-y-3">
-            <p className="text-sm font-medium text-gray-700 mb-3">Current Default Questions:</p>
-            {selectedQuestions.map((qId, index) => (
-              <div key={qId} className="flex items-start p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm font-medium text-gray-700 mb-3">
+              Current Required Questions ({questions.length}):
+            </p>
+            {questions.map((question, index) => (
+              <div key={question.id} className="flex items-start p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">
                   {index + 1}
                 </span>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-700">{getQuestionText(qId)}</p>
-                  {isCustomQuestion(qId) && (
-                    <span className="text-xs text-blue-600 font-medium mt-1 inline-block">Custom Question</span>
-                  )}
-                </div>
+                <p className="text-sm text-gray-700">{question.text}</p>
               </div>
             ))}
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-yellow-800">
-                <strong>Selected: {selectedQuestions.length}/3</strong>
-                {selectedQuestions.length < 3 && ' - Please select 3 questions'}
-                {selectedQuestions.length === 3 && ' - Ready to save!'}
+            <div className="border rounded-lg p-3 mb-4 bg-blue-50 border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>Total Questions: {questions.length}</strong>
+              </p>
+              <p className="text-xs mt-1 text-gray-600">
+                Drag and drop to reorder questions
               </p>
             </div>
 
-            {/* Custom Questions Section */}
-            {Object.keys(customQuestions).length > 0 && (
+            {/* Drag and Drop Question List */}
+            {questions.length > 0 && (
               <div className="space-y-2 mb-4">
-                <h4 className="font-semibold text-gray-900 text-sm">Your Custom Questions</h4>
-                <div className="space-y-2">
-                  {Object.entries(customQuestions).map(([id, text]) => {
-                    const isSelected = selectedQuestions.includes(id);
-                    const canSelect = selectedQuestions.length < 3 || isSelected;
-
-                    return (
-                      <div
-                        key={id}
-                        className={`flex items-start p-3 border rounded-lg ${
-                          isSelected
-                            ? 'bg-blue-50 border-blue-500'
-                            : 'bg-white border-gray-200'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => canSelect && toggleQuestion(id)}
-                          disabled={!canSelect}
-                          className="mt-1 mr-3"
+                <h4 className="font-semibold text-gray-900 text-sm">Required Questions</h4>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={questions.map(q => q.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-2">
+                      {questions.map((question, index) => (
+                        <SortableQuestionItem
+                          key={question.id}
+                          id={question.id}
+                          text={question.text}
+                          index={index}
+                          onDelete={() => deleteQuestion(question.id)}
                         />
-                        <span className="text-sm text-gray-700 flex-1">{text}</span>
-                        <button
-                          onClick={() => deleteCustomQuestion(id)}
-                          className="ml-2 p-1 text-red-600 hover:bg-red-50 rounded"
-                          title="Delete custom question"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
               </div>
             )}
 
@@ -246,17 +275,17 @@ function Default360QuestionsManager() {
                 onClick={() => setShowCustomInput(true)}
                 className="w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 text-sm font-medium"
               >
-                + Add Custom Question
+                + Add Question
               </button>
             ) : (
               <div className="p-4 border-2 border-blue-300 rounded-lg bg-blue-50">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Write your custom question:
+                  Enter your question:
                 </label>
                 <textarea
                   value={customQuestionText}
                   onChange={(e) => setCustomQuestionText(e.target.value)}
-                  placeholder="Enter your custom question here..."
+                  placeholder="What question should reviewers answer?"
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2 text-sm"
                 />
@@ -279,42 +308,6 @@ function Default360QuestionsManager() {
                 </div>
               </div>
             )}
-
-            {/* Template Questions */}
-            <h4 className="font-semibold text-gray-900 text-sm pt-4 border-t">Template Questions</h4>
-            {QUESTION_LIBRARY.map((category) => (
-              <div key={category.id} className="space-y-2">
-                <h4 className="font-semibold text-gray-900 text-sm">{category.title}</h4>
-                <div className="space-y-2">
-                  {category.questions.map((question) => {
-                    const isSelected = selectedQuestions.includes(question.id);
-                    const canSelect = selectedQuestions.length < 3 || isSelected;
-
-                    return (
-                      <label
-                        key={question.id}
-                        className={`flex items-start p-3 border rounded-lg cursor-pointer transition-colors ${
-                          isSelected
-                            ? 'bg-blue-50 border-blue-500'
-                            : canSelect
-                            ? 'bg-white border-gray-200 hover:bg-gray-50'
-                            : 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => canSelect && toggleQuestion(question.id)}
-                          disabled={!canSelect}
-                          className="mt-1 mr-3"
-                        />
-                        <span className="text-sm text-gray-700">{question.text}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
           </div>
         )}
       </div>

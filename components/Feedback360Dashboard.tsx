@@ -2274,12 +2274,12 @@ export default function Feedback360Dashboard({
                         <span className="text-xs text-gray-500 ml-2">(Click to adjust)</span>
                       )}
                     </h4>
-                    <ul className="space-y-2">
+                    <ul className="space-y-1">
                       {surveyResults.overall_strengths.map((strength: string, idx: number) => (
                         <li
                           key={idx}
                           onClick={() => canAdjustItems && setSelectedStrengthIndex(idx === selectedStrengthIndex ? null : idx)}
-                          className={`flex items-start gap-2 rounded-lg p-3 transition-colors ${
+                          className={`flex items-start gap-2 rounded-lg p-2 transition-colors ${
                             canAdjustItems ? 'cursor-pointer hover:bg-green-50' : ''
                           } ${
                             selectedStrengthIndex === idx
@@ -2341,12 +2341,12 @@ export default function Feedback360Dashboard({
                         <span className="text-xs text-gray-500 ml-2">(Click to adjust)</span>
                       )}
                     </h4>
-                    <ul className="space-y-2">
+                    <ul className="space-y-1">
                       {surveyResults.development_areas.map((area: string, idx: number) => (
                         <li
                           key={idx}
                           onClick={() => canAdjustItems && setSelectedDevelopmentIndex(idx === selectedDevelopmentIndex ? null : idx)}
-                          className={`flex items-start gap-2 rounded-lg p-3 transition-colors ${
+                          className={`flex items-start gap-2 rounded-lg p-2 transition-colors ${
                             canAdjustItems ? 'cursor-pointer hover:bg-amber-50' : ''
                           } ${
                             selectedDevelopmentIndex === idx
@@ -2409,12 +2409,12 @@ export default function Feedback360Dashboard({
                         <span className="text-xs text-gray-500 ml-2">(Click to adjust)</span>
                       )}
                     </h4>
-                    <ul className="space-y-2">
+                    <ul className="space-y-1">
                       {surveyResults.key_insights.map((insight: string, idx: number) => (
                         <li
                           key={idx}
                           onClick={() => canAdjustItems && setSelectedInsightIndex(idx === selectedInsightIndex ? null : idx)}
-                          className={`flex items-start gap-2 rounded-lg p-3 transition-colors ${
+                          className={`flex items-start gap-2 rounded-lg p-2 transition-colors ${
                             canAdjustItems ? 'cursor-pointer hover:bg-purple-50' : ''
                           } ${
                             selectedInsightIndex === idx

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { CheckCircle, AlertCircle, Send, Loader, Sparkles } from 'lucide-react';
 import SurveyAIAssistant from '../../../../components/SurveyAIAssistant';
+import { replaceNamePlaceholder } from '../../../../lib/questionUtils';
 
 interface Question {
   id: string;
@@ -294,7 +295,7 @@ export default function SurveyCompletionPage() {
                       </span>
                       <div className="flex-1 flex items-start justify-between gap-3">
                         <p className="text-gray-900 font-medium">
-                          {question.question_text} <span className="text-red-500">*</span>
+                          {replaceNamePlaceholder(question.question_text, survey?.employee_name)} <span className="text-red-500">*</span>
                         </p>
                         <button
                           type="button"

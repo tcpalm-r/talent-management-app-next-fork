@@ -4,14 +4,15 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 export const dynamic = 'force-dynamic';
 
 const DEFAULT_QUESTIONS = [
-  'impact-biggest-impact',
-  'growth-stop',
-  'growth-start',
+  { id: 'default-1', text: 'What is the ONE thing [NAME] does that creates the most value for you, your team, or the organization? Be specific with an example.' },
+  { id: 'default-2', text: 'If [NAME] could change or improve ONE thing about how they work over the next 6 months, what would create the biggest positive impact? What would success look like?' },
+  { id: 'default-3', text: 'Complete this sentence: \'I wish [NAME] knew that when they _____, it creates _____ for me/the team.\' OR \'What do you need most from [NAME] that you\'re not currently getting?\'' },
+  { id: 'default-4', text: 'What is one obstacle, bottleneck, or decision that [NAME] could help remove or accelerate to increase team performance?' },
 ];
 
 const SETTING_KEY = '360_default_questions';
 
-// GET: Retrieve the current default question IDs
+// GET: Retrieve the current default questions
 export async function GET() {
   try {
     // Query the organization_settings table using admin client
@@ -26,8 +27,7 @@ export async function GET() {
       if (error.code === 'PGRST116') {
         console.log('[360 Default Questions] No settings found in database, returning defaults');
         return NextResponse.json({
-          defaultQuestionIds: DEFAULT_QUESTIONS,
-          customQuestions: {}
+          questions: DEFAULT_QUESTIONS
         });
       }
 
@@ -37,13 +37,11 @@ export async function GET() {
 
     // Return the stored configuration
     const settingValue = data.setting_value as {
-      defaultQuestionIds: string[];
-      customQuestions: Record<string, string>;
+      questions: Array<{ id: string; text: string }>;
     };
 
     return NextResponse.json({
-      defaultQuestionIds: settingValue.defaultQuestionIds || DEFAULT_QUESTIONS,
-      customQuestions: settingValue.customQuestions || {}
+      questions: settingValue.questions || DEFAULT_QUESTIONS
     });
 
   } catch (error) {
@@ -51,23 +49,32 @@ export async function GET() {
 
     // Return defaults on error to prevent UI breakage
     return NextResponse.json({
-      defaultQuestionIds: DEFAULT_QUESTIONS,
-      customQuestions: {}
+      questions: DEFAULT_QUESTIONS
     });
   }
 }
 
-// POST: Update the default question IDs
+// POST: Update the default questions
 export async function POST(request: NextRequest) {
   try {
-    const { defaultQuestionIds, customQuestions } = await request.json();
+    const { questions } = await request.json();
 
     // Validate input
-    if (!Array.isArray(defaultQuestionIds) || defaultQuestionIds.length !== 3) {
+    if (!Array.isArray(questions)) {
       return NextResponse.json(
-        { error: 'Must provide exactly 3 question IDs' },
+        { error: 'Questions must be an array' },
         { status: 400 }
       );
+    }
+
+    // Validate question structure
+    for (const question of questions) {
+      if (!question.id || !question.text) {
+        return NextResponse.json(
+          { error: 'Each question must have an id and text' },
+          { status: 400 }
+        );
+      }
     }
 
     // Get authenticated user from headers (set by middleware)
@@ -75,8 +82,7 @@ export async function POST(request: NextRequest) {
 
     // Prepare the setting value
     const settingValue = {
-      defaultQuestionIds,
-      customQuestions: customQuestions || {}
+      questions
     };
 
     // Upsert the setting (insert or update) using admin client
@@ -96,12 +102,11 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    console.log(`[360 Default Questions] Settings updated by ${userEmail}`);
+    console.log(`[360 Default Questions] Settings updated by ${userEmail} - ${questions.length} questions`);
 
     return NextResponse.json({
       success: true,
-      defaultQuestionIds,
-      customQuestions: customQuestions || {}
+      questions
     });
 
   } catch (error) {

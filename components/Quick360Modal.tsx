@@ -7,6 +7,7 @@ import {
   DEFAULT_QUESTION_IDS,
   getQuestionById,
 } from '../lib/feedback360QuestionBank';
+import { replaceNamePlaceholder } from '../lib/questionUtils';
 
 interface Quick360ModalProps {
   isOpen: boolean;
@@ -45,18 +46,29 @@ export default function Quick360Modal({
 
   useEffect(() => {
     if (isOpen) {
-      const defaults = DEFAULT_QUESTION_IDS.map((id) => {
-        const question = getQuestionById(id);
-        if (!question) return null;
-        return {
-          id: question.id,
-          text: question.text,
-          isEditing: false,
-          isCustom: false,
-        } satisfies Question;
-      }).filter(Boolean) as Question[];
+      // Load default questions from API
+      const loadDefaultQuestions = async () => {
+        try {
+          const response = await fetch('/api/360-default-questions');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.questions && Array.isArray(data.questions)) {
+              const defaults = data.questions.map((q: any) => ({
+                id: q.id,
+                text: q.text,
+                isEditing: false,
+                isCustom: false,
+              } satisfies Question));
 
-      setSelectedQuestions((current) => (current.length > 0 ? current : defaults));
+              setSelectedQuestions((current) => (current.length > 0 ? current : defaults));
+            }
+          }
+        } catch (error) {
+          console.error('Error loading default questions:', error);
+        }
+      };
+
+      loadDefaultQuestions();
       setShowSuggestions(true);
     }
   }, [isOpen]);
@@ -278,7 +290,7 @@ export default function Quick360Modal({
                           autoFocus
                         />
                       ) : (
-                        <p className="text-gray-900">{question.text}</p>
+                        <p className="text-gray-900">{replaceNamePlaceholder(question.text, employee.name)}</p>
                       )}
                     </div>
                     <div className="flex gap-2">

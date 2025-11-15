@@ -26,6 +26,7 @@ import {
   getQuestionsByCategory,
 } from '../lib/feedback360QuestionBank';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
+import { replaceNamePlaceholder } from '../lib/questionUtils';
 
 interface Survey360WizardProps {
   isOpen: boolean;
@@ -257,27 +258,10 @@ export default function Survey360Wizard({
         const response = await fetch('/api/360-default-questions');
         if (response.ok) {
           const data = await response.json();
-          // Load the 3 default questions
-          // Use customQuestions if allQuestions is not available
-          const questionBank = data.allQuestions || [];
-          const customQuestions = data.customQuestions || {};
-
-          const defaultQuestionTexts = data.defaultQuestionIds
-            .map((id: string) => {
-              // Try to find in question bank first
-              const question = questionBank.find((q: any) => q.id === id);
-              if (question?.question) return question.question;
-
-              // Otherwise check custom questions
-              if (customQuestions[id]) return customQuestions[id];
-
-              return '';
-            })
-            .filter((q: string) => q.trim().length > 0)
-            .slice(0, 3);
-
-          if (defaultQuestionTexts.length === 3) {
-            setRequiredQuestions(defaultQuestionTexts);
+          // Load the default questions from the new API format
+          if (data.questions && Array.isArray(data.questions)) {
+            const questionTexts = data.questions.map((q: any) => q.text);
+            setRequiredQuestions(questionTexts);
           }
         }
       } catch (error) {
@@ -1396,7 +1380,7 @@ export default function Survey360Wizard({
                 <div className="space-y-3">
                   {requiredQuestions.map((question, index) => (
                     <div key={index} className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700">
-                      {question}
+                      {replaceNamePlaceholder(question, selectedEmployee?.name)}
                     </div>
                   ))}
                 </div>
@@ -1411,7 +1395,7 @@ export default function Survey360Wizard({
                     {customQuestions.map((question, index) => (
                       <div key={index} className="flex items-start gap-2">
                         <div className="flex-1 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700">
-                          {question}
+                          {replaceNamePlaceholder(question, selectedEmployee?.name)}
                         </div>
                         <button
                           onClick={() => {
@@ -1699,10 +1683,10 @@ export default function Survey360Wizard({
                   </div>
                   <ul className="space-y-1 text-sm text-gray-700">
                     {requiredQuestions.map((q, i) => (
-                      <li key={`req-${i}`}>• {q}</li>
+                      <li key={`req-${i}`}>• {replaceNamePlaceholder(q, selectedEmployee?.name)}</li>
                     ))}
                     {customQuestions.map((q, i) => (
-                      <li key={`custom-${i}`} className="text-blue-700">• {q}</li>
+                      <li key={`custom-${i}`} className="text-blue-700">• {replaceNamePlaceholder(q, selectedEmployee?.name)}</li>
                     ))}
                   </ul>
                 </div>
