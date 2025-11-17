@@ -748,6 +748,46 @@ export default function Feedback360Dashboard({
     setEditingRecommendationText('');
   };
 
+  const saveRecommendationsToDB = async () => {
+    if (!surveyResults || !selectedSurvey) return;
+
+    try {
+      const response = await fetch('/api/360-generate-report', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          survey_id: selectedSurvey.id,
+          recommendations: surveyResults.recommendations,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save recommendations');
+      }
+
+      notify({
+        title: 'Saved',
+        description: 'Recommendations have been saved successfully.',
+        variant: 'success',
+      });
+
+      // Mark narrative as outdated if it exists
+      if (finalNarrative) {
+        setNarrativeOutdated(true);
+      }
+    } catch (error: any) {
+      console.error('Error saving recommendations:', error);
+      notify({
+        title: 'Save Failed',
+        description: error.message || 'Failed to save recommendations. Please try again.',
+        variant: 'error',
+      });
+    }
+  };
+
   const generateNarrative = async () => {
     if (!selectedSurvey || !surveyResults) {
       notify({
@@ -1413,22 +1453,25 @@ export default function Feedback360Dashboard({
           )}
         </button>
 
-        <button
-          onClick={() => setFilterStatus('completed')}
-          className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
-            filterStatus === 'completed'
-              ? 'border-green-500 bg-green-50'
-              : 'bg-white border-green-200 hover:bg-green-50'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-green-700">Completed</p>
-              <p className="text-2xl font-bold text-green-900">{stats.completed}</p>
+        {/* Completed - Admin & Leader Only */}
+        {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader') && (
+          <button
+            onClick={() => setFilterStatus('completed')}
+            className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
+              filterStatus === 'completed'
+                ? 'border-green-500 bg-green-50'
+                : 'bg-white border-green-200 hover:bg-green-50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-700">Completed</p>
+                <p className="text-2xl font-bold text-green-900">{stats.completed}</p>
+              </div>
+              <CheckCircle className="w-8 h-8 text-green-400" />
             </div>
-            <CheckCircle className="w-8 h-8 text-green-400" />
-          </div>
-        </button>
+          </button>
+        )}
 
         {/* Needs Reanalysis - Admin Only */}
         {currentUser?.app_role === 'admin' && (
@@ -1450,22 +1493,25 @@ export default function Feedback360Dashboard({
           </button>
         )}
 
-        <button
-          onClick={() => setFilterStatus('finalized')}
-          className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
-            filterStatus === 'finalized'
-              ? 'border-purple-500 bg-purple-50'
-              : 'bg-white border-purple-200 hover:bg-purple-50'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-purple-700">Finalized</p>
-              <p className="text-2xl font-bold text-purple-900">{stats.finalized}</p>
+        {/* Finalized - Admin & Leader Only */}
+        {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader') && (
+          <button
+            onClick={() => setFilterStatus('finalized')}
+            className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
+              filterStatus === 'finalized'
+                ? 'border-purple-500 bg-purple-50'
+                : 'bg-white border-purple-200 hover:bg-purple-50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-700">Finalized</p>
+                <p className="text-2xl font-bold text-purple-900">{stats.finalized}</p>
+              </div>
+              <ArrowDownCircle className="w-8 h-8 text-purple-400" />
             </div>
-            <ArrowDownCircle className="w-8 h-8 text-purple-400" />
-          </div>
-        </button>
+          </button>
+        )}
       </div>
 
       {/* Reviews List */}
@@ -2949,6 +2995,18 @@ export default function Feedback360Dashboard({
                         <li className="text-gray-500 text-sm italic">No recommendations available.</li>
                       )}
                     </ul>
+
+                    {/* Save button */}
+                    {canEdit && (
+                      <div className="mt-6 flex justify-end">
+                        <button
+                          onClick={saveRecommendationsToDB}
+                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-medium"
+                        >
+                          Save Changes
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
