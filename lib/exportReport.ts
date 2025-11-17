@@ -109,12 +109,19 @@ export async function exportReportAsPDF(report: Report360Data) {
   // NARRATIVE - First content after cover page, no header, just the text
   // ==========================================================================
   if (report.final_narrative) {
+    // Clean up narrative text (in case it wasn't cleaned during generation)
+    let narrativeText = report.final_narrative
+      .replace(/^\*\*360-Degree Feedback Report:?\s*Executive Summary\*\*\s*/i, '')
+      .replace(/^\*\*Executive Summary\*\*\s*/i, '')
+      .replace(/^#+ .*\n/gm, '') // Remove any markdown headers
+      .trim();
+
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(0, 0, 0);
 
     // Split narrative into lines and handle page breaks
-    const lines = pdf.splitTextToSize(report.final_narrative, contentWidth);
+    const lines = pdf.splitTextToSize(narrativeText, contentWidth);
     const lineHeight = 10 * 0.35; // fontSize * 0.35
 
     for (let i = 0; i < lines.length; i++) {
