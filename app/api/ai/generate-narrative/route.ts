@@ -136,10 +136,11 @@ INSTRUCTIONS:
 6. End with an encouraging closing that emphasizes growth and potential
 7. Use third person perspective (e.g., "${subjectName} demonstrates...")
 8. Maintain a professional yet warm tone - this should be motivating and constructive
-9. DO NOT use section headers or bullet points - this should be flowing narrative prose
-10. Make it feel personalized and specific to ${subjectName}, not generic
+9. DO NOT use section headers, titles, bullet points, or markdown formatting (no **, ##, etc.) - this should be flowing narrative prose only
+10. DO NOT include any title like "Executive Summary" or "360-Degree Feedback Report" - start directly with the narrative content
+11. Make it feel personalized and specific to ${subjectName}, not generic
 
-Write the narrative now:`;
+Write the narrative now (plain text only, no formatting):`;
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',

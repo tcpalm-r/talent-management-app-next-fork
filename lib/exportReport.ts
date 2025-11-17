@@ -73,11 +73,13 @@ export async function exportReportAsPDF(report: Report360Data) {
   pdf.text('360° Feedback Report', margin, yPosition);
   yPosition += 15;
 
-  // Employee name
-  pdf.setFontSize(16);
-  pdf.setFont('helvetica', 'normal');
-  pdf.text(report.employee_name || 'Unknown Employee', margin, yPosition);
-  yPosition += 10;
+  // Employee name (only show if available)
+  if (report.employee_name && report.employee_name.trim()) {
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(report.employee_name, margin, yPosition);
+    yPosition += 10;
+  }
 
   // Survey name
   pdf.setFontSize(12);
@@ -104,43 +106,26 @@ export async function exportReportAsPDF(report: Report360Data) {
   yPosition += 15;
 
   // ==========================================================================
-  // NARRATIVE (First page for subject) - matches tab order
+  // NARRATIVE - First content after cover page, no header, just the text
   // ==========================================================================
   if (report.final_narrative) {
-    checkPageBreak(50);
-
-    pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(147, 51, 234); // Purple
-    pdf.text('Narrative', margin, yPosition);
-    yPosition += 10;
-
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(0, 0, 0);
 
-    const narrativeHeight = addWrappedText(report.final_narrative, margin, yPosition, contentWidth, 10);
-    yPosition += narrativeHeight + 10;
-  }
+    // Split narrative into lines and handle page breaks
+    const lines = pdf.splitTextToSize(report.final_narrative, contentWidth);
+    const lineHeight = 10 * 0.35; // fontSize * 0.35
 
-  // ==========================================================================
-  // EXECUTIVE SUMMARY - matches tab order position 1
-  // ==========================================================================
-  if (report.executive_summary) {
-    checkPageBreak(50);
+    for (let i = 0; i < lines.length; i++) {
+      if (checkPageBreak(10)) {
+        // Page break occurred, reset to top of new page
+      }
+      pdf.text(lines[i], margin, yPosition);
+      yPosition += lineHeight;
+    }
 
-    pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(59, 130, 246); // Blue
-    pdf.text('Executive Summary', margin, yPosition);
-    yPosition += 10;
-
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(0, 0, 0);
-
-    const summaryHeight = addWrappedText(report.executive_summary, margin, yPosition, contentWidth, 10);
-    yPosition += summaryHeight + 10;
+    yPosition += 10; // Add space after narrative
   }
 
   // ==========================================================================
