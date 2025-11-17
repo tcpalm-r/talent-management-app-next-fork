@@ -667,7 +667,7 @@ export default function Survey360Wizard({
       case 'who':
         return isBatchMode || !!selectedEmployee || (highlightedEmployeeListIndex >= 0 && filteredEmployees.length > 0);
       case 'competencies':
-        return requiredQuestions.length === 3 && requiredQuestions.every(q => q.trim().length > 0);
+        return requiredQuestions.length >= 3 && requiredQuestions.every(q => q.trim().length > 0);
       case 'raters':
         return raters.length >= 3 && raters.slice(0, 3).every(r => r.name && r.name.trim().length > 0 && r.email && r.email.trim().length > 0);
       case 'timeline':
