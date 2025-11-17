@@ -681,8 +681,15 @@ export default function Feedback360Dashboard({
   const saveRecommendation = (index: number) => {
     if (!surveyResults || !editingRecommendationText.trim()) return;
 
-    const updatedRecommendations = [...surveyResults.recommendations];
-    updatedRecommendations[index] = editingRecommendationText.trim();
+    const updatedRecommendations = [...(surveyResults.recommendations || [])];
+
+    if (index === -1) {
+      // Adding new recommendation
+      updatedRecommendations.push(editingRecommendationText.trim());
+    } else {
+      // Updating existing recommendation
+      updatedRecommendations[index] = editingRecommendationText.trim();
+    }
 
     setSurveyResults({
       ...surveyResults,
@@ -691,12 +698,6 @@ export default function Feedback360Dashboard({
 
     setEditingRecommendationIndex(null);
     setEditingRecommendationText('');
-
-    notify({
-      title: 'Recommendation Updated',
-      description: 'The recommendation has been saved.',
-      variant: 'success',
-    });
   };
 
   const cancelEditingRecommendation = () => {
@@ -2111,10 +2112,10 @@ export default function Feedback360Dashboard({
         // Define tabs
         const reportTabs = [
           { id: 'summary', label: 'Executive Summary' },
-          { id: 'themes', label: 'Key Themes' },
+          { id: 'themes', label: 'Themes' },
           { id: 'strengths', label: 'Strengths' },
           { id: 'development', label: 'Development Areas' },
-          ...(surveyResults.key_insights && surveyResults.key_insights.length > 0 ? [{ id: 'insights', label: 'Key Insights' }] : []),
+          ...(surveyResults.key_insights && surveyResults.key_insights.length > 0 ? [{ id: 'insights', label: 'Insights' }] : []),
           { id: 'recommendations', label: 'Recommended Actions' },
           ...(canSeeAdvanced && hasSentimentData ? [{ id: 'sentiment', label: 'Sentiment Analysis' }] : []),
           ...(canSeeAdvanced && hasConsensusData ? [{ id: 'consensus', label: 'Consensus & Outliers' }] : [])
@@ -2230,15 +2231,24 @@ export default function Feedback360Dashboard({
               />
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="h-[500px] overflow-y-auto p-6 space-y-6">
               {/* Executive Summary Tab */}
               {activeReportTab === 'summary' && surveyResults.executive_summary && (
-                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <FileText className="w-5 h-5 text-purple-600" />
-                    <h4 className="text-lg font-semibold text-gray-900">Executive Summary</h4>
+                <div>
+                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-6">
+                    <div className="mb-12">
+                      <h4 className="text-lg font-semibold text-gray-900">Executive Summary</h4>
+                    </div>
+                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{surveyResults.executive_summary}</p>
                   </div>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{surveyResults.executive_summary}</p>
+                  <p className="text-sm text-gray-600 italic mt-3">
+                    This report is organized into sections accessible via the tabs above: Themes highlight recurring feedback patterns,
+                    Strengths and Development Areas identify key capabilities and growth opportunities, Insights provide strategic observations,
+                    and Recommended Actions suggest specific next steps for development.
+                  </p>
+                  <p className="text-sm text-gray-600 italic mt-3">
+                    After you have reviewed all the sections, click create narrative to generate a one-pager that will be the first page of the final 360 report that {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'} sees.
+                  </p>
                 </div>
               )}
 
@@ -2250,11 +2260,10 @@ export default function Feedback360Dashboard({
 
                 return (
                   <div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <Sparkles className="w-5 h-5 text-purple-600" />
-                      <h4 className="text-lg font-semibold text-gray-900">Key Themes</h4>
+                    <div className="mb-4">
+                      <h4 className="text-lg font-semibold text-gray-900 inline">Themes</h4>
                       {canAdjustThemes && (
-                        <span className="text-xs text-gray-500 ml-2">(Click a theme to adjust)</span>
+                        <span className="text-xs text-gray-600 font-semibold ml-2">(Click a theme to adjust)</span>
                       )}
                     </div>
                     <div className="space-y-3">
@@ -2384,9 +2393,8 @@ export default function Feedback360Dashboard({
 
                 return (
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      Key Strengths
+                    <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                      Strengths
                       {canAdjustItems && (
                         <span className="text-xs text-gray-500 ml-2">(Click to adjust)</span>
                       )}
@@ -2489,8 +2497,7 @@ export default function Feedback360Dashboard({
 
                 return (
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    <h4 className="text-lg font-semibold text-gray-900 mb-3">
                       Development Areas
                       {canAdjustItems && (
                         <span className="text-xs text-gray-500 ml-2">(Click to adjust)</span>
@@ -2595,11 +2602,10 @@ export default function Feedback360Dashboard({
 
                 return (
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-purple-600" />
-                      Key Insights
+                    <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                      Insights
                       {canAdjustItems && (
-                        <span className="text-xs text-gray-500 ml-2">(Click to adjust)</span>
+                        <span className="text-xs text-gray-600 font-semibold ml-2">(Click to adjust)</span>
                       )}
                     </h4>
                     <ul className="space-y-1">
@@ -2615,7 +2621,7 @@ export default function Feedback360Dashboard({
                               : ''
                           }`}
                         >
-                          <span className="text-purple-600 mt-1">💡</span>
+                          <span className="text-purple-600 mt-1">•</span>
                           <div className="flex-1">
                             <span className="text-gray-700">{insight}</span>
 
@@ -2699,85 +2705,103 @@ export default function Feedback360Dashboard({
                 const canEdit = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
 
                 return (
-                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                        <Target className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <div className="mb-4">
+                      <h4 className="text-lg font-semibold text-gray-900">
                         Recommended Actions
                         {canEdit && (
-                          <span className="text-xs text-gray-500 ml-2">(Click to edit, or add new)</span>
+                          <span className="text-xs text-gray-600 font-semibold ml-2">(Click to edit)</span>
                         )}
                       </h4>
-                      {canEdit && (
-                        <button
-                          onClick={addRecommendation}
-                          className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-1"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Add
-                        </button>
-                      )}
                     </div>
-                    {surveyResults.recommendations && surveyResults.recommendations.length > 0 ? (
-                      <ul className="space-y-2">
-                        {surveyResults.recommendations.map((rec: string, idx: number) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <span className="text-blue-600 mt-1">{idx + 1}.</span>
+                    <ul className="space-y-3">
+                      {surveyResults.recommendations && surveyResults.recommendations.length > 0 && surveyResults.recommendations.map((rec: string, idx: number) => (
+                        <li key={idx} className="flex items-start gap-3 group">
+                          <span className="text-gray-400 font-medium text-sm flex-shrink-0 mt-0.5">{idx + 1}.</span>
                           {editingRecommendationIndex === idx ? (
-                            <div className="flex-1 flex gap-2">
-                              <textarea
-                                value={editingRecommendationText}
-                                onChange={(e) => setEditingRecommendationText(e.target.value)}
-                                className="flex-1 p-2 border border-blue-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                rows={3}
-                                autoFocus
-                              />
-                              <div className="flex flex-col gap-1">
-                                <button
-                                  onClick={() => saveRecommendation(idx)}
-                                  className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  onClick={cancelEditingRecommendation}
-                                  className="px-3 py-1 bg-gray-400 text-white text-xs rounded hover:bg-gray-500 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
+                            <input
+                              type="text"
+                              value={editingRecommendationText}
+                              onChange={(e) => setEditingRecommendationText(e.target.value)}
+                              onBlur={() => saveRecommendation(idx)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  saveRecommendation(idx);
+                                } else if (e.key === 'Escape') {
+                                  cancelEditingRecommendation();
+                                }
+                              }}
+                              className="flex-1 px-2 py-1 border-b-2 border-blue-500 text-gray-700 text-sm focus:outline-none bg-transparent"
+                              autoFocus
+                            />
                           ) : (
-                            <div className="flex-1 flex items-start justify-between gap-2">
-                              <span className="text-gray-700 flex-1">{rec}</span>
+                            <div className="flex-1 flex items-start justify-between group">
+                              <span
+                                onClick={() => canEdit && startEditingRecommendation(idx, rec)}
+                                className={`text-gray-700 text-sm flex-1 ${
+                                  canEdit ? 'cursor-pointer hover:text-gray-900' : ''
+                                }`}
+                              >
+                                {rec}
+                              </span>
                               {canEdit && (
-                                <div className="flex gap-1">
-                                  <button
-                                    onClick={() => startEditingRecommendation(idx, rec)}
-                                    className="text-blue-600 hover:text-blue-700 text-xs px-2 py-1"
-                                    title="Edit"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={() => deleteRecommendation(idx)}
-                                    className="text-red-600 hover:text-red-700 text-xs px-2 py-1"
-                                    title="Delete"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
+                                <button
+                                  onClick={() => deleteRecommendation(idx)}
+                                  className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 text-xs ml-3 transition-opacity"
+                                  title="Delete"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
                               )}
                             </div>
                           )}
                         </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-gray-500 text-sm italic">
-                        {canEdit ? 'No recommendations yet. Click "Add" to create one.' : 'No recommendations available.'}
-                      </p>
-                    )}
+                      ))}
+
+                      {/* Add new item inline */}
+                      {canEdit && (
+                        <li className="flex items-start gap-3 group">
+                          <span className="text-gray-400 font-medium text-sm flex-shrink-0 mt-0.5">
+                            {(surveyResults.recommendations?.length || 0) + 1}.
+                          </span>
+                          {editingRecommendationIndex === -1 ? (
+                            <input
+                              type="text"
+                              value={editingRecommendationText}
+                              onChange={(e) => setEditingRecommendationText(e.target.value)}
+                              onBlur={() => {
+                                if (editingRecommendationText.trim()) {
+                                  saveRecommendation(-1);
+                                } else {
+                                  cancelEditingRecommendation();
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && editingRecommendationText.trim()) {
+                                  saveRecommendation(-1);
+                                } else if (e.key === 'Escape') {
+                                  cancelEditingRecommendation();
+                                }
+                              }}
+                              className="flex-1 px-2 py-1 border-b-2 border-blue-500 text-gray-700 text-sm focus:outline-none bg-transparent"
+                              placeholder="Type to add new action..."
+                              autoFocus
+                            />
+                          ) : (
+                            <span
+                              onClick={() => startEditingRecommendation(-1, '')}
+                              className="flex-1 text-gray-400 text-sm cursor-pointer hover:text-gray-600 italic"
+                            >
+                              Add new action...
+                            </span>
+                          )}
+                        </li>
+                      )}
+
+                      {!canEdit && (!surveyResults.recommendations || surveyResults.recommendations.length === 0) && (
+                        <li className="text-gray-500 text-sm italic">No recommendations available.</li>
+                      )}
+                    </ul>
                   </div>
                 );
               })()}
@@ -2818,8 +2842,7 @@ export default function Feedback360Dashboard({
                   </div>
 
                   <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-blue-600" />
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">
                     Sentiment by Relationship Type
                   </h4>
                   <p className="text-sm text-gray-600 mb-4">
@@ -2917,8 +2940,7 @@ export default function Feedback360Dashboard({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {surveyResults.consensus_areas && surveyResults.consensus_areas.length > 0 && (
                       <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                        <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        <h4 className="text-lg font-semibold text-gray-900 mb-2">
                           Strong Consensus
                         </h4>
                         <ul className="space-y-1 text-sm">
@@ -2931,8 +2953,7 @@ export default function Feedback360Dashboard({
 
                     {surveyResults.outlier_opinions && surveyResults.outlier_opinions.length > 0 && (
                       <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                        <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        <h4 className="text-lg font-semibold text-gray-900 mb-2">
                           Unique Perspectives
                         </h4>
                         <ul className="space-y-1 text-sm">
