@@ -139,8 +139,8 @@ export async function GET(request: NextRequest) {
         // Non-creators cannot see draft surveys
         if (survey.status === 'draft') return false;
 
-        // Subject can see their own survey only if finalized
-        if (isSubject && survey.status === 'finalized') {
+        // Subject can see their own survey if completed or finalized
+        if (isSubject && (survey.status === 'completed' || survey.status === 'finalized')) {
           return true;
         }
 
