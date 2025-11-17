@@ -31,8 +31,20 @@ export async function GET() {
         });
       }
 
+      // If table doesn't exist (42P01) or other database errors, return defaults
+      // This ensures graceful degradation during initial deployment or migrations
+      if (error.code === '42P01' || error.code === 'PGRST301') {
+        console.warn('[360 Default Questions] organization_settings table not found, returning defaults. Run migrations to enable database storage.');
+        return NextResponse.json({
+          questions: DEFAULT_QUESTIONS
+        });
+      }
+
       console.error('[360 Default Questions] Database error:', error);
-      throw error;
+      // Return defaults instead of throwing to prevent build failures
+      return NextResponse.json({
+        questions: DEFAULT_QUESTIONS
+      });
     }
 
     // Return the stored configuration
@@ -99,6 +111,18 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[360 Default Questions] Database error:', error);
+      
+      // If table doesn't exist, return error message with instructions
+      if (error.code === '42P01' || error.code === 'PGRST301') {
+        return NextResponse.json(
+          { 
+            error: 'Database table not found. Please run migrations to enable persistent storage.',
+            questions // Return the questions anyway so UI doesn't break
+          },
+          { status: 500 }
+        );
+      }
+      
       throw error;
     }
 
