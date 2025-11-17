@@ -2110,14 +2110,14 @@ export default function Feedback360Dashboard({
 
         // Define tabs
         const reportTabs = [
-          { id: 'summary', label: 'Executive Summary', icon: FileText },
-          { id: 'themes', label: 'Key Themes', icon: Sparkles },
-          { id: 'strengths', label: 'Strengths', icon: CheckCircle },
-          { id: 'development', label: 'Development Areas', icon: AlertTriangle },
-          ...(surveyResults.key_insights && surveyResults.key_insights.length > 0 ? [{ id: 'insights', label: 'Key Insights', icon: Lightbulb }] : []),
-          { id: 'recommendations', label: 'Recommended Actions', icon: Target },
-          ...(canSeeAdvanced && hasSentimentData ? [{ id: 'sentiment', label: 'Sentiment Analysis', icon: BarChart3 }] : []),
-          ...(canSeeAdvanced && hasConsensusData ? [{ id: 'consensus', label: 'Consensus & Outliers', icon: GitCompare }] : [])
+          { id: 'summary', label: 'Executive Summary' },
+          { id: 'themes', label: 'Key Themes' },
+          { id: 'strengths', label: 'Strengths' },
+          { id: 'development', label: 'Development Areas' },
+          ...(surveyResults.key_insights && surveyResults.key_insights.length > 0 ? [{ id: 'insights', label: 'Key Insights' }] : []),
+          { id: 'recommendations', label: 'Recommended Actions' },
+          ...(canSeeAdvanced && hasSentimentData ? [{ id: 'sentiment', label: 'Sentiment Analysis' }] : []),
+          ...(canSeeAdvanced && hasConsensusData ? [{ id: 'consensus', label: 'Consensus & Outliers' }] : [])
         ];
 
         return (
