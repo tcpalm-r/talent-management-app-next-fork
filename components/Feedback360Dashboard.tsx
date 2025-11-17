@@ -540,9 +540,10 @@ export default function Feedback360Dashboard({
     }
   };
 
-  const adjustItemSpecificity = async (
+  const adjustItem = async (
     itemIndex: number,
-    direction: 'more' | 'less',
+    adjustmentType: 'specificity' | 'tone' | 'length',
+    direction: 'more' | 'less' | 'harsher' | 'softer' | 'longer' | 'shorter',
     sectionType: 'themes' | 'strengths' | 'development_areas' | 'key_insights'
   ) => {
     if (!selectedSurvey || !surveyResults) return;
@@ -583,6 +584,7 @@ export default function Feedback360Dashboard({
           survey_id: selectedSurvey.id,
           item: item,
           section_type: sectionType,
+          adjustment_type: adjustmentType,
           direction: direction,
           raw_responses: rawSurveyData?.responses || []
         }),
@@ -604,9 +606,23 @@ export default function Feedback360Dashboard({
         [sectionKey]: updatedSection
       });
 
+      // Create appropriate success message based on adjustment type
+      let adjustmentMessage = '';
+      switch (adjustmentType) {
+        case 'specificity':
+          adjustmentMessage = `made ${direction} specific`;
+          break;
+        case 'tone':
+          adjustmentMessage = `made ${direction}`;
+          break;
+        case 'length':
+          adjustmentMessage = `made ${direction}`;
+          break;
+      }
+
       notify({
         title: `${sectionLabel.charAt(0).toUpperCase() + sectionLabel.slice(1)} Adjusted`,
-        description: `The ${sectionLabel} has been made ${direction} specific.`,
+        description: `The ${sectionLabel} has been ${adjustmentMessage}.`,
         variant: 'success',
       });
 
@@ -2290,29 +2306,69 @@ export default function Feedback360Dashboard({
 
                           {/* Adjustment buttons - only show when this theme is selected */}
                           {canAdjustThemes && selectedThemeIndex === idx && (
-                            <div className="mt-3 pt-3 border-t border-purple-200 flex gap-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  adjustItemSpecificity(idx, 'more', 'themes');
-                                }}
-                                disabled={isAdjustingItem}
-                                className="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                              >
-                                <Sparkles className="w-4 h-4" />
-                                {isAdjustingItem ? 'Adjusting...' : 'Make More Specific'}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  adjustItemSpecificity(idx, 'less', 'themes');
-                                }}
-                                disabled={isAdjustingItem}
-                                className="flex-1 px-3 py-2 bg-purple-400 text-white rounded-lg hover:bg-purple-500 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                              >
-                                <Sparkles className="w-4 h-4" />
-                                {isAdjustingItem ? 'Adjusting...' : 'Make Less Specific'}
-                              </button>
+                            <div className="mt-3 pt-3 border-t border-purple-200">
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    adjustItem(idx, 'specificity', 'more', 'themes');
+                                  }}
+                                  disabled={isAdjustingItem}
+                                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isAdjustingItem ? 'Adjusting...' : 'More Specific'}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    adjustItem(idx, 'specificity', 'less', 'themes');
+                                  }}
+                                  disabled={isAdjustingItem}
+                                  className="px-3 py-2 bg-purple-400 text-white rounded-lg hover:bg-purple-500 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isAdjustingItem ? 'Adjusting...' : 'Less Specific'}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    adjustItem(idx, 'tone', 'harsher', 'themes');
+                                  }}
+                                  disabled={isAdjustingItem}
+                                  className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isAdjustingItem ? 'Adjusting...' : 'Harsher'}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    adjustItem(idx, 'tone', 'softer', 'themes');
+                                  }}
+                                  disabled={isAdjustingItem}
+                                  className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isAdjustingItem ? 'Adjusting...' : 'Softer'}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    adjustItem(idx, 'length', 'longer', 'themes');
+                                  }}
+                                  disabled={isAdjustingItem}
+                                  className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isAdjustingItem ? 'Adjusting...' : 'Longer'}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    adjustItem(idx, 'length', 'shorter', 'themes');
+                                  }}
+                                  disabled={isAdjustingItem}
+                                  className="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isAdjustingItem ? 'Adjusting...' : 'Shorter'}
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -2356,29 +2412,69 @@ export default function Feedback360Dashboard({
 
                             {/* Adjustment buttons */}
                             {canAdjustItems && selectedStrengthIndex === idx && (
-                              <div className="mt-3 pt-3 border-t border-green-200 flex gap-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItemSpecificity(idx, 'more', 'strengths');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                  <Sparkles className="w-4 h-4" />
-                                  {isAdjustingItem ? 'Adjusting...' : 'Make More Specific'}
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItemSpecificity(idx, 'less', 'strengths');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-3 py-2 bg-purple-400 text-white rounded-lg hover:bg-purple-500 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                  <Sparkles className="w-4 h-4" />
-                                  {isAdjustingItem ? 'Adjusting...' : 'Make Less Specific'}
-                                </button>
+                              <div className="mt-3 pt-3 border-t border-green-200">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'specificity', 'more', 'strengths');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'More Specific'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'specificity', 'less', 'strengths');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-purple-400 text-white rounded-lg hover:bg-purple-500 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Less Specific'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'tone', 'harsher', 'strengths');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Harsher'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'tone', 'softer', 'strengths');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Softer'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'length', 'longer', 'strengths');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Longer'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'length', 'shorter', 'strengths');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Shorter'}
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -2423,29 +2519,69 @@ export default function Feedback360Dashboard({
 
                             {/* Adjustment buttons */}
                             {canAdjustItems && selectedDevelopmentIndex === idx && (
-                              <div className="mt-3 pt-3 border-t border-amber-200 flex gap-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItemSpecificity(idx, 'more', 'development_areas');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                  <Sparkles className="w-4 h-4" />
-                                  {isAdjustingItem ? 'Adjusting...' : 'Make More Specific'}
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItemSpecificity(idx, 'less', 'development_areas');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-3 py-2 bg-purple-400 text-white rounded-lg hover:bg-purple-500 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                  <Sparkles className="w-4 h-4" />
-                                  {isAdjustingItem ? 'Adjusting...' : 'Make Less Specific'}
-                                </button>
+                              <div className="mt-3 pt-3 border-t border-amber-200">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'specificity', 'more', 'development_areas');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'More Specific'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'specificity', 'less', 'development_areas');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-purple-400 text-white rounded-lg hover:bg-purple-500 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Less Specific'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'tone', 'harsher', 'development_areas');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Harsher'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'tone', 'softer', 'development_areas');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Softer'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'length', 'longer', 'development_areas');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Longer'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'length', 'shorter', 'development_areas');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Shorter'}
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -2491,29 +2627,69 @@ export default function Feedback360Dashboard({
 
                             {/* Adjustment buttons */}
                             {canAdjustItems && selectedInsightIndex === idx && (
-                              <div className="mt-3 pt-3 border-t border-purple-200 flex gap-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItemSpecificity(idx, 'more', 'key_insights');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                  <Sparkles className="w-4 h-4" />
-                                  {isAdjustingItem ? 'Adjusting...' : 'Make More Specific'}
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItemSpecificity(idx, 'less', 'key_insights');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-3 py-2 bg-purple-400 text-white rounded-lg hover:bg-purple-500 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                  <Sparkles className="w-4 h-4" />
-                                  {isAdjustingItem ? 'Adjusting...' : 'Make Less Specific'}
-                                </button>
+                              <div className="mt-3 pt-3 border-t border-purple-200">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'specificity', 'more', 'key_insights');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'More Specific'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'specificity', 'less', 'key_insights');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-purple-400 text-white rounded-lg hover:bg-purple-500 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Less Specific'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'tone', 'harsher', 'key_insights');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Harsher'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'tone', 'softer', 'key_insights');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Softer'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'length', 'longer', 'key_insights');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Longer'}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustItem(idx, 'length', 'shorter', 'key_insights');
+                                    }}
+                                    disabled={isAdjustingItem}
+                                    className="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isAdjustingItem ? 'Adjusting...' : 'Shorter'}
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>
