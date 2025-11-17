@@ -101,6 +101,9 @@ export default function Feedback360Dashboard({
   const [activeReportTab, setActiveReportTab] = useState<string>('summary');
   const [editingRecommendationIndex, setEditingRecommendationIndex] = useState<number | null>(null);
   const [editingRecommendationText, setEditingRecommendationText] = useState<string>('');
+  const [finalNarrative, setFinalNarrative] = useState<string>('');
+  const [isGeneratingNarrative, setIsGeneratingNarrative] = useState(false);
+  const [narrativeOutdated, setNarrativeOutdated] = useState(false);
 
   useEffect(() => {
     loadSurveys();
@@ -139,6 +142,16 @@ export default function Feedback360Dashboard({
 
       setSelectedSurvey(survey);
       setSurveyResults(data.report);
+
+      // Load narrative if it exists
+      if ((survey as any).final_narrative) {
+        setFinalNarrative((survey as any).final_narrative);
+        setNarrativeOutdated(false);
+      } else {
+        setFinalNarrative('');
+        setNarrativeOutdated(false);
+      }
+
       setIsResultsModalOpen(true);
       markSurveyAsViewed(survey.id);
     } catch (error: any) {
@@ -511,6 +524,18 @@ export default function Feedback360Dashboard({
   };
 
   const finalizeSurvey = async (surveyId: string) => {
+    // Check if narrative has been generated
+    if (!finalNarrative) {
+      notify({
+        title: 'Narrative Required',
+        description: 'You must generate a narrative before finalizing the report. Please go to the Narrative tab and click "Generate Narrative".',
+        variant: 'error',
+      });
+      // Automatically switch to narrative tab
+      setActiveReportTab('narrative');
+      return;
+    }
+
     try {
       const data = await fetchWithValidation(
         SurveyUpdateResponseSchema,
@@ -631,6 +656,11 @@ export default function Feedback360Dashboard({
       setSelectedStrengthIndex(null);
       setSelectedDevelopmentIndex(null);
       setSelectedInsightIndex(null);
+
+      // Mark narrative as outdated if it exists
+      if (finalNarrative) {
+        setNarrativeOutdated(true);
+      }
     } catch (error: any) {
       console.error('Error adjusting item:', error);
       notify({
@@ -698,11 +728,91 @@ export default function Feedback360Dashboard({
 
     setEditingRecommendationIndex(null);
     setEditingRecommendationText('');
+
+    // Mark narrative as outdated if it exists
+    if (finalNarrative) {
+      setNarrativeOutdated(true);
+    }
   };
 
   const cancelEditingRecommendation = () => {
     setEditingRecommendationIndex(null);
     setEditingRecommendationText('');
+  };
+
+  const generateNarrative = async () => {
+    if (!selectedSurvey || !surveyResults || !rawSurveyData) {
+      notify({
+        title: 'Missing Data',
+        description: 'Unable to generate narrative. Please ensure the survey has been analyzed.',
+        variant: 'error',
+      });
+      return;
+    }
+
+    setIsGeneratingNarrative(true);
+    try {
+      // Prepare raw responses data
+      const rawResponses = rawSurveyData.questions.map((q: any) => ({
+        question: q.question_text,
+        responses: q.responses.map((r: any) => r.response_text).filter((text: string) => text && text.trim())
+      }));
+
+      const response = await fetch('/api/ai/generate-narrative', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          surveyId: selectedSurvey.id,
+          subjectName: selectedSurvey.employee?.name || 'the subject',
+          rawResponses,
+          reportData: {
+            executive_summary: surveyResults.executive_summary,
+            themes: surveyResults.themes,
+            strengths: surveyResults.strengths,
+            development_areas: surveyResults.development_areas,
+            key_insights: surveyResults.key_insights,
+            recommendations: surveyResults.recommendations,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate narrative');
+      }
+
+      const data = await response.json();
+      setFinalNarrative(data.narrative);
+      setNarrativeOutdated(false);
+
+      // Save narrative to database
+      const saveResponse = await fetch(`/api/surveys/${selectedSurvey.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          final_narrative: data.narrative,
+          narrative_generated_at: new Date().toISOString(),
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        console.error('Failed to save narrative to database');
+      }
+
+      notify({
+        title: 'Narrative Generated',
+        description: 'The final narrative has been successfully created.',
+        variant: 'success',
+      });
+    } catch (error: any) {
+      console.error('Error generating narrative:', error);
+      notify({
+        title: 'Error',
+        description: error.message || 'Failed to generate narrative',
+        variant: 'error',
+      });
+    } finally {
+      setIsGeneratingNarrative(false);
+    }
   };
 
   const sendToHR = async (surveyId: string) => {
@@ -2118,7 +2228,8 @@ export default function Feedback360Dashboard({
           ...(surveyResults.key_insights && surveyResults.key_insights.length > 0 ? [{ id: 'insights', label: 'Insights' }] : []),
           { id: 'recommendations', label: 'Recommended Actions' },
           ...(canSeeAdvanced && hasSentimentData ? [{ id: 'sentiment', label: 'Sentiment Analysis' }] : []),
-          ...(canSeeAdvanced && hasConsensusData ? [{ id: 'consensus', label: 'Consensus & Outliers' }] : [])
+          ...(canSeeAdvanced && hasConsensusData ? [{ id: 'consensus', label: 'Consensus & Outliers' }] : []),
+          { id: 'narrative', label: 'Narrative' }
         ];
 
         return (
@@ -2965,6 +3076,105 @@ export default function Feedback360Dashboard({
                     )}
                   </div>
                 </>
+              )}
+
+              {/* Narrative Tab - Final tab for generating one-page summary */}
+              {activeReportTab === 'narrative' && (
+                <div className="space-y-6">
+                  {/* Warning if narrative is outdated */}
+                  {narrativeOutdated && finalNarrative && (
+                    <div className="bg-amber-50 border-l-4 border-amber-400 p-4">
+                      <div className="flex items-start">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="text-sm font-semibold text-amber-800 mb-1">Narrative Outdated</h4>
+                          <p className="text-sm text-amber-700">
+                            You have made changes to the report since the narrative was last generated.
+                            Please regenerate the narrative to reflect your latest edits.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Narrative content or empty state */}
+                  {finalNarrative ? (
+                    <>
+                      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-8">
+                        <div className="mb-6">
+                          <h4 className="text-xl font-semibold text-gray-900">Final Narrative</h4>
+                          <p className="text-sm text-gray-600 mt-1">
+                            This one-page narrative will be the first page of the final 360 report that{' '}
+                            {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'} sees.
+                          </p>
+                        </div>
+                        <div className="prose prose-sm max-w-none">
+                          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{finalNarrative}</p>
+                        </div>
+                      </div>
+
+                      {/* Regenerate button */}
+                      {(isSponsor || isAdmin) && selectedSurvey.status === 'completed' && (
+                        <div className="flex justify-center">
+                          <button
+                            onClick={generateNarrative}
+                            disabled={isGeneratingNarrative}
+                            className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isGeneratingNarrative ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Regenerating...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-4 h-4 mr-2" />
+                                Regenerate Narrative
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    /* Empty state - no narrative generated yet */
+                    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+                      <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <h4 className="text-lg font-semibold text-gray-900 mb-2">No Narrative Generated Yet</h4>
+                      <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                        Generate a comprehensive one-page narrative that synthesizes all the feedback and insights from this 360 review.
+                        This narrative will be the first page of the final report that{' '}
+                        {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'} sees.
+                      </p>
+
+                      {(isSponsor || isAdmin) && selectedSurvey.status === 'completed' && (
+                        <button
+                          onClick={generateNarrative}
+                          disabled={isGeneratingNarrative}
+                          className="px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isGeneratingNarrative ? (
+                            <>
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                              Generating Narrative...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-5 h-5 mr-3" />
+                              Generate Narrative
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {(!isSponsor && !isAdmin) && (
+                        <p className="text-sm text-gray-500 mt-4">
+                          Only the survey sponsor or an admin can generate the narrative.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
