@@ -1493,25 +1493,23 @@ export default function Feedback360Dashboard({
           </button>
         )}
 
-        {/* Finalized - Admin & Leader Only */}
-        {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader') && (
-          <button
-            onClick={() => setFilterStatus('finalized')}
-            className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
-              filterStatus === 'finalized'
-                ? 'border-purple-500 bg-purple-50'
-                : 'bg-white border-purple-200 hover:bg-purple-50'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-purple-700">Finalized</p>
-                <p className="text-2xl font-bold text-purple-900">{stats.finalized}</p>
-              </div>
-              <ArrowDownCircle className="w-8 h-8 text-purple-400" />
+        {/* Finalized - Available to all users (they see only their own finalized reviews) */}
+        <button
+          onClick={() => setFilterStatus('finalized')}
+          className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
+            filterStatus === 'finalized'
+              ? 'border-purple-500 bg-purple-50'
+              : 'bg-white border-purple-200 hover:bg-purple-50'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-purple-700">Finalized</p>
+              <p className="text-2xl font-bold text-purple-900">{stats.finalized}</p>
             </div>
-          </button>
-        )}
+            <ArrowDownCircle className="w-8 h-8 text-purple-400" />
+          </div>
+        </button>
       </div>
 
       {/* Reviews List */}
