@@ -99,6 +99,8 @@ export default function Feedback360Dashboard({
   const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
   const [isAdjustingItem, setIsAdjustingItem] = useState(false);
   const [activeReportTab, setActiveReportTab] = useState<string>('summary');
+  const [editingRecommendationIndex, setEditingRecommendationIndex] = useState<number | null>(null);
+  const [editingRecommendationText, setEditingRecommendationText] = useState<string>('');
 
   useEffect(() => {
     loadSurveys();
@@ -623,6 +625,67 @@ export default function Feedback360Dashboard({
     } finally {
       setIsAdjustingItem(false);
     }
+  };
+
+  const addRecommendation = () => {
+    if (!surveyResults) return;
+
+    const updatedRecommendations = [...(surveyResults.recommendations || []), ''];
+    setSurveyResults({
+      ...surveyResults,
+      recommendations: updatedRecommendations
+    });
+
+    // Start editing the new recommendation
+    setEditingRecommendationIndex(updatedRecommendations.length - 1);
+    setEditingRecommendationText('');
+  };
+
+  const deleteRecommendation = (index: number) => {
+    if (!surveyResults) return;
+
+    const updatedRecommendations = surveyResults.recommendations.filter((_: any, idx: number) => idx !== index);
+    setSurveyResults({
+      ...surveyResults,
+      recommendations: updatedRecommendations
+    });
+
+    notify({
+      title: 'Recommendation Deleted',
+      description: 'The recommendation has been removed.',
+      variant: 'success',
+    });
+  };
+
+  const startEditingRecommendation = (index: number, text: string) => {
+    setEditingRecommendationIndex(index);
+    setEditingRecommendationText(text);
+  };
+
+  const saveRecommendation = (index: number) => {
+    if (!surveyResults || !editingRecommendationText.trim()) return;
+
+    const updatedRecommendations = [...surveyResults.recommendations];
+    updatedRecommendations[index] = editingRecommendationText.trim();
+
+    setSurveyResults({
+      ...surveyResults,
+      recommendations: updatedRecommendations
+    });
+
+    setEditingRecommendationIndex(null);
+    setEditingRecommendationText('');
+
+    notify({
+      title: 'Recommendation Updated',
+      description: 'The recommendation has been saved.',
+      variant: 'success',
+    });
+  };
+
+  const cancelEditingRecommendation = () => {
+    setEditingRecommendationIndex(null);
+    setEditingRecommendationText('');
   };
 
   const sendToHR = async (surveyId: string) => {
@@ -1433,7 +1496,7 @@ export default function Feedback360Dashboard({
                         className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg mt-4"
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        Complete your review
+                        Complete Your Survey
                       </a>
                     ) : null;
                   })()}
@@ -1688,7 +1751,7 @@ export default function Feedback360Dashboard({
                       className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg mt-4"
                     >
                       <CheckCircle className="w-4 h-4" />
-                      Complete your review
+                      Complete Your Survey
                     </button>
                   )
                 )}
@@ -2462,22 +2525,94 @@ export default function Feedback360Dashboard({
               })()}
 
               {/* Recommendations Tab */}
-              {activeReportTab === 'recommendations' && surveyResults.recommendations && surveyResults.recommendations.length > 0 && (
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Target className="w-5 h-5 text-blue-600" />
-                    Recommended Actions
-                  </h4>
-                  <ul className="space-y-2">
-                    {surveyResults.recommendations.map((rec: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="text-blue-600 mt-1">{idx + 1}.</span>
-                        <span className="text-gray-700">{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {activeReportTab === 'recommendations' && (() => {
+                const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
+                const isAdmin = currentUser?.app_role === 'admin';
+                const canEdit = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
+
+                return (
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                        <Target className="w-5 h-5 text-blue-600" />
+                        Recommended Actions
+                        {canEdit && (
+                          <span className="text-xs text-gray-500 ml-2">(Click to edit, or add new)</span>
+                        )}
+                      </h4>
+                      {canEdit && (
+                        <button
+                          onClick={addRecommendation}
+                          className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-1"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add
+                        </button>
+                      )}
+                    </div>
+                    {surveyResults.recommendations && surveyResults.recommendations.length > 0 ? (
+                      <ul className="space-y-2">
+                        {surveyResults.recommendations.map((rec: string, idx: number) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-blue-600 mt-1">{idx + 1}.</span>
+                          {editingRecommendationIndex === idx ? (
+                            <div className="flex-1 flex gap-2">
+                              <textarea
+                                value={editingRecommendationText}
+                                onChange={(e) => setEditingRecommendationText(e.target.value)}
+                                className="flex-1 p-2 border border-blue-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                rows={3}
+                                autoFocus
+                              />
+                              <div className="flex flex-col gap-1">
+                                <button
+                                  onClick={() => saveRecommendation(idx)}
+                                  className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={cancelEditingRecommendation}
+                                  className="px-3 py-1 bg-gray-400 text-white text-xs rounded hover:bg-gray-500 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex-1 flex items-start justify-between gap-2">
+                              <span className="text-gray-700 flex-1">{rec}</span>
+                              {canEdit && (
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => startEditingRecommendation(idx, rec)}
+                                    className="text-blue-600 hover:text-blue-700 text-xs px-2 py-1"
+                                    title="Edit"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => deleteRecommendation(idx)}
+                                    className="text-red-600 hover:text-red-700 text-xs px-2 py-1"
+                                    title="Delete"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-gray-500 text-sm italic">
+                        {canEdit ? 'No recommendations yet. Click "Add" to create one.' : 'No recommendations available.'}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Sentiment Analysis Tab - Sponsor/Admin Only */}
               {activeReportTab === 'sentiment' && (() => {
