@@ -47,7 +47,14 @@ interface Rater {
   name: string;
   email: string;
   relationship: ParticipantRelationship;
+  autoDetected?: boolean; // Indicates if relationship was auto-detected
+  relationshipFilter?: ParticipantRelationship | null; // Filter applied before search
 }
+
+// Extended employee type with detected relationship for search results
+type EmployeeWithRelationship = Employee & {
+  detected_relationship?: ParticipantRelationship;
+};
 
 const SURVEY_TEMPLATES = [
   {
@@ -118,6 +125,8 @@ export default function Survey360Wizard({
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [raterSearch, setRaterSearch] = useState('');
   const [showRaterPicker, setShowRaterPicker] = useState<number | null>(null);
+  const [employeesWithRelationships, setEmployeesWithRelationships] = useState<EmployeeWithRelationship[]>([]);
+  const [isLoadingRelationships, setIsLoadingRelationships] = useState(false);
   const [questionsConfirmed, setQuestionsConfirmed] = useState(false);
   const [newlyAddedRaterIndex, setNewlyAddedRaterIndex] = useState<number | null>(null);
   const [highlightedEmployeeIndex, setHighlightedEmployeeIndex] = useState<number>(-1);
@@ -578,7 +587,12 @@ export default function Survey360Wizard({
   );
 
   // Filter employees for rater selection
-  const filteredRaterEmployees = employees.filter(emp => {
+  // Use API results with relationships if available, otherwise fall back to local filtering
+  const filteredRaterEmployees: EmployeeWithRelationship[] = (
+    employeesWithRelationships.length > 0 && selectedEmployee
+      ? employeesWithRelationships
+      : employees
+  ).filter((emp: EmployeeWithRelationship) => {
     // Don't show the selected employee as a rater option
     if (selectedEmployee && emp.id === selectedEmployee.id) return false;
 
@@ -591,8 +605,8 @@ export default function Survey360Wizard({
     );
     if (isAlreadySelected) return false;
 
-    // Apply search filter
-    if (raterSearch) {
+    // If using local filtering (fallback), apply search filter
+    if (employeesWithRelationships.length === 0 && raterSearch) {
       return emp.name.toLowerCase().includes(raterSearch.toLowerCase()) ||
              emp.title?.toLowerCase().includes(raterSearch.toLowerCase()) ||
              emp.email?.toLowerCase().includes(raterSearch.toLowerCase());
@@ -600,10 +614,53 @@ export default function Survey360Wizard({
     return true;
   });
 
-  const selectEmployeeAsRater = (employee: Employee, index: number) => {
+  // Fetch employees with relationship detection for a specific rater slot
+  const fetchEmployeesWithRelationships = async (
+    raterIndex: number,
+    searchTerm: string = '',
+    relationshipFilter: ParticipantRelationship | null = null
+  ) => {
+    if (!selectedEmployee) return;
+
+    setIsLoadingRelationships(true);
+    try {
+      const params = new URLSearchParams({
+        subjectId: selectedEmployee.id,
+      });
+
+      if (relationshipFilter) {
+        params.append('relationship', relationshipFilter);
+      }
+
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+
+      const response = await fetch(`/api/employees/search-by-relationship?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch employees');
+
+      const data = await response.json();
+      setEmployeesWithRelationships(data.employees || []);
+    } catch (error) {
+      console.error('Error fetching employees with relationships:', error);
+      notify('Failed to load employees', 'error');
+      setEmployeesWithRelationships([]);
+    } finally {
+      setIsLoadingRelationships(false);
+    }
+  };
+
+  const selectEmployeeAsRater = (employee: EmployeeWithRelationship, index: number) => {
     const updated = [...raters];
     updated[index].name = employee.name;
     updated[index].email = employee.email || '';
+
+    // If relationship was auto-detected, use it and mark as auto-detected
+    if (employee.detected_relationship) {
+      updated[index].relationship = employee.detected_relationship;
+      updated[index].autoDetected = true;
+    }
+
     setRaters(updated);
     setShowRaterPicker(null);
     setRaterSearch('');
@@ -1451,10 +1508,18 @@ export default function Survey360Wizard({
                     <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
                       <select
                         value={rater.relationship}
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const updated = [...raters];
-                          updated[index].relationship = e.target.value as ParticipantRelationship;
+                          const newRelationship = e.target.value as ParticipantRelationship;
+                          updated[index].relationship = newRelationship;
+                          updated[index].relationshipFilter = newRelationship;
+                          updated[index].autoDetected = false; // User explicitly selected
                           setRaters(updated);
+
+                          // Pattern 2: Filter First - Fetch employees matching this relationship
+                          if (selectedEmployee && !rater.name) {
+                            await fetchEmployeesWithRelationships(index, raterSearch, newRelationship);
+                          }
                         }}
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       >
@@ -1475,9 +1540,23 @@ export default function Survey360Wizard({
                               }}
                               type="text"
                               value={raterSearch}
-                              onChange={(e) => {
-                                setRaterSearch(e.target.value);
+                              onChange={async (e) => {
+                                const searchValue = e.target.value;
+                                setRaterSearch(searchValue);
                                 setHighlightedEmployeeIndex(-1); // Reset highlight when typing
+
+                                // Pattern 1: Search First - Fetch with auto-detection
+                                // Only fetch if we have a subject and search term is meaningful
+                                if (selectedEmployee && searchValue.length >= 2) {
+                                  await fetchEmployeesWithRelationships(
+                                    index,
+                                    searchValue,
+                                    rater.relationshipFilter || null
+                                  );
+                                } else if (searchValue.length === 0) {
+                                  // Clear API results when search is cleared
+                                  setEmployeesWithRelationships([]);
+                                }
                               }}
                               onKeyDown={(e) => handleRaterInputKeyDown(e, index)}
                               onFocus={() => {
@@ -1546,7 +1625,14 @@ export default function Survey360Wizard({
                         />
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
                           <div className="p-2">
-                            {filteredRaterEmployees.length > 0 ? (
+                            {isLoadingRelationships ? (
+                              <div className="p-4 text-center text-sm text-gray-500">
+                                <div className="flex items-center justify-center gap-2">
+                                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                  <span>Loading...</span>
+                                </div>
+                              </div>
+                            ) : filteredRaterEmployees.length > 0 ? (
                               filteredRaterEmployees.slice(0, 20).map((emp, empIndex) => (
                                 <button
                                   key={emp.id}
@@ -1567,7 +1653,22 @@ export default function Survey360Wizard({
                                     size="sm"
                                   />
                                   <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-sm text-gray-900">{emp.name}</div>
+                                    <div className="flex items-center gap-2">
+                                      <div className="font-medium text-sm text-gray-900">{emp.name}</div>
+                                      {emp.detected_relationship && (
+                                        <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                                          emp.detected_relationship === 'manager' ? 'bg-purple-100 text-purple-700' :
+                                          emp.detected_relationship === 'slt' ? 'bg-blue-100 text-blue-700' :
+                                          emp.detected_relationship === 'direct_report' ? 'bg-green-100 text-green-700' :
+                                          'bg-gray-100 text-gray-700'
+                                        }`}>
+                                          {emp.detected_relationship === 'manager' ? 'Manager' :
+                                           emp.detected_relationship === 'slt' ? 'SLT' :
+                                           emp.detected_relationship === 'direct_report' ? 'Direct Report' :
+                                           'Cross-Functional'}
+                                        </span>
+                                      )}
+                                    </div>
                                     <div className="text-xs text-gray-600">
                                       {emp.title && <span>{emp.title}</span>}
                                       {emp.title && emp.email && <span> • </span>}
