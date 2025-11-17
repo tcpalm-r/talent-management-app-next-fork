@@ -3,12 +3,16 @@ import type { NextRequest } from 'next/server';
 
 /**
  * Mock user for local development
+ * Structure matches production session format exactly
  */
 const MOCK_USER = {
   id: 'dev-user-1',
   auth0_id: 'auth0|dev-user',
   email: 'thomas.palmer@sonance.com',
   full_name: 'Thomas Palmer',
+  given_name: 'Thomas',
+  family_name: 'Palmer',
+  picture: null,
   app_role: 'admin',
   app_permissions: {
     manage_users: true,
@@ -16,6 +20,9 @@ const MOCK_USER = {
     manage_surveys: true,
     view_analytics: true,
   },
+  global_role: 'admin',
+  capabilities: [],
+  app_access: true,
   department: 'Engineering',
   title: 'Developer',
   timestamp: Date.now()
@@ -218,49 +225,9 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Check for dev user switch (testing purposes - overrides session)
-    // SECURITY: Only allow in development mode to prevent production bypass
-    if (process.env.NODE_ENV !== 'production') {
-      const switchedUserCookie = request.cookies.get('x-switched-user');
-      console.log('[Sonance Auth] Checking for x-switched-user cookie:', switchedUserCookie ? 'FOUND' : 'NOT FOUND');
-      if (switchedUserCookie) {
-        try {
-          const switchedUser = JSON.parse(switchedUserCookie.value);
-          console.log('[Sonance Auth] ✓ Using switched user from cookie:', switchedUser.email);
-
-          // Add switched user data to request headers
-          const requestHeaders = new Headers(request.headers);
-          requestHeaders.set('x-user-data', JSON.stringify(switchedUser));
-          requestHeaders.set('x-user-id', switchedUser.id);
-          requestHeaders.set('x-user-role', switchedUser.app_role || 'user');
-          requestHeaders.set('x-user-email', switchedUser.email);
-
-          const response = NextResponse.next({
-            request: {
-              headers: requestHeaders,
-            },
-          });
-
-          // Keep the cookie fresh
-          response.cookies.set('x-switched-user', switchedUserCookie.value, {
-            httpOnly: false,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 7 * 24 * 60 * 60, // 7 days
-            path: '/',
-          });
-
-          console.log('[Sonance Auth] ✓ Switched user middleware response created and returning');
-          return response;
-        } catch (error) {
-          console.error('[Sonance Auth] Failed to parse switched user cookie:', error);
-        }
-      } else {
-        console.log('[Sonance Auth] No x-switched-user cookie found, continuing with session checks');
-      }
-    }
-
     // Check for existing session cookie (matches lib/auth.ts USER_COOKIE)
+    // In dev mode with user switcher, this will contain the switched user
+    // In production, this contains the real authenticated session
     const sessionCookie = request.cookies.get('ai-intranet-user');
 
     if (sessionCookie) {

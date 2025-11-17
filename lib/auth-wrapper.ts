@@ -31,15 +31,17 @@ import type { SessionUser, UserProfile } from './schema';
 export async function getAuthenticatedUser(
   request: NextRequest
 ): Promise<{ user: SessionUser; profile: UserProfile } | null> {
-  // Check for switched user first (from middleware's x-switched-user cookie)
-  const switchedUserHeader = request.headers.get('x-user-data');
-  if (switchedUserHeader) {
+  // Check for user data from middleware headers
+  // In dev mode with user switcher, this contains the switched user
+  // In production, this contains the authenticated session user
+  const userDataHeader = request.headers.get('x-user-data');
+  if (userDataHeader) {
     try {
-      const switchedUser = JSON.parse(switchedUserHeader) as SessionUser;
-      console.log('[auth-wrapper] Using switched user from middleware:', switchedUser.email);
+      const sessionUser = JSON.parse(userDataHeader) as SessionUser;
+      console.log('[auth-wrapper] Using session user from middleware:', sessionUser.email);
 
       // Get the profile from Supabase
-      const profile = await getUserProfileByEmail(switchedUser.email);
+      const profile = await getUserProfileByEmail(sessionUser.email);
       if (profile) {
         return {
           user: toSessionUser(profile),
@@ -47,20 +49,21 @@ export async function getAuthenticatedUser(
         };
       }
 
-      // If not in database, construct profile from switched user data
+      // If not in database, construct profile from session user data
+      // This can happen in dev mode when testing with users not in the database
       return {
-        user: switchedUser,
+        user: sessionUser,
         profile: {
-          ...switchedUser,
-          auth0_id: null,
-          given_name: switchedUser.full_name?.split(' ')[0] || '',
-          family_name: switchedUser.full_name?.split(' ')[1] || '',
-          picture: null,
+          ...sessionUser,
+          auth0_id: sessionUser.auth0_id || null,
+          given_name: sessionUser.given_name || sessionUser.full_name?.split(' ')[0] || '',
+          family_name: sessionUser.family_name || sessionUser.full_name?.split(' ').slice(1).join(' ') || '',
+          picture: sessionUser.picture || null,
           avatar_url: null,
-          global_role: switchedUser.app_role,
-          capabilities: null,
+          global_role: sessionUser.global_role || sessionUser.app_role,
+          capabilities: sessionUser.capabilities || null,
           local_permissions: null,
-          job_title: switchedUser.title || '',
+          job_title: sessionUser.title || '',
           phone: null,
           location: null,
           manager_id: null,
@@ -71,7 +74,7 @@ export async function getAuthenticatedUser(
           has_logged_in: true,
           first_login_at: new Date().toISOString(),
           last_login_at: new Date().toISOString(),
-          sync_method: 'switched',
+          sync_method: 'session',
           last_sync: null,
           is_active: true,
           scim_active: null,
@@ -80,11 +83,11 @@ export async function getAuthenticatedUser(
           created_by: null,
           last_updated_by: null,
           idx: 0,
-          app_access: true,
+          app_access: sessionUser.app_access !== undefined ? sessionUser.app_access : true,
         } as UserProfile,
       };
     } catch (error) {
-      console.error('[auth-wrapper] Failed to parse switched user:', error);
+      console.error('[auth-wrapper] Failed to parse session user:', error);
     }
   }
 

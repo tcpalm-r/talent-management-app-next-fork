@@ -23,11 +23,16 @@ export const AUTH_DISABLED =
 
 /**
  * Mock user for local development (Thomas Palmer)
+ * Structure matches production session format exactly
  */
 export const MOCK_USER: SessionUser = {
   id: 'mock-thomas-palmer',
+  auth0_id: 'auth0|mock-thomas-palmer',
   email: 'thomas.palmer@sonance.com',
   full_name: 'Thomas Palmer',
+  given_name: 'Thomas',
+  family_name: 'Palmer',
+  picture: undefined,
   app_role: 'admin',
   app_permissions: {
     manage_users: true,
@@ -35,6 +40,9 @@ export const MOCK_USER: SessionUser = {
     manage_surveys: true,
     view_analytics: true,
   },
+  global_role: 'admin',
+  capabilities: [],
+  app_access: true,
   department: 'Engineering',
   title: 'Software Engineer',
 };
@@ -274,42 +282,23 @@ export async function exchangeAIIntranetToken(
 /**
  * Get user from cookie (client-side)
  *
- * IMPORTANT: Cookie priority order matters!
- * 1. x-switched-user (dev testing only)
- * 2. ai-intranet-user (real authenticated session) <- CHECK THIS FIRST
- * 3. x-auth-disabled (dev bypass mode) <- CHECK THIS LAST
+ * UNIFIED COOKIE APPROACH:
+ * - Production: Uses ai-intranet-user cookie from real authentication
+ * - Dev mode: Uses ai-intranet-user cookie from user switcher or DISABLE_AUTH
+ * - This ensures dev mode perfectly replicates production behavior
  *
- * This ensures production always uses real sessions even if stale dev cookies exist.
+ * Cookie priority:
+ * 1. ai-intranet-user (production sessions AND dev user switcher)
+ * 2. user-session (legacy, backward compatibility)
+ * 3. MOCK_USER fallback if no session found in dev mode
  */
 export function getClientUser(): SessionUser | null {
   if (typeof window === 'undefined') return null;
 
   const cookies = document.cookie.split(';');
-  // Force production mode if on production domain (not localhost)
-  const isProduction =
-    process.env.NODE_ENV === 'production' ||
-    (typeof window !== 'undefined' && !window.location.hostname.includes('localhost'));
 
-  // Priority 1: Check for switched user (dev testing only - never in production)
-  if (!isProduction) {
-    const switchedUserCookie = cookies
-      .find(c => c.trim().startsWith('x-switched-user='))
-      ?.split('=')[1];
-
-    if (switchedUserCookie) {
-      try {
-        console.log('[getClientUser] Found x-switched-user cookie');
-        const switchedUser = JSON.parse(decodeURIComponent(switchedUserCookie));
-        console.log('[getClientUser] Parsed switched user:', switchedUser.email);
-        return switchedUser;
-      } catch (error) {
-        console.error('[getClientUser] Failed to parse x-switched-user cookie:', error);
-      }
-    }
-  }
-
-  // Priority 2: Check for real authenticated user session (ALWAYS CHECK THIS FIRST)
-  // Check for ai-intranet-user cookie (preferred)
+  // Check for authenticated user session (ai-intranet-user)
+  // This cookie is used by BOTH production and dev mode (via user switcher)
   let userCookie = cookies
     .find(c => c.trim().startsWith(`${USER_COOKIE}=`))
     ?.split('=')[1];
@@ -317,14 +306,14 @@ export function getClientUser(): SessionUser | null {
   if (userCookie) {
     try {
       const user = JSON.parse(decodeURIComponent(userCookie));
-      console.log('[getClientUser] Found ai-intranet-user session for:', user.email);
+      console.log('[getClientUser] Found session for:', user.email);
       return user;
     } catch (error) {
       console.error('[getClientUser] Failed to parse ai-intranet-user cookie:', error);
     }
   }
 
-  // Fallback: Check for user-session cookie (backward compatibility)
+  // Fallback: Check for user-session cookie (legacy, backward compatibility)
   userCookie = cookies
     .find(c => c.trim().startsWith('user-session='))
     ?.split('=')[1];
@@ -332,45 +321,40 @@ export function getClientUser(): SessionUser | null {
   if (userCookie) {
     try {
       const user = JSON.parse(decodeURIComponent(userCookie));
-      console.log('[getClientUser] Found user-session cookie (legacy) for:', user.email);
-      console.warn('[getClientUser] Consider migrating to ai-intranet-user cookie name');
+      console.log('[getClientUser] Found legacy user-session for:', user.email);
+      console.warn('[getClientUser] Legacy cookie found - should migrate to ai-intranet-user');
       return user;
     } catch (error) {
       console.error('[getClientUser] Failed to parse user-session cookie:', error);
     }
   }
 
-  console.log('[getClientUser] No authenticated session cookie found');
-
-  // Priority 3: Check for dev bypass mode (ONLY if no real session exists and not in production)
-  if (!isProduction) {
-    const authDisabledCookie = cookies
-      .find(c => c.trim().startsWith('x-auth-disabled='))
-      ?.split('=')[1];
-
-    if (authDisabledCookie === 'true') {
-      console.log('[getClientUser] Using dev bypass mode (MOCK_USER)');
-      return MOCK_USER;
-    }
+  // If no session cookie found and in dev mode, return MOCK_USER
+  // This handles the case when DISABLE_AUTH=true but no cookie is set yet
+  if (AUTH_DISABLED) {
+    console.log('[getClientUser] No session found, using MOCK_USER (dev mode)');
+    return MOCK_USER;
   }
 
-  // No valid session found
+  console.log('[getClientUser] No authenticated session found');
   return null;
 }
 
 /**
  * Clear stale development cookies (client-side)
  *
- * Removes old dev-mode cookies that may interfere with production authentication.
+ * Removes old dev-mode cookies that may interfere with authentication.
  * Safe to call in production - only removes dev-specific cookies.
+ *
+ * NOTE: Does NOT clear ai-intranet-user as it's used by both production and dev mode.
  */
 export function clearStaleDevCookies(): void {
   if (typeof window === 'undefined') return;
 
   const devCookiesToClear = [
     'x-auth-disabled',    // Old dev bypass flag
-    'user-session',       // Old dev session cookie
-    'x-switched-user',    // Dev user switcher cookie
+    'user-session',       // Old dev session cookie (legacy)
+    'x-switched-user',    // Old dev user switcher cookie (deprecated - now uses ai-intranet-user)
   ];
 
   // Clear each stale cookie by setting expiry to the past

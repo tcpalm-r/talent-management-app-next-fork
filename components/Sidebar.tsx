@@ -30,7 +30,7 @@ export default function Sidebar({ currentView, onViewChange, userRole }: Sidebar
     const role = userRole?.toLowerCase();
     if (role === 'admin') {
       return [...baseNavItems, ...adminNavItems];
-    } else if (role === 'leader') {
+    } else if (role === 'leader' || role === 'slt') {
       return [...baseNavItems, ...leaderNavItems];
     }
     return baseNavItems;

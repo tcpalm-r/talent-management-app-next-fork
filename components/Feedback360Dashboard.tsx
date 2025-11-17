@@ -3323,7 +3323,7 @@ export default function Feedback360Dashboard({
                       Send Backward
                     </button>
                     <div className="flex items-center gap-3">
-                      {selectedSurvey.status === 'completed' && (
+                      {selectedSurvey.status === 'completed' && currentUser?.app_role === 'admin' && (
                         <button
                           onClick={() => sendToHRForReanalysis(selectedSurvey.id)}
                           disabled={!!selectedSurvey.flagged_for_reanalysis}

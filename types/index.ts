@@ -1,7 +1,7 @@
 export type Performance = 'low' | 'medium' | 'high';
 export type Potential = 'low' | 'medium' | 'high';
 export type UserRole = 'org_admin' | 'department_manager' | 'viewer';
-export type EmployeeRole = 'admin' | 'leader' | 'user';
+export type EmployeeRole = 'admin' | 'leader' | 'slt' | 'user';
 
 export interface Organization {
   id: string;

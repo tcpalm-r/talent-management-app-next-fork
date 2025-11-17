@@ -31,8 +31,8 @@ export interface UserProfile {
 
   // Roles and permissions
   global_role: string | null;
-  app_role: string | null;
-  role: string | null; // 360 Review role: 'admin', 'leader', or 'user'
+  app_role: string | null; // Application role: 'admin', 'leader', 'slt', or 'user'
+  role: string | null; // 360 Review role: 'admin', 'leader', 'slt', or 'user'
   app_permissions: Record<string, any> | null;
   app_access: boolean | null;
   capabilities: any | null;

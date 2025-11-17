@@ -224,7 +224,7 @@ export async function reactivateUser(userId: string) {
  */
 export async function updateUserRole(
   userId: string,
-  role: 'admin' | 'leader' | 'user'
+  role: 'admin' | 'leader' | 'slt' | 'user'
 ) {
   return adminUpdateUserProfile(userId, { app_role: role });
 }
