@@ -3,6 +3,16 @@
 import { useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
 import { UserContext } from '@/context/UserContext';
+import { AUTH_DISABLED, TEST_USERS } from '@/lib/auth';
+
+interface TestUser {
+  id: string;
+  email: string;
+  full_name: string;
+  app_role: string;
+  department: string | null;
+  title: string | null;
+}
 
 interface TopHeaderProps {
   userProfile: any;
@@ -13,14 +23,69 @@ interface TopHeaderProps {
 
 export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRoleChange }: TopHeaderProps) {
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const [testUsers, setTestUsers] = useState<TestUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const avatarRef = useRef<HTMLDivElement>(null);
 
   const userContext = useContext(UserContext);
+
+  // Fetch test users when avatar menu opens (only in dev mode)
+  useEffect(() => {
+    if (avatarOpen && AUTH_DISABLED && testUsers.length === 0 && !loadingUsers) {
+      setLoadingUsers(true);
+      fetch('/api/auth/switch-user')
+        .then(res => res.json())
+        .then(data => {
+          console.log('[TopHeader] Fetched test users:', data);
+          if (data.users) {
+            setTestUsers(data.users);
+          } else if (data.error) {
+            console.error('[TopHeader] Error from API:', data.error);
+          }
+        })
+        .catch(err => {
+          console.error('[TopHeader] Failed to fetch test users:', err);
+        })
+        .finally(() => {
+          setLoadingUsers(false);
+        });
+    }
+  }, [avatarOpen]); // Remove testUsers.length and loadingUsers from deps to prevent loop
 
   const handleSignOut = async () => {
     setAvatarOpen(false);
     if (userContext?.logout) {
       await userContext.logout();
+    }
+  };
+
+  const handleSwitchUser = async (email: string) => {
+    if (!AUTH_DISABLED) return; // Safety check
+
+    setSwitching(true);
+    try {
+      const response = await fetch('/api/auth/switch-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (response.ok) {
+        // Reload page to apply new user context
+        window.location.reload();
+      } else {
+        const data = await response.json();
+        console.error('Failed to switch user:', data.error);
+        alert('Failed to switch user: ' + data.error);
+        setSwitching(false);
+      }
+    } catch (error) {
+      console.error('Error switching user:', error);
+      alert('Error switching user');
+      setSwitching(false);
     }
   };
 
@@ -57,7 +122,7 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
             </button>
 
             {avatarOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-3 px-3">
+              <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg py-3 px-3">
                 {/* User Info Section */}
                 <div className="mb-3">
                   <div className="flex items-center gap-3">
@@ -76,6 +141,67 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
                     </div>
                   </div>
                 </div>
+
+                {/* User Switcher - Development Only */}
+                {AUTH_DISABLED && (
+                  <>
+                    <div className="border-t border-gray-200 my-2"></div>
+                    <div className="mb-2">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 mb-2">
+                        Switch User (Dev)
+                      </p>
+                      {loadingUsers ? (
+                        <div className="px-2 py-4 text-center text-sm text-gray-500">
+                          Loading users...
+                        </div>
+                      ) : testUsers.length === 0 ? (
+                        <div className="px-2 py-4 text-center text-sm text-gray-500">
+                          No test users found
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {testUsers.map((user) => {
+                            const isCurrentUser = user.email === userProfile?.email;
+                            const roleColors = {
+                              admin: 'bg-purple-100 text-purple-700',
+                              leader: 'bg-blue-100 text-blue-700',
+                              user: 'bg-gray-100 text-gray-700',
+                            };
+                            const roleColor = roleColors[user.app_role as keyof typeof roleColors] || roleColors.user;
+
+                            return (
+                              <button
+                                key={user.email}
+                                onClick={() => handleSwitchUser(user.email)}
+                                disabled={isCurrentUser || switching}
+                                className={`w-full text-left px-2 py-2 text-sm rounded transition-colors ${
+                                  isCurrentUser
+                                    ? 'bg-blue-50 border border-blue-200 cursor-default'
+                                    : switching
+                                    ? 'opacity-50 cursor-not-allowed'
+                                    : 'hover:bg-gray-50'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="truncate font-medium text-gray-900">
+                                    {user.full_name}
+                                  </span>
+                                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColor}`}>
+                                    {user.app_role}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-500 truncate mt-0.5">
+                                  {user.title}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    <div className="border-t border-gray-200 my-2"></div>
+                  </>
+                )}
 
                 {/* Return to Hub */}
                 <button

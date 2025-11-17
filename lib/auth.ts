@@ -24,10 +24,11 @@ export const AUTH_DISABLED =
 /**
  * Mock user for local development (Thomas Palmer)
  * Structure matches production session format exactly
+ * IMPORTANT: Uses REAL database ID for authorization checks to work
  */
 export const MOCK_USER: SessionUser = {
-  id: 'mock-thomas-palmer',
-  auth0_id: 'auth0|mock-thomas-palmer',
+  id: '5b1e1ee7-5850-4b7f-8881-9304c17ab63f', // Real DB ID from employees table
+  auth0_id: 'thomas.palmer@sonance.com',
   email: 'thomas.palmer@sonance.com',
   full_name: 'Thomas Palmer',
   given_name: 'Thomas',
@@ -46,6 +47,94 @@ export const MOCK_USER: SessionUser = {
   department: 'Engineering',
   title: 'Software Engineer',
 };
+
+/**
+ * Test users for local development user switching
+ * Hardcoded with exact database IDs and roles for testing
+ */
+export const TEST_USERS: SessionUser[] = [
+  MOCK_USER, // Thomas Palmer - Admin
+  {
+    id: 'e57dcddb-5249-4b76-894f-f44636e43d17',
+    auth0_id: 'mikes@sonance.com',
+    email: 'mikes@sonance.com',
+    full_name: 'Mike Sonntag',
+    given_name: 'Mike',
+    family_name: 'Sonntag',
+    picture: null,
+    app_role: 'slt',
+    app_permissions: {
+      read: true,
+      admin: true,
+      write: true,
+    },
+    global_role: 'user',
+    capabilities: [],
+    app_access: true,
+    department: 'Sales',
+    title: 'Chief Revenue Officer - Commercial',
+  },
+  {
+    id: '62ec7ec5-784e-48a2-849d-0ddb4bdd9f94',
+    auth0_id: 'user3.test@example.com',
+    email: 'user3.test@example.com',
+    full_name: 'User 3 [TEST]',
+    given_name: null,
+    family_name: null,
+    picture: null,
+    app_role: 'user',
+    app_permissions: {
+      read: true,
+      admin: false,
+      write: false,
+    },
+    global_role: 'user',
+    capabilities: [],
+    app_access: true,
+    department: null,
+    title: 'Product Designer',
+  },
+  {
+    id: '076bbd75-fce2-471a-a621-dc55070b37ba',
+    auth0_id: 'user4.test@example.com',
+    email: 'user4.test@example.com',
+    full_name: 'User 4 [TEST]',
+    given_name: null,
+    family_name: null,
+    picture: null,
+    app_role: 'user',
+    app_permissions: {
+      read: true,
+      admin: false,
+      write: false,
+    },
+    global_role: 'user',
+    capabilities: [],
+    app_access: true,
+    department: null,
+    title: 'Junior Product Designer',
+  },
+  {
+    id: '2b7abaf6-23e3-4672-8789-58310694a985',
+    auth0_id: 'test.test@sonance.com',
+    email: 'test.test@sonance.com',
+    full_name: 'Test tt. test',
+    given_name: 'Test',
+    family_name: 'test',
+    picture: null,
+    app_role: 'user',
+    app_permissions: {
+      read: true,
+      admin: false,
+      write: true,
+    },
+    global_role: 'user',
+    capabilities: [],
+    app_access: true,
+    department: 'IT',
+    title: 'Tests Tests',
+  },
+];
 
 /**
  * Cookie names
@@ -305,11 +394,26 @@ export function getClientUser(): SessionUser | null {
 
   if (userCookie) {
     try {
-      const user = JSON.parse(decodeURIComponent(userCookie));
+      // Try parsing directly first (new format - not manually encoded)
+      const user = JSON.parse(userCookie);
       console.log('[getClientUser] Found session for:', user.email);
       return user;
     } catch (error) {
-      console.error('[getClientUser] Failed to parse ai-intranet-user cookie:', error);
+      // If that fails, try decoding first (old double-encoded format)
+      try {
+        console.log('[getClientUser] Trying to decode legacy cookie format...');
+        const decoded = decodeURIComponent(userCookie);
+        const user = JSON.parse(decoded);
+        console.log('[getClientUser] Found session (legacy format) for:', user.email);
+
+        // Re-save the cookie in the new format to fix it
+        document.cookie = `${USER_COOKIE}=${JSON.stringify(user)}; path=/; max-age=86400; SameSite=Lax`;
+        console.log('[getClientUser] Fixed legacy cookie format');
+
+        return user;
+      } catch (decodeError) {
+        console.error('[getClientUser] Failed to parse cookie (tried both formats):', error);
+      }
     }
   }
 

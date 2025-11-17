@@ -90,12 +90,26 @@ export async function middleware(request: NextRequest) {
     if (authDisabled) {
       console.log('[Sonance Auth] Authentication bypassed for local development');
 
-      // Create a mock user session for development
+      // Check if there's an existing user cookie from user switcher
+      const existingUserCookie = request.cookies.get('ai-intranet-user');
+      let currentUser = MOCK_USER;
+
+      if (existingUserCookie) {
+        try {
+          const parsedUser = JSON.parse(existingUserCookie.value);
+          console.log('[Sonance Auth] Found existing user cookie:', parsedUser.email);
+          currentUser = parsedUser;
+        } catch (error) {
+          console.error('[Sonance Auth] Failed to parse existing user cookie, using MOCK_USER');
+        }
+      }
+
+      // Create request headers with current user data
       const requestHeaders = new Headers(request.headers);
-      requestHeaders.set('x-user-data', JSON.stringify(MOCK_USER));
-      requestHeaders.set('x-user-id', MOCK_USER.auth0_id);
-      requestHeaders.set('x-user-role', MOCK_USER.app_role);
-      requestHeaders.set('x-user-email', MOCK_USER.email);
+      requestHeaders.set('x-user-data', JSON.stringify(currentUser));
+      requestHeaders.set('x-user-id', currentUser.auth0_id || currentUser.id);
+      requestHeaders.set('x-user-role', currentUser.app_role);
+      requestHeaders.set('x-user-email', currentUser.email);
 
       const response = NextResponse.next({
         request: {
@@ -103,13 +117,17 @@ export async function middleware(request: NextRequest) {
         },
       });
 
-      // Set mock session cookie (matches lib/auth.ts USER_COOKIE constant)
-      response.cookies.set('ai-intranet-user', JSON.stringify(MOCK_USER), {
-        httpOnly: false, // Accessible to JavaScript for client-side auth checks
-        secure: false, // Not secure in development
-        sameSite: 'lax',
-        maxAge: 86400 // 24 hours
-      });
+      // Only set cookie if there wasn't one already (don't overwrite switched user)
+      if (!existingUserCookie) {
+        console.log('[Sonance Auth] No existing cookie, setting MOCK_USER');
+        // Don't use encodeURIComponent - Next.js handles encoding automatically
+        response.cookies.set('ai-intranet-user', JSON.stringify(MOCK_USER), {
+          httpOnly: false, // Accessible to JavaScript for client-side auth checks
+          secure: false, // Not secure in development
+          sameSite: 'lax',
+          maxAge: 86400 // 24 hours
+        });
+      }
 
       return response;
     }

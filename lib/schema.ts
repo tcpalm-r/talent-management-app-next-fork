@@ -73,10 +73,17 @@ export interface UserProfile {
  */
 export interface SessionUser {
   id: string;
+  auth0_id?: string | null;
   email: string;
   full_name: string;
+  given_name?: string | null;
+  family_name?: string | null;
+  picture?: string | null;
   app_role: string;
   app_permissions: Record<string, any>;
+  global_role?: string | null;
+  capabilities?: any;
+  app_access?: boolean;
   department: string | null;
   title: string | null;
 }
