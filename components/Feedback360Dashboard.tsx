@@ -2413,7 +2413,7 @@ export default function Feedback360Dashboard({
                   <div>
                     {canAdjustThemes && (
                       <div className="mb-4">
-                        <span className="text-sm text-primary-600 font-semibold">Click to adjust</span>
+                        <span className="text-sm text-gray-600 font-semibold italic">Click to adjust</span>
                       </div>
                     )}
                     <div className="space-y-3">
@@ -2545,7 +2545,7 @@ export default function Feedback360Dashboard({
                   <div>
                     {canAdjustItems && (
                       <div className="mb-3">
-                        <span className="text-sm text-primary-600 font-semibold">Click to adjust</span>
+                        <span className="text-sm text-gray-600 font-semibold italic">Click to adjust</span>
                       </div>
                     )}
                     <ul className="space-y-1">
@@ -2648,7 +2648,7 @@ export default function Feedback360Dashboard({
                   <div>
                     {canAdjustItems && (
                       <div className="mb-3">
-                        <span className="text-sm text-primary-600 font-semibold">Click to adjust</span>
+                        <span className="text-sm text-gray-600 font-semibold italic">Click to adjust</span>
                       </div>
                     )}
                     <ul className="space-y-1">
@@ -2752,7 +2752,7 @@ export default function Feedback360Dashboard({
                   <div>
                     {canAdjustItems && (
                       <div className="mb-3">
-                        <span className="text-sm text-primary-600 font-semibold">Click to adjust</span>
+                        <span className="text-sm text-gray-600 font-semibold italic">Click to adjust</span>
                       </div>
                     )}
                     <ul className="space-y-1">
