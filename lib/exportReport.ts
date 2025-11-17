@@ -11,6 +11,8 @@ interface Report360Data {
   employee_name: string;
   generated_by: string;
   generated_at: string;
+  executive_summary?: string;
+  final_narrative?: string;
   themes?: Array<{
     theme: string;
     sentiment: string;
@@ -62,7 +64,7 @@ export async function exportReportAsPDF(report: Report360Data) {
   };
 
   // ==========================================================================
-  // PAGE 1: COVER PAGE & SUMMARY
+  // PAGE 1: COVER PAGE
   // ==========================================================================
 
   // Title
@@ -101,15 +103,57 @@ export async function exportReportAsPDF(report: Report360Data) {
   pdf.text(`AI Model: ${report.generated_by || 'Claude AI'}`, margin, yPosition);
   yPosition += 15;
 
-  // Key Themes Section
+  // ==========================================================================
+  // NARRATIVE (First page for subject) - matches tab order
+  // ==========================================================================
+  if (report.final_narrative) {
+    checkPageBreak(50);
+
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(147, 51, 234); // Purple
+    pdf.text('Narrative', margin, yPosition);
+    yPosition += 10;
+
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(0, 0, 0);
+
+    const narrativeHeight = addWrappedText(report.final_narrative, margin, yPosition, contentWidth, 10);
+    yPosition += narrativeHeight + 10;
+  }
+
+  // ==========================================================================
+  // EXECUTIVE SUMMARY - matches tab order position 1
+  // ==========================================================================
+  if (report.executive_summary) {
+    checkPageBreak(50);
+
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(59, 130, 246); // Blue
+    pdf.text('Executive Summary', margin, yPosition);
+    yPosition += 10;
+
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(0, 0, 0);
+
+    const summaryHeight = addWrappedText(report.executive_summary, margin, yPosition, contentWidth, 10);
+    yPosition += summaryHeight + 10;
+  }
+
+  // ==========================================================================
+  // THEMES - matches tab order position 2
+  // ==========================================================================
   if (report.themes && report.themes.length > 0) {
     checkPageBreak(30);
 
-    pdf.setFontSize(14);
+    pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(0, 0, 0);
-    pdf.text('Key Themes', margin, yPosition);
-    yPosition += 8;
+    pdf.text('Themes', margin, yPosition);
+    yPosition += 10;
 
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
@@ -167,19 +211,17 @@ export async function exportReportAsPDF(report: Report360Data) {
   }
 
   // ==========================================================================
-  // PAGE 2: STRENGTHS & DEVELOPMENT AREAS
+  // STRENGTHS - matches tab order position 3
   // ==========================================================================
 
-  checkPageBreak(50);
-  yPosition += 5;
-
-  // Overall Strengths
   if (report.overall_strengths && report.overall_strengths.length > 0) {
-    pdf.setFontSize(14);
+    checkPageBreak(30);
+
+    pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(34, 197, 94); // Green
-    pdf.text('Key Strengths', margin, yPosition);
-    yPosition += 8;
+    pdf.text('Strengths', margin, yPosition);
+    yPosition += 10;
 
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
@@ -194,15 +236,17 @@ export async function exportReportAsPDF(report: Report360Data) {
     yPosition += 5;
   }
 
-  // Development Areas
+  // ==========================================================================
+  // DEVELOPMENT AREAS - matches tab order position 4
+  // ==========================================================================
   if (report.development_areas && report.development_areas.length > 0) {
     checkPageBreak(30);
 
-    pdf.setFontSize(14);
+    pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(245, 158, 11); // Amber
     pdf.text('Development Areas', margin, yPosition);
-    yPosition += 8;
+    yPosition += 10;
 
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
@@ -218,41 +262,16 @@ export async function exportReportAsPDF(report: Report360Data) {
   }
 
   // ==========================================================================
-  // PAGE 3: RECOMMENDATIONS & INSIGHTS
+  // INSIGHTS - matches tab order position 5 (conditional)
   // ==========================================================================
-
-  checkPageBreak(50);
-
-  // Recommendations
-  if (report.recommendations && report.recommendations.length > 0) {
-    pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(59, 130, 246); // Blue
-    pdf.text('Recommended Actions', margin, yPosition);
-    yPosition += 8;
-
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(0, 0, 0);
-
-    report.recommendations.forEach((rec, idx) => {
-      checkPageBreak(15);
-      const height = addWrappedText(`${idx + 1}. ${rec}`, margin + 5, yPosition, contentWidth - 5, 10);
-      yPosition += height + 3;
-    });
-
-    yPosition += 5;
-  }
-
-  // Key Insights
   if (report.key_insights && report.key_insights.length > 0) {
     checkPageBreak(30);
 
-    pdf.setFontSize(14);
+    pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(147, 51, 234); // Purple
-    pdf.text('Key Insights', margin, yPosition);
-    yPosition += 8;
+    pdf.text('Insights', margin, yPosition);
+    yPosition += 10;
 
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
@@ -267,8 +286,34 @@ export async function exportReportAsPDF(report: Report360Data) {
     yPosition += 5;
   }
 
-  // Sentiment by Relationship
-  // Only show this section if there's per-relationship data (not just overall score)
+  // ==========================================================================
+  // RECOMMENDED ACTIONS - matches tab order position 6
+  // ==========================================================================
+  if (report.recommendations && report.recommendations.length > 0) {
+    checkPageBreak(30);
+
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(59, 130, 246); // Blue
+    pdf.text('Recommended Actions', margin, yPosition);
+    yPosition += 10;
+
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(0, 0, 0);
+
+    report.recommendations.forEach((rec, idx) => {
+      checkPageBreak(15);
+      const height = addWrappedText(`${idx + 1}. ${rec}`, margin + 5, yPosition, contentWidth - 5, 10);
+      yPosition += height + 3;
+    });
+
+    yPosition += 5;
+  }
+
+  // ==========================================================================
+  // SENTIMENT ANALYSIS - matches tab order position 7 (conditional, sponsor/admin only)
+  // ==========================================================================
   const hasRelationshipData = report.sentiment_by_relationship &&
     (report.sentiment_by_relationship.manager !== undefined ||
      report.sentiment_by_relationship.peer !== undefined ||
@@ -301,11 +346,11 @@ export async function exportReportAsPDF(report: Report360Data) {
     pdf.line(margin, yPosition, pageWidth - margin, yPosition);
     yPosition += 10;
 
-    pdf.setFontSize(14);
+    pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(0, 0, 0);
-    pdf.text('Sentiment by Relationship', margin, yPosition);
-    yPosition += 8;
+    pdf.text('Sentiment Analysis', margin, yPosition);
+    yPosition += 10;
 
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
@@ -355,15 +400,23 @@ export async function exportReportAsPDF(report: Report360Data) {
     yPosition += 5;
   }
 
-  // Consensus & Outliers (if space allows)
+  // ==========================================================================
+  // CONSENSUS & OUTLIERS - matches tab order position 8 (conditional, sponsor/admin only)
+  // ==========================================================================
   if (report.consensus_areas && report.consensus_areas.length > 0) {
-    checkPageBreak(25);
+    checkPageBreak(30);
 
-    pdf.setFontSize(12);
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(0, 0, 0);
+    pdf.text('Consensus & Outliers', margin, yPosition);
+    yPosition += 10;
+
+    pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(34, 197, 94);
     pdf.text('Strong Consensus', margin, yPosition);
-    yPosition += 6;
+    yPosition += 8;
 
     pdf.setFontSize(9);
     pdf.setFont('helvetica', 'normal');
@@ -381,11 +434,11 @@ export async function exportReportAsPDF(report: Report360Data) {
   if (report.outlier_opinions && report.outlier_opinions.length > 0) {
     checkPageBreak(25);
 
-    pdf.setFontSize(12);
+    pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(245, 158, 11);
     pdf.text('Unique Perspectives', margin, yPosition);
-    yPosition += 6;
+    yPosition += 8;
 
     pdf.setFontSize(9);
     pdf.setFont('helvetica', 'normal');
