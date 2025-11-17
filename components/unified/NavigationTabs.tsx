@@ -4,7 +4,7 @@ import { CountBadge } from './BadgeSystem';
 interface Tab {
   id: string;
   label: string;
-  icon: ComponentType<{ className?: string }>;
+  icon?: ComponentType<{ className?: string }>;
   count?: number;
   badge?: ReactNode;
   tooltip?: string;
@@ -47,7 +47,7 @@ export default function NavigationTabs({
                 }
               `}
             >
-              <Icon className="w-4 h-4" />
+              {Icon && <Icon className="w-4 h-4" />}
               <span>{tab.label}</span>
               {tab.count !== undefined && (
                 <CountBadge
@@ -85,7 +85,7 @@ export default function NavigationTabs({
               }
             `}
           >
-            <Icon className="w-4 h-4" />
+            {Icon && <Icon className="w-4 h-4" />}
             <span>{tab.label}</span>
             {tab.count !== undefined && (
               <CountBadge
