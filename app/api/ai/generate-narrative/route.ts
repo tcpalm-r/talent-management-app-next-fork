@@ -162,7 +162,15 @@ Write the narrative now (plain text only, no formatting):`;
       throw new Error('Unexpected response type from Claude');
     }
 
-    const narrative = content.text.trim();
+    // Clean up the narrative text
+    let narrative = content.text.trim();
+
+    // Remove any markdown headers or formatting that Claude might have added
+    narrative = narrative
+      .replace(/^\*\*360-Degree Feedback Report:?\s*Executive Summary\*\*\s*/i, '')
+      .replace(/^\*\*Executive Summary\*\*\s*/i, '')
+      .replace(/^#+ .*\n/gm, '') // Remove any markdown headers
+      .trim();
 
     console.log('[generate-narrative API] Narrative generated, length:', narrative.length);
 
