@@ -132,6 +132,7 @@ export default function Survey360Wizard({
   const [highlightedEmployeeIndex, setHighlightedEmployeeIndex] = useState<number>(-1);
   const [highlightedEmployeeListIndex, setHighlightedEmployeeListIndex] = useState<number>(-1);
   const raterInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
+  const raterContainerRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const employeeListRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
   const employeeSearchInputRef = useRef<HTMLInputElement | null>(null);
   const customQuestionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -330,13 +331,17 @@ export default function Survey360Wizard({
           }
         }
 
-        if (reviewers) {
-          setRaters(reviewers.map((r: any) => ({
-            name: r.reviewer_name,
-            email: r.reviewer_email,
-            relationship: r.relationship,
-          })));
-        }
+        // Merge complete reviewers from DB with partial reviewers from draft
+        const completeReviewers = (reviewers || []).map((r: any) => ({
+          name: r.reviewer_name,
+          email: r.reviewer_email,
+          relationship: r.relationship,
+        }));
+
+        const partialReviewers = draftSurvey.draft_partial_reviewers || [];
+
+        // Combine both arrays - partial reviewers first (they're incomplete), then complete ones
+        setRaters([...partialReviewers, ...completeReviewers]);
 
         // Set other fields
         setSurveyTitle(draftSurvey.survey_name || '');
@@ -348,28 +353,38 @@ export default function Survey360Wizard({
         }
         setIsAnonymous(draftSurvey.is_anonymous !== false);
 
-        // Determine the appropriate step to show based on what's filled in
-        // Step progression: who -> competencies -> raters -> timeline -> preview
-        if (employee && surveyQuestions && surveyQuestions.length > 0 && reviewers && reviewers.length > 0 && draftSurvey.due_date) {
-          // All data filled → go to preview and mark questions as confirmed
-          setCurrentStep('preview');
-          setQuestionsConfirmed(true);
-        } else if (employee && surveyQuestions && surveyQuestions.length > 0 && reviewers && reviewers.length > 0) {
-          // Has employee, questions, and reviewers but no due date → go to timeline and mark questions as confirmed
-          setCurrentStep('timeline');
-          setQuestionsConfirmed(true);
-        } else if (employee && surveyQuestions && surveyQuestions.length > 0) {
-          // Has employee and questions but no reviewers → go to raters and mark questions as confirmed
-          setCurrentStep('raters');
-          setQuestionsConfirmed(true);
-        } else if (employee) {
-          // Has employee but no questions → go to competencies, questions not yet confirmed
-          setCurrentStep('competencies');
-          setQuestionsConfirmed(false);
+        // Restore the saved wizard step if available, otherwise infer from data
+        if (draftSurvey.current_step) {
+          // Use the saved step from the draft
+          setCurrentStep(draftSurvey.current_step as WizardStep);
+          // Mark questions as confirmed if we're past the competencies step
+          if (['raters', 'timeline', 'preview'].includes(draftSurvey.current_step)) {
+            setQuestionsConfirmed(true);
+          }
         } else {
-          // No employee → go back to start
-          setCurrentStep('who');
-          setQuestionsConfirmed(false);
+          // Fallback: Determine the appropriate step to show based on what's filled in
+          // Step progression: who -> competencies -> raters -> timeline -> preview
+          if (employee && surveyQuestions && surveyQuestions.length > 0 && reviewers && reviewers.length > 0 && draftSurvey.due_date) {
+            // All data filled → go to preview and mark questions as confirmed
+            setCurrentStep('preview');
+            setQuestionsConfirmed(true);
+          } else if (employee && surveyQuestions && surveyQuestions.length > 0 && reviewers && reviewers.length > 0) {
+            // Has employee, questions, and reviewers but no due date → go to timeline and mark questions as confirmed
+            setCurrentStep('timeline');
+            setQuestionsConfirmed(true);
+          } else if (employee && surveyQuestions && surveyQuestions.length > 0) {
+            // Has employee and questions but no reviewers → go to raters and mark questions as confirmed
+            setCurrentStep('raters');
+            setQuestionsConfirmed(true);
+          } else if (employee) {
+            // Has employee but no questions → go to competencies, questions not yet confirmed
+            setCurrentStep('competencies');
+            setQuestionsConfirmed(false);
+          } else {
+            // No employee → go back to start
+            setCurrentStep('who');
+            setQuestionsConfirmed(false);
+          }
         }
       } catch (error) {
         console.error('Error loading draft survey data:', error);
@@ -582,7 +597,8 @@ export default function Survey360Wizard({
 
     // If using local filtering (fallback), apply search filter
     if (employeesWithRelationships.length === 0 && raterSearch) {
-      return emp.name.toLowerCase().includes(raterSearch.toLowerCase()) ||
+      const name = emp.full_name || emp.name || '';
+      return name.toLowerCase().includes(raterSearch.toLowerCase()) ||
              emp.title?.toLowerCase().includes(raterSearch.toLowerCase()) ||
              emp.email?.toLowerCase().includes(raterSearch.toLowerCase());
     }
@@ -627,7 +643,7 @@ export default function Survey360Wizard({
 
   const selectEmployeeAsRater = (employee: EmployeeWithRelationship, index: number) => {
     const updated = [...raters];
-    updated[index].name = employee.name;
+    updated[index].name = employee.full_name || employee.name;
     updated[index].email = employee.email || '';
 
     // If relationship was auto-detected, use it and mark as auto-detected
@@ -806,8 +822,9 @@ export default function Survey360Wizard({
             // createdBy is now handled by the API from the authenticated session
             requiredQuestions: requiredQuestions.filter(q => q.trim()),
             customQuestions,
-            raters: raters.filter(r => r.name && r.email),
+            raters, // Save ALL raters, including partial ones (relationship-only)
             questionsConfirmed,
+            currentStep, // Save the current wizard step
           }),
         });
 
@@ -1479,7 +1496,13 @@ export default function Survey360Wizard({
 
               <div className="space-y-3">
                 {raters.map((rater, index) => (
-                  <div key={index} className="relative">
+                  <div
+                    key={index}
+                    ref={(el) => {
+                      raterContainerRefs.current[index] = el;
+                    }}
+                    className="relative"
+                  >
                     <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
                       <select
                         value={rater.relationship}
@@ -1491,12 +1514,10 @@ export default function Survey360Wizard({
                           updated[index].autoDetected = false; // User explicitly selected
                           setRaters(updated);
 
-                          // Pattern 2: Filter First - Fetch employees matching this relationship
-                          // Also enable the search input
+                          // Pattern 2: Filter First - Pre-fetch employees matching this relationship
+                          // Don't open picker yet - wait for user to click search field
                           if (selectedEmployee && !rater.name && newRelationship) {
                             await fetchEmployeesWithRelationships(index, raterSearch, newRelationship);
-                            // Open the picker after relationship is selected
-                            setShowRaterPicker(index);
                           }
                         }}
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
@@ -1540,6 +1561,18 @@ export default function Survey360Wizard({
                               onKeyDown={(e) => handleRaterInputKeyDown(e, index)}
                               onFocus={async () => {
                                 setShowRaterPicker(index);
+
+                                // Scroll the rater container to the top of the modal
+                                setTimeout(() => {
+                                  const raterContainer = raterContainerRefs.current[index];
+                                  if (raterContainer && modalContentRef.current) {
+                                    const containerTop = raterContainer.offsetTop;
+                                    modalContentRef.current.scrollTo({
+                                      top: containerTop - 20, // 20px padding from top
+                                      behavior: 'smooth'
+                                    });
+                                  }
+                                }, 50);
 
                                 // If relationship is selected but no employees loaded yet, fetch them
                                 if (rater.relationship && employeesWithRelationships.length === 0) {
@@ -1637,13 +1670,13 @@ export default function Survey360Wizard({
                                   }`}
                                 >
                                   <Avatar
-                                    name={emp.name}
+                                    name={emp.full_name || emp.name}
                                     picture={emp.picture ?? undefined}
                                     size="sm"
                                   />
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                      <div className="font-medium text-sm text-gray-900">{emp.name}</div>
+                                      <div className="font-semibold text-sm text-gray-900">{emp.full_name || emp.name}</div>
                                       {emp.detected_relationship && (
                                         <span className={`px-2 py-0.5 text-xs font-medium rounded ${
                                           emp.detected_relationship === 'manager' ? 'bg-purple-100 text-purple-700' :
@@ -1658,11 +1691,7 @@ export default function Survey360Wizard({
                                         </span>
                                       )}
                                     </div>
-                                    <div className="text-xs text-gray-600">
-                                      {emp.title && <span>{emp.title}</span>}
-                                      {emp.title && emp.email && <span> • </span>}
-                                      {emp.email && <span className="truncate">{emp.email}</span>}
-                                    </div>
+                                    {emp.title && <div className="text-xs text-gray-600">{emp.title}</div>}
                                   </div>
                                 </button>
                               ))
@@ -1705,18 +1734,13 @@ export default function Survey360Wizard({
               </button>
 
               {/* Reviewer count validation message */}
-              {(() => {
-                const validReviewers = raters.slice(0, 3).filter(r => r.name && r.name.trim().length > 0 && r.email && r.email.trim().length > 0).length;
-                const isComplete = raters.length >= 3 && validReviewers === 3;
-
-                return (
-                  <div className={`p-4 rounded-lg ${isComplete ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
-                    <div className={`text-sm font-medium ${isComplete ? 'text-green-700' : 'text-blue-700'}`}>
-                      {isComplete ? '✓ All reviewers complete' : 'Add at least 3 reviewers.'}
-                    </div>
+              {raters.length < 3 && (
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="text-sm font-medium text-blue-700">
+                    Add at least 3 reviewers.
                   </div>
-                );
-              })()}
+                </div>
+              )}
             </div>
           )}
 

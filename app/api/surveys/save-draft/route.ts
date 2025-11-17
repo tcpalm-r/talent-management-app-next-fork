@@ -23,7 +23,12 @@ export async function POST(request: NextRequest) {
       customQuestions,
       raters,
       questionsConfirmed,
+      currentStep,
     } = body;
+
+    // Split raters into complete (with name/email) and partial (relationship-only)
+    const completeRaters = (raters || []).filter((r: any) => r.name && r.email);
+    const partialRaters = (raters || []).filter((r: any) => r.relationship && (!r.name || !r.email));
 
     // Validate required fields
     if (!employeeId) {
@@ -34,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create draft survey - use authenticated user's profile ID
-    const { data: survey, error: surveyError } = await supabaseAdmin
+    const { data: survey, error: surveyError} = await supabaseAdmin
       .from('feedback_360_surveys')
       .insert({
         organization_id: organizationId,
@@ -43,6 +48,8 @@ export async function POST(request: NextRequest) {
         status: 'draft',
         due_date: dueDate || null,
         created_by: authData.profile.id, // Use authenticated user's ID
+        current_step: currentStep || null, // Save the wizard step
+        draft_partial_reviewers: partialRaters.length > 0 ? partialRaters : null, // Save partial reviewers as JSON
       })
       .select()
       .single();
@@ -65,14 +72,14 @@ export async function POST(request: NextRequest) {
       const questionUUIDs: string[] = [];
 
       for (const questionText of allQuestions) {
-        let { data: existingQuestion } = await supabase
+        let { data: existingQuestion } = await supabaseAdmin
           .from('feedback_360_questions')
           .select('id')
           .eq('question_text', questionText)
           .maybeSingle();
 
         if (!existingQuestion) {
-          const { data: newQuestion } = await supabase
+          const { data: newQuestion } = await supabaseAdmin
             .from('feedback_360_questions')
             .insert({
               question_text: questionText,
@@ -96,16 +103,15 @@ export async function POST(request: NextRequest) {
           question_order: index,
         }));
 
-        await supabase
+        await supabaseAdmin
           .from('feedback_360_survey_questions')
           .insert(questionsToInsert);
       }
     }
 
-    // Save raters if any are added
-    const validRaters = (raters || []).filter((r: any) => r.name && r.email);
-    if (validRaters.length > 0) {
-      const reviewersToInsert = validRaters.map((r: any) => ({
+    // Save complete raters (those with name AND email) to reviewers table
+    if (completeRaters.length > 0) {
+      const reviewersToInsert = completeRaters.map((r: any) => ({
         survey_id: survey.id,
         reviewer_name: r.name,
         reviewer_email: r.email,
@@ -114,7 +120,7 @@ export async function POST(request: NextRequest) {
         access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       }));
 
-      await supabase
+      await supabaseAdmin
         .from('feedback_360_survey_reviewers')
         .insert(reviewersToInsert);
     }

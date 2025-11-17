@@ -122,7 +122,7 @@ export const TEST_USERS: SessionUser[] = [
     given_name: 'Test',
     family_name: 'test',
     picture: null,
-    app_role: 'user',
+    app_role: 'leader',
     app_permissions: {
       read: true,
       admin: false,
