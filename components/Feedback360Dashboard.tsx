@@ -2411,12 +2411,11 @@ export default function Feedback360Dashboard({
 
                 return (
                   <div>
-                    <div className="mb-4">
-                      <h4 className="text-lg font-semibold text-gray-900 inline">Themes</h4>
-                      {canAdjustThemes && (
-                        <span className="text-xs text-gray-600 font-semibold ml-2">(Click a theme to adjust)</span>
-                      )}
-                    </div>
+                    {canAdjustThemes && (
+                      <div className="mb-4">
+                        <span className="text-sm text-primary-600 font-semibold">Click to adjust</span>
+                      </div>
+                    )}
                     <div className="space-y-3">
                       {surveyResults.themes.map((theme: any, idx: number) => (
                         <div
@@ -2544,12 +2543,11 @@ export default function Feedback360Dashboard({
 
                 return (
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                      Strengths
-                      {canAdjustItems && (
-                        <span className="text-xs text-gray-500 ml-2">(Click to adjust)</span>
-                      )}
-                    </h4>
+                    {canAdjustItems && (
+                      <div className="mb-3">
+                        <span className="text-sm text-primary-600 font-semibold">Click to adjust</span>
+                      </div>
+                    )}
                     <ul className="space-y-1">
                       {surveyResults.overall_strengths.map((strength: string, idx: number) => (
                         <li
@@ -2648,12 +2646,11 @@ export default function Feedback360Dashboard({
 
                 return (
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                      Development Areas
-                      {canAdjustItems && (
-                        <span className="text-xs text-gray-500 ml-2">(Click to adjust)</span>
-                      )}
-                    </h4>
+                    {canAdjustItems && (
+                      <div className="mb-3">
+                        <span className="text-sm text-primary-600 font-semibold">Click to adjust</span>
+                      </div>
+                    )}
                     <ul className="space-y-1">
                       {surveyResults.development_areas.map((area: string, idx: number) => (
                         <li
@@ -2753,12 +2750,11 @@ export default function Feedback360Dashboard({
 
                 return (
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                      Insights
-                      {canAdjustItems && (
-                        <span className="text-xs text-gray-600 font-semibold ml-2">(Click to adjust)</span>
-                      )}
-                    </h4>
+                    {canAdjustItems && (
+                      <div className="mb-3">
+                        <span className="text-sm text-primary-600 font-semibold">Click to adjust</span>
+                      </div>
+                    )}
                     <ul className="space-y-1">
                       {surveyResults.key_insights.map((insight: string, idx: number) => (
                         <li
