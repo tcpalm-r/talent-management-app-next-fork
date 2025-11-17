@@ -741,7 +741,7 @@ export default function Feedback360Dashboard({
   };
 
   const generateNarrative = async () => {
-    if (!selectedSurvey || !surveyResults || !rawSurveyData) {
+    if (!selectedSurvey || !surveyResults) {
       notify({
         title: 'Missing Data',
         description: 'Unable to generate narrative. Please ensure the survey has been analyzed.',
@@ -752,8 +752,38 @@ export default function Feedback360Dashboard({
 
     setIsGeneratingNarrative(true);
     try {
+      // Fetch raw survey data if not already loaded
+      let surveyData = rawSurveyData;
+      if (!surveyData) {
+        console.log('[generateNarrative] Fetching raw survey data...');
+        const rawDataResponse = await fetch(`/api/surveys/${selectedSurvey.id}/details`);
+        if (!rawDataResponse.ok) {
+          throw new Error('Failed to fetch survey data');
+        }
+        const rawData = await rawDataResponse.json();
+
+        // Transform the data to match expected structure
+        surveyData = {
+          survey: rawData.survey,
+          employee: rawData.employee,
+          questions: rawData.questions.map((sq: any) => ({
+            id: sq.id,
+            question_id: sq.question_id,
+            question_text: sq.question?.question_text || '',
+            category: sq.question?.category || '',
+            responses: rawData.responses
+              .filter((r: any) => r.question_id === sq.question_id)
+              .map((r: any) => ({
+                reviewer_email: r.reviewer_email,
+                response_text: r.response_text,
+                rating: r.rating,
+              }))
+          }))
+        };
+      }
+
       // Prepare raw responses data
-      const rawResponses = rawSurveyData.questions.map((q: any) => ({
+      const rawResponses = surveyData.questions.map((q: any) => ({
         question: q.question_text,
         responses: q.responses.map((r: any) => r.response_text).filter((text: string) => text && text.trim())
       }));
