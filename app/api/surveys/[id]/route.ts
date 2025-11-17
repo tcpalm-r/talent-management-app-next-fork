@@ -80,6 +80,9 @@ export async function PATCH(
       'flagged_for_reanalysis',
       'ai_report_generated',
       'report_data',
+      'final_narrative',
+      'narrative_generated_at',
+      'narrative_version',
     ];
 
     const updates: any = {

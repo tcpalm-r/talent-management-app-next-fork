@@ -98,8 +98,12 @@ export async function GET(request: NextRequest) {
       const directReportIds = directReports?.map(dr => dr.id) || [];
 
       filteredSurveys = (allSurveys || []).filter((survey: any) => {
-        // Created by this leader
-        if (survey.created_by === profile.id) return true;
+        // Created by this leader (check both ID and email for legacy support)
+        const isCreator = survey.created_by === profile.id || survey.created_by === profile.email;
+        if (isCreator) return true;
+
+        // For non-creator scenarios, exclude draft surveys
+        if (survey.status === 'draft') return false;
 
         // Subject is this leader
         if (survey.employee_id === profile.id) return true;
@@ -107,7 +111,7 @@ export async function GET(request: NextRequest) {
         // Subject is a direct report
         if (directReportIds.includes(survey.employee_id)) return true;
 
-        // This leader is a reviewer
+        // This leader is a reviewer (only for active/completed/finalized surveys)
         const isReviewer = survey.reviewers?.some(
           (r: any) => r.reviewer_email === profile.email
         );
@@ -122,18 +126,25 @@ export async function GET(request: NextRequest) {
       // 3. Surveys where they're a reviewer
 
       filteredSurveys = (allSurveys || []).filter((survey: any) => {
-        // Created by this user
-        if (survey.created_by === profile.id) return true;
-
-        // Subject is this user (only if finalized)
-        if (survey.employee_id === profile.id && survey.status === 'finalized') {
-          return true;
-        }
-
-        // This user is a reviewer
+        // Check if user is creator, subject, or reviewer
+        const isCreator = survey.created_by === profile.id || survey.created_by === profile.email;
+        const isSubject = survey.employee_id === profile.id;
         const isReviewer = survey.reviewers?.some(
           (r: any) => r.reviewer_email === profile.email
         );
+
+        // User can see surveys they created (including drafts)
+        if (isCreator) return true;
+
+        // Non-creators cannot see draft surveys
+        if (survey.status === 'draft') return false;
+
+        // Subject can see their own survey only if finalized
+        if (isSubject && survey.status === 'finalized') {
+          return true;
+        }
+
+        // Reviewers can see surveys they're assigned to (excluding drafts)
         if (isReviewer) return true;
 
         return false;

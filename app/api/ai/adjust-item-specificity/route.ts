@@ -7,7 +7,8 @@ interface AdjustItemRequest {
   survey_id: string;
   item: any;
   section_type: 'themes' | 'strengths' | 'development_areas' | 'key_insights';
-  direction: 'more' | 'less';
+  adjustment_type: 'specificity' | 'tone' | 'length';
+  direction: 'more' | 'less' | 'harsher' | 'softer' | 'longer' | 'shorter';
   raw_responses?: any[];
 }
 
@@ -33,9 +34,10 @@ export async function POST(request: NextRequest) {
     });
 
     const body: AdjustItemRequest = await request.json();
-    const { item, section_type, direction, raw_responses } = body;
+    const { item, section_type, adjustment_type, direction, raw_responses } = body;
 
     console.log('[adjust-item-specificity API] Section type:', section_type);
+    console.log('[adjust-item-specificity API] Adjustment type:', adjustment_type);
     console.log('[adjust-item-specificity API] Direction:', direction);
     console.log('[adjust-item-specificity API] Raw responses count:', raw_responses?.length || 0);
 
@@ -47,29 +49,83 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (direction !== 'more' && direction !== 'less') {
+    if (!adjustment_type || !['specificity', 'tone', 'length'].includes(adjustment_type)) {
+      console.log('[adjust-item-specificity API] Error: Invalid adjustment type');
+      return NextResponse.json(
+        { error: 'Adjustment type must be "specificity", "tone", or "length"' },
+        { status: 400 }
+      );
+    }
+
+    const validDirections = ['more', 'less', 'harsher', 'softer', 'longer', 'shorter'];
+    if (!direction || !validDirections.includes(direction)) {
       console.log('[adjust-item-specificity API] Error: Invalid direction');
       return NextResponse.json(
-        { error: 'Direction must be "more" or "less"' },
+        { error: `Direction must be one of: ${validDirections.join(', ')}` },
         { status: 400 }
       );
     }
 
     console.log('[adjust-item-specificity API] Calling Claude API...');
 
-    const directionInstruction = direction === 'more'
-      ? `Make the item MORE SPECIFIC by:
+    let directionInstruction: string;
+
+    switch (adjustment_type) {
+      case 'specificity':
+        directionInstruction = direction === 'more'
+          ? `Make the item MORE SPECIFIC by:
 - Adding concrete examples, behaviors, or situations
 - Being more precise about what the feedback is referring to
 - Including specific skills, actions, or outcomes
 - Making it more actionable and detailed
 - Using specific terminology from the supporting evidence`
-      : `Make the item LESS SPECIFIC by:
+          : `Make the item LESS SPECIFIC by:
 - Using broader, more general language
 - Removing overly specific examples or details
 - Making it more high-level and conceptual
 - Focusing on the overarching pattern rather than individual instances
 - Making it more universally applicable`;
+        break;
+
+      case 'tone':
+        directionInstruction = direction === 'harsher'
+          ? `Make the item HARSHER by:
+- Using more direct and critical language
+- Being more frank about weaknesses or issues
+- Emphasizing areas that need urgent attention
+- Using stronger, more impactful words
+- Being less diplomatic and more straightforward
+- Highlighting the severity or importance of the issue`
+          : `Make the item SOFTER by:
+- Using more gentle and constructive language
+- Framing critiques more diplomatically
+- Emphasizing potential and opportunity rather than criticism
+- Using softer, more supportive words
+- Being more encouraging and less harsh
+- Focusing on growth rather than shortcomings`;
+        break;
+
+      case 'length':
+        directionInstruction = direction === 'longer'
+          ? `Make the item LONGER by:
+- Adding more detail and context
+- Expanding on key points with additional explanation
+- Including more examples or supporting details
+- Providing more comprehensive coverage
+- Elaborating on the implications or impact
+- Adding nuance and depth to the description`
+          : `Make the item SHORTER by:
+- Being more concise and removing unnecessary words
+- Focusing only on the most essential points
+- Eliminating redundant or repetitive information
+- Using more compact phrasing
+- Getting straight to the point
+- Keeping only the core message`;
+        break;
+
+      default:
+        throw new Error(`Invalid adjustment type: ${adjustment_type}`);
+    }
 
     let itemText: string;
     let contextInfo = '';
