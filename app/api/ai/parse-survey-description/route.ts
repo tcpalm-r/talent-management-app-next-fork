@@ -17,7 +17,7 @@ interface ParseRequest {
 interface ParsedRater {
   name: string;
   email: string;
-  relationship: 'manager' | 'peer' | 'direct_report' | 'cross_functional';
+  relationship: 'manager' | 'slt' | 'direct_report' | 'cross_functional';
   clarification_needed?: boolean;
   clarification_reason?: string;
 }
@@ -116,12 +116,12 @@ IMPORTANT EXTRACTION RULES:
    - For each mentioned person, MUST include in raters array
    - Match names against available employees - use fuzzy matching if not exact match
    - For emails: extract from text or infer from available employees if name matches
-   - ALWAYS infer relationship type from context clues (manager/peer/direct_report/cross_functional)
-   - If relationship unclear, default to "peer"
+   - ALWAYS infer relationship type from context clues (manager/slt/direct_report/cross_functional)
+   - If relationship unclear, default to "cross_functional"
    - Examples:
-     * "Get feedback from John" → search for John in employees, add as peer
-     * "2 team members" → look for team context to classify as peer/direct_report
-     * "Her manager and 3 peers" → extract manager (set relationship="manager"), peers (relationship="peer")
+     * "Get feedback from John" → search for John in employees, add as cross_functional
+     * "2 team members" → look for team context to classify as cross_functional/direct_report
+     * "Her manager and 3 colleagues" → extract manager (set relationship="manager"), colleagues (relationship="cross_functional")
    - NEVER skip a mentioned person
 4. Due Date: Extract due date if mentioned. Convert to ISO format (YYYY-MM-DD) using TODAY'S DATE as reference:
    - "next Friday" → calculate Friday after today
@@ -152,7 +152,7 @@ RETURN THIS EXACT JSON STRUCTURE:
     {
       "name": "string",
       "email": "string or null",
-      "relationship": "manager|peer|direct_report|cross_functional",
+      "relationship": "manager|slt|direct_report|cross_functional",
       "clarification_needed": false,
       "clarification_reason": null
     }

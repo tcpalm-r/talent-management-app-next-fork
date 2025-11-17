@@ -248,7 +248,7 @@ export interface ImportPreview {
 
 // 360 Survey Types
 export type Survey360Status = 'draft' | 'active' | 'completed' | 'closed';
-export type ParticipantRelationship = 'manager' | 'peer' | 'direct_report' | 'cross_functional';
+export type ParticipantRelationship = 'manager' | 'slt' | 'direct_report' | 'cross_functional';
 export type ParticipantStatus = 'pending' | 'in_progress' | 'completed';
 export type QuestionType = 'rating' | 'text' | 'multiple_choice';
 export type SentimentType = 'very_positive' | 'positive' | 'mixed' | 'needs_work' | 'critical';

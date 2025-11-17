@@ -122,6 +122,78 @@ export async function getDirectReports(managerId: string): Promise<UserProfile[]
 }
 
 /**
+ * Get manager for an employee
+ */
+export async function getManager(employeeId: string): Promise<UserProfile | null> {
+  // First get the employee to find their manager_id
+  const employee = await getUserProfile(employeeId);
+  if (!employee || !employee.manager_id) {
+    return null;
+  }
+
+  // Then fetch the manager
+  return await getUserProfile(employee.manager_id);
+}
+
+/**
+ * Get SLT members (excluding a specific employee if provided)
+ */
+export async function getSLTMembers(excludeEmployeeId?: string): Promise<UserProfile[]> {
+  let query = supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('app_role', 'slt')
+    .eq('is_active', true)
+    .order('full_name');
+
+  if (excludeEmployeeId) {
+    query = query.neq('id', excludeEmployeeId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching SLT members:', error);
+    return [];
+  }
+
+  return data as UserProfile[];
+}
+
+/**
+ * Search employees by name, email, or title
+ */
+export async function searchEmployees(
+  searchTerm: string,
+  excludeEmployeeId?: string
+): Promise<UserProfile[]> {
+  let query = supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('is_active', true)
+    .order('full_name');
+
+  if (excludeEmployeeId) {
+    query = query.neq('id', excludeEmployeeId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error searching employees:', error);
+    return [];
+  }
+
+  // Client-side filtering for multiple fields
+  const searchLower = searchTerm.toLowerCase();
+  return (data as UserProfile[]).filter(emp =>
+    emp.full_name?.toLowerCase().includes(searchLower) ||
+    emp.email?.toLowerCase().includes(searchLower) ||
+    emp.title?.toLowerCase().includes(searchLower)
+  );
+}
+
+/**
  * Update user profile
  */
 export async function updateUserProfile(

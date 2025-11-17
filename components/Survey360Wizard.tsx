@@ -62,14 +62,14 @@ const SURVEY_TEMPLATES = [
     name: 'Role Change Assessment',
     description: '8 questions covering transition effectiveness and skill fit',
     questionIds: DEFAULT_QUESTION_IDS.slice(0, 8),
-    suggestedRaters: { manager: 1, peer: 3, direct_report: 1 },
+    suggestedRaters: { manager: 1, cross_functional: 3, direct_report: 1 },
   },
   {
     id: 'performance-support',
     name: 'Performance Review Support',
     description: '10 comprehensive questions for annual review insights',
     questionIds: DEFAULT_QUESTION_IDS,
-    suggestedRaters: { manager: 1, peer: 3, direct_report: 2, cross_functional: 1 },
+    suggestedRaters: { manager: 1, cross_functional: 4, direct_report: 2 },
   },
 ];
 
@@ -1459,7 +1459,7 @@ export default function Survey360Wizard({
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       >
                         <option value="manager">Manager</option>
-                        <option value="peer">Peer</option>
+                        <option value="slt">SLT</option>
                         <option value="direct_report">Direct Report</option>
                         <option value="cross_functional">Cross-Functional</option>
                       </select>

@@ -27,7 +27,7 @@ interface Question {
 interface Reviewer {
   name: string;
   email: string;
-  relationship: 'manager' | 'peer' | 'direct_report' | 'cross_functional';
+  relationship: 'manager' | 'slt' | 'direct_report' | 'cross_functional';
 }
 
 export default function Quick360Modal({

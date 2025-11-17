@@ -200,9 +200,9 @@ export async function POST(req: NextRequest) {
     // Map reviewers to participants format with relationship field
     const participants = reviewers.map(reviewer => {
       // Normalize relationship value to valid ParticipantRelationship
-      let relationship: ParticipantRelationship = 'peer';
-      const rel = (reviewer.relationship || 'peer').toLowerCase();
-      if (['manager', 'peer', 'direct_report', 'cross_functional'].includes(rel)) {
+      let relationship: ParticipantRelationship = 'cross_functional';
+      const rel = (reviewer.relationship || 'cross_functional').toLowerCase();
+      if (['manager', 'slt', 'direct_report', 'cross_functional'].includes(rel)) {
         relationship = rel as ParticipantRelationship;
       }
 

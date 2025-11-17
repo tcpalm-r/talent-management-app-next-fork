@@ -173,11 +173,11 @@ const SAMPLE_RESPONSES = {
   ]
 };
 
-const RELATIONSHIP_TYPES: Array<'manager' | 'peer' | 'direct_report' | 'self' | 'cross_functional'> = [
+const RELATIONSHIP_TYPES: Array<'manager' | 'slt' | 'direct_report' | 'self' | 'cross_functional'> = [
   'manager',
-  'peer',
-  'peer',
-  'peer',
+  'slt',
+  'cross_functional',
+  'cross_functional',
   'direct_report',
   'direct_report',
   'self',

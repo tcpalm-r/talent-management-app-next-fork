@@ -188,7 +188,7 @@ CREATE TABLE feedback_360_reviewers (
     survey_id UUID REFERENCES feedback_360_surveys(id) ON DELETE CASCADE,
     reviewer_name TEXT NOT NULL,
     reviewer_email TEXT NOT NULL,
-    relationship TEXT NOT NULL, -- 'manager', 'peer', 'direct_report', 'cross_functional'
+    relationship TEXT NOT NULL, -- 'manager', 'slt', 'direct_report', 'cross_functional'
     access_token TEXT UNIQUE, -- Unique link for anonymous feedback
     status TEXT DEFAULT 'pending', -- 'pending', 'in_progress', 'completed'
     sent_at TIMESTAMP WITH TIME ZONE,

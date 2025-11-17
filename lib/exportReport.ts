@@ -347,10 +347,10 @@ export async function exportReportAsPDF(report: Report360Data) {
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
 
-    const validRelationships = ['manager', 'peer', 'direct_report', 'cross_functional'];
+    const validRelationships = ['manager', 'slt', 'direct_report', 'cross_functional'];
     const relationshipLabels: Record<string, string> = {
       manager: 'Manager',
-      peer: 'Peer',
+      slt: 'SLT',
       direct_report: 'Direct Report',
       cross_functional: 'Cross-Functional'
     };

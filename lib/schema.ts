@@ -331,7 +331,7 @@ export type ReviewStatus = 'draft' | 'active' | 'completed' | 'archived';
 /**
  * Participant role types
  */
-export type ParticipantRole = 'employee' | 'manager' | 'peer' | 'direct_report';
+export type ParticipantRole = 'employee' | 'manager' | 'slt' | 'direct_report';
 
 /**
  * Reviewer status types

@@ -20,7 +20,7 @@ export interface ParsedSurveyData {
   raters: Array<{
     name: string;
     email: string;
-    relationship: 'manager' | 'peer' | 'direct_report' | 'cross_functional';
+    relationship: 'manager' | 'slt' | 'direct_report' | 'cross_functional';
   }>;
   dueDate?: string;
   surveyTitle?: string;
@@ -38,7 +38,7 @@ interface PartialData {
   raters: Array<{
     name: string;
     email: string | null;
-    relationship: 'manager' | 'peer' | 'direct_report' | 'cross_functional';
+    relationship: 'manager' | 'slt' | 'direct_report' | 'cross_functional';
     clarification_needed?: boolean;
   }>;
   dueDate?: string | null;
@@ -236,7 +236,7 @@ export default function CreateWithAIModal({
                 </label>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                   <p className="text-sm text-blue-900">
-                    <strong>Example:</strong> "Create a 360 review for Sarah Chen to assess her leadership and communication skills. Get feedback from her manager John, 2 peers Mike and Anna, and 2 direct reports. Focus on leadership, collaboration, and communication. Due next Friday."
+                    <strong>Example:</strong> "Create a 360 review for Sarah Chen to assess her leadership and communication skills. Get feedback from her manager John, 2 cross-functional colleagues Mike and Anna, and 2 direct reports. Focus on leadership, collaboration, and communication. Due next Friday."
                   </p>
                 </div>
 
