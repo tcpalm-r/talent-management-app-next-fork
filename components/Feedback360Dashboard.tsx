@@ -2099,7 +2099,7 @@ export default function Feedback360Dashboard({
           { id: 'strengths', label: 'Strengths', icon: CheckCircle },
           { id: 'development', label: 'Development Areas', icon: AlertTriangle },
           ...(surveyResults.key_insights && surveyResults.key_insights.length > 0 ? [{ id: 'insights', label: 'Key Insights', icon: Lightbulb }] : []),
-          { id: 'recommendations', label: 'Recommendations', icon: Target },
+          { id: 'recommendations', label: 'Recommended Actions', icon: Target },
           ...(canSeeAdvanced && hasSentimentData ? [{ id: 'sentiment', label: 'Sentiment Analysis', icon: BarChart3 }] : []),
           ...(canSeeAdvanced && hasConsensusData ? [{ id: 'consensus', label: 'Consensus & Outliers', icon: GitCompare }] : [])
         ];
