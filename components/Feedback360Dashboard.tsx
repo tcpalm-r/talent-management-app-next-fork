@@ -2316,6 +2316,8 @@ export default function Feedback360Dashboard({
                           employee_name: selectedSurvey.employee?.name || 'Unknown',
                           generated_by: surveyResults.generated_by,
                           generated_at: surveyResults.generated_at,
+                          executive_summary: surveyResults.executive_summary,
+                          final_narrative: finalNarrative,
                           themes: surveyResults.themes,
                           overall_strengths: surveyResults.overall_strengths,
                           development_areas: surveyResults.development_areas,
