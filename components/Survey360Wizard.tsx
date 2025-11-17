@@ -417,14 +417,9 @@ export default function Survey360Wizard({
   // Auto-focus input when a new reviewer is added
   useEffect(() => {
     if (newlyAddedRaterIndex !== null && currentStep === 'raters') {
-      const input = raterInputRefs.current[newlyAddedRaterIndex];
-      if (input) {
-        // Small delay to ensure the DOM has updated
-        setTimeout(() => {
-          input.focus();
-          setNewlyAddedRaterIndex(null);
-        }, 0);
-      }
+      // Don't auto-focus the search input - user must select relationship first
+      // Just clear the newlyAddedRaterIndex state
+      setNewlyAddedRaterIndex(null);
     }
   }, [newlyAddedRaterIndex, currentStep, raters.length]);
 
@@ -464,31 +459,11 @@ export default function Survey360Wizard({
       if (currentStep === 'who' && employeeSearchInputRef.current) {
         employeeSearchInputRef.current.focus();
       } else if (currentStep === 'raters') {
-        // Focus first rater input if it exists, otherwise add one and focus it
-        if (raters.length === 0) {
-          const newIndex = 0;
-          setRaters([{ name: '', email: '', relationship: 'peer' }]);
-          setNewlyAddedRaterIndex(newIndex);
-        } else {
-          // Find first rater without name/email (empty rater)
-          const firstEmptyRaterIndex = raters.findIndex(r => !r.name && !r.email);
-          if (firstEmptyRaterIndex >= 0) {
-            const firstInput = raterInputRefs.current[firstEmptyRaterIndex];
-            if (firstInput) {
-              firstInput.focus();
-              setShowRaterPicker(firstEmptyRaterIndex);
-              // Highlight first employee if available
-              const filtered = employees.filter(emp =>
-                emp.name.toLowerCase().includes(raterSearch.toLowerCase()) ||
-                emp.title?.toLowerCase().includes(raterSearch.toLowerCase()) ||
-                emp.email?.toLowerCase().includes(raterSearch.toLowerCase())
-              );
-              if (filtered.length > 0) {
-                setHighlightedEmployeeIndex(0);
-              }
-            }
-          }
-        }
+        // Don't auto-add or auto-focus anything - let user click "Add Reviewer" button
+        // Just clear any existing search state
+        setRaterSearch('');
+        setShowRaterPicker(null);
+        setEmployeesWithRelationships([]);
       }
     }, 0);
   }, [currentStep, raters.length, employees, raterSearch]);
@@ -1517,12 +1492,16 @@ export default function Survey360Wizard({
                           setRaters(updated);
 
                           // Pattern 2: Filter First - Fetch employees matching this relationship
-                          if (selectedEmployee && !rater.name) {
+                          // Also enable the search input
+                          if (selectedEmployee && !rater.name && newRelationship) {
                             await fetchEmployeesWithRelationships(index, raterSearch, newRelationship);
+                            // Open the picker after relationship is selected
+                            setShowRaterPicker(index);
                           }
                         }}
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       >
+                        <option value="">Select relationship...</option>
                         <option value="manager">Manager</option>
                         <option value="slt">SLT</option>
                         <option value="direct_report">Direct Report</option>
@@ -1559,8 +1538,18 @@ export default function Survey360Wizard({
                                 }
                               }}
                               onKeyDown={(e) => handleRaterInputKeyDown(e, index)}
-                              onFocus={() => {
+                              onFocus={async () => {
                                 setShowRaterPicker(index);
+
+                                // If relationship is selected but no employees loaded yet, fetch them
+                                if (rater.relationship && employeesWithRelationships.length === 0) {
+                                  await fetchEmployeesWithRelationships(
+                                    index,
+                                    raterSearch,
+                                    rater.relationship
+                                  );
+                                }
+
                                 // Highlight first employee if available
                                 if (filteredRaterEmployees.length > 0) {
                                   setHighlightedEmployeeIndex(0);
@@ -1703,13 +1692,11 @@ export default function Survey360Wizard({
               <button
                 onClick={() => {
                   const newIndex = raters.length;
-                  setRaters([...raters, { name: '', email: '', relationship: 'peer' }]);
+                  // Start with empty relationship - user must select
+                  setRaters([...raters, { name: '', email: '', relationship: '' as ParticipantRelationship }]);
                   setNewlyAddedRaterIndex(newIndex);
-                  setShowRaterPicker(newIndex);
-                  // Highlight first employee if available
-                  if (filteredRaterEmployees.length > 0) {
-                    setHighlightedEmployeeIndex(0);
-                  }
+                  // Don't auto-open picker - wait for relationship selection
+                  setShowRaterPicker(null);
                 }}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
               >

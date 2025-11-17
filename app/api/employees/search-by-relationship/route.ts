@@ -30,8 +30,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch the subject employee
-    const subject = await getUserProfile(subjectId);
+    // Fetch the subject employee from active users
+    const allUsers = await getActiveUsers();
+    const subject = allUsers.find(u => u.id === subjectId);
+
     if (!subject) {
       return NextResponse.json(
         { error: 'Subject employee not found' },

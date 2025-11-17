@@ -5,6 +5,7 @@ export { default as ModalLayout } from './ModalLayout';
 export { default as EmptyState } from './EmptyState';
 export { default as StatCard } from './StatCard';
 export { default as EmployeeNameLink } from './EmployeeNameLink';
+export { Tooltip, TooltipProvider } from './Tooltip';
 
 // Re-export useToast from TalentAppContext for backwards compatibility
 export { useToast } from '../../context/TalentAppContext';

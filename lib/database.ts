@@ -7,7 +7,7 @@
  * SAFETY: These are query helpers only - NO database structure modifications.
  */
 
-import { supabase } from './supabase';
+import { supabaseAdmin as supabase } from './supabase-admin';
 import {
   UserProfile,
   Employee,

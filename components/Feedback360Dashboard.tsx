@@ -4,7 +4,7 @@ import type { Employee, Department } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
 import Avatar from './Avatar';
-import { useToast } from './unified';
+import { useToast, Tooltip, TooltipProvider } from './unified';
 import NavigationTabs from './unified/NavigationTabs';
 import { exportReportAsPDF } from '../lib/exportReport';
 import { fetchWithFallback, fetchWithValidation } from '@/lib/api-client';
@@ -1360,6 +1360,7 @@ export default function Feedback360Dashboard({
   };
 
   return (
+    <TooltipProvider>
     <div>
       {/* Header - Only show create buttons for Admin and Leader (Sponsors) */}
       {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader') && (
@@ -1398,118 +1399,130 @@ export default function Feedback360Dashboard({
           ? 'grid-cols-2 lg:grid-cols-5'
           : 'grid-cols-2 lg:grid-cols-4'
       }`}>
-        <button
-          onClick={() => setFilterStatus('all')}
-          className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
-            filterStatus === 'all' ? 'border-blue-500' : 'border-gray-200 hover:border-gray-300'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{surveys.length}</p>
+        <Tooltip content="View all surveys across all statuses">
+          <button
+            onClick={() => setFilterStatus('all')}
+            className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
+              filterStatus === 'all' ? 'border-blue-500' : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total</p>
+                <p className="text-2xl font-bold text-gray-900">{surveys.length}</p>
+              </div>
             </div>
-          </div>
-        </button>
+          </button>
+        </Tooltip>
 
         {/* Drafts - Only show for Admin and Leader (Sponsors) */}
         {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader') && (
-          <button
-            onClick={() => setFilterStatus('draft')}
-            className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
-              filterStatus === 'draft' ? 'border-gray-500' : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Drafts</p>
-                <p className="text-2xl font-bold text-gray-700">{stats.draft}</p>
+          <Tooltip content="Surveys not yet sent to reviewers">
+            <button
+              onClick={() => setFilterStatus('draft')}
+              className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
+                filterStatus === 'draft' ? 'border-gray-500' : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Drafts</p>
+                  <p className="text-2xl font-bold text-gray-700">{stats.draft}</p>
+                </div>
+                <Clock className="w-8 h-8 text-gray-400" />
               </div>
-              <Clock className="w-8 h-8 text-gray-400" />
-            </div>
-          </button>
+            </button>
+          </Tooltip>
         )}
 
-        <button
-          onClick={() => setFilterStatus('in_progress')}
-          className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
-            filterStatus === 'in_progress'
-              ? 'border-yellow-500 bg-yellow-50'
-              : 'bg-white border-yellow-200 hover:bg-yellow-50'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <p className="text-sm text-yellow-700">In Progress</p>
-              <p className="text-2xl font-bold text-yellow-900">{stats.in_progress}</p>
+        <Tooltip content="Surveys awaiting responses from reviewers">
+          <button
+            onClick={() => setFilterStatus('in_progress')}
+            className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
+              filterStatus === 'in_progress'
+                ? 'border-yellow-500 bg-yellow-50'
+                : 'bg-white border-yellow-200 hover:bg-yellow-50'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="text-sm text-yellow-700">In Progress</p>
+                <p className="text-2xl font-bold text-yellow-900">{stats.in_progress}</p>
+              </div>
+              <MessageSquare className="w-8 h-8 text-yellow-400" />
             </div>
-            <MessageSquare className="w-8 h-8 text-yellow-400" />
-          </div>
-          {atRiskSurveys.length > 0 && (
-            <div className="flex items-center gap-1 text-xs text-orange-600">
-              <AlertTriangle className="w-3 h-3" />
-              <span>{atRiskSurveys.length} at risk</span>
-            </div>
-          )}
-        </button>
+            {atRiskSurveys.length > 0 && (
+              <div className="flex items-center gap-1 text-xs text-orange-600">
+                <AlertTriangle className="w-3 h-3" />
+                <span>{atRiskSurveys.length} at risk</span>
+              </div>
+            )}
+          </button>
+        </Tooltip>
 
         {/* Completed - Admin & Leader Only */}
         {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader') && (
-          <button
-            onClick={() => setFilterStatus('completed')}
-            className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
-              filterStatus === 'completed'
-                ? 'border-green-500 bg-green-50'
-                : 'bg-white border-green-200 hover:bg-green-50'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-700">Completed</p>
-                <p className="text-2xl font-bold text-green-900">{stats.completed}</p>
+          <Tooltip content="Surveys with all responses received and analyzed">
+            <button
+              onClick={() => setFilterStatus('completed')}
+              className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
+                filterStatus === 'completed'
+                  ? 'border-green-500 bg-green-50'
+                  : 'bg-white border-green-200 hover:bg-green-50'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-green-700">Completed</p>
+                  <p className="text-2xl font-bold text-green-900">{stats.completed}</p>
+                </div>
+                <CheckCircle className="w-8 h-8 text-green-400" />
               </div>
-              <CheckCircle className="w-8 h-8 text-green-400" />
-            </div>
-          </button>
+            </button>
+          </Tooltip>
         )}
 
         {/* Needs Reanalysis - Admin Only */}
         {currentUser?.app_role === 'admin' && (
+          <Tooltip content="Surveys flagged for admin review and reanalysis">
+            <button
+              onClick={() => setFilterStatus('needs_reanalysis')}
+              className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
+                filterStatus === 'needs_reanalysis'
+                  ? 'border-red-500 bg-red-50'
+                  : 'bg-white border-red-200 hover:bg-red-50'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-red-700">Needs Reanalysis</p>
+                  <p className="text-2xl font-bold text-red-900">{stats.needs_reanalysis}</p>
+                </div>
+                <AlertTriangle className="w-8 h-8 text-red-400" />
+              </div>
+            </button>
+          </Tooltip>
+        )}
+
+        {/* Finalized - Available to all users (they see only their own finalized reviews) */}
+        <Tooltip content="Surveys marked as final and archived">
           <button
-            onClick={() => setFilterStatus('needs_reanalysis')}
+            onClick={() => setFilterStatus('finalized')}
             className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
-              filterStatus === 'needs_reanalysis'
-                ? 'border-red-500 bg-red-50'
-                : 'bg-white border-red-200 hover:bg-red-50'
+              filterStatus === 'finalized'
+                ? 'border-purple-500 bg-purple-50'
+                : 'bg-white border-purple-200 hover:bg-purple-50'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-red-700">Needs Reanalysis</p>
-                <p className="text-2xl font-bold text-red-900">{stats.needs_reanalysis}</p>
+                <p className="text-sm text-purple-700">Finalized</p>
+                <p className="text-2xl font-bold text-purple-900">{stats.finalized}</p>
               </div>
-              <AlertTriangle className="w-8 h-8 text-red-400" />
+              <ArrowDownCircle className="w-8 h-8 text-purple-400" />
             </div>
           </button>
-        )}
-
-        {/* Finalized - Available to all users (they see only their own finalized reviews) */}
-        <button
-          onClick={() => setFilterStatus('finalized')}
-          className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
-            filterStatus === 'finalized'
-              ? 'border-purple-500 bg-purple-50'
-              : 'bg-white border-purple-200 hover:bg-purple-50'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-purple-700">Finalized</p>
-              <p className="text-2xl font-bold text-purple-900">{stats.finalized}</p>
-            </div>
-            <ArrowDownCircle className="w-8 h-8 text-purple-400" />
-          </div>
-        </button>
+        </Tooltip>
       </div>
 
       {/* Reviews List */}
@@ -3651,5 +3664,6 @@ export default function Feedback360Dashboard({
         }}
       />
     </div>
+    </TooltipProvider>
   );
 }
