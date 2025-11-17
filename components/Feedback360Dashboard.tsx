@@ -140,12 +140,20 @@ export default function Feedback360Dashboard({
         throw new Error('Failed to load report - no data returned');
       }
 
-      setSelectedSurvey(survey);
+      // Fetch full survey details to get narrative
+      const detailsResponse = await fetch(`/api/surveys/${survey.id}/details`);
+      let fullSurvey = survey;
+      if (detailsResponse.ok) {
+        const detailsData = await detailsResponse.json();
+        fullSurvey = detailsData.survey || survey;
+      }
+
+      setSelectedSurvey(fullSurvey);
       setSurveyResults(data.report);
 
       // Load narrative if it exists
-      if ((survey as any).final_narrative) {
-        setFinalNarrative((survey as any).final_narrative);
+      if ((fullSurvey as any).final_narrative) {
+        setFinalNarrative((fullSurvey as any).final_narrative);
         setNarrativeOutdated(false);
       } else {
         setFinalNarrative('');
