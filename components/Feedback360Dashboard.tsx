@@ -2313,7 +2313,7 @@ export default function Feedback360Dashboard({
 
                         const reportData = {
                           survey_name: selectedSurvey.survey_name || 'Untitled Survey',
-                          employee_name: selectedSurvey.employee?.name || 'Unknown',
+                          employee_name: selectedSurvey.employee?.full_name || selectedSurvey.employee?.name || selectedSurvey.employee_name || '',
                           generated_by: surveyResults.generated_by,
                           generated_at: surveyResults.generated_at,
                           executive_summary: surveyResults.executive_summary,
@@ -3145,7 +3145,9 @@ export default function Feedback360Dashboard({
                           </p>
                         </div>
                         <div className="prose prose-sm max-w-none">
-                          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{finalNarrative}</p>
+                          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                            {finalNarrative.replace(/^\*\*360-Degree Feedback Report:.*?\*\*\s*/i, '').trim()}
+                          </p>
                         </div>
                       </div>
 
