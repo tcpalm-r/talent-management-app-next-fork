@@ -306,6 +306,17 @@ export async function middleware(request: NextRequest) {
           console.log('[Sonance Auth] Valid session found for user:', session.email);
           console.log('[Sonance Auth] Session age:', Math.floor((Date.now() - session.timestamp) / 1000 / 60), 'minutes');
 
+          // IMPORTANT: Re-query local database to get latest app_role
+          // This ensures role changes take effect immediately without logout/login
+          const localRole = await getLocalUserRole(session.email);
+
+          // Override cached role with fresh database value
+          if (localRole) {
+            console.log('[Sonance Auth] Refreshed role from DB:', localRole.app_role);
+            session.app_role = localRole.app_role;
+            session.app_permissions = localRole.app_permissions;
+          }
+
           // Add user data to request headers for use in API routes and pages
           const requestHeaders = new Headers(request.headers);
           requestHeaders.set('x-user-data', JSON.stringify(session));
@@ -319,7 +330,17 @@ export async function middleware(request: NextRequest) {
             },
           });
 
-          console.log('[Sonance Auth] Using existing session for:', session.email);
+          // Update cookie with fresh role if it changed
+          if (localRole) {
+            response.cookies.set('ai-intranet-user', JSON.stringify(session), {
+              httpOnly: false,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              maxAge: 86400
+            });
+          }
+
+          console.log('[Sonance Auth] Using existing session for:', session.email, 'with role:', session.app_role);
           return response;
         } else {
           console.log('[Sonance Auth] Session expired, age:', Math.floor((Date.now() - session.timestamp) / 1000 / 60 / 60), 'hours');
