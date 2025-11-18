@@ -1446,7 +1446,7 @@ export default function Feedback360Dashboard({
     <div>
       {/* Header - Only show create buttons for Admin, SLT, and Leader (Sponsors) */}
       {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between">
           <button
             onClick={() => {
               setPreselectedEmployee(undefined);
@@ -1456,6 +1456,10 @@ export default function Feedback360Dashboard({
           >
             Launch 360° Review
           </button>
+
+          {/* Instruction text */}
+          <span className="text-gray-500 italic text-sm flex-1 text-center">Hover over anything for info</span>
+
           {/* AI-assisted review wizard button - disabled and hidden */}
           {false && (
             <button
@@ -1472,11 +1476,6 @@ export default function Feedback360Dashboard({
           )}
         </div>
       )}
-
-      {/* Instruction text */}
-      <div className="text-center mt-4">
-        <span className="text-gray-500 italic text-sm">Hover over anything for info</span>
-      </div>
 
       {/* Pipeline Stats with Risk Flags */}
       <div className={`grid gap-4 mt-6 ${
