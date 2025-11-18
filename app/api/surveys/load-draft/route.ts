@@ -36,9 +36,10 @@ export async function GET(request: NextRequest) {
     }
 
     // CRITICAL FIX: Verify survey ownership (fetch survey first)
+    // Also fetch all survey fields including draft_partial_reviewers for wizard state restoration
     const { data: survey, error: surveyError } = await supabaseAdmin
       .from('feedback_360_surveys')
-      .select('id, created_by, status')
+      .select('*')
       .eq('id', surveyId)
       .single();
 
@@ -91,6 +92,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      survey: survey, // Include full survey object with draft_partial_reviewers
       surveyQuestions: surveyQuestions || [],
       reviewers: reviewers || [],
     });
