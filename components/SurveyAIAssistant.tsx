@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Sparkles, Loader, AlertCircle, Mic, MicOff } from 'lucide-react';
-import { useSpeechToText } from '../hooks/useSpeechToText';
+import { X, Sparkles, Loader, AlertCircle } from 'lucide-react';
 import { replaceNamePlaceholder } from '../lib/questionUtils';
 
 interface Question {
@@ -42,19 +41,6 @@ export default function SurveyAIAssistant({
       setHasGenerated(false); // Reset generated state when modal opens
     }
   }, [isOpen, currentText]);
-
-  // Speech-to-text hook
-  const {
-    isListening,
-    isSupported: isSpeechSupported,
-    error: speechError,
-    toggleListening,
-  } = useSpeechToText({
-    onTranscribed: (text: string) => {
-      console.log('[SurveyAIAssistant] Transcribed text received:', text);
-      setFeedback((prev) => prev + text);
-    },
-  });
 
   console.log('[SurveyAIAssistant] Render - isOpen:', isOpen);
 
@@ -179,61 +165,19 @@ export default function SurveyAIAssistant({
               Share your thoughts
             </label>
             <p className="text-sm text-gray-600 mb-4">
-              Type or speak your thoughts about this question. AI will help refine and format your response into professional feedback.
+              Type your thoughts about this question. AI will help refine and format your response into professional feedback.
             </p>
 
-            {/* Textarea with Microphone Button */}
-            <div className="relative mb-4">
-              <textarea
-                value={feedback}
-                onChange={(e) => {
-                  setFeedback(e.target.value);
-                  setError(null);
-                }}
-                disabled={isLoading || isListening}
-                placeholder="Type your thoughts here... or click the mic to speak (e.g., 'great communicator, needs to delegate more, very collaborative')"
-                className="w-full h-48 px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 disabled:bg-gray-100 resize-none"
-              />
-
-              {/* Microphone Button */}
-              {isSpeechSupported && (
-                <button
-                  onClick={() => {
-                    console.log('[SurveyAIAssistant] Microphone button clicked');
-                    toggleListening();
-                  }}
-                  disabled={isLoading}
-                  className={`absolute bottom-3 right-3 p-2 rounded-lg transition-all ${
-                    isListening
-                      ? 'bg-red-500 text-white animate-pulse'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  } disabled:opacity-50`}
-                  title={isListening ? 'Stop listening' : 'Start listening'}
-                >
-                  {isListening ? (
-                    <MicOff className="w-5 h-5" />
-                  ) : (
-                    <Mic className="w-5 h-5" />
-                  )}
-                </button>
-              )}
-            </div>
-
-            {/* Speech Recognition Status */}
-            {isListening && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
-                <p className="text-sm text-blue-700 font-medium">🎤 Listening... Speak now</p>
-              </div>
-            )}
-
-            {/* Speech Error */}
-            {speechError && (
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex gap-2">
-                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-yellow-700">{speechError}</p>
-              </div>
-            )}
+            <textarea
+              value={feedback}
+              onChange={(e) => {
+                setFeedback(e.target.value);
+                setError(null);
+              }}
+              disabled={isLoading}
+              placeholder="Type your thoughts here... (e.g., 'great communicator, needs to delegate more, very collaborative')"
+              className="w-full h-48 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 disabled:bg-gray-100 resize-none"
+            />
           </div>
 
           {error && (
