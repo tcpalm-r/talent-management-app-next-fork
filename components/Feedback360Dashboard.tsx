@@ -1802,8 +1802,8 @@ export default function Feedback360Dashboard({
                             onClick={(e) => e.stopPropagation()}
                             className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg"
                           >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Complete Your Survey
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            Provide Feedback
                           </a>
 
                           {/* Show Opt Out button if SLT member opted in themselves */}
@@ -2096,8 +2096,8 @@ export default function Feedback360Dashboard({
                       onClick={() => window.open(`/survey/complete/${selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.access_token}`, '_blank')}
                       className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg mt-4"
                     >
-                      <CheckCircle className="w-4 h-4" />
-                      Complete Your Survey
+                      <MessageSquare className="w-4 h-4" />
+                      Provide Feedback
                     </button>
                   )
                 )}
