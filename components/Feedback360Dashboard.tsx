@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare } from 'lucide-react';
+import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus } from 'lucide-react';
 import type { Employee, Department } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
@@ -1364,6 +1364,41 @@ export default function Feedback360Dashboard({
     );
   };
 
+  // Handle SLT member opting into a survey
+  const handleSLTOptIn = async (surveyId: string) => {
+    try {
+      const response = await fetch(`/api/surveys/${surveyId}/opt-in`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to opt into survey');
+      }
+
+      const data = await response.json();
+      console.log('✅ Successfully opted into survey:', data);
+
+      // Show success notification
+      notify({
+        title: 'Opted In',
+        description: 'You have been added as a reviewer for this survey.',
+        variant: 'success',
+      });
+
+      // Refresh surveys to update button state
+      await loadSurveys();
+
+    } catch (error) {
+      console.error('Error opting into survey:', error);
+      notify({
+        title: 'Failed to Opt In',
+        description: error instanceof Error ? error.message : 'Failed to opt into survey',
+        variant: 'error',
+      });
+    }
+  };
+
   // Handle AI modal completion - pass data to wizard and open it
   const handleAIModalComplete = (data: ParsedSurveyData) => {
     console.log('[Feedback360Dashboard.handleAIModalComplete] Data received from AI modal:', data);
@@ -1713,25 +1748,47 @@ export default function Feedback360Dashboard({
                     )}
                   </div>
 
-                  {/* Complete Review Button for Reviewers */}
-                  {isReviewer && (() => {
+                  {/* Complete Review Button for Reviewers OR Opt-In Button for SLT */}
+                  {(() => {
+                    const isSLT = currentUser?.app_role === 'slt';
                     const myReviewerRecord = survey.reviewers?.find((r: any) =>
                       r.reviewer_email === currentUser?.email
                     );
                     const isCompleted = myReviewerRecord?.status === 'completed';
 
-                    return !isCompleted && myReviewerRecord?.access_token ? (
-                      <a
-                        href={`/survey/complete/${myReviewerRecord.access_token}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg mt-4"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Complete Your Survey
-                      </a>
-                    ) : null;
+                    // If user is already a reviewer, show complete button
+                    if (isReviewer && !isCompleted && myReviewerRecord?.access_token) {
+                      return (
+                        <a
+                          href={`/survey/complete/${myReviewerRecord.access_token}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg mt-4"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Complete Your Survey
+                        </a>
+                      );
+                    }
+
+                    // If user is SLT but not a reviewer, show opt-in button (only for in_progress surveys)
+                    if (isSLT && !isReviewer && survey.status === 'in_progress') {
+                      return (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await handleSLTOptIn(survey.id);
+                          }}
+                          className="inline-flex items-center px-4 py-2 bg-lime-500 text-white rounded-lg hover:bg-lime-600 transition-all font-medium shadow-md hover:shadow-lg mt-4"
+                        >
+                          <UserPlus className="w-4 h-4 mr-2" />
+                          Opt In?
+                        </button>
+                      );
+                    }
+
+                    return null;
                   })()}
                   {survey.status === 'active' && (survey.reviewers_count ?? 0) > 0 && (
                     <div className="mt-3">

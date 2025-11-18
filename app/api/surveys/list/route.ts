@@ -79,10 +79,34 @@ export async function GET(request: NextRequest) {
     // Apply role-based filtering
     let filteredSurveys = allSurveys || [];
 
-    if (user.app_role === 'admin' || user.app_role === 'slt') {
-      // HIGH PRIORITY FIX: SLT and Admins see everything - no filtering needed
-      // TODO: Refine SLT scope when organizational structure is clarified
+    if (user.app_role === 'admin') {
+      // Admins see everything - no filtering needed
       filteredSurveys = allSurveys || [];
+    } else if (user.app_role === 'slt') {
+      // SLT members see:
+      // 1. All 'in_progress' surveys (for opt-in capability)
+      // 2. Surveys they created (all statuses)
+      // 3. Surveys where they're the subject (all statuses)
+      // 4. Surveys where they're a reviewer (all statuses except draft)
+      filteredSurveys = (allSurveys || []).filter((survey: any) => {
+        // Show surveys created by this SLT member (all statuses)
+        const isCreator = survey.created_by === profile.id || survey.created_by === profile.email;
+        if (isCreator) return true;
+
+        // Show surveys where SLT is the subject (all statuses)
+        if (survey.employee_id === profile.id) return true;
+
+        // Show surveys where SLT is a reviewer (exclude drafts)
+        const isReviewer = survey.reviewers?.some(
+          (r: any) => r.reviewer_email === profile.email
+        );
+        if (isReviewer && survey.status !== 'draft') return true;
+
+        // Show all other 'in_progress' surveys (for opt-in)
+        if (survey.status === 'in_progress') return true;
+
+        return false;
+      });
     } else if (user.app_role === 'leader') {
       // Leaders see:
       // 1. Surveys they created

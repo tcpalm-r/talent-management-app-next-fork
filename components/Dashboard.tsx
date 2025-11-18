@@ -103,7 +103,7 @@ export default function Dashboard({
       setCurrentView('360-feedback');
     }
 
-    if (currentView === 'insights' && currentRole !== 'admin' && currentRole !== 'leader') {
+    if (currentView === 'insights' && currentRole !== 'admin' && currentRole !== 'leader' && currentRole !== 'slt') {
       setCurrentView('360-feedback');
     }
   }, [userProfile.app_role, currentView]);
