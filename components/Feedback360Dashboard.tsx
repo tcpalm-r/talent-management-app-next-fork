@@ -1795,16 +1795,18 @@ export default function Feedback360Dashboard({
                     if (isReviewer && !isCompleted && myReviewerRecord?.access_token) {
                       return (
                         <div className="flex items-center gap-2 mt-4">
-                          <a
-                            href={`/survey/complete/${myReviewerRecord.access_token}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg"
-                          >
-                            <MessageSquare className="w-4 h-4 mr-2" />
-                            Provide Feedback
-                          </a>
+                          <Tooltip content="Complete your feedback survey for this employee">
+                            <a
+                              href={`/survey/complete/${myReviewerRecord.access_token}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg"
+                            >
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              Provide Feedback
+                            </a>
+                          </Tooltip>
 
                           {/* Show Opt Out button if SLT member opted in themselves */}
                           {isSLTOptedIn && (
