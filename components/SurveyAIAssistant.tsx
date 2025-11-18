@@ -71,7 +71,7 @@ export default function SurveyAIAssistant({
     const wordCount = feedback.trim().split(/\s+/).filter(word => word.length > 0).length;
     if (wordCount < 30) {
       console.log('[SurveyAIAssistant.handleProcess] Error: Not enough words', wordCount);
-      setError('Please provide more details, or give a specific example. Claude needs enough input to create a sufficient (50+ word) response.');
+      setError('Can you give one or two specific examples? Claude needs enough input to create a sufficient response.');
       return;
     }
 
@@ -165,7 +165,7 @@ export default function SurveyAIAssistant({
               Share your thoughts
             </label>
             <p className="text-sm text-gray-600 mb-4">
-              Type your thoughts about this question. AI will help refine and format your response into professional feedback.
+              Type your thoughts about this question. AI will help refine and format your response into formal feedback.
             </p>
 
             <textarea
