@@ -7,14 +7,14 @@ import { createClient } from '@supabase/supabase-js';
  * Structure matches production session format exactly
  */
 const MOCK_USER = {
-  id: 'dev-user-1',
-  auth0_id: 'auth0|dev-user',
+  id: '5b1e1ee7-5850-4b7f-8881-9304c17ab63f', // Real DB ID
+  auth0_id: 'thomas.palmer@sonance.com',
   email: 'thomas.palmer@sonance.com',
   full_name: 'Thomas Palmer',
   given_name: 'Thomas',
   family_name: 'Palmer',
   picture: null,
-  app_role: 'admin',
+  app_role: 'leader', // Updated to match database value
   app_permissions: {
     manage_users: true,
     manage_reviews: true,
@@ -145,18 +145,6 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      // Override Thomas Palmer's role with database value
-      let roleWasOverridden = false;
-      if (currentUser.email === 'thomas.palmer@sonance.com') {
-        const localRole = await getLocalUserRole(currentUser.email);
-        if (localRole) {
-          console.log('[Sonance Auth] Overriding Thomas Palmer role from database:', localRole.app_role);
-          currentUser.app_role = localRole.app_role;
-          currentUser.app_permissions = localRole.app_permissions;
-          roleWasOverridden = true;
-        }
-      }
-
       // Create request headers with current user data
       const requestHeaders = new Headers(request.headers);
       requestHeaders.set('x-user-data', JSON.stringify(currentUser));
@@ -170,7 +158,7 @@ export async function middleware(request: NextRequest) {
         },
       });
 
-      // Update cookie if role was overridden OR if there wasn't one already
+      // Set cookie if there wasn't one already
       if (!existingUserCookie) {
         console.log('[Sonance Auth] No existing cookie, setting MOCK_USER');
         response.cookies.set('ai-intranet-user', JSON.stringify(MOCK_USER), {
@@ -178,14 +166,6 @@ export async function middleware(request: NextRequest) {
           secure: false, // Not secure in development
           sameSite: 'lax',
           maxAge: 86400 // 24 hours
-        });
-      } else if (roleWasOverridden) {
-        console.log('[Sonance Auth] Updating cookie with overridden role');
-        response.cookies.set('ai-intranet-user', JSON.stringify(currentUser), {
-          httpOnly: false,
-          secure: false,
-          sameSite: 'lax',
-          maxAge: 86400
         });
       }
 

@@ -34,7 +34,7 @@ export const MOCK_USER: SessionUser = {
   given_name: 'Thomas',
   family_name: 'Palmer',
   picture: undefined,
-  app_role: 'admin',
+  app_role: 'leader', // Updated to match database value
   app_permissions: {
     manage_users: true,
     manage_reviews: true,
@@ -115,13 +115,13 @@ export const TEST_USERS: SessionUser[] = [
     title: 'Junior Product Designer',
   },
   {
-    id: '2b7abaf6-23e3-4672-8789-58310694a985',
-    auth0_id: 'test.test@sonance.com',
-    email: 'test.test@sonance.com',
-    full_name: 'Test tt. test',
-    given_name: 'Test',
-    family_name: 'test',
-    picture: null,
+    id: '13fac9a4-c05f-4490-86df-af0fac7edbf6',
+    auth0_id: 'derickd@sonance.com',
+    email: 'derickd@sonance.com',
+    full_name: 'Derick Dahl',
+    given_name: 'Derick',
+    family_name: 'Dahl',
+    picture: 'https://s.gravatar.com/avatar/e0de550688b11955b082e1a706ff451a?s=480&r=pg&d=https%3A%2F%2Fcdn.auth0.com%2Favatars%2Fdd.png',
     app_role: 'leader',
     app_permissions: {
       read: true,
@@ -131,8 +131,8 @@ export const TEST_USERS: SessionUser[] = [
     global_role: 'user',
     capabilities: [],
     app_access: true,
-    department: 'IT',
-    title: 'Tests Tests',
+    department: 'Product Management',
+    title: 'Head of Technology and Innovation',
   },
 ];
 
