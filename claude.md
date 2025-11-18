@@ -126,13 +126,20 @@ NEXT_PUBLIC_DISABLE_AUTH=true
 ```
 
 ### Role-Based Access Control (RBAC)
-User roles are stored in `user_profiles.app_role` field with three levels:
+User roles are stored in `user_profiles.app_role` field (also accessible via the `employees` materialized view) with four levels:
 
 - **Admin** - Full system access
   - Can view all surveys across the organization
   - Can manage all users and settings
   - Can delete, finalize, or revert any survey
   - Can access admin settings panel
+
+- **SLT** (Senior Leadership Team) - Executive leadership access
+  - Can view surveys they created
+  - Can view surveys where they are the subject
+  - Can view surveys for their direct reports
+  - Can view surveys where they are a reviewer (except drafts)
+  - Cannot see other leaders' draft surveys
 
 - **Leader** - Team management access
   - Can view surveys they created
@@ -267,14 +274,11 @@ Key tables:
 - `feedback_360_questions` - Question bank
 - `feedback_360_survey_questions` - Survey-specific questions
 - `feedback_360_responses` - Survey answers
-- `assessments` - Performance assessments
-- `performance_reviews` - Review cycles
 - `departments` - Department data
 
 Materialized views:
-- `employees` - Active employees view
+- `employees` - Active employees view (includes app_role field)
 - `active_users` - User activity tracking
-- `active_performance_reviews` - Current review cycles
 
 ---
 
@@ -315,9 +319,10 @@ Materialized views:
   - Title
   - Department
   - Location
-  - Role (user/leader/admin)
+  - Role (user/leader/slt/admin)
 - Color-coded role badges:
   - Purple: Admin
+  - Teal: SLT
   - Blue: Leader
   - Gray: User
 - Soft delete functionality (sets is_active=false)
@@ -358,22 +363,9 @@ Materialized views:
 - Survey status management (draft/active/closed/finalized)
 - Survey finalization workflow (revert finalized surveys back to draft)
 - Survey report generation (`/api/360-generate-report` - PDF export)
-- Role-based filtering (admin/leader view)
+- Role-based filtering (admin/slt/leader view)
 
-### 3. 9-Box Talent Grid
-Performance vs. Potential assessment matrix
-- Visual grid layout
-- Employee positioning
-- Assessment tracking
-
-### 4. Performance Review Management
-- Multiple review frameworks
-- Deadline tracking
-- Participant management
-- Review cycles
-- Status tracking
-
-### 5. Employee Management
+### 3. Employee Management
 **Components:**
 - `EmployeeDetailModal.tsx` - Employee details (feature-rich)
 - `EmployeeList.tsx` - List view
@@ -387,7 +379,7 @@ Performance vs. Potential assessment matrix
 - Employee profiles
 - Manager relationships
 
-### 6. AI Features
+### 4. AI Features
 - **AI Coach** (AICoachMicroPanel.tsx)
   - Contextual assistance
   - Suggestions and insights
@@ -400,7 +392,7 @@ Performance vs. Potential assessment matrix
   - Review analysis (lib/reviewAnalyzer.ts)
   - Survey insights (lib/survey360Analyzer.ts)
 
-### 7. Other Features
+### 5. Other Features
 - **Dashboard** (Dashboard.tsx) - Main application dashboard
 - **Critical Role Setup** (CriticalRoleSetupModal.tsx)
 
@@ -899,8 +891,8 @@ talent-management-next/
 
 ---
 
-Last Updated: 2025-01-27
-Version: 0.3.0 (Documentation Audit - Fixed CRITICAL/HIGH/MEDIUM/LOW inconsistencies)
+Last Updated: 2025-11-18
+Version: 0.3.1 (Documentation Update - Corrected role count to 4 levels, removed non-existent features)
 
 ## Important Naming Note
 
