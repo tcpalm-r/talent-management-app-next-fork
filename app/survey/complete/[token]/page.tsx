@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { CheckCircle, AlertCircle, Send, Loader, Sparkles } from 'lucide-react';
 import SurveyAIAssistant from '../../../../components/SurveyAIAssistant';
 import { replaceNamePlaceholder } from '../../../../lib/questionUtils';
+import { Tooltip, TooltipProvider } from '../../../../components/unified';
 
 interface Question {
   id: string;
@@ -290,6 +291,7 @@ export default function SurveyCompletionPage() {
   }
 
   return (
+    <TooltipProvider>
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
@@ -344,19 +346,20 @@ export default function SurveyCompletionPage() {
 
                   {/* AI Assistant Button */}
                   <div className="ml-11 mb-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        console.log('[SurveyCompletionPage] Opening AI Assistant for question:', question.id);
-                        setActiveQuestionForAI(question.id);
-                      }}
-                      disabled={submitting}
-                      className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Use AI to help with this question"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      AI Response Assistant
-                    </button>
+                    <Tooltip content="Synthesize and format any thoughts, feelings, or examples with AI">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          console.log('[SurveyCompletionPage] Opening AI Assistant for question:', question.id);
+                          setActiveQuestionForAI(question.id);
+                        }}
+                        disabled={submitting}
+                        className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        AI Response Assistant
+                      </button>
+                    </Tooltip>
                   </div>
 
                   {/* Response */}
@@ -388,23 +391,25 @@ export default function SurveyCompletionPage() {
 
             {/* Submit Button */}
             <div className="mt-8 pt-6 border-t border-gray-200">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-lg font-semibold text-lg flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? (
-                  <>
-                    <Loader className="w-5 h-5 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-5 h-5" />
-                    Submit Feedback
-                  </>
-                )}
-              </button>
+              <Tooltip content="Submit your responses. This action cannot be undone">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-lg font-semibold text-lg flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader className="w-5 h-5 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      Submit Feedback
+                    </>
+                  )}
+                </button>
+              </Tooltip>
             </div>
           </form>
         </div>
@@ -424,5 +429,6 @@ export default function SurveyCompletionPage() {
         />
       )}
     </div>
+    </TooltipProvider>
   );
 }
