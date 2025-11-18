@@ -12,7 +12,13 @@ export async function POST(request: NextRequest) {
       requiredQuestions,
       customQuestions,
       raters,
+      questionsConfirmed,
+      currentStep,
     } = body;
+
+    // Split raters into complete (with name/email) and partial (relationship-only)
+    const completeRaters = (raters || []).filter((r: any) => r.name && r.email);
+    const partialRaters = (raters || []).filter((r: any) => r.relationship && (!r.name || !r.email));
 
     // Validate required fields
     if (!surveyId) {
@@ -42,6 +48,8 @@ export async function POST(request: NextRequest) {
       .update({
         survey_name: surveyName,
         due_date: dueDate,
+        current_step: currentStep || null,
+        draft_partial_reviewers: partialRaters.length > 0 ? partialRaters : null,
       })
       .eq('id', surveyId);
 
@@ -134,10 +142,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create reviewers
-    const validRaters = (raters || []).filter((r: any) => r.name && r.name.trim());
-    if (validRaters.length > 0) {
-      const reviewersToInsert = validRaters.map((r: any) => ({
+    // Create reviewers (only complete ones with name AND email)
+    if (completeRaters.length > 0) {
+      const reviewersToInsert = completeRaters.map((r: any) => ({
         survey_id: surveyId,
         reviewer_name: r.name,
         reviewer_email: r.email || 'pending-email@example.com',

@@ -340,6 +340,10 @@ export default function Survey360Wizard({
 
         const partialReviewers = draftSurvey.draft_partial_reviewers || [];
 
+        console.log('[DRAFT LOAD] Complete reviewers from DB:', completeReviewers);
+        console.log('[DRAFT LOAD] Partial reviewers from draft:', partialReviewers);
+        console.log('[DRAFT LOAD] Draft survey object:', draftSurvey);
+
         // Combine both arrays - partial reviewers first (they're incomplete), then complete ones
         setRaters([...partialReviewers, ...completeReviewers]);
 
@@ -799,22 +803,32 @@ export default function Survey360Wizard({
   }, [isOpen, currentStep, currentStepIndex, steps, selectedEmployee, highlightedEmployeeListIndex, filteredEmployees, isBatchMode, requiredQuestions, raters, dueDate, showRaterPicker]);
 
   const handleClose = async () => {
-    // Skip auto-save if we're editing an existing draft (user will click "Launch" to save changes)
-    if (draftSurvey) {
-      onClose();
-      return;
-    }
-
     // Only save draft if there's meaningful progress and we're not on the last step
     const hasProgress = selectedEmployee && currentStepIndex < steps.length - 1;
 
     if (hasProgress) {
       try {
-        // Create draft survey via API
-        const response = await fetch('/api/surveys/save-draft', {
+        // If editing existing draft, update it; otherwise create new draft
+        const isUpdating = !!draftSurvey;
+        const apiUrl = isUpdating ? '/api/surveys/update-draft' : '/api/surveys/save-draft';
+
+        console.log('[DRAFT SAVE] Is updating?', isUpdating);
+        console.log('[DRAFT SAVE] Raters being saved:', raters);
+        console.log('[DRAFT SAVE] Current step:', currentStep);
+
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          body: JSON.stringify(isUpdating ? {
+            surveyId: draftSurvey.id,
+            surveyName: surveyTitle || `360° Feedback - ${selectedEmployee.name}`,
+            dueDate: dueDate || null,
+            requiredQuestions: requiredQuestions.filter(q => q.trim()),
+            customQuestions,
+            raters, // Save ALL raters, including partial ones (relationship-only)
+            questionsConfirmed,
+            currentStep, // Save the current wizard step
+          } : {
             organizationId,
             employeeId: selectedEmployee.id,
             surveyTitle: surveyTitle || `360° Feedback - ${selectedEmployee.name}`,
