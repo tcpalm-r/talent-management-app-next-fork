@@ -341,12 +341,17 @@ export default function Survey360Wizard({
 
         const partialReviewers = draftSurvey.draft_partial_reviewers || [];
 
-        console.log('[DRAFT LOAD] Complete reviewers from DB:', completeReviewers);
-        console.log('[DRAFT LOAD] Partial reviewers from draft:', partialReviewers);
-        console.log('[DRAFT LOAD] Draft survey object:', draftSurvey);
+        console.log('[DRAFT LOAD] ========== LOADING DRAFT ==========');
+        console.log('[DRAFT LOAD] Draft survey ID:', draftSurvey.id);
+        console.log('[DRAFT LOAD] Complete reviewers from DB:', JSON.stringify(completeReviewers, null, 2));
+        console.log('[DRAFT LOAD] Partial reviewers from draft_partial_reviewers:', JSON.stringify(partialReviewers, null, 2));
+        console.log('[DRAFT LOAD] Draft survey current_step:', draftSurvey.current_step);
+        console.log('[DRAFT LOAD] Full draft survey object:', JSON.stringify(draftSurvey, null, 2));
 
         // Combine both arrays - partial reviewers first (they're incomplete), then complete ones
-        setRaters([...partialReviewers, ...completeReviewers]);
+        const combinedRaters = [...partialReviewers, ...completeReviewers];
+        console.log('[DRAFT LOAD] Combined raters to set:', JSON.stringify(combinedRaters, null, 2));
+        setRaters(combinedRaters);
 
         // Set other fields
         setSurveyTitle(draftSurvey.survey_name || '');
@@ -807,6 +812,12 @@ export default function Survey360Wizard({
     // Only save draft if there's meaningful progress and we're not on the last step
     const hasProgress = selectedEmployee && currentStepIndex < steps.length - 1;
 
+    console.log('[DRAFT SAVE] ========== STARTING SAVE ==========');
+    console.log('[DRAFT SAVE] Has progress?', hasProgress);
+    console.log('[DRAFT SAVE] Selected employee:', selectedEmployee?.name);
+    console.log('[DRAFT SAVE] Current step index:', currentStepIndex);
+    console.log('[DRAFT SAVE] Total steps:', steps.length);
+
     if (hasProgress) {
       try {
         // If editing existing draft, update it; otherwise create new draft
@@ -814,7 +825,8 @@ export default function Survey360Wizard({
         const apiUrl = isUpdating ? '/api/surveys/update-draft' : '/api/surveys/save-draft';
 
         console.log('[DRAFT SAVE] Is updating?', isUpdating);
-        console.log('[DRAFT SAVE] Raters being saved:', raters);
+        console.log('[DRAFT SAVE] Draft survey ID:', draftSurvey?.id);
+        console.log('[DRAFT SAVE] Raters being saved:', JSON.stringify(raters, null, 2));
         console.log('[DRAFT SAVE] Current step:', currentStep);
 
         const response = await fetch(apiUrl, {
@@ -845,9 +857,12 @@ export default function Survey360Wizard({
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.error('[handleClose] API error:', errorData);
+          console.error('[DRAFT SAVE] ❌ API error:', errorData);
           throw new Error(errorData.error || 'Failed to save draft');
         }
+
+        const responseData = await response.json();
+        console.log('[DRAFT SAVE] ✅ API response:', responseData);
 
         notify({
           title: 'Draft saved',
@@ -858,11 +873,14 @@ export default function Survey360Wizard({
         // Refresh the survey list to show the new draft
         onSurveyCreated();
       } catch (error: any) {
-        console.error('[handleClose] Error saving draft:', error);
+        console.error('[DRAFT SAVE] ❌ Error saving draft:', error);
         // Don't show error notification, just close silently
       }
+    } else {
+      console.log('[DRAFT SAVE] ⚠️ Skipping save - no progress or on last step');
     }
 
+    console.log('[DRAFT SAVE] ========== CLOSING MODAL ==========');
     onClose();
   };
 

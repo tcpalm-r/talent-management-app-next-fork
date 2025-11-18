@@ -1362,8 +1362,8 @@ export default function Feedback360Dashboard({
   return (
     <TooltipProvider>
     <div>
-      {/* Header - Only show create buttons for Admin and Leader (Sponsors) */}
-      {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader') && (
+      {/* Header - Only show create buttons for Admin, SLT, and Leader (Sponsors) */}
+      {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
@@ -1415,8 +1415,8 @@ export default function Feedback360Dashboard({
           </button>
         </Tooltip>
 
-        {/* Drafts - Only show for Admin and Leader (Sponsors) */}
-        {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader') && (
+        {/* Drafts - Only show for Admin, SLT, and Leader (Sponsors) */}
+        {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
           <Tooltip content="Surveys not yet sent to reviewers">
             <button
               onClick={() => setFilterStatus('draft')}
@@ -1460,8 +1460,8 @@ export default function Feedback360Dashboard({
           </button>
         </Tooltip>
 
-        {/* Completed - Admin & Leader Only */}
-        {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader') && (
+        {/* Completed - Admin, SLT, & Leader Only */}
+        {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
           <Tooltip content="Surveys with all responses received and analyzed">
             <button
               onClick={() => setFilterStatus('completed')}
@@ -1544,7 +1544,7 @@ export default function Feedback360Dashboard({
                 ? 'No reviews need admin review'
                 : `No reviews ${filterStatus === 'in_progress' ? 'in progress' : filterStatus}`}
             </h3>
-            {filterStatus === 'all' && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader') && (
+            {filterStatus === 'all' && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
               <>
                 <p className="text-gray-600 mb-6">
                   Create your first 360° feedback review to gather multi-source feedback
@@ -2405,7 +2405,7 @@ export default function Feedback360Dashboard({
                     <Download className="w-4 h-4 mr-2" />
                     Export PDF
                   </button>
-                  {(currentUser?.app_role === 'admin' || ((selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'leader'))) && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
+                  {(currentUser?.app_role === 'admin' || ((selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader'))) && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
                     <button
                       onClick={() => {
                         deleteInProgressSurvey(selectedSurvey.id);

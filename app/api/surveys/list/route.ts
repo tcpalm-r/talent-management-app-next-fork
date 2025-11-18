@@ -79,8 +79,9 @@ export async function GET(request: NextRequest) {
     // Apply role-based filtering
     let filteredSurveys = allSurveys || [];
 
-    if (user.app_role === 'admin') {
-      // Admins see everything - no filtering needed
+    if (user.app_role === 'admin' || user.app_role === 'slt') {
+      // HIGH PRIORITY FIX: SLT and Admins see everything - no filtering needed
+      // TODO: Refine SLT scope when organizational structure is clarified
       filteredSurveys = allSurveys || [];
     } else if (user.app_role === 'leader') {
       // Leaders see:

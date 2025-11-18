@@ -29,8 +29,8 @@ function determineViewerRole(
   user: UserProfile,
   survey: { created_by: string; employee_id: string; status: string | null }
 ): 'sponsor' | 'subject' | 'admin' | 'unauthorized' {
-  // Admins can see everything
-  if (user.app_role === 'admin') {
+  // Admins and SLT can see everything (elevated access)
+  if (user.app_role === 'admin' || user.app_role === 'slt') {
     return 'admin';
   }
 

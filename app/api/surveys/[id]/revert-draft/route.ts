@@ -50,10 +50,11 @@ export async function POST(
       );
     }
 
-    // Check permission - admins and creators can revert
+    // Check permission - admins, SLT (elevated access), and survey creators
     const canRevert =
       user.app_role === 'admin' ||
-      survey.created_by === profile.id;
+      user.app_role === 'slt' || // SLT can revert any survey
+      survey.created_by === profile.id; // Creators can revert their own surveys
 
     if (!canRevert) {
       return NextResponse.json(

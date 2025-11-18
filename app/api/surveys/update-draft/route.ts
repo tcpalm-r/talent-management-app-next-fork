@@ -16,9 +16,17 @@ export async function POST(request: NextRequest) {
       currentStep,
     } = body;
 
+    console.log('[API update-draft] ========== RECEIVED UPDATE REQUEST ==========');
+    console.log('[API update-draft] Survey ID:', surveyId);
+    console.log('[API update-draft] Raters received:', JSON.stringify(raters, null, 2));
+    console.log('[API update-draft] Current step:', currentStep);
+
     // Split raters into complete (with name/email) and partial (relationship-only)
     const completeRaters = (raters || []).filter((r: any) => r.name && r.email);
     const partialRaters = (raters || []).filter((r: any) => r.relationship && (!r.name || !r.email));
+
+    console.log('[API update-draft] Complete raters (will go to DB):', JSON.stringify(completeRaters, null, 2));
+    console.log('[API update-draft] Partial raters (will go to JSON field):', JSON.stringify(partialRaters, null, 2));
 
     // Validate required fields
     if (!surveyId) {
@@ -43,23 +51,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Update survey with new data
+    const updateData = {
+      survey_name: surveyName,
+      due_date: dueDate,
+      current_step: currentStep || null,
+      draft_partial_reviewers: partialRaters.length > 0 ? partialRaters : null,
+    };
+
+    console.log('[API update-draft] Updating survey with data:', JSON.stringify(updateData, null, 2));
+
     const { error: updateError } = await supabaseAdmin
       .from('feedback_360_surveys')
-      .update({
-        survey_name: surveyName,
-        due_date: dueDate,
-        current_step: currentStep || null,
-        draft_partial_reviewers: partialRaters.length > 0 ? partialRaters : null,
-      })
+      .update(updateData)
       .eq('id', surveyId);
 
     if (updateError) {
-      console.error('[API /surveys/update-draft] Error updating survey:', updateError);
+      console.error('[API update-draft] ❌ Error updating survey:', updateError);
       return NextResponse.json(
         { error: updateError.message, details: updateError },
         { status: 500 }
       );
     }
+
+    console.log('[API update-draft] ✅ Survey updated successfully');
 
     // Combine required and custom questions
     const allQuestions = [...(requiredQuestions || []), ...(customQuestions || [])];
@@ -166,11 +180,16 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      console.log('[API update-draft] ✅ Inserted complete reviewers:', insertedReviewers?.length || 0);
+
       return NextResponse.json({
         success: true,
         reviewers: insertedReviewers,
       });
     }
+
+    console.log('[API update-draft] ✅ No complete reviewers to insert');
+    console.log('[API update-draft] ========== UPDATE COMPLETE ==========');
 
     return NextResponse.json({
       success: true,

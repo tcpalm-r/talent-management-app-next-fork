@@ -13,6 +13,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { user, profile } = authData;
+
+    // HIGH PRIORITY FIX: Role check - only admin, slt, and leader can create surveys
+    if (user.app_role !== 'admin' && user.app_role !== 'slt' && user.app_role !== 'leader') {
+      return NextResponse.json(
+        { error: 'Forbidden: Only admins, SLT, and leaders can create 360 reviews' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const {
       employeeId,
@@ -30,6 +40,34 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // HIGH PRIORITY FIX: Employee authorization - leaders can only create for direct reports
+    if (user.app_role === 'leader') {
+      // Get leader's direct reports
+      const { data: directReports, error: drError } = await supabaseAdmin
+        .from('user_profiles')
+        .select('id')
+        .eq('manager_id', profile.id);
+
+      if (drError) {
+        console.error('[API /surveys/create] Error fetching direct reports:', drError);
+        return NextResponse.json(
+          { error: 'Failed to validate employee authorization' },
+          { status: 500 }
+        );
+      }
+
+      const directReportIds = directReports?.map(dr => dr.id) || [];
+
+      // Leaders can create for direct reports only
+      if (!directReportIds.includes(employeeId)) {
+        return NextResponse.json(
+          { error: 'Forbidden: Leaders can only create 360 reviews for their direct reports' },
+          { status: 403 }
+        );
+      }
+    }
+    // Admin and SLT can create for any employee (no additional check needed)
 
     // Create survey - use authenticated user's profile ID
     const { data: survey, error: surveyError } = await supabaseAdmin

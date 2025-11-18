@@ -45,10 +45,11 @@ export async function POST(
       );
     }
 
-    // Check permission - admins and creators can finalize
+    // Check permission - admins, SLT, and survey creators can finalize their own surveys
     const canFinalize =
       user.app_role === 'admin' ||
-      survey.created_by === profile.id;
+      user.app_role === 'slt' || // SLT can finalize any survey (same elevated access as admin)
+      survey.created_by === profile.id; // Creators (leaders/SLT) can finalize their own surveys
 
     if (!canFinalize) {
       return NextResponse.json(

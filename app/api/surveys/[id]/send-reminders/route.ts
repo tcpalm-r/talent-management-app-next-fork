@@ -46,10 +46,11 @@ export async function POST(
       );
     }
 
-    // Check permission
+    // Check permission - admins, SLT (elevated access), and survey creators
     const canSend =
       user.app_role === 'admin' ||
-      survey.created_by === profile.id;
+      user.app_role === 'slt' || // SLT can send reminders for any survey
+      survey.created_by === profile.id; // Creators can send reminders for their own surveys
 
     if (!canSend) {
       return NextResponse.json(
