@@ -54,9 +54,10 @@ export async function PATCH(
       );
     }
 
-    // Check permission
+    // Check permission - admins, SLT, and survey creators
     const canModify =
       user.app_role === 'admin' ||
+      user.app_role === 'slt' ||  // HIGH PRIORITY FIX: SLT has elevated access
       survey.created_by === profile.id;
 
     if (!canModify) {
@@ -150,9 +151,10 @@ export async function DELETE(
       );
     }
 
-    // Check permission
+    // Check permission - admins, SLT, and survey creators
     const canModify =
       user.app_role === 'admin' ||
+      user.app_role === 'slt' ||  // HIGH PRIORITY FIX: SLT has elevated access
       survey.created_by === profile.id;
 
     if (!canModify) {

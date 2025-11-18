@@ -1306,20 +1306,24 @@ export default function Feedback360Dashboard({
     // Show "Needs Reanalysis" badge for flagged surveys
     if ((flaggedForAdmin || flaggedForReanalysis) && currentUser?.app_role === 'admin') {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300">
-          <AlertTriangle className="w-3 h-3 mr-1" />
-          Needs Reanalysis
-        </span>
+        <Tooltip content="This survey has been flagged and requires admin review">
+          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300 cursor-help">
+            <AlertTriangle className="w-3 h-3 mr-1" />
+            Needs Reanalysis
+          </span>
+        </Tooltip>
       );
     }
 
     // Show "Needs Reanalysis" for sponsors when flagged for reanalysis
     if (flaggedForReanalysis && (selectedSurvey?.created_by === currentUser?.id || selectedSurvey?.created_by === currentUser?.email)) {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300">
-          <AlertTriangle className="w-3 h-3 mr-1" />
-          Needs Reanalysis
-        </span>
+        <Tooltip content="This survey has been flagged and requires admin review">
+          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300 cursor-help">
+            <AlertTriangle className="w-3 h-3 mr-1" />
+            Needs Reanalysis
+          </span>
+        </Tooltip>
       );
     }
 
@@ -1341,13 +1345,22 @@ export default function Feedback360Dashboard({
       completed: 'Completed',
       finalized: 'Finalized'
     };
+    const tooltips = {
+      draft: 'Survey is not yet sent to reviewers',
+      in_progress: 'Survey is active and awaiting responses',
+      completed: 'All responses received and analyzed',
+      finalized: 'Survey is archived and final'
+    };
     const Icon = icons[status as keyof typeof icons] || Clock;
+    const tooltipText = tooltips[status as keyof typeof tooltips] || 'Survey status';
 
     return (
-      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${styles[status as keyof typeof styles]}`}>
-        <Icon className="w-3 h-3 mr-1" />
-        {labels[status as keyof typeof labels] || status}
-      </span>
+      <Tooltip content={tooltipText}>
+        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border cursor-help ${styles[status as keyof typeof styles]}`}>
+          <Icon className="w-3 h-3 mr-1" />
+          {labels[status as keyof typeof labels] || status}
+        </span>
+      </Tooltip>
     );
   };
 
@@ -1460,27 +1473,25 @@ export default function Feedback360Dashboard({
           </button>
         </Tooltip>
 
-        {/* Completed - Admin, SLT, & Leader Only */}
-        {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
-          <Tooltip content="Surveys with all responses received and analyzed">
-            <button
-              onClick={() => setFilterStatus('completed')}
-              className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
-                filterStatus === 'completed'
-                  ? 'border-green-500 bg-green-50'
-                  : 'bg-white border-green-200 hover:bg-green-50'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-green-700">Completed</p>
-                  <p className="text-2xl font-bold text-green-900">{stats.completed}</p>
-                </div>
-                <CheckCircle className="w-8 h-8 text-green-400" />
+        {/* Completed - Available to all roles (Users see reviews where they're reviewers) */}
+        <Tooltip content="Surveys with all responses received and analyzed">
+          <button
+            onClick={() => setFilterStatus('completed')}
+            className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
+              filterStatus === 'completed'
+                ? 'border-green-500 bg-green-50'
+                : 'bg-white border-green-200 hover:bg-green-50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-700">Completed</p>
+                <p className="text-2xl font-bold text-green-900">{stats.completed}</p>
               </div>
-            </button>
-          </Tooltip>
-        )}
+              <CheckCircle className="w-8 h-8 text-green-400" />
+            </div>
+          </button>
+        </Tooltip>
 
         {/* Needs Reanalysis - Admin Only */}
         {currentUser?.app_role === 'admin' && (
@@ -1670,19 +1681,25 @@ export default function Feedback360Dashboard({
 
                       {/* Relationship badges */}
                       {isSponsor && (
-                        <span className="text-xs font-medium text-indigo-700">
-                          Sponsor
-                        </span>
+                        <Tooltip content="You created this survey">
+                          <span className="text-xs font-medium text-indigo-700 cursor-help">
+                            Sponsor
+                          </span>
+                        </Tooltip>
                       )}
                       {isReviewee && (
-                        <span className="text-xs font-medium text-orange-700">
-                          Subject
-                        </span>
+                        <Tooltip content="You are being reviewed">
+                          <span className="text-xs font-medium text-orange-700 cursor-help">
+                            Subject
+                          </span>
+                        </Tooltip>
                       )}
                       {isReviewer && (
-                        <span className="text-xs font-medium text-cyan-700">
-                          Reviewer
-                        </span>
+                        <Tooltip content="You were invited to provide feedback">
+                          <span className="text-xs font-medium text-cyan-700 cursor-help">
+                            Reviewer
+                          </span>
+                        </Tooltip>
                       )}
                     </div>
 
@@ -1784,16 +1801,17 @@ export default function Feedback360Dashboard({
 
                 {/* Delete button - bottom right of card */}
                 {(currentUser?.app_role === 'admin' || isSponsor) && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteInProgressSurvey(survey.id);
-                    }}
-                    className="absolute bottom-6 right-6 mt-4 text-red-600 hover:text-red-700 transition-colors text-sm font-medium"
-                    title="Delete this review"
-                  >
-                    Delete
-                  </button>
+                  <Tooltip content="Permanently delete this survey for everyone involved" side="bottom">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteInProgressSurvey(survey.id);
+                      }}
+                      className="absolute bottom-6 right-6 mt-4 text-red-600 hover:text-red-700 transition-colors text-sm font-medium"
+                    >
+                      Delete
+                    </button>
+                  </Tooltip>
                 )}
               </div>
             </div>

@@ -1,8 +1,8 @@
 # 360 Review Authorization Fixes - Summary Report
 
 **Date:** November 17, 2025
-**Status:** ✅ COMPLETED
-**Total Files Modified:** 8 files
+**Status:** ✅ COMPLETED (Role-by-Role Audit)
+**Total Files Modified:** 13 files
 
 ---
 
@@ -20,7 +20,7 @@ This document summarizes all authorization fixes applied to the 360 Feedback sys
 
 ## Fixed Issues Summary
 
-### CRITICAL Fixes (Security Vulnerabilities)
+### Phase 1: Initial CRITICAL Fixes (Security Vulnerabilities)
 
 #### 1. ✅ `/api/surveys/update-status` - Added Authentication & Authorization
 **Issue:** Endpoint had ZERO authentication or authorization checks. Any user could change any survey status.
@@ -173,20 +173,90 @@ This document summarizes all authorization fixes applied to the 360 Feedback sys
 
 ---
 
+---
+
+### Phase 2: Role-by-Role Audit Fixes
+
+#### 6. ✅ **User Role - Draft Access Restrictions (CRITICAL)**
+
+**Issue:** Users could load and update draft surveys created by others.
+
+**Fix Applied:**
+
+**File:** `app/api/surveys/load-draft/route.ts`
+- Added authentication check
+- Added role check: only admin, SLT, leader can load drafts
+- Added ownership validation: users can only load their own drafts
+
+**File:** `app/api/surveys/update-draft/route.ts`
+- Added authentication check
+- Added role check: only admin, SLT, leader can update drafts
+- Added ownership validation: users can only update their own drafts
+
+**Impact:** Eliminated CRITICAL vulnerability where users could access others' draft data
+
+---
+
+#### 7. ✅ **Leader Role - Direct Report Modification Restriction (CRITICAL)**
+
+**Issue:** Leaders could edit/modify surveys for direct reports even if they didn't create them, violating "read-only to avoid conflict" requirement.
+
+**Fix Applied:**
+
+**File:** `app/api/surveys/[id]/route.ts` - `checkSurveyModifyPermission()` function
+- Removed direct report modification permission for leaders
+- Leaders can ONLY modify surveys they created
+- Enforces read-only access to direct reports' surveys
+
+**Impact:** Prevents conflict of interest where leaders modify direct reports' surveys
+
+---
+
+#### 8. ✅ **SLT Role - Missing from Reviewer Management (HIGH)**
+
+**Issue:** SLT role missing from reviewer add/update/delete endpoints.
+
+**Fix Applied:**
+
+**File:** `app/api/surveys/[id]/reviewers/[reviewerId]/route.ts` (PATCH & DELETE)
+- Added `user.app_role === 'slt'` to permission checks (2 occurrences)
+
+**Impact:** SLT now has full reviewer management access like admins
+
+---
+
+#### 9. ✅ **SLT Role - Missing from Survey Delete (HIGH)**
+
+**Issue:** SLT role missing from survey delete authorization.
+
+**Fix Applied:**
+
+**File:** `app/api/surveys/[id]/route.ts` - DELETE endpoint
+- Added `user.app_role === 'slt'` to delete permission check
+
+**Impact:** SLT can now delete surveys like admins (elevated access)
+
+---
+
 ## Files Modified
 
-### API Routes (7 files)
+### API Routes (13 files)
 1. ✅ `app/api/surveys/update-status/route.ts` - Added auth & authorization
 2. ✅ `app/api/surveys/create/route.ts` - Added role & employee checks
 3. ✅ `app/api/surveys/save-draft/route.ts` - Added role & employee checks
-4. ✅ `app/api/surveys/list/route.ts` - Added SLT role filtering
-5. ✅ `app/api/surveys/[id]/finalize/route.ts` - Added SLT support
-6. ✅ `app/api/surveys/[id]/send-reminders/route.ts` - Added SLT support
-7. ✅ `app/api/surveys/[id]/revert-draft/route.ts` - Added SLT support
-8. ✅ `app/api/360-generate-report/route.ts` - Added SLT to viewer role
+4. ✅ `app/api/surveys/load-draft/route.ts` - **[PHASE 2]** Added auth & ownership validation
+5. ✅ `app/api/surveys/update-draft/route.ts` - **[PHASE 2]** Added auth & ownership validation
+6. ✅ `app/api/surveys/list/route.ts` - Added SLT role filtering
+7. ✅ `app/api/surveys/[id]/route.ts` - **[PHASE 2]** Fixed leader direct report modification + added SLT to DELETE
+8. ✅ `app/api/surveys/[id]/finalize/route.ts` - Added SLT support
+9. ✅ `app/api/surveys/[id]/send-reminders/route.ts` - Added SLT support
+10. ✅ `app/api/surveys/[id]/revert-draft/route.ts` - Added SLT support
+11. ✅ `app/api/surveys/[id]/reviewers/route.ts` - Added SLT support
+12. ✅ `app/api/surveys/[id]/reviewers/[reviewerId]/route.ts` - **[PHASE 2]** Added SLT to PATCH & DELETE
+13. ✅ `app/api/360-generate-report/route.ts` - Added SLT to viewer role
 
 ### Frontend Components (1 file)
-9. ✅ `components/Feedback360Dashboard.tsx` - Added SLT to 5 button checks
+14. ✅ `components/Feedback360Dashboard.tsx` - Added SLT to 5 button checks
 
 ---
 

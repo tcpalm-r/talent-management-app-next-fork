@@ -185,9 +185,10 @@ export async function DELETE(
       );
     }
 
-    // Authorization check - only creator or admin can delete
+    // Authorization check - only creator, admin, or SLT can delete
     const canDelete =
       user.app_role === 'admin' ||
+      user.app_role === 'slt' ||  // HIGH PRIORITY FIX: SLT has elevated access
       existingSurvey.created_by === profile.id;
 
     if (!canDelete) {
@@ -270,30 +271,25 @@ export async function DELETE(
 
 /**
  * Check if user has permission to modify this survey
+ *
+ * CRITICAL FIX: Leaders can ONLY modify surveys they CREATED (not all direct report surveys)
+ * This prevents conflict of interest where a leader modifies a direct report's survey
+ * created by an admin or another leader
  */
 async function checkSurveyModifyPermission(
   survey: any,
   role: string,
   profile: any
 ): Promise<boolean> {
-  // Admins can modify everything
-  if (role === 'admin') return true;
+  // Admins and SLT can modify everything
+  if (role === 'admin' || role === 'slt') return true;
 
-  // Survey creator can modify
+  // Survey creator can modify their own surveys
   if (survey.created_by === profile.id) return true;
 
-  // Leaders can modify surveys for their direct reports
-  if (role === 'leader') {
-    const { data: directReports } = await supabaseAdmin
-      .from('user_profiles')
-      .select('id')
-      .eq('manager_id', profile.id);
-
-    const directReportIds = directReports?.map(dr => dr.id) || [];
-    if (directReportIds.includes(survey.employee_id)) {
-      return true;
-    }
-  }
+  // CRITICAL FIX: Removed direct report modification permission for leaders
+  // Leaders can only modify surveys THEY created, not direct reports' surveys
+  // This enforces read-only access to direct reports' surveys (to avoid conflict)
 
   return false;
 }

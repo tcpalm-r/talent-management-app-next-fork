@@ -126,9 +126,10 @@ export async function POST(
       );
     }
 
-    // Check permission to modify survey
+    // Check permission to modify survey - admins, SLT, and survey creators
     const canModify =
       user.app_role === 'admin' ||
+      user.app_role === 'slt' || // HIGH PRIORITY FIX: SLT has elevated access
       survey.created_by === profile.id;
 
     if (!canModify) {

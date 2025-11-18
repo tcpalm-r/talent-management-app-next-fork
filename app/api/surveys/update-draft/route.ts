@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 
 export async function POST(request: NextRequest) {
   try {
+    // CRITICAL FIX: Add authentication check
+    const authData = await getAuthenticatedUser(request);
+    if (!authData) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { user, profile } = authData;
+
+    // CRITICAL FIX: Only admin, SLT, and leader can update drafts
+    if (user.app_role !== 'admin' && user.app_role !== 'slt' && user.app_role !== 'leader') {
+      return NextResponse.json(
+        { error: 'Forbidden: Only admins, SLT, and leaders can update draft surveys' },
+        { status: 403 }
+      );
+    }
 
     const body = await request.json();
     const {
@@ -33,6 +52,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Survey ID is required' },
         { status: 400 }
+      );
+    }
+
+    // CRITICAL FIX: Verify survey ownership before allowing update
+    const { data: existingSurvey, error: surveyFetchError } = await supabaseAdmin
+      .from('feedback_360_surveys')
+      .select('id, created_by, status')
+      .eq('id', surveyId)
+      .single();
+
+    if (surveyFetchError || !existingSurvey) {
+      return NextResponse.json(
+        { error: 'Survey not found' },
+        { status: 404 }
+      );
+    }
+
+    // CRITICAL FIX: Authorization - only draft creator or admin/SLT can update
+    const isCreator = existingSurvey.created_by === profile.id || existingSurvey.created_by === profile.email;
+    const isAdminOrSLT = user.app_role === 'admin' || user.app_role === 'slt';
+
+    if (!isAdminOrSLT && !isCreator) {
+      return NextResponse.json(
+        { error: 'Forbidden: You can only update your own draft surveys' },
+        { status: 403 }
       );
     }
 

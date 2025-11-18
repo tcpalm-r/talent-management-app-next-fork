@@ -51,9 +51,10 @@ export function Tooltip({
           sideOffset={4}
           className="
             z-50
-            px-3 py-1.5
-            text-sm
+            px-2 py-1
+            text-xs
             text-white
+            text-center
             bg-gray-900
             rounded-md
             shadow-lg
@@ -67,7 +68,7 @@ export function Tooltip({
             data-[side=left]:slide-in-from-right-2
             data-[side=right]:slide-in-from-left-2
             data-[side=top]:slide-in-from-bottom-2
-            max-w-xs
+            max-w-[200px]
           "
         >
           {content}
