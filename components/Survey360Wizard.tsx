@@ -1567,7 +1567,7 @@ export default function Survey360Wizard({
 
                                 // Pattern 1: Search First - Fetch with auto-detection
                                 // Only fetch if we have a subject and search term is meaningful
-                                if (selectedEmployee && searchValue.length >= 2) {
+                                if (selectedEmployee && searchValue.length >= 1) {
                                   setShowRaterPicker(index); // Show dropdown when user starts typing
                                   await fetchEmployeesWithRelationships(
                                     index,
@@ -1582,8 +1582,8 @@ export default function Survey360Wizard({
                               }}
                               onKeyDown={(e) => handleRaterInputKeyDown(e, index)}
                               onFocus={async () => {
-                                // Only show picker if there's search input (2+ chars) or relationship already selected
-                                const shouldShowPicker = (rater.searchValue && rater.searchValue.length >= 2) || rater.relationship;
+                                // Only show picker if there's search input (1+ chars) or relationship already selected
+                                const shouldShowPicker = (rater.searchValue && rater.searchValue.length >= 1) || rater.relationship;
                                 if (shouldShowPicker) {
                                   setShowRaterPicker(index);
                                 }
