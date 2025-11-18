@@ -1408,7 +1408,7 @@ export default function Feedback360Dashboard({
       <div className={`grid gap-4 mt-6 ${
         currentUser?.app_role === 'admin'
           ? 'grid-cols-3 lg:grid-cols-6'
-          : currentUser?.app_role === 'leader'
+          : (currentUser?.app_role === 'leader' || currentUser?.app_role === 'slt')
           ? 'grid-cols-2 lg:grid-cols-5'
           : 'grid-cols-2 lg:grid-cols-4'
       }`}>
@@ -1464,12 +1464,6 @@ export default function Feedback360Dashboard({
               </div>
               <MessageSquare className="w-8 h-8 text-yellow-400" />
             </div>
-            {atRiskSurveys.length > 0 && (
-              <div className="flex items-center gap-1 text-xs text-orange-600">
-                <AlertTriangle className="w-3 h-3" />
-                <span>{atRiskSurveys.length} at risk</span>
-              </div>
-            )}
           </button>
         </Tooltip>
 
