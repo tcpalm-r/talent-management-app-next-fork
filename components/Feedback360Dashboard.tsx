@@ -1795,7 +1795,7 @@ export default function Feedback360Dashboard({
                     if (isReviewer && !isCompleted && myReviewerRecord?.access_token) {
                       return (
                         <div className="flex items-center gap-2 mt-4">
-                          <Tooltip content="Complete your feedback survey for this employee">
+                          <Tooltip content={`Complete your feedback survey for ${survey.employee?.name}`}>
                             <a
                               href={`/survey/complete/${myReviewerRecord.access_token}`}
                               target="_blank"
@@ -1830,7 +1830,7 @@ export default function Feedback360Dashboard({
                     // If user is SLT but not a reviewer, show opt-in button (only for in_progress surveys)
                     if (isSLT && !isReviewer && survey.status === 'in_progress') {
                       return (
-                        <Tooltip content={`You were not selected as a reviewer of ${survey.employee?.name || 'this employee'}, but any SLT member can opt in`}>
+                        <Tooltip content={`You were not selected as a reviewer of ${survey.employee?.name}, but any SLT member can opt in`}>
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
