@@ -1456,7 +1456,6 @@ export default function Feedback360Dashboard({
           >
             Launch 360° Review
           </button>
-          <span className="text-gray-500 italic text-sm">Hover over anything for info</span>
           {/* AI-assisted review wizard button - disabled and hidden */}
           {false && (
             <button
@@ -1473,6 +1472,11 @@ export default function Feedback360Dashboard({
           )}
         </div>
       )}
+
+      {/* Instruction text */}
+      <div className="text-center mt-4">
+        <span className="text-gray-500 italic text-sm">Hover over anything for info</span>
+      </div>
 
       {/* Pipeline Stats with Risk Flags */}
       <div className={`grid gap-4 mt-6 ${
