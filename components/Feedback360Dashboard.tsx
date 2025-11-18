@@ -1775,16 +1775,18 @@ export default function Feedback360Dashboard({
                     // If user is SLT but not a reviewer, show opt-in button (only for in_progress surveys)
                     if (isSLT && !isReviewer && survey.status === 'in_progress') {
                       return (
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            await handleSLTOptIn(survey.id);
-                          }}
-                          className="inline-flex items-center px-4 py-2 bg-lime-500 text-white rounded-lg hover:bg-lime-600 transition-all font-medium shadow-md hover:shadow-lg mt-4"
-                        >
-                          <UserPlus className="w-4 h-4 mr-2" />
-                          Opt In?
-                        </button>
+                        <Tooltip content={`You were not selected as a reviewer of ${survey.employee?.name || 'this employee'}, but any SLT member can opt in`}>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              await handleSLTOptIn(survey.id);
+                            }}
+                            className="inline-flex items-center px-4 py-2 bg-lime-500 text-white rounded-lg hover:bg-lime-600 transition-all font-medium shadow-md hover:shadow-lg mt-4"
+                          >
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Opt In?
+                          </button>
+                        </Tooltip>
                       );
                     }
 

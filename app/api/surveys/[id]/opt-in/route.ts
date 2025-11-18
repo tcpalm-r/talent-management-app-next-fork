@@ -17,9 +17,12 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('[SLT Opt-In] ===== Starting opt-in request =====');
+
     // Authenticate user
     const authData = await getAuthenticatedUser(request);
     if (!authData) {
+      console.log('[SLT Opt-In] ❌ No auth data');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -29,8 +32,15 @@ export async function POST(
     const { user, profile } = authData;
     const surveyId = params.id;
 
+    console.log('[SLT Opt-In] User:', {
+      email: user.email,
+      role: user.app_role,
+      surveyId
+    });
+
     // Verify user is SLT
     if (user.app_role !== 'slt') {
+      console.log('[SLT Opt-In] ❌ User is not SLT, role:', user.app_role);
       return NextResponse.json(
         { error: 'Only SLT members can opt into surveys' },
         { status: 403 }
@@ -45,14 +55,18 @@ export async function POST(
       .single();
 
     if (surveyError || !survey) {
+      console.log('[SLT Opt-In] ❌ Survey not found:', surveyError);
       return NextResponse.json(
         { error: 'Survey not found' },
         { status: 404 }
       );
     }
 
+    console.log('[SLT Opt-In] Survey found:', { status: survey.status });
+
     // Verify survey is in_progress
     if (survey.status !== 'in_progress') {
+      console.log('[SLT Opt-In] ❌ Survey not in_progress, status:', survey.status);
       return NextResponse.json(
         { error: 'Can only opt into in_progress surveys' },
         { status: 400 }
@@ -68,6 +82,7 @@ export async function POST(
       .single();
 
     if (existingReviewer) {
+      console.log('[SLT Opt-In] ❌ User already a reviewer');
       return NextResponse.json(
         { error: 'You are already a reviewer for this survey' },
         { status: 400 }
@@ -77,26 +92,40 @@ export async function POST(
     // Generate access token for survey completion
     const accessToken = uuidv4();
 
+    const reviewerData = {
+      survey_id: surveyId,
+      reviewer_email: profile.email,
+      reviewer_name: profile.full_name,
+      relationship: 'slt',
+      status: 'pending',
+      access_token: accessToken,
+      invited_at: new Date().toISOString(),
+    };
+
+    console.log('[SLT Opt-In] Inserting reviewer:', reviewerData);
+
     // Add user as reviewer with 'slt' relationship type
-    const { error: insertError } = await supabaseAdmin
+    const { error: insertError, data: insertedData } = await supabaseAdmin
       .from('feedback_360_survey_reviewers')
-      .insert({
-        survey_id: surveyId,
-        reviewer_email: profile.email,
-        reviewer_name: profile.full_name,
-        relationship: 'slt',
-        status: 'pending',
-        access_token: accessToken,
-        invited_at: new Date().toISOString(),
-      });
+      .insert(reviewerData)
+      .select();
 
     if (insertError) {
-      console.error('Error adding SLT reviewer:', insertError);
+      console.error('[SLT Opt-In] ❌ Insert error:', {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code,
+      });
       return NextResponse.json(
-        { error: 'Failed to add you as a reviewer', details: insertError.message },
+        { error: 'Failed to add you as a reviewer', details: insertError.message, code: insertError.code },
         { status: 500 }
       );
     }
+
+    console.log('[SLT Opt-In] ✅ Successfully inserted reviewer:', insertedData);
+
+    console.log('[SLT Opt-In] ✅ Opt-in successful');
 
     return NextResponse.json({
       success: true,
@@ -105,9 +134,9 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Error in /api/surveys/[id]/opt-in:', error);
+    console.error('[SLT Opt-In] ❌❌❌ Unexpected error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
