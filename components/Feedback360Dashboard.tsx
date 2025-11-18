@@ -1481,21 +1481,19 @@ export default function Feedback360Dashboard({
           ? 'grid-cols-2 lg:grid-cols-5'
           : 'grid-cols-2 lg:grid-cols-4'
       }`}>
-        <Tooltip content="View all surveys across all statuses">
-          <button
-            onClick={() => setFilterStatus('all')}
-            className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
-              filterStatus === 'all' ? 'border-blue-500' : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{surveys.length}</p>
-              </div>
+        <button
+          onClick={() => setFilterStatus('all')}
+          className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
+            filterStatus === 'all' ? 'border-blue-500' : 'border-gray-200 hover:border-gray-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total</p>
+              <p className="text-2xl font-bold text-gray-900">{surveys.length}</p>
             </div>
-          </button>
-        </Tooltip>
+          </div>
+        </button>
 
         {/* Drafts - Only show for Admin, SLT, and Leader (Sponsors) */}
         {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
