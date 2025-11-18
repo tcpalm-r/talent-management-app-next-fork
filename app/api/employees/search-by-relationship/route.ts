@@ -55,6 +55,45 @@ export async function GET(request: NextRequest) {
         emp.email?.toLowerCase().includes(searchLower) ||
         emp.title?.toLowerCase().includes(searchLower)
       );
+
+      // Smart sorting: prioritize matches that start with the search term
+      employees.sort((a, b) => {
+        const aName = (a.full_name || '').toLowerCase();
+        const bName = (b.full_name || '').toLowerCase();
+        const aFirstName = aName.split(' ')[0] || '';
+        const bFirstName = bName.split(' ')[0] || '';
+        const aLastName = aName.split(' ').slice(1).join(' ') || '';
+        const bLastName = bName.split(' ').slice(1).join(' ') || '';
+
+        // Priority 1: First name starts with search term
+        const aFirstStarts = aFirstName.startsWith(searchLower);
+        const bFirstStarts = bFirstName.startsWith(searchLower);
+        if (aFirstStarts && !bFirstStarts) return -1;
+        if (!aFirstStarts && bFirstStarts) return 1;
+
+        // Priority 2: Last name starts with search term
+        const aLastStarts = aLastName.startsWith(searchLower);
+        const bLastStarts = bLastName.startsWith(searchLower);
+        if (aLastStarts && !bLastStarts) return -1;
+        if (!aLastStarts && bLastStarts) return 1;
+
+        // Priority 3: Full name starts with search term
+        const aFullStarts = aName.startsWith(searchLower);
+        const bFullStarts = bName.startsWith(searchLower);
+        if (aFullStarts && !bFullStarts) return -1;
+        if (!aFullStarts && bFullStarts) return 1;
+
+        // Priority 4: Role hierarchy (SLT > Leader > User > Admin)
+        const roleRank = { 'slt': 1, 'leader': 2, 'user': 3, 'admin': 4 };
+        const aRole = a.app_role?.toLowerCase() || 'user';
+        const bRole = b.app_role?.toLowerCase() || 'user';
+        const aRank = roleRank[aRole as keyof typeof roleRank] || 99;
+        const bRank = roleRank[bRole as keyof typeof roleRank] || 99;
+        if (aRank !== bRank) return aRank - bRank;
+
+        // Default: Alphabetical by full name
+        return aName.localeCompare(bName);
+      });
     }
 
     // Pattern 1: Filter First - Return only employees matching the relationship

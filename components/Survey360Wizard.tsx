@@ -49,6 +49,7 @@ interface Rater {
   relationship: ParticipantRelationship;
   autoDetected?: boolean; // Indicates if relationship was auto-detected
   relationshipFilter?: ParticipantRelationship | null; // Filter applied before search
+  searchValue?: string; // Per-reviewer search term
 }
 
 // Extended employee type with detected relationship for search results
@@ -1553,15 +1554,21 @@ export default function Survey360Wizard({
                                 raterInputRefs.current[index] = el;
                               }}
                               type="text"
-                              value={raterSearch}
+                              value={rater.searchValue || ''}
                               onChange={async (e) => {
                                 const searchValue = e.target.value;
-                                setRaterSearch(searchValue);
+
+                                // Update this specific rater's search value
+                                const updated = [...raters];
+                                updated[index].searchValue = searchValue;
+                                setRaters(updated);
+
                                 setHighlightedEmployeeIndex(-1); // Reset highlight when typing
 
                                 // Pattern 1: Search First - Fetch with auto-detection
                                 // Only fetch if we have a subject and search term is meaningful
                                 if (selectedEmployee && searchValue.length >= 2) {
+                                  setShowRaterPicker(index); // Show dropdown when user starts typing
                                   await fetchEmployeesWithRelationships(
                                     index,
                                     searchValue,
@@ -1570,11 +1577,16 @@ export default function Survey360Wizard({
                                 } else if (searchValue.length === 0) {
                                   // Clear API results when search is cleared
                                   setEmployeesWithRelationships([]);
+                                  setShowRaterPicker(-1); // Hide dropdown when search is cleared
                                 }
                               }}
                               onKeyDown={(e) => handleRaterInputKeyDown(e, index)}
                               onFocus={async () => {
-                                setShowRaterPicker(index);
+                                // Only show picker if there's search input (2+ chars) or relationship already selected
+                                const shouldShowPicker = (rater.searchValue && rater.searchValue.length >= 2) || rater.relationship;
+                                if (shouldShowPicker) {
+                                  setShowRaterPicker(index);
+                                }
 
                                 // Scroll the rater container to the top of the modal
                                 setTimeout(() => {
@@ -1592,13 +1604,13 @@ export default function Survey360Wizard({
                                 if (rater.relationship && employeesWithRelationships.length === 0) {
                                   await fetchEmployeesWithRelationships(
                                     index,
-                                    raterSearch,
+                                    rater.searchValue || '',
                                     rater.relationship
                                   );
                                 }
 
-                                // Highlight first employee if available
-                                if (filteredRaterEmployees.length > 0) {
+                                // Highlight first employee if available (only if picker should be shown)
+                                if (shouldShowPicker && filteredRaterEmployees.length > 0) {
                                   setHighlightedEmployeeIndex(0);
                                 } else {
                                   setHighlightedEmployeeIndex(-1);
