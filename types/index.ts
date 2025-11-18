@@ -56,8 +56,7 @@ export interface Employee {
   manager_name: string | null;
   title: string | null;
   location: string | null;
-  role?: EmployeeRole; // For 360 dashboard permissions
-  app_role?: EmployeeRole; // Application role (admin/leader/user) - mirrors User.app_role
+  app_role?: EmployeeRole; // Application role (admin/leader/slt/user) - mirrors User.app_role
   created_at: string;
   updated_at: string;
   assessment?: Assessment;

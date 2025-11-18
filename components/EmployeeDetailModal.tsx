@@ -653,7 +653,7 @@ export default function EmployeeDetailModal({
             const hasNotes = Boolean(employee.notes || employee.manager_notes);
             const isPIP = false; // Would check if employee has active PIP
             const isInSuccession = Boolean(employee.is_critical_role || employee.critical_role_id);
-            const isUserRole = currentUser?.role === 'user';
+            const isUserRole = currentUser?.app_role === 'user';
 
             return [
             {

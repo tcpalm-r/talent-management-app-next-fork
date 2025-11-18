@@ -366,7 +366,7 @@ export default function AdminSettings() {
         title: employee.title || '',
         department: employee.department || '',
         location: employee.location || '',
-        role: employee.role || 'user',
+        role: employee.app_role || 'user',
       },
     }));
   };
@@ -627,9 +627,9 @@ export default function AdminSettings() {
                           {employee.location || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getRoleBadgeColor(employee.role || 'user')}`}>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getRoleBadgeColor(employee.app_role || 'user')}`}>
                             <Shield className="w-3 h-3 inline mr-1" />
-                            {employee.role || 'user'}
+                            {employee.app_role || 'user'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">

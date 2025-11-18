@@ -66,7 +66,7 @@ export default function EmployeeList({
 
       // Role filter
       if (selectedRoles.length > 0) {
-        if (!employee.role || !selectedRoles.includes(employee.role)) {
+        if (!employee.app_role || !selectedRoles.includes(employee.app_role)) {
           return false;
         }
       }

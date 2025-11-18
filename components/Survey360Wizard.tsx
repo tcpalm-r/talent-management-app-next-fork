@@ -140,7 +140,7 @@ export default function Survey360Wizard({
   const employeeListContainerRef = useRef<HTMLDivElement | null>(null);
   const modalContentRef = useRef<HTMLDivElement | null>(null);
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.app_role === 'admin';
 
   const steps: WizardStep[] = ['who', 'competencies', 'raters', 'timeline', 'preview'];
   const currentStepIndex = steps.indexOf(currentStep);

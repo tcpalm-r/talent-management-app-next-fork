@@ -86,7 +86,7 @@ export default function Dashboard({
         manager_name: null,
         title: null,
         location: null,
-        role: userProfile.app_role as any,
+        app_role: userProfile.app_role as any,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
