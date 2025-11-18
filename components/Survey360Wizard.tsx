@@ -579,12 +579,21 @@ export default function Survey360Wizard({
     };
   }, [currentStep, isOpen, employeeSearch, newCustomQuestion, raterSearch, raters]);
 
-  // Filter employees based on search
-  const filteredEmployees = employees.filter(emp =>
-    emp.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-    emp.title?.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-    emp.email?.toLowerCase().includes(employeeSearch.toLowerCase())
-  );
+  // Filter employees based on role and search
+  const filteredEmployees = employees
+    .filter(emp => {
+      // Role-based filtering: leaders only see direct reports
+      if (currentUser?.app_role === 'leader') {
+        return emp.reports_to_id === currentUser.id;
+      }
+      // Admin and SLT see all employees
+      return true;
+    })
+    .filter(emp =>
+      emp.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+      emp.title?.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+      emp.email?.toLowerCase().includes(employeeSearch.toLowerCase())
+    );
 
   // Filter employees for rater selection
   // Use API results with relationships if available, otherwise fall back to local filtering

@@ -11,8 +11,9 @@
  *
  * Role-Based Access:
  * - Admin: See all surveys
- * - Leader: See own surveys, direct report surveys, surveys where they're reviewer/subject
- * - User: See own surveys and surveys where they're the subject (finalized only)
+ * - SLT: See own surveys (all statuses), direct report surveys, surveys where they're reviewer, surveys where they're subject (finalized only)
+ * - Leader: See own surveys (all statuses), direct report surveys, surveys where they're reviewer, surveys where they're subject (finalized only)
+ * - User: See own surveys (all statuses), surveys where they're reviewer, surveys where they're subject (finalized only)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -80,6 +81,8 @@ export async function GET(request: NextRequest) {
     // Apply role-based filtering
     let filteredSurveys = allSurveys || [];
 
+    console.log(`[Survey Filter] User: ${profile.email}, Role: ${user.app_role}, Total surveys: ${allSurveys?.length || 0}`);
+
     if (user.app_role === 'admin') {
       // Admins see everything - no filtering needed
       filteredSurveys = allSurveys || [];
@@ -87,15 +90,15 @@ export async function GET(request: NextRequest) {
       // SLT members see:
       // 1. All 'in_progress' surveys (for opt-in capability)
       // 2. Surveys they created (all statuses)
-      // 3. Surveys where they're the subject (all statuses)
+      // 3. Surveys where they're the subject (finalized only, unless creator)
       // 4. Surveys where they're a reviewer (all statuses except draft)
       filteredSurveys = (allSurveys || []).filter((survey: any) => {
         // Show surveys created by this SLT member (all statuses)
         const isCreator = survey.created_by === profile.id || survey.created_by === profile.email;
         if (isCreator) return true;
 
-        // Show surveys where SLT is the subject (all statuses)
-        if (survey.employee_id === profile.id) return true;
+        // Show surveys where SLT is the subject (finalized only)
+        if (survey.employee_id === profile.id && survey.status === 'finalized') return true;
 
         // Show surveys where SLT is a reviewer (exclude drafts)
         const isReviewer = survey.reviewers?.some(
@@ -112,7 +115,7 @@ export async function GET(request: NextRequest) {
       // Leaders see:
       // 1. Surveys they created
       // 2. Surveys for their direct reports (if we have manager_id relationship)
-      // 3. Surveys where they're the subject
+      // 3. Surveys where they're the subject (finalized only, unless creator)
       // 4. Surveys where they're a reviewer
 
       // Get direct report IDs (if available)
@@ -126,21 +129,58 @@ export async function GET(request: NextRequest) {
       filteredSurveys = (allSurveys || []).filter((survey: any) => {
         // Created by this leader (check both ID and email for legacy support)
         const isCreator = survey.created_by === profile.id || survey.created_by === profile.email;
+        const isSubject = survey.employee_id === profile.id;
+        const isDirectReport = directReportIds.includes(survey.employee_id);
+        const isReviewer = survey.reviewers?.some(
+          (r: any) => r.reviewer_email === profile.email
+        );
+
+        let reason = '';
+        let willShow = false;
+
+        if (isCreator) {
+          reason = 'creator';
+          willShow = true;
+        } else if (survey.status === 'draft') {
+          reason = 'draft (blocked)';
+          willShow = false;
+        } else if (isSubject && survey.status === 'finalized') {
+          reason = 'subject (finalized)';
+          willShow = true;
+        } else if (isSubject && survey.status !== 'finalized') {
+          reason = `subject (${survey.status}) - BLOCKED`;
+          willShow = false;
+        } else if (isDirectReport) {
+          reason = 'direct report';
+          willShow = true;
+        } else if (isReviewer) {
+          reason = 'reviewer';
+          willShow = true;
+        }
+
+        console.log(`[Leader Filter] Survey ${survey.id.substring(0, 8)}:`, {
+          subject_email: survey.employee_email || 'unknown',
+          status: survey.status,
+          isCreator,
+          isSubject,
+          isDirectReport,
+          isReviewer,
+          reason,
+          willShow
+        });
+
         if (isCreator) return true;
 
         // For non-creator scenarios, exclude draft surveys
         if (survey.status === 'draft') return false;
 
-        // Subject is this leader
-        if (survey.employee_id === profile.id) return true;
+        // Subject is this leader (finalized only)
+        if (isSubject && survey.status === 'finalized') return true;
 
         // Subject is a direct report
-        if (directReportIds.includes(survey.employee_id)) return true;
+        if (isDirectReport) return true;
 
         // This leader is a reviewer (only for active/completed/finalized surveys)
-        const isReviewer = survey.reviewers?.some(
-          (r: any) => r.reviewer_email === profile.email
-        );
         if (isReviewer) return true;
 
         return false;
@@ -165,8 +205,8 @@ export async function GET(request: NextRequest) {
         // Non-creators cannot see draft surveys
         if (survey.status === 'draft') return false;
 
-        // Subject can see their own survey if completed or finalized
-        if (isSubject && (survey.status === 'completed' || survey.status === 'finalized')) {
+        // Subject can see their own survey ONLY when finalized
+        if (isSubject && survey.status === 'finalized') {
           return true;
         }
 
@@ -176,6 +216,8 @@ export async function GET(request: NextRequest) {
         return false;
       });
     }
+
+    console.log(`[Survey Filter] Filtered down to ${filteredSurveys.length} surveys for ${profile.email}`);
 
     // Prepare response
     const responseData = {
