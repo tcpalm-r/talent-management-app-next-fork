@@ -84,7 +84,7 @@ export async function POST(
         survey_id: surveyId,
         reviewer_email: profile.email,
         reviewer_name: profile.full_name,
-        relationship_to_employee: 'slt',
+        relationship: 'slt',
         status: 'pending',
         access_token: accessToken,
         invited_at: new Date().toISOString(),
