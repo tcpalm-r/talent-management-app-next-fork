@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus } from 'lucide-react';
+import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus } from 'lucide-react';
 import type { Employee, Department } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
@@ -1399,6 +1399,40 @@ export default function Feedback360Dashboard({
     }
   };
 
+  const handleSLTOptOut = async (surveyId: string) => {
+    try {
+      const response = await fetch(`/api/surveys/${surveyId}/opt-out`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to opt out of survey');
+      }
+
+      const data = await response.json();
+      console.log('✅ Successfully opted out of survey:', data);
+
+      // Show success notification
+      notify({
+        title: 'Opted Out',
+        description: 'You have been removed as a reviewer for this survey.',
+        variant: 'success',
+      });
+
+      // Refresh surveys to update button state
+      await loadSurveys();
+
+    } catch (error) {
+      console.error('Error opting out of survey:', error);
+      notify({
+        title: 'Failed to Opt Out',
+        description: error instanceof Error ? error.message : 'Failed to opt out of survey',
+        variant: 'error',
+      });
+    }
+  };
+
   // Handle AI modal completion - pass data to wizard and open it
   const handleAIModalComplete = (data: ParsedSurveyData) => {
     console.log('[Feedback360Dashboard.handleAIModalComplete] Data received from AI modal:', data);
@@ -1748,27 +1782,46 @@ export default function Feedback360Dashboard({
                     )}
                   </div>
 
-                  {/* Complete Review Button for Reviewers OR Opt-In Button for SLT */}
+                  {/* Complete Review Button for Reviewers OR Opt-In/Opt-Out Buttons for SLT */}
                   {(() => {
                     const isSLT = currentUser?.app_role === 'slt';
                     const myReviewerRecord = survey.reviewers?.find((r: any) =>
                       r.reviewer_email === currentUser?.email
                     );
                     const isCompleted = myReviewerRecord?.status === 'completed';
+                    const isSLTOptedIn = isSLT && isReviewer && myReviewerRecord?.relationship === 'slt';
 
-                    // If user is already a reviewer, show complete button
+                    // If user is a reviewer and not completed, show complete button
                     if (isReviewer && !isCompleted && myReviewerRecord?.access_token) {
                       return (
-                        <a
-                          href={`/survey/complete/${myReviewerRecord.access_token}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg mt-4"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Complete Your Survey
-                        </a>
+                        <div className="flex items-center gap-2 mt-4">
+                          <a
+                            href={`/survey/complete/${myReviewerRecord.access_token}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Complete Your Survey
+                          </a>
+
+                          {/* Show Opt Out button if SLT member opted in themselves */}
+                          {isSLTOptedIn && (
+                            <Tooltip content="Remove yourself as a reviewer">
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  await handleSLTOptOut(survey.id);
+                                }}
+                                className="inline-flex items-center px-4 py-2 bg-red-800 text-white rounded-lg hover:bg-red-900 transition-all font-medium shadow-md hover:shadow-lg"
+                              >
+                                <UserMinus className="w-4 h-4 mr-2" />
+                                Opt Out
+                              </button>
+                            </Tooltip>
+                          )}
+                        </div>
                       );
                     }
 

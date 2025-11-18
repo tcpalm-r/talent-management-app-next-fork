@@ -50,7 +50,8 @@ export async function GET(request: NextRequest) {
           id,
           status,
           reviewer_email,
-          access_token
+          access_token,
+          relationship
         )
       `)
       .order('created_at', { ascending: false });
