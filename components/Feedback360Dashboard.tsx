@@ -1446,34 +1446,36 @@ export default function Feedback360Dashboard({
     <div>
       {/* Header - Only show create buttons for Admin, SLT, and Leader (Sponsors) */}
       {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => {
-              setPreselectedEmployee(undefined);
-              setIsWizardOpen(true);
-            }}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            Launch 360° Review
-          </button>
-
-          {/* Instruction text */}
-          <span className="text-gray-500 italic text-sm flex-1 text-center">Hover over anything for info</span>
-
-          {/* AI-assisted review wizard button - disabled and hidden */}
-          {false && (
+        <div className="relative">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => {
-                setIsAIModalOpen(true);
+                setPreselectedEmployee(undefined);
+                setIsWizardOpen(true);
               }}
-              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center gap-2"
-              title="Create survey with AI assistance"
-              disabled
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
-              <Sparkles className="w-4 h-4" />
-              Create with AI
+              Launch 360° Review
             </button>
-          )}
+            {/* AI-assisted review wizard button - disabled and hidden */}
+            {false && (
+              <button
+                onClick={() => {
+                  setIsAIModalOpen(true);
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center gap-2"
+                title="Create survey with AI assistance"
+                disabled
+              >
+                <Sparkles className="w-4 h-4" />
+                Create with AI
+              </button>
+            )}
+          </div>
+          {/* Instruction text - absolutely positioned to center across entire body */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="text-gray-500 italic text-sm">Hover over anything for info</span>
+          </div>
         </div>
       )}
 
