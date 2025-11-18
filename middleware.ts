@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Mock user for local development
@@ -27,6 +28,46 @@ const MOCK_USER = {
   title: 'Developer',
   timestamp: Date.now()
 };
+
+/**
+ * Get Supabase client for querying user_profiles
+ * Uses service role key to bypass RLS
+ */
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
+
+/**
+ * Get user's app_role from LOCAL user_profiles table
+ * This is the source of truth for project-level permissions
+ */
+async function getLocalUserRole(email: string) {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('app_role, app_permissions')
+      .eq('email', email)
+      .eq('is_active', true)
+      .single();
+
+    if (error || !data) {
+      console.log('[Sonance Auth] No local user_profiles entry for:', email);
+      return null;
+    }
+
+    console.log('[Sonance Auth] Found local role for', email, ':', data.app_role);
+    return {
+      app_role: data.app_role || 'user',
+      app_permissions: data.app_permissions || {},
+    };
+  } catch (error) {
+    console.error('[Sonance Auth] Error fetching local user role:', error);
+    return null;
+  }
+}
 
 /**
  * Decode JWT payload without verification (safe since from Sonance hub over HTTPS)
@@ -176,7 +217,10 @@ export async function middleware(request: NextRequest) {
           if (access && user) {
             console.log('[Sonance Auth] Token authentication successful for:', user.email);
 
-            // Map user fields and extract app-specific permissions
+            // Get app_role from LOCAL user_profiles table (source of truth)
+            const localRole = await getLocalUserRole(user.email);
+
+            // Map user fields - use LOCAL role if available, fallback to AI Intranet
             const appPermissions = user.app_permissions?.['Talent Management'] || {};
             const mappedUser = {
               id: user.id,
@@ -186,8 +230,9 @@ export async function middleware(request: NextRequest) {
               given_name: user.given_name,
               family_name: user.family_name,
               picture: user.picture || user.avatar_url,
-              app_role: appPermissions.role || user.app_role || user.role || 'user',
-              app_permissions: appPermissions.permissions || user.permissions || {},
+              // IMPORTANT: Use LOCAL database role, NOT AI Intranet role
+              app_role: localRole?.app_role || appPermissions.role || user.app_role || user.role || 'user',
+              app_permissions: localRole?.app_permissions || appPermissions.permissions || user.permissions || {},
               global_role: user.global_role || user.role,
               capabilities: user.capabilities || [],
               app_access: true,
@@ -196,7 +241,9 @@ export async function middleware(request: NextRequest) {
               timestamp: Date.now()
             };
 
-            console.log('[Sonance Auth] Created session for user:', mappedUser.email, 'with role:', mappedUser.app_role);
+            console.log('[Sonance Auth] Created session for user:', mappedUser.email,
+              'with LOCAL role:', mappedUser.app_role,
+              localRole ? '(from user_profiles)' : '(fallback to AI Intranet)');
 
             // Sync user profile to database (fire and forget)
             fetch(`${request.nextUrl.origin}/api/auth/sync`, {
@@ -357,7 +404,10 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/unauthorized', request.url));
       }
 
-      // Map user fields
+      // Get app_role from LOCAL user_profiles table (source of truth)
+      const localRole = await getLocalUserRole(user.email);
+
+      // Map user fields - use LOCAL role if available
       const appPermissions = user.app_permissions?.['Talent Management'] || {};
       const mappedUser = {
         id: user.id,
@@ -367,8 +417,9 @@ export async function middleware(request: NextRequest) {
         given_name: user.given_name,
         family_name: user.family_name,
         picture: user.picture,
-        app_role: appPermissions.role || user.app_role || user.role || 'user',
-        app_permissions: appPermissions.permissions || user.permissions || {},
+        // IMPORTANT: Use LOCAL database role, NOT AI Intranet role
+        app_role: localRole?.app_role || appPermissions.role || user.app_role || user.role || 'user',
+        app_permissions: localRole?.app_permissions || appPermissions.permissions || user.permissions || {},
         global_role: user.global_role || user.role,
         capabilities: user.capabilities || [],
         app_access: true,
@@ -377,7 +428,9 @@ export async function middleware(request: NextRequest) {
         timestamp: Date.now()
       };
 
-      console.log('[Sonance Auth] Mapped user object:', JSON.stringify(mappedUser, null, 2));
+      console.log('[Sonance Auth] Mapped user:', mappedUser.email,
+        'with LOCAL role:', mappedUser.app_role,
+        localRole ? '(from user_profiles)' : '(fallback to AI Intranet)');
 
       // Add user data to request headers
       const requestHeaders = new Headers(request.headers);
