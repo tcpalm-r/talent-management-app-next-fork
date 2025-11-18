@@ -36,9 +36,17 @@ export async function POST(request: NextRequest) {
       currentStep,
     } = body;
 
+    console.log('[API save-draft] ========== RECEIVED CREATE REQUEST ==========');
+    console.log('[API save-draft] Employee ID:', employeeId);
+    console.log('[API save-draft] Raters received:', JSON.stringify(raters, null, 2));
+    console.log('[API save-draft] Current step:', currentStep);
+
     // Split raters into complete (with name/email) and partial (relationship-only)
     const completeRaters = (raters || []).filter((r: any) => r.name && r.email);
     const partialRaters = (raters || []).filter((r: any) => r.relationship && (!r.name || !r.email));
+
+    console.log('[API save-draft] Complete raters (will go to DB):', JSON.stringify(completeRaters, null, 2));
+    console.log('[API save-draft] Partial raters (will go to JSON field):', JSON.stringify(partialRaters, null, 2));
 
     // Validate required fields
     if (!employeeId) {
@@ -77,28 +85,34 @@ export async function POST(request: NextRequest) {
     // Admin and SLT can create drafts for any employee (no additional check needed)
 
     // Create draft survey - use authenticated user's profile ID
+    const surveyData = {
+      organization_id: organizationId,
+      employee_id: employeeId,
+      survey_name: surveyTitle,
+      status: 'draft',
+      due_date: dueDate || null,
+      created_by: authData.profile.id, // Use authenticated user's ID
+      current_step: currentStep || null, // Save the wizard step
+      draft_partial_reviewers: partialRaters.length > 0 ? partialRaters : null, // Save partial reviewers as JSON
+    };
+
+    console.log('[API save-draft] Creating survey with data:', JSON.stringify(surveyData, null, 2));
+
     const { data: survey, error: surveyError} = await supabaseAdmin
       .from('feedback_360_surveys')
-      .insert({
-        organization_id: organizationId,
-        employee_id: employeeId,
-        survey_name: surveyTitle,
-        status: 'draft',
-        due_date: dueDate || null,
-        created_by: authData.profile.id, // Use authenticated user's ID
-        current_step: currentStep || null, // Save the wizard step
-        draft_partial_reviewers: partialRaters.length > 0 ? partialRaters : null, // Save partial reviewers as JSON
-      })
+      .insert(surveyData)
       .select()
       .single();
 
     if (surveyError) {
-      console.error('[API /surveys/save-draft] Survey insert error:', surveyError);
+      console.error('[API save-draft] ❌ Survey insert error:', surveyError);
       return NextResponse.json(
         { error: surveyError.message, details: surveyError },
         { status: 500 }
       );
     }
+
+    console.log('[API save-draft] ✅ Survey created with ID:', survey.id);
 
     // Save questions only if confirmed or if custom questions were added
     const shouldSaveQuestions = questionsConfirmed || (customQuestions && customQuestions.length > 0);
@@ -158,10 +172,23 @@ export async function POST(request: NextRequest) {
         access_token: `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       }));
 
-      await supabaseAdmin
+      console.log('[API save-draft] Inserting reviewers:', JSON.stringify(reviewersToInsert, null, 2));
+
+      const { data: insertedReviewers, error: reviewersError } = await supabaseAdmin
         .from('feedback_360_survey_reviewers')
-        .insert(reviewersToInsert);
+        .insert(reviewersToInsert)
+        .select();
+
+      if (reviewersError) {
+        console.error('[API save-draft] ❌ Error inserting reviewers:', reviewersError);
+      } else {
+        console.log('[API save-draft] ✅ Inserted reviewers:', insertedReviewers?.length || 0);
+      }
+    } else {
+      console.log('[API save-draft] ⚠️ No complete reviewers to insert');
     }
+
+    console.log('[API save-draft] ========== CREATE COMPLETE ==========');
 
     return NextResponse.json({
       success: true,
