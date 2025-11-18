@@ -145,6 +145,18 @@ export async function middleware(request: NextRequest) {
         }
       }
 
+      // Override Thomas Palmer's role with database value
+      let roleWasOverridden = false;
+      if (currentUser.email === 'thomas.palmer@sonance.com') {
+        const localRole = await getLocalUserRole(currentUser.email);
+        if (localRole) {
+          console.log('[Sonance Auth] Overriding Thomas Palmer role from database:', localRole.app_role);
+          currentUser.app_role = localRole.app_role;
+          currentUser.app_permissions = localRole.app_permissions;
+          roleWasOverridden = true;
+        }
+      }
+
       // Create request headers with current user data
       const requestHeaders = new Headers(request.headers);
       requestHeaders.set('x-user-data', JSON.stringify(currentUser));
@@ -158,15 +170,22 @@ export async function middleware(request: NextRequest) {
         },
       });
 
-      // Only set cookie if there wasn't one already (don't overwrite switched user)
+      // Update cookie if role was overridden OR if there wasn't one already
       if (!existingUserCookie) {
         console.log('[Sonance Auth] No existing cookie, setting MOCK_USER');
-        // Don't use encodeURIComponent - Next.js handles encoding automatically
         response.cookies.set('ai-intranet-user', JSON.stringify(MOCK_USER), {
           httpOnly: false, // Accessible to JavaScript for client-side auth checks
           secure: false, // Not secure in development
           sameSite: 'lax',
           maxAge: 86400 // 24 hours
+        });
+      } else if (roleWasOverridden) {
+        console.log('[Sonance Auth] Updating cookie with overridden role');
+        response.cookies.set('ai-intranet-user', JSON.stringify(currentUser), {
+          httpOnly: false,
+          secure: false,
+          sameSite: 'lax',
+          maxAge: 86400
         });
       }
 
