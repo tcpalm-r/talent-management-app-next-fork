@@ -35,6 +35,7 @@ export default function SurveyCompletionPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [activeQuestionForAI, setActiveQuestionForAI] = useState<string | null>(null);
 
@@ -158,20 +159,46 @@ export default function SurveyCompletionPage() {
     setActiveQuestionForAI(null);
   };
 
+  const handleAIAssistantDraftUpdate = (draftText: string) => {
+    console.log('[SurveyCompletionPage] AI Assistant draft updated:', draftText);
+    if (activeQuestionForAI) {
+      setResponses(prev => ({
+        ...prev,
+        [activeQuestionForAI]: draftText
+      }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!reviewer || !survey) return;
 
+    // Clear previous validation errors
+    setValidationError(null);
+
     // Validate all questions have responses
     const allAnswered = Object.values(responses).every(r => r.trim().length > 0);
     if (!allAnswered) {
-      setError('Please provide a response for all questions.');
+      setValidationError('Please provide a response for all questions.');
+      // Scroll to top to show error
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Validate word count minimum (50 words per question)
+    const belowMinimum = Object.entries(responses).filter(([_, text]) => {
+      return getWordCount(text) < 50;
+    });
+    if (belowMinimum.length > 0) {
+      setValidationError(`Please provide at least 50 words for each question. ${belowMinimum.length} question(s) need more detail.`);
+      // Scroll to top to show error
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     setSubmitting(true);
-    setError(null);
+    setValidationError(null);
 
     try {
       // Submit all responses
@@ -200,8 +227,10 @@ export default function SurveyCompletionPage() {
       setSuccess(true);
     } catch (err: any) {
       console.error('Error submitting survey:', err);
-      setError('Failed to submit your feedback. Please try again.');
+      setValidationError('Failed to submit your feedback. Please try again.');
       setSubmitting(false);
+      // Scroll to top to show error
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -210,6 +239,10 @@ export default function SurveyCompletionPage() {
       ...prev,
       [questionId]: value,
     }));
+  };
+
+  const getWordCount = (text: string): number => {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
   };
 
   if (loading) {
@@ -277,14 +310,22 @@ export default function SurveyCompletionPage() {
           </div>
 
           {/* Instructions */}
-          <div className="bg-blue-50 border-b border-blue-200 px-8 py-4">
-            <p className="text-sm text-blue-900">
-              Your feedback is confidential and will be aggregated with other responses for anonymity.
+          <div className="bg-blue-50 border-b border-blue-200 px-8 py-5">
+            <p className="text-sm font-semibold text-blue-900">
+              🔒 Your feedback is confidential and will be aggregated with other responses for anonymity.
             </p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-8">
+            {/* Validation Error Message */}
+            {validationError && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-red-800 text-sm">{validationError}</p>
+              </div>
+            )}
+
             <div className="space-y-8">
               {questions.map((question, index) => (
                 <div key={question.id} className="border-b border-gray-200 pb-6 last:border-0">
@@ -293,25 +334,29 @@ export default function SurveyCompletionPage() {
                       <span className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-sm">
                         {index + 1}
                       </span>
-                      <div className="flex-1 flex items-start justify-between gap-3">
+                      <div className="flex-1">
                         <p className="text-gray-900 font-medium">
                           {replaceNamePlaceholder(question.question_text, survey?.employee_name)} <span className="text-red-500">*</span>
                         </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            console.log('[SurveyCompletionPage] Opening AI Assistant for question:', question.id);
-                            setActiveQuestionForAI(question.id);
-                          }}
-                          disabled={submitting}
-                          className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold py-1.5 px-3 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0"
-                          title="Use AI to help with this question"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          AI
-                        </button>
                       </div>
                     </div>
+                  </div>
+
+                  {/* AI Assistant Button */}
+                  <div className="ml-11 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        console.log('[SurveyCompletionPage] Opening AI Assistant for question:', question.id);
+                        setActiveQuestionForAI(question.id);
+                      }}
+                      disabled={submitting}
+                      className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Use AI to help with this question"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      AI Response Assistant
+                    </button>
                   </div>
 
                   {/* Response */}
@@ -321,9 +366,21 @@ export default function SurveyCompletionPage() {
                       onChange={(e) => updateResponse(question.id, e.target.value)}
                       rows={4}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
-                      placeholder="Please provide specific examples and thoughtful feedback..."
+                      placeholder="Can't think of what to say? Mention a specific example or tell a story!"
                       required
                     />
+                    {/* Word Count Indicator */}
+                    <div className="mt-2 text-sm">
+                      {(() => {
+                        const wordCount = getWordCount(responses[question.id] || '');
+                        const meetsMinimum = wordCount >= 50;
+                        return (
+                          <span className={`font-medium ${meetsMinimum ? 'text-green-600' : 'text-orange-600'}`}>
+                            {wordCount} / 50 words {meetsMinimum ? '✓' : ''}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -363,6 +420,7 @@ export default function SurveyCompletionPage() {
           subjectName={survey?.employee_name || 'the employee'}
           currentText={responses[activeQuestionForAI] || ''}
           onComplete={handleAIAssistantComplete}
+          onDraftUpdate={handleAIAssistantDraftUpdate}
         />
       )}
     </div>

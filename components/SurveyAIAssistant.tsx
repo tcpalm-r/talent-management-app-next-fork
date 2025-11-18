@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Sparkles, Loader, AlertCircle, Mic, MicOff } from 'lucide-react';
 import { useSpeechToText } from '../hooks/useSpeechToText';
+import { replaceNamePlaceholder } from '../lib/questionUtils';
 
 interface Question {
   id: string;
@@ -17,6 +18,7 @@ interface SurveyAIAssistantProps {
   subjectName: string;
   currentText?: string;
   onComplete: (responseText: string) => void;
+  onDraftUpdate?: (draftText: string) => void;
 }
 
 export default function SurveyAIAssistant({
@@ -26,15 +28,18 @@ export default function SurveyAIAssistant({
   subjectName,
   currentText,
   onComplete,
+  onDraftUpdate,
 }: SurveyAIAssistantProps) {
   const [feedback, setFeedback] = useState(currentText || '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasGenerated, setHasGenerated] = useState(false);
 
   // Update feedback when currentText changes (e.g., when modal reopens)
   useEffect(() => {
     if (isOpen && currentText !== undefined) {
       setFeedback(currentText);
+      setHasGenerated(false); // Reset generated state when modal opens
     }
   }, [isOpen, currentText]);
 
@@ -53,6 +58,15 @@ export default function SurveyAIAssistant({
 
   console.log('[SurveyAIAssistant] Render - isOpen:', isOpen);
 
+  // Handle close - save draft text back to parent (only if not generated yet)
+  const handleClose = () => {
+    // Only save draft if we haven't generated yet (X acts as cancel after generation)
+    if (!hasGenerated && onDraftUpdate && feedback !== currentText) {
+      onDraftUpdate(feedback);
+    }
+    onClose();
+  };
+
   if (!isOpen) {
     console.log('[SurveyAIAssistant] Not open, returning null');
     return null;
@@ -64,6 +78,14 @@ export default function SurveyAIAssistant({
     if (!feedback.trim()) {
       console.log('[SurveyAIAssistant.handleProcess] Error: Empty feedback');
       setError('Please provide your thoughts before processing');
+      return;
+    }
+
+    // Count words in the input
+    const wordCount = feedback.trim().split(/\s+/).filter(word => word.length > 0).length;
+    if (wordCount < 30) {
+      console.log('[SurveyAIAssistant.handleProcess] Error: Not enough words', wordCount);
+      setError('Please provide more details, or give a specific example. Claude needs enough input to create a sufficient (50+ word) response.');
       return;
     }
 
@@ -100,10 +122,9 @@ export default function SurveyAIAssistant({
       console.log('[SurveyAIAssistant.handleProcess] API success response:', data);
 
       if (data.response) {
-        console.log('[SurveyAIAssistant.handleProcess] Proceeding with response:', data.response);
-        onComplete(data.response);
-        setFeedback('');
-        onClose();
+        console.log('[SurveyAIAssistant.handleProcess] Setting AI-generated response in modal textarea');
+        setFeedback(data.response);
+        setHasGenerated(true);
       } else {
         throw new Error('No response returned');
       }
@@ -115,6 +136,14 @@ export default function SurveyAIAssistant({
     }
   };
 
+  const handleAccept = () => {
+    // Accept button always saves the current feedback
+    if (onDraftUpdate && feedback !== currentText) {
+      onDraftUpdate(feedback);
+    }
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -122,10 +151,10 @@ export default function SurveyAIAssistant({
         <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-indigo-600 px-8 py-6 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Sparkles className="w-6 h-6" />
-            <h2 className="text-2xl font-bold">AI Response Helper</h2>
+            <h2 className="text-2xl font-bold">AI Response Assistant</h2>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isLoading}
             className="text-white hover:bg-white/20 rounded-lg p-1 transition"
           >
@@ -141,7 +170,7 @@ export default function SurveyAIAssistant({
               <label className="block text-sm font-semibold text-purple-900 mb-2">
                 Question:
               </label>
-              <p className="text-gray-900">{question.question_text}</p>
+              <p className="text-gray-900">{replaceNamePlaceholder(question.question_text, subjectName)}</p>
             </div>
           )}
 
@@ -215,31 +244,37 @@ export default function SurveyAIAssistant({
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={onClose}
-              disabled={isLoading}
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleProcess}
-              disabled={isLoading}
-              className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition flex items-center gap-2 disabled:opacity-50"
-            >
-              {isLoading ? (
-                <>
-                  <Loader className="w-4 h-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Generate Response
-                </>
-              )}
-            </button>
+          <div className="flex items-center justify-between">
+            {/* Center: Generate/Try Again Button */}
+            <div className="flex-1 flex justify-center">
+              <button
+                onClick={handleProcess}
+                disabled={isLoading}
+                className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition flex items-center gap-2 disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    {hasGenerated ? 'Try Again' : 'Generate Response'}
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Right: Accept Button (only show after generation) */}
+            {hasGenerated && !isLoading && (
+              <button
+                onClick={handleAccept}
+                className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+              >
+                Accept
+              </button>
+            )}
           </div>
         </div>
       </div>

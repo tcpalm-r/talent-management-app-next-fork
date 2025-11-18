@@ -53,6 +53,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate word count (minimum 30 words to avoid AI embellishment)
+    const wordCount = userThoughts.trim().split(/\s+/).filter(word => word.length > 0).length;
+    if (wordCount < 30) {
+      console.log('[generate-survey-response API] Error: Not enough words', wordCount);
+      return NextResponse.json(
+        { error: `Not enough detail provided. Please provide at least 30 words (you have ${wordCount}). The AI needs sufficient context to create a meaningful response without adding information.` },
+        { status: 400 }
+      );
+    }
+
     console.log('[generate-survey-response API] Calling Claude API...');
 
     const prompt = `You are an expert HR consultant helping someone provide thoughtful 360-degree feedback about ${subjectName}. Your task is to take their raw thoughts, ideas, or notes and transform them into a well-structured, professional response to a specific feedback question.
@@ -68,10 +78,12 @@ INSTRUCTIONS:
 2. Transform these thoughts into a clear, professional, and constructive feedback response about ${subjectName}
 3. Use ${subjectName}'s name naturally in the response (not "this employee" or "they" - use the actual name)
 4. Keep the original sentiment and meaning intact (positive, constructive criticism, etc.)
-5. Make it concise but complete (2-4 sentences typically)
-6. Use specific examples or observations the user mentioned
-7. Keep a professional but warm tone appropriate for 360 feedback
-8. If the thoughts are already well-formed, you can make minor improvements but don't over-edit
+5. CRITICAL: Do NOT add information, examples, or details that weren't in the user's thoughts. Only clarify, structure, and professionalize what they provided.
+6. CRITICAL: Do NOT embellish or make assumptions. If the user provided specific examples, use them. If not, don't invent any.
+7. Aim for 50-100 words in your response - enough to be meaningful but not overly verbose
+8. Use specific examples or observations the user mentioned (but don't add new ones)
+9. Keep a professional but warm tone appropriate for 360 feedback
+10. If the thoughts are already well-formed, you can make minor improvements but don't over-edit
 
 IMPORTANT: Return ONLY the generated response text. Do not include any preamble, explanation, quotes, or additional formatting. Just the feedback response itself.`;
 
