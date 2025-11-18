@@ -390,7 +390,7 @@ export function getClientUser(): SessionUser | null {
   // This cookie is used by BOTH production and dev mode (via user switcher)
   let userCookie = cookies
     .find(c => c.trim().startsWith(`${USER_COOKIE}=`))
-    ?.split('=')[1];
+    ?.split('=').slice(1).join('='); // Handle = characters in cookie value
 
   if (userCookie) {
     try {
@@ -420,7 +420,7 @@ export function getClientUser(): SessionUser | null {
   // Fallback: Check for user-session cookie (legacy, backward compatibility)
   userCookie = cookies
     .find(c => c.trim().startsWith('user-session='))
-    ?.split('=')[1];
+    ?.split('=').slice(1).join('='); // Handle = characters in cookie value
 
   if (userCookie) {
     try {
