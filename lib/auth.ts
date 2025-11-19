@@ -34,7 +34,7 @@ export const MOCK_USER: SessionUser = {
   given_name: 'Thomas',
   family_name: 'Palmer',
   picture: undefined,
-  app_role: 'leader', // Updated to match database value
+  app_role: 'admin', // Updated to match database value
   app_permissions: {
     manage_users: true,
     manage_reviews: true,

@@ -1,5 +1,6 @@
 import { ReactNode, ComponentType } from 'react';
 import { CountBadge } from './BadgeSystem';
+import { Tooltip } from './Tooltip';
 
 interface Tab {
   id: string;
@@ -33,11 +34,10 @@ export default function NavigationTabs({
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
 
-          return (
+          const button = (
             <button
               key={tab.id}
               id={tab.domId}
-              title={tab.tooltip}
               onClick={() => onTabChange(tab.id)}
               className={`
                 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all
@@ -59,6 +59,12 @@ export default function NavigationTabs({
               {tab.badge}
             </button>
           );
+
+          return tab.tooltip ? (
+            <Tooltip key={tab.id} content={tab.tooltip} side="bottom">
+              {button}
+            </Tooltip>
+          ) : button;
         })}
       </div>
     );
@@ -71,11 +77,10 @@ export default function NavigationTabs({
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
 
-        return (
+        const button = (
           <button
             key={tab.id}
             id={tab.domId}
-            title={tab.tooltip}
             onClick={() => onTabChange(tab.id)}
             className={`
               flex items-center gap-2 px-4 py-3 border-b-2 text-sm font-medium transition-colors
@@ -97,6 +102,12 @@ export default function NavigationTabs({
             {tab.badge}
           </button>
         );
+
+        return tab.tooltip ? (
+          <Tooltip key={tab.id} content={tab.tooltip} side="bottom">
+            {button}
+          </Tooltip>
+        ) : button;
       })}
     </div>
   );
