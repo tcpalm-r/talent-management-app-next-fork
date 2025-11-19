@@ -1360,6 +1360,21 @@ export default function Feedback360Dashboard({
     return false;
   });
 
+  // Calculate counts for tab badges
+  const sponsorCount = surveys.filter(s =>
+    s.created_by === currentUser?.id || s.created_by === currentUser?.email
+  ).length;
+
+  const reviewerCount = surveys.filter(s =>
+    s.status === 'in_progress' &&
+    s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email)
+  ).length;
+
+  const subjectCount = surveys.filter(s =>
+    s.status === 'finalized' &&
+    s.employee_id === currentUser?.id
+  ).length;
+
   // Then filter by status (only applies to Sponsor tab now)
   // Reviewer and Subject tabs ignore manual status filter (automatic filtering above)
   let filteredSurveys = roleFilteredSurveys;
@@ -1542,17 +1557,20 @@ export default function Feedback360Dashboard({
             ...(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader' ? [{
               id: 'sponsor',
               label: 'Sponsor',
-              tooltip: 'Surveys you created or are managing'
+              tooltip: 'Surveys you created or are managing',
+              count: sponsorCount
             }] : []),
             {
               id: 'reviewer',
               label: 'Reviewer',
-              tooltip: 'Surveys where you are providing feedback'
+              tooltip: 'Surveys where you are providing feedback',
+              count: reviewerCount
             },
             {
               id: 'subject',
               label: 'Subject',
-              tooltip: 'Surveys about you'
+              tooltip: 'Surveys about you',
+              count: subjectCount
             }
           ]}
           activeTab={filterRole}
