@@ -1535,7 +1535,7 @@ export default function Feedback360Dashboard({
           ]}
           activeTab={filterRole}
           onTabChange={(tabId) => setFilterRole(tabId as 'sponsor' | 'reviewer' | 'subject')}
-          variant="pills"
+          variant="underline"
         />
       </div>
 

@@ -80,8 +80,8 @@ export default function NavigationTabs({
             className={`
               flex items-center gap-2 px-4 py-3 border-b-2 text-sm font-medium transition-colors
               ${isActive
-                ? 'border-blue-600 text-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
               }
             `}
           >

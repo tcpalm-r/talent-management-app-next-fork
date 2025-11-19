@@ -350,7 +350,17 @@ Materialized views:
 - `Survey360Wizard.tsx` - Survey creation wizard
 - `Quick360Modal.tsx` - Quick survey creation
 
+**Navigation Structure:**
+- **Primary Role-Based Tabs**: Sponsor | Reviewer | Subject
+  - **Sponsor**: Surveys you created or are managing
+  - **Reviewer**: Surveys where you are providing feedback
+  - **Subject**: Surveys about you
+- **Status Cards**: Dynamically update based on active role tab
+  - Draft, In Progress, Completed, Needs Review, Needs Reanalysis, Finalized
+- **Tab Style**: Text-based with underline indicator (no background colors or button appearance)
+
 **Features:**
+- Role-based primary navigation (Sponsor/Reviewer/Subject tabs)
 - Survey creation wizard
 - Survey draft saving/loading (persistent drafts)
 - Reviewer invitations via email
@@ -363,7 +373,7 @@ Materialized views:
 - Survey status management (draft/active/closed/finalized)
 - Survey finalization workflow (revert finalized surveys back to draft)
 - Survey report generation (`/api/360-generate-report` - PDF export)
-- Role-based filtering (admin/slt/leader view)
+- Admin/SLT/Leader role-based permissions
 
 ### 3. Employee Management
 **Components:**
@@ -574,7 +584,7 @@ components/
 - `CriticalRoleSetupModal.tsx` - Succession planning
 
 **Small Components (<500 LOC):**
-- Navigation: `Dashboard.tsx`, `Sidebar.tsx`, `TopHeader.tsx`
+- Navigation: `Dashboard.tsx`, `Sidebar.tsx`
 - Utilities: `EmployeeList.tsx`, `AICoachMicroPanel.tsx`, `SurveyAIAssistant.tsx`
 - Layout: `PeopleDashboard.tsx`, `InsightsPanel.tsx`, `Avatar.tsx`
 
@@ -605,9 +615,8 @@ components/
 - `Dashboard.tsx` - Main router (includes admin view)
 
 **5. Navigation & Layout**
-- `Dashboard.tsx` - Main application orchestrator
-- `Sidebar.tsx` - Navigation sidebar with role-based menu
-- `TopHeader.tsx` - Application header + user menu
+- `Dashboard.tsx` - Main application orchestrator (horizontal layout: sidebar + main content)
+- `Sidebar.tsx` - Navigation sidebar with role-based menu + user profile/avatar
 - `Avatar.tsx` - User avatar utility
 - `InsightsPanel.tsx` - Team insights dashboard
 - `AICoachMicroPanel.tsx` - Contextual AI suggestions
@@ -645,10 +654,9 @@ components/
 ### Component Interaction Architecture
 
 ```
-Dashboard (Router)
-├── Sidebar (nav)
-├── TopHeader (header)
-└── Views:
+Dashboard (Router - Horizontal Layout)
+├── Sidebar (nav + user profile/avatar)
+└── Main Content Area:
     ├── PeopleDashboard
     │  └── EmployeeList
     │     ├── EmployeeCardUnified
@@ -658,6 +666,7 @@ Dashboard (Router)
     │        ├── CriticalRoleSetupModal
     │        └── Survey360Wizard
     ├── Feedback360Dashboard (hub)
+    │  ├── NavigationTabs (Sponsor | Reviewer | Subject)
     │  ├── Survey360Wizard
     │  ├── Quick360Modal
     │  ├── CreateWithAIModal
@@ -690,9 +699,8 @@ Dashboard (Router)
 - `ModalLayout.tsx` - Check sizing and accessibility
 
 **Phase 2: Navigation & Routing** (1-2 days)
-- `Dashboard.tsx` - Main router and state orchestration
-- `Sidebar.tsx` - Navigation structure
-- `TopHeader.tsx` - User menu and role switching
+- `Dashboard.tsx` - Main router and horizontal layout orchestration
+- `Sidebar.tsx` - Navigation structure + user profile/avatar/role switching
 
 **Phase 3: Employee Management** (3-4 days)
 - `EmployeeList.tsx` - Search, filter, actions
@@ -892,7 +900,7 @@ talent-management-next/
 ---
 
 Last Updated: 2025-11-18
-Version: 0.3.1 (Documentation Update - Corrected role count to 4 levels, removed non-existent features)
+Version: 0.4.0 (UI Restructure - Removed TopHeader, moved profile to sidebar, added role-based tabs to 360 dashboard)
 
 ## Important Naming Note
 
