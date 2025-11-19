@@ -78,6 +78,7 @@ export default function Feedback360Dashboard({
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingDraftSurvey, setEditingDraftSurvey] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'in_progress' | 'completed' | 'needs_review' | 'needs_reanalysis' | 'finalized'>('all');
+  const [reviewerFilterStatus, setReviewerFilterStatus] = useState<'all' | 'required' | 'optional'>('all');
   // Regular users can't sponsor surveys, so default to 'reviewer' for them
   const [filterRole, setFilterRole] = useState<'sponsor' | 'reviewer' | 'subject'>(
     currentUser?.app_role === 'user' ? 'reviewer' : 'sponsor'
@@ -1341,9 +1342,16 @@ export default function Feedback360Dashboard({
     const isSponsor = survey.created_by === currentUser?.id || survey.created_by === currentUser?.email;
     const isSubject = survey.employee_id === currentUser?.id;
     const isReviewer = survey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
+    const isSLT = currentUser?.app_role === 'slt';
+    const isAdmin = currentUser?.app_role === 'admin';
 
-    // Reviewer tab: only show in_progress surveys where user is a reviewer
+    // Reviewer tab: show in_progress surveys where user is a reviewer
+    // For SLT: also show in_progress surveys where they can opt in (not yet a reviewer)
     if (filterRole === 'reviewer') {
+      if (isSLT) {
+        // SLT sees surveys where they're a reviewer OR can opt in
+        return survey.status === 'in_progress' && (isReviewer || !isReviewer);
+      }
       return isReviewer && survey.status === 'in_progress';
     }
 
@@ -1352,23 +1360,43 @@ export default function Feedback360Dashboard({
       return isSubject && survey.status === 'finalized';
     }
 
-    // Sponsor tab: show all surveys created by user (any status)
+    // Sponsor tab:
+    // - Admin sees ALL surveys (full oversight)
+    // - Others see only surveys they created
     if (filterRole === 'sponsor') {
+      if (isAdmin) {
+        return true; // Admin sees ALL surveys
+      }
       return isSponsor;
     }
 
     return false;
   });
 
-  // Calculate counts for tab badges
-  const sponsorCount = surveys.filter(s =>
-    s.created_by === currentUser?.id || s.created_by === currentUser?.email
-  ).length;
+  // Calculate counts for tab badges - must match the roleFilteredSurveys logic exactly
+  const sponsorCount = surveys.filter(s => {
+    // Check if current user is the creator (sponsor) of this survey
+    const isCreator = (s.created_by === currentUser?.id || s.created_by === currentUser?.email);
 
-  const reviewerCount = surveys.filter(s =>
-    s.status === 'in_progress' &&
-    s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email)
-  ).length;
+    // Admin sees ALL surveys
+    if (currentUser?.app_role === 'admin') {
+      return true;
+    }
+
+    // Everyone else (SLT, Leader, User) ONLY sees surveys they personally created
+    return isCreator;
+  }).length;
+
+  const reviewerCount = surveys.filter(s => {
+    const isReviewer = s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
+    const isSLT = currentUser?.app_role === 'slt';
+
+    // SLT sees all in_progress (can opt in), others see only assigned reviews
+    if (isSLT) {
+      return s.status === 'in_progress';
+    }
+    return s.status === 'in_progress' && isReviewer;
+  }).length;
 
   const subjectCount = surveys.filter(s =>
     s.status === 'finalized' &&
@@ -1389,6 +1417,15 @@ export default function Feedback360Dashboard({
       : roleFilteredSurveys.filter(s => s.status === filterStatus);
   }
 
+  // Apply reviewer filter (only for SLT on Reviewer tab)
+  if (filterRole === 'reviewer' && currentUser?.app_role === 'slt') {
+    filteredSurveys = reviewerFilterStatus === 'all'
+      ? roleFilteredSurveys
+      : reviewerFilterStatus === 'required'
+      ? roleFilteredSurveys.filter(s => s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email))
+      : roleFilteredSurveys.filter(s => !s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email));
+  }
+
   // Calculate stats based on role-filtered surveys
   const stats = {
     draft: roleFilteredSurveys.filter(s => s.status === 'draft').length,
@@ -1397,6 +1434,17 @@ export default function Feedback360Dashboard({
     needs_review: roleFilteredSurveys.filter(s => s.flagged_for_admin === true).length,
     needs_reanalysis: roleFilteredSurveys.filter(s => s.flagged_for_reanalysis === true).length,
     finalized: roleFilteredSurveys.filter(s => s.status === 'finalized').length,
+  };
+
+  // Calculate reviewer stats for SLT users (Reviewer tab filter boxes)
+  const reviewerStats = {
+    total: roleFilteredSurveys.length, // All surveys shown on Reviewer tab (already filtered by role)
+    required: roleFilteredSurveys.filter(s =>
+      s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email)
+    ).length,
+    optional: roleFilteredSurveys.filter(s =>
+      !s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email)
+    ).length,
   };
 
   // Calculate risk flags (below 50% response rate with < 3 days to deadline)
@@ -1549,11 +1597,6 @@ export default function Feedback360Dashboard({
   return (
     <TooltipProvider>
     <div>
-      {/* Instruction text */}
-      <div className="text-center mb-4">
-        <span className="text-gray-500 italic text-sm">Hover over an element for more information</span>
-      </div>
-
       {/* Role Navigation Tabs - Primary sub-navigation for 360 Review section */}
       <div className="mb-6">
         <NavigationTabs
@@ -1562,31 +1605,160 @@ export default function Feedback360Dashboard({
             ...(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader' ? [{
               id: 'sponsor',
               label: 'Sponsor',
-              tooltip: 'Surveys you created or are managing',
+              tooltip: '360 reviews you created. Launch reviews, manage reviewers, track progress, and finalize the report',
               count: sponsorCount
             }] : []),
             {
               id: 'reviewer',
               label: 'Reviewer',
-              tooltip: 'Surveys where you are providing feedback',
+              tooltip: 'Active 360 reviews awaiting your feedback. Provide anonymous feedback, aggregated with AI',
               count: reviewerCount
             },
             {
               id: 'subject',
               label: 'Subject',
-              tooltip: 'Surveys about you',
+              tooltip: 'Completed 360 reviews about you. View finalized feedback, insights, and actions',
               count: subjectCount
             }
           ]}
           activeTab={filterRole}
-          onTabChange={(tabId) => setFilterRole(tabId as 'sponsor' | 'reviewer' | 'subject')}
+          onTabChange={(tabId) => {
+            setFilterRole(tabId as 'sponsor' | 'reviewer' | 'subject');
+            setReviewerFilterStatus('all'); // Reset reviewer filter when switching tabs
+          }}
           variant="underline"
         />
       </div>
 
-      {/* Header - Only show create buttons for Admin, SLT, and Leader (Sponsors) on Sponsor tab */}
+      {/* Pipeline Stats with Risk Flags - Only show on Sponsor tab */}
+      {filterRole === 'sponsor' && (
+      <div className={`grid gap-4 mt-6 ${
+        currentUser?.app_role === 'admin'
+          ? 'grid-cols-3 lg:grid-cols-6'
+          : (currentUser?.app_role === 'leader' || currentUser?.app_role === 'slt')
+          ? 'grid-cols-2 lg:grid-cols-5'
+          : 'grid-cols-2 lg:grid-cols-4'
+      }`}>
+        <button
+          onClick={() => setFilterStatus('all')}
+          className={`bg-white rounded-lg shadow p-3 border-2 transition-all text-left ${
+            filterStatus === 'all' ? 'border-blue-500' : 'border-gray-200 hover:border-gray-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total</p>
+              <p className="text-2xl font-bold text-gray-900">{roleFilteredSurveys.length}</p>
+            </div>
+          </div>
+        </button>
+
+        {/* Drafts - Only show for Admin, SLT, and Leader (Sponsors) */}
+        {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
+          <Tooltip content="Surveys not yet sent to reviewers">
+            <button
+              onClick={() => setFilterStatus('draft')}
+              className={`bg-white rounded-lg shadow p-3 border-2 transition-all text-left ${
+                filterStatus === 'draft' ? 'border-gray-500' : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Drafts</p>
+                  <p className="text-2xl font-bold text-gray-700">{stats.draft}</p>
+                </div>
+                <Clock className="w-8 h-8 text-gray-400" />
+              </div>
+            </button>
+          </Tooltip>
+        )}
+
+        <Tooltip content="Surveys awaiting responses from reviewers">
+          <button
+            onClick={() => setFilterStatus('in_progress')}
+            className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
+              filterStatus === 'in_progress'
+                ? 'border-yellow-500 bg-yellow-50'
+                : 'bg-white border-yellow-200 hover:bg-yellow-50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-yellow-700">In Progress</p>
+                <p className="text-2xl font-bold text-yellow-900">{stats.in_progress}</p>
+              </div>
+              <MessageSquare className="w-8 h-8 text-yellow-400" />
+            </div>
+          </button>
+        </Tooltip>
+
+        {/* Completed - Available to all roles (Users see reviews where they're reviewers) */}
+        <Tooltip content="Surveys with all responses received and analyzed">
+          <button
+            onClick={() => setFilterStatus('completed')}
+            className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
+              filterStatus === 'completed'
+                ? 'border-green-500 bg-green-50'
+                : 'bg-white border-green-200 hover:bg-green-50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-700">Completed</p>
+                <p className="text-2xl font-bold text-green-900">{stats.completed}</p>
+              </div>
+              <CheckCircle className="w-8 h-8 text-green-400" />
+            </div>
+          </button>
+        </Tooltip>
+
+        {/* Needs Reanalysis - Admin Only */}
+        {currentUser?.app_role === 'admin' && (
+          <Tooltip content="Surveys flagged for admin review and reanalysis">
+            <button
+              onClick={() => setFilterStatus('needs_reanalysis')}
+              className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
+                filterStatus === 'needs_reanalysis'
+                  ? 'border-red-500 bg-red-50'
+                  : 'bg-white border-red-200 hover:bg-red-50'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-red-700">Needs Reanalysis</p>
+                  <p className="text-2xl font-bold text-red-900">{stats.needs_reanalysis}</p>
+                </div>
+                <AlertTriangle className="w-8 h-8 text-red-400" />
+              </div>
+            </button>
+          </Tooltip>
+        )}
+
+        {/* Finalized - Available to all users (they see only their own finalized reviews) */}
+        <Tooltip content="Surveys marked as final and archived">
+          <button
+            onClick={() => setFilterStatus('finalized')}
+            className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
+              filterStatus === 'finalized'
+                ? 'border-purple-500 bg-purple-50'
+                : 'bg-white border-purple-200 hover:bg-purple-50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-700">Finalized</p>
+                <p className="text-2xl font-bold text-purple-900">{stats.finalized}</p>
+              </div>
+              <ArrowDownCircle className="w-8 h-8 text-purple-400" />
+            </div>
+          </button>
+        </Tooltip>
+      </div>
+      )}
+
+      {/* Launch Review Button - Only show for Admin, SLT, and Leader (Sponsors) on Sponsor tab */}
       {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && filterRole === 'sponsor' && (
-        <div className="relative mb-6">
+        <div className="relative mt-6 mb-6">
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
@@ -1615,126 +1787,60 @@ export default function Feedback360Dashboard({
         </div>
       )}
 
-      {/* Pipeline Stats with Risk Flags - Only show on Sponsor tab */}
-      {filterRole === 'sponsor' && (
-      <div className={`grid gap-4 mt-6 ${
-        currentUser?.app_role === 'admin'
-          ? 'grid-cols-3 lg:grid-cols-6'
-          : (currentUser?.app_role === 'leader' || currentUser?.app_role === 'slt')
-          ? 'grid-cols-2 lg:grid-cols-5'
-          : 'grid-cols-2 lg:grid-cols-4'
-      }`}>
+      {/* Reviewer Filter Boxes - Only show for SLT on Reviewer tab */}
+      {filterRole === 'reviewer' && currentUser?.app_role === 'slt' && (
+      <div className="grid gap-4 mt-6 grid-cols-2 lg:grid-cols-3">
+        {/* Total */}
         <button
-          onClick={() => setFilterStatus('all')}
-          className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
-            filterStatus === 'all' ? 'border-blue-500' : 'border-gray-200 hover:border-gray-300'
+          onClick={() => setReviewerFilterStatus('all')}
+          className={`bg-white rounded-lg shadow p-3 border-2 transition-all text-left ${
+            reviewerFilterStatus === 'all' ? 'border-cyan-500' : 'border-cyan-200 hover:border-cyan-300'
           }`}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{surveys.length}</p>
+              <p className="text-sm text-cyan-700">Total</p>
+              <p className="text-2xl font-bold text-cyan-900">{reviewerStats.total}</p>
             </div>
           </div>
         </button>
 
-        {/* Drafts - Only show for Admin, SLT, and Leader (Sponsors) */}
-        {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
-          <Tooltip content="Surveys not yet sent to reviewers">
-            <button
-              onClick={() => setFilterStatus('draft')}
-              className={`bg-white rounded-lg shadow p-4 border-2 transition-all text-left ${
-                filterStatus === 'draft' ? 'border-gray-500' : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Drafts</p>
-                  <p className="text-2xl font-bold text-gray-700">{stats.draft}</p>
-                </div>
-                <Clock className="w-8 h-8 text-gray-400" />
-              </div>
-            </button>
-          </Tooltip>
-        )}
-
-        <Tooltip content="Surveys awaiting responses from reviewers">
+        {/* Required (Assigned Reviewer) */}
+        <Tooltip content="360 reviews where you are an assigned reviewer">
           <button
-            onClick={() => setFilterStatus('in_progress')}
-            className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
-              filterStatus === 'in_progress'
-                ? 'border-yellow-500 bg-yellow-50'
-                : 'bg-white border-yellow-200 hover:bg-yellow-50'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <p className="text-sm text-yellow-700">In Progress</p>
-                <p className="text-2xl font-bold text-yellow-900">{stats.in_progress}</p>
-              </div>
-              <MessageSquare className="w-8 h-8 text-yellow-400" />
-            </div>
-          </button>
-        </Tooltip>
-
-        {/* Completed - Available to all roles (Users see reviews where they're reviewers) */}
-        <Tooltip content="Surveys with all responses received and analyzed">
-          <button
-            onClick={() => setFilterStatus('completed')}
-            className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
-              filterStatus === 'completed'
-                ? 'border-green-500 bg-green-50'
-                : 'bg-white border-green-200 hover:bg-green-50'
+            onClick={() => setReviewerFilterStatus('required')}
+            className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
+              reviewerFilterStatus === 'required'
+                ? 'border-indigo-500 bg-indigo-50'
+                : 'bg-white border-indigo-200 hover:bg-indigo-50'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-700">Completed</p>
-                <p className="text-2xl font-bold text-green-900">{stats.completed}</p>
+                <p className="text-sm text-indigo-700">Required</p>
+                <p className="text-2xl font-bold text-indigo-900">{reviewerStats.required}</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-400" />
+              <Users className="w-8 h-8 text-indigo-400" />
             </div>
           </button>
         </Tooltip>
 
-        {/* Needs Reanalysis - Admin Only */}
-        {currentUser?.app_role === 'admin' && (
-          <Tooltip content="Surveys flagged for admin review and reanalysis">
-            <button
-              onClick={() => setFilterStatus('needs_reanalysis')}
-              className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
-                filterStatus === 'needs_reanalysis'
-                  ? 'border-red-500 bg-red-50'
-                  : 'bg-white border-red-200 hover:bg-red-50'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-red-700">Needs Reanalysis</p>
-                  <p className="text-2xl font-bold text-red-900">{stats.needs_reanalysis}</p>
-                </div>
-                <AlertTriangle className="w-8 h-8 text-red-400" />
-              </div>
-            </button>
-          </Tooltip>
-        )}
-
-        {/* Finalized - Available to all users (they see only their own finalized reviews) */}
-        <Tooltip content="Surveys marked as final and archived">
+        {/* Optional (Can Opt In) */}
+        <Tooltip content="360 reviews you can opt into as an SLT member">
           <button
-            onClick={() => setFilterStatus('finalized')}
-            className={`rounded-lg shadow p-4 border-2 transition-all text-left ${
-              filterStatus === 'finalized'
-                ? 'border-purple-500 bg-purple-50'
-                : 'bg-white border-purple-200 hover:bg-purple-50'
+            onClick={() => setReviewerFilterStatus('optional')}
+            className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
+              reviewerFilterStatus === 'optional'
+                ? 'border-teal-500 bg-teal-50'
+                : 'bg-white border-teal-200 hover:bg-teal-50'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-700">Finalized</p>
-                <p className="text-2xl font-bold text-purple-900">{stats.finalized}</p>
+                <p className="text-sm text-teal-700">Optional</p>
+                <p className="text-2xl font-bold text-teal-900">{reviewerStats.optional}</p>
               </div>
-              <ArrowDownCircle className="w-8 h-8 text-purple-400" />
+              <UserPlus className="w-8 h-8 text-teal-400" />
             </div>
           </button>
         </Tooltip>
@@ -4019,6 +4125,11 @@ export default function Feedback360Dashboard({
           loadSurveys();
         }}
       />
+
+      {/* Instruction text - Fixed to bottom of screen */}
+      <div className="fixed bottom-4 left-0 right-0 text-center pointer-events-none">
+        <span className="text-gray-500 italic text-sm">Hover over an element for more information</span>
+      </div>
     </div>
     </TooltipProvider>
   );
