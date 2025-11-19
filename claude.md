@@ -911,5 +911,12 @@ Version: 0.4.0 (UI Restructure - Removed TopHeader, moved profile to sidebar, ad
   **Deployment Branches:**
   - `main` branch → Production deployment (https://sonance-360-review.vercel.app)
   - Feature branches → Preview deployments only
-  
+
   When working on this project, remember that only pushes to the `main` branch trigger production deployments to the sonance-360-review Vercel project.
+
+  **CRITICAL: Git Push Policy**
+  - **NEVER automatically push commits without explicit user approval**
+  - Every `git push` to `main` triggers an immediate production deployment on Vercel
+  - Always commit changes first, then ask the user before pushing
+  - User must explicitly say "push" or "commit and push" before running `git push`
+  - This prevents accidental production deployments
