@@ -51,7 +51,8 @@ export async function GET(
           reviewer_email,
           relationship,
           access_token,
-          created_at
+          created_at,
+          assigned_by_sponsor
         )
       `)
       .eq('id', surveyId)

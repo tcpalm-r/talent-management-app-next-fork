@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
           status,
           reviewer_email,
           access_token,
-          relationship
+          relationship,
+          assigned_by_sponsor
         )
       `)
       .order('created_at', { ascending: false });
