@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus } from 'lucide-react';
+import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus, Check, User } from 'lucide-react';
 import type { Employee, Department, ParticipantRelationship } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
@@ -1266,13 +1266,27 @@ export default function Feedback360Dashboard({
     const employeeWithRel = selectedReviewerEmployee as EmployeeWithRelationship;
     const finalRelationship = newReviewerRelationship || employeeWithRel.detected_relationship || 'cross_functional';
 
+    // Get name and email - use full_name if available (matching wizard behavior)
+    const reviewerName = (selectedReviewerEmployee as any).full_name || selectedReviewerEmployee.name || '';
+    const reviewerEmail = selectedReviewerEmployee.email || '';
+
+    // Validate we have required fields before making the request
+    if (!reviewerName || !reviewerEmail || !finalRelationship) {
+      notify({
+        title: 'Missing information',
+        description: 'Please ensure name, email, and relationship are selected.',
+        variant: 'error',
+      });
+      return;
+    }
+
     try {
       const response = await fetch(`/api/surveys/${selectedSurvey.id}/reviewers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          reviewer_name: selectedReviewerEmployee.name || '',
-          reviewer_email: selectedReviewerEmployee.email || '',
+          reviewer_name: reviewerName,
+          reviewer_email: reviewerEmail,
           relationship: finalRelationship,
         }),
       });
@@ -2436,170 +2450,100 @@ export default function Feedback360Dashboard({
                 </div>
 
                 {isAddingReviewer && (
-                  <div className="bg-blue-50 rounded-lg p-4 mb-3 space-y-3 relative">
-                    {/* Relationship dropdown */}
-                    <select
-                      value={newReviewerRelationship}
-                      onChange={async (e) => {
-                        const newRelationship = e.target.value as ParticipantRelationship | '';
-                        setNewReviewerRelationship(newRelationship);
-
-                        // Pattern 2: Filter First - Pre-fetch employees matching this relationship
-                        if (selectedSurvey?.employee_id && newRelationship) {
-                          await fetchEmployeesWithRelationships(reviewerSearch, newRelationship);
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    >
-                      <option value="">Select relationship...</option>
-                      <option value="manager">Manager</option>
-                      <option value="slt">SLT</option>
-                      <option value="direct_report">Direct Report</option>
-                      <option value="cross_functional">Cross-Functional</option>
-                    </select>
-
-                    {/* Employee search and picker */}
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Search employees..."
-                        value={reviewerSearch}
+                  <div className="mb-3 relative">
+                    <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+                      <select
+                        value={newReviewerRelationship}
                         onChange={async (e) => {
-                          const searchValue = e.target.value;
-                          setReviewerSearch(searchValue);
+                          const newRelationship = e.target.value as ParticipantRelationship | '';
+                          setNewReviewerRelationship(newRelationship);
 
-                          // Pattern 1: Search First - Fetch with auto-detection
-                          if (selectedSurvey?.employee_id && searchValue.length >= 1) {
-                            setShowReviewerPicker(true);
-                            await fetchEmployeesWithRelationships(
-                              searchValue,
-                              newReviewerRelationship || null
-                            );
-                          } else if (searchValue.length === 0) {
-                            // Clear API results when search is cleared
-                            setEmployeesWithRelationships([]);
-                            setShowReviewerPicker(false);
+                          // Pattern 2: Filter First - Pre-fetch employees matching this relationship
+                          if (selectedSurvey?.employee_id && newRelationship) {
+                            await fetchEmployeesWithRelationships(reviewerSearch, newRelationship);
                           }
                         }}
-                        onFocus={async () => {
-                          // Only show picker if there's search input (1+ chars) or relationship already selected
-                          const shouldShowPicker = (reviewerSearch && reviewerSearch.length >= 1) || newReviewerRelationship;
-                          if (shouldShowPicker) {
-                            setShowReviewerPicker(true);
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      >
+                        <option value="">Select relationship...</option>
+                        <option value="manager">Manager</option>
+                        <option value="slt">SLT</option>
+                        <option value="direct_report">Direct Report</option>
+                        <option value="cross_functional">Cross-Functional</option>
+                      </select>
 
-                            // If relationship is selected but no employees loaded yet, fetch them
-                            if (newReviewerRelationship && employeesWithRelationships.length === 0) {
-                              await fetchEmployeesWithRelationships(
-                                reviewerSearch,
-                                newReviewerRelationship
-                              );
-                            }
-                          }
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      />
+                      {/* Employee Selector */}
+                      {!selectedReviewerEmployee ? (
+                        <div className="flex-1 relative">
+                          <div className="relative">
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              value={reviewerSearch}
+                              onChange={async (e) => {
+                                const searchValue = e.target.value;
+                                setReviewerSearch(searchValue);
 
-                      {/* Employee cards dropdown */}
-                      {showReviewerPicker && (
-                        <>
-                          <div className="fixed inset-0 z-[8]" onClick={() => setShowReviewerPicker(false)} />
-                          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
-                            <div className="p-2">
-                              {isLoadingRelationships ? (
-                                <div className="p-4 text-center text-sm text-gray-500">
-                                  <div className="flex items-center justify-center gap-2">
-                                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                                    <span>Loading...</span>
-                                  </div>
-                                </div>
-                              ) : filteredReviewerEmployees.length > 0 ? (
-                                filteredReviewerEmployees.slice(0, 20).map(emp => {
-                                  const empWithRel = emp as EmployeeWithRelationship;
-                                  return (
-                                    <button
-                                      key={emp.id}
-                                      onClick={() => {
-                                        setSelectedReviewerEmployee(emp);
-                                        // Auto-populate relationship if detected
-                                        if (empWithRel.detected_relationship && !newReviewerRelationship) {
-                                          setNewReviewerRelationship(empWithRel.detected_relationship);
-                                        }
-                                        setReviewerSearch('');
-                                        setShowReviewerPicker(false);
-                                      }}
-                                      className="w-full text-left px-3 py-2 hover:bg-blue-50 rounded-lg transition-colors border-b border-gray-100 last:border-b-0 flex items-center gap-2"
-                                    >
-                                      <Avatar
-                                        name={emp.name}
-                                        picture={emp.picture ?? undefined}
-                                        size="sm"
-                                      />
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <div className="font-medium text-sm text-gray-900">{emp.name}</div>
-                                          {empWithRel.detected_relationship && (
-                                            <span className={`px-2 py-0.5 text-xs font-medium rounded ${
-                                              empWithRel.detected_relationship === 'manager' ? 'bg-purple-100 text-purple-700' :
-                                              empWithRel.detected_relationship === 'slt' ? 'bg-blue-100 text-blue-700' :
-                                              empWithRel.detected_relationship === 'direct_report' ? 'bg-green-100 text-green-700' :
-                                              'bg-gray-100 text-gray-700'
-                                            }`}>
-                                              {empWithRel.detected_relationship === 'manager' ? 'Manager' :
-                                               empWithRel.detected_relationship === 'slt' ? 'SLT' :
-                                               empWithRel.detected_relationship === 'direct_report' ? 'Direct Report' :
-                                               'Cross-Functional'}
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div className="text-xs text-gray-600">
-                                          {emp.title && <span>{emp.title}</span>}
-                                          {emp.title && emp.email && <span> • </span>}
-                                          {emp.email && <span className="truncate">{emp.email}</span>}
-                                        </div>
-                                      </div>
-                                    </button>
+                                // Pattern 1: Search First - Fetch with auto-detection
+                                if (selectedSurvey?.employee_id && searchValue.length >= 1) {
+                                  setShowReviewerPicker(true);
+                                  await fetchEmployeesWithRelationships(
+                                    searchValue,
+                                    newReviewerRelationship || null
                                   );
-                                })
-                              ) : newReviewerRelationship && employeesWithRelationships.length === 0 && !isLoadingRelationships ? (
-                                <div className="p-4 text-center text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg m-2">
-                                  {selectedSurvey?.employee?.name} has no{' '}
-                                  {newReviewerRelationship === 'manager' ? 'manager' :
-                                   newReviewerRelationship === 'slt' ? 'SLT' :
-                                   newReviewerRelationship === 'direct_report' ? 'direct reports' :
-                                   'cross-functional colleagues'} in the system
-                                </div>
-                              ) : (
-                                <div className="p-4 text-center text-sm text-gray-500">No employees found</div>
-                              )}
+                                } else if (searchValue.length === 0) {
+                                  // Clear API results when search is cleared
+                                  setEmployeesWithRelationships([]);
+                                  setShowReviewerPicker(false);
+                                }
+                              }}
+                              onFocus={async () => {
+                                // Only show picker if there's search input (1+ chars) or relationship already selected
+                                const shouldShowPicker = (reviewerSearch && reviewerSearch.length >= 1) || newReviewerRelationship;
+                                if (shouldShowPicker) {
+                                  setShowReviewerPicker(true);
+
+                                  // If relationship is selected but no employees loaded yet, fetch them
+                                  if (newReviewerRelationship && employeesWithRelationships.length === 0) {
+                                    await fetchEmployeesWithRelationships(
+                                      reviewerSearch,
+                                      newReviewerRelationship
+                                    );
+                                  }
+                                }
+                              }}
+                              placeholder="Search employees..."
+                              className="w-full pl-9 pr-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 flex items-center gap-2">
+                          <div className="flex-1 flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                            <Avatar
+                              name={(selectedReviewerEmployee as any).full_name || selectedReviewerEmployee.name}
+                              picture={selectedReviewerEmployee.picture ?? undefined}
+                              size="sm"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm text-gray-900">{(selectedReviewerEmployee as any).full_name || selectedReviewerEmployee.name}</div>
+                              <div className="text-xs text-gray-600 truncate">{selectedReviewerEmployee.email}</div>
                             </div>
                           </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Selected employee display */}
-                    {selectedReviewerEmployee && (
-                      <div className="px-3 py-2 bg-white border border-gray-300 rounded-lg flex items-center gap-2">
-                        <Avatar
-                          name={selectedReviewerEmployee.name}
-                          picture={selectedReviewerEmployee.picture ?? undefined}
-                          size="sm"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm text-gray-900">{selectedReviewerEmployee.name}</div>
-                          <div className="text-xs text-gray-600">{selectedReviewerEmployee.email}</div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Action buttons */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={addReviewer}
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                      >
-                        Add & Send Invitation
-                      </button>
+                      {/* Action buttons */}
+                      {selectedReviewerEmployee ? (
+                        <button
+                          onClick={addReviewer}
+                          className="px-3 py-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                          title="Add & Send Invitation"
+                        >
+                          Add
+                        </button>
+                      ) : null}
+
                       <button
                         onClick={() => {
                           setIsAddingReviewer(false);
@@ -2609,11 +2553,115 @@ export default function Feedback360Dashboard({
                           setNewReviewerRelationship('');
                           setEmployeesWithRelationships([]);
                         }}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                        className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        title="Cancel"
                       >
-                        Cancel
+                        <X className="w-4 h-4" />
                       </button>
                     </div>
+
+                    {/* Employee Picker Dropdown */}
+                    {showReviewerPicker && (
+                      <>
+                        {/* Backdrop to close picker */}
+                        <div
+                          className="fixed inset-0 z-[9]"
+                          onClick={() => {
+                            setShowReviewerPicker(false);
+                            setReviewerSearch('');
+                          }}
+                        />
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
+                          <div className="p-2">
+                            {isLoadingRelationships ? (
+                              <div className="p-4 text-center text-sm text-gray-500">
+                                <div className="flex items-center justify-center gap-2">
+                                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                  <span>Loading...</span>
+                                </div>
+                              </div>
+                            ) : filteredReviewerEmployees.length > 0 ? (
+                              filteredReviewerEmployees.slice(0, 20).map(emp => {
+                                const empWithRel = emp as EmployeeWithRelationship;
+                                const isAlreadyAdded = surveyReviewers.some(
+                                  reviewer => reviewer.reviewer_email?.toLowerCase() === emp.email?.toLowerCase()
+                                );
+                                return (
+                                  <button
+                                    key={emp.id}
+                                    onClick={() => {
+                                      if (isAlreadyAdded) return; // Don't allow selecting already-added reviewers
+                                      setSelectedReviewerEmployee(emp);
+                                      // Auto-populate relationship if detected
+                                      if (empWithRel.detected_relationship && !newReviewerRelationship) {
+                                        setNewReviewerRelationship(empWithRel.detected_relationship);
+                                      }
+                                      setReviewerSearch('');
+                                      setShowReviewerPicker(false);
+                                    }}
+                                    className={`w-full text-left p-2 rounded-lg transition-colors flex items-center gap-2 ${
+                                      isAlreadyAdded
+                                        ? 'opacity-60 cursor-not-allowed bg-gray-50'
+                                        : 'hover:bg-blue-50 cursor-pointer'
+                                    }`}
+                                    disabled={isAlreadyAdded}
+                                  >
+                                    <Avatar
+                                      name={emp.full_name || emp.name}
+                                      picture={emp.picture ?? undefined}
+                                      size="sm"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <div className="font-semibold text-sm text-gray-900">{emp.full_name || emp.name}</div>
+                                        {isAlreadyAdded && (
+                                          <span className="px-2 py-0.5 text-xs font-medium rounded bg-gray-200 text-gray-600">
+                                            Already Added
+                                          </span>
+                                        )}
+                                        {empWithRel.detected_relationship && !isAlreadyAdded && (
+                                          <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                                            empWithRel.detected_relationship === 'manager' ? 'bg-purple-100 text-purple-700' :
+                                            empWithRel.detected_relationship === 'slt' ? 'bg-blue-100 text-blue-700' :
+                                            empWithRel.detected_relationship === 'direct_report' ? 'bg-green-100 text-green-700' :
+                                            'bg-gray-100 text-gray-700'
+                                          }`}>
+                                            {empWithRel.detected_relationship === 'manager' ? 'Manager' :
+                                             empWithRel.detected_relationship === 'slt' ? 'SLT' :
+                                             empWithRel.detected_relationship === 'direct_report' ? 'Direct Report' :
+                                             'Cross-Functional'}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {emp.title && <div className="text-xs text-gray-600">{emp.title}</div>}
+                                    </div>
+                                  </button>
+                                );
+                              })
+                            ) : newReviewerRelationship && employeesWithRelationships.length === 0 && !isLoadingRelationships ? (
+                              <div className="p-4 text-center text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg m-2">
+                                {selectedSurvey?.employee?.name} has no{' '}
+                                {newReviewerRelationship === 'manager' ? 'manager' :
+                                 newReviewerRelationship === 'slt' ? 'SLT' :
+                                 newReviewerRelationship === 'direct_report' ? 'direct reports' :
+                                 'cross-functional colleagues'} in the system
+                              </div>
+                            ) : (
+                              <div className="p-4 text-center text-sm text-gray-500">No employees found</div>
+                            )}
+                            <button
+                              onClick={() => {
+                                setShowReviewerPicker(false);
+                                setReviewerSearch('');
+                              }}
+                              className="w-full mt-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                              Enter manually instead
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
