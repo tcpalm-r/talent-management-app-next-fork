@@ -1806,8 +1806,8 @@ export default function Feedback360Dashboard({
         </div>
       )}
 
-      {/* Reviewer Filter Boxes - Only show for SLT on Reviewer tab */}
-      {filterRole === 'reviewer' && currentUser?.app_role === 'slt' && (
+      {/* Reviewer Filter Boxes - Only show for SLT and Admin on Reviewer tab */}
+      {filterRole === 'reviewer' && (currentUser?.app_role === 'slt' || currentUser?.app_role === 'admin') && (
       <div className="grid gap-4 mt-6 grid-cols-2 lg:grid-cols-3">
         {/* Total */}
         <button
@@ -1845,7 +1845,7 @@ export default function Feedback360Dashboard({
         </Tooltip>
 
         {/* Optional (Can Opt In) */}
-        <Tooltip content="360 reviews you can opt into as an SLT member">
+        <Tooltip content="360 reviews you can opt into as an SLT or Admin member">
           <button
             onClick={() => setReviewerFilterStatus('optional')}
             className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
