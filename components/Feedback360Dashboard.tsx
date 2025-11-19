@@ -1601,25 +1601,25 @@ export default function Feedback360Dashboard({
     <TooltipProvider>
     <div>
       {/* Role Navigation Tabs - Primary sub-navigation for 360 Review section */}
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <NavigationTabs
           tabs={[
             // Only show Sponsor tab for Admin, SLT, and Leader roles
             ...(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader' ? [{
               id: 'sponsor',
-              label: 'Sponsor',
+              label: 'Sponsoring',
               tooltip: '360 reviews you created. Launch reviews, manage reviewers, track progress, and finalize the report',
               count: sponsorCount
             }] : []),
             {
               id: 'reviewer',
-              label: 'Reviewer',
+              label: 'Reviewing',
               tooltip: 'Active 360 reviews awaiting your feedback. Provide anonymous feedback, aggregated with AI',
               count: reviewerCount
             },
             {
               id: 'subject',
-              label: 'Subject',
+              label: 'Your 360° Feedback',
               tooltip: 'Completed 360 reviews about you. View finalized feedback, insights, and actions',
               count: subjectCount
             }
@@ -1631,6 +1631,7 @@ export default function Feedback360Dashboard({
           }}
           variant="underline"
         />
+        <span className="text-gray-500 italic text-sm">Hover over an element for more information</span>
       </div>
 
       {/* Pipeline Stats with Risk Flags - Only show on Sponsor tab */}
@@ -4129,11 +4130,6 @@ export default function Feedback360Dashboard({
           loadSurveys();
         }}
       />
-
-      {/* Instruction text - Fixed to bottom of screen */}
-      <div className="fixed bottom-4 left-0 right-0 text-center pointer-events-none">
-        <span className="text-gray-500 italic text-sm">Hover over an element for more information</span>
-      </div>
     </div>
     </TooltipProvider>
   );

@@ -161,7 +161,7 @@ export default function InsightsPanel({
   if (finalizedSurveys.length === 0) {
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center pt-24 pb-12">
           <div className="text-center">
             <Lightbulb className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-lg text-gray-600">
