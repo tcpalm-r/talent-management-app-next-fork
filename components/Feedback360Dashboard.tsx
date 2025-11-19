@@ -1549,6 +1549,11 @@ export default function Feedback360Dashboard({
   return (
     <TooltipProvider>
     <div>
+      {/* Instruction text */}
+      <div className="text-center mb-4">
+        <span className="text-gray-500 italic text-sm">Hover over an element for more information</span>
+      </div>
+
       {/* Role Navigation Tabs - Primary sub-navigation for 360 Review section */}
       <div className="mb-6">
         <NavigationTabs
@@ -1606,10 +1611,6 @@ export default function Feedback360Dashboard({
                 Create with AI
               </button>
             )}
-          </div>
-          {/* Instruction text - absolutely positioned to center across entire body */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-gray-500 italic text-sm">Hover over an element for more information</span>
           </div>
         </div>
       )}
