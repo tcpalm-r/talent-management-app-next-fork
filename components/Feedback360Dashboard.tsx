@@ -111,7 +111,7 @@ export default function Feedback360Dashboard({
   const [selectedDevelopmentIndex, setSelectedDevelopmentIndex] = useState<number | null>(null);
   const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
   const [isAdjustingItem, setIsAdjustingItem] = useState(false);
-  const [activeReportTab, setActiveReportTab] = useState<string>('summary');
+  const [activeReportTab, setActiveReportTab] = useState<string>('themes');
   const [editingRecommendationIndex, setEditingRecommendationIndex] = useState<number | null>(null);
   const [editingRecommendationText, setEditingRecommendationText] = useState<string>('');
   const [finalNarrative, setFinalNarrative] = useState<string>('');
@@ -2833,7 +2833,6 @@ export default function Feedback360Dashboard({
 
         // Define tabs
         const reportTabs = [
-          { id: 'summary', label: 'Executive Summary' },
           { id: 'themes', label: 'Themes' },
           { id: 'strengths', label: 'Strengths' },
           { id: 'development', label: 'Development Areas' },
@@ -2940,7 +2939,7 @@ export default function Feedback360Dashboard({
                   <button
                     onClick={() => {
                       setIsResultsModalOpen(false);
-                      setActiveReportTab('summary'); // Reset to first tab when closing
+                      setActiveReportTab('themes'); // Reset to first tab when closing
                     }}
                     className="text-gray-400 hover:text-gray-600"
                   >
@@ -2960,26 +2959,6 @@ export default function Feedback360Dashboard({
             </div>
 
             <div className="h-[500px] overflow-y-auto p-6 space-y-6">
-              {/* Executive Summary Tab */}
-              {activeReportTab === 'summary' && surveyResults.executive_summary && (
-                <div>
-                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-6">
-                    <div className="mb-12">
-                      <h4 className="text-lg font-semibold text-gray-900">Executive Summary</h4>
-                    </div>
-                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{surveyResults.executive_summary}</p>
-                  </div>
-                  <p className="text-sm text-gray-600 italic mt-3">
-                    This report is organized into sections accessible via the tabs above: Themes highlight recurring feedback patterns,
-                    Strengths and Development Areas identify key capabilities and growth opportunities, Insights provide strategic observations,
-                    and Recommended Actions suggest specific next steps for development.
-                  </p>
-                  <p className="text-sm text-gray-600 italic mt-3">
-                    After you have reviewed all the sections, click create narrative to generate a one-pager that will be the first page of the final 360 report that {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'} sees.
-                  </p>
-                </div>
-              )}
-
               {/* Key Themes Tab */}
               {activeReportTab === 'themes' && surveyResults.themes && surveyResults.themes.length > 0 && (() => {
                 const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
