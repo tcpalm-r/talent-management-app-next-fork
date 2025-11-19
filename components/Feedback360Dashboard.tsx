@@ -73,6 +73,7 @@ export default function Feedback360Dashboard({
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingDraftSurvey, setEditingDraftSurvey] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'in_progress' | 'completed' | 'needs_review' | 'needs_reanalysis' | 'finalized'>('all');
+  const [filterRole, setFilterRole] = useState<'all' | 'sponsor' | 'reviewer' | 'subject'>('all');
   const [preselectedEmployee, setPreselectedEmployee] = useState<Employee | undefined>(undefined);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -1277,13 +1278,28 @@ export default function Feedback360Dashboard({
     }
   }, [isDetailsModalOpen, selectedSurvey]);
 
-  const filteredSurveys = filterStatus === 'all'
+  // First filter by status
+  let filteredSurveys = filterStatus === 'all'
     ? surveys
     : filterStatus === 'needs_review'
     ? surveys.filter(s => s.flagged_for_admin === true)
     : filterStatus === 'needs_reanalysis'
     ? surveys.filter(s => s.flagged_for_reanalysis === true)
     : surveys.filter(s => s.status === filterStatus);
+
+  // Then filter by role
+  if (filterRole !== 'all') {
+    filteredSurveys = filteredSurveys.filter(survey => {
+      const isSponsor = survey.created_by === currentUser?.id || survey.created_by === currentUser?.email;
+      const isSubject = survey.employee_id === currentUser?.id;
+      const isReviewer = survey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
+
+      if (filterRole === 'sponsor') return isSponsor;
+      if (filterRole === 'subject') return isSubject;
+      if (filterRole === 'reviewer') return isReviewer;
+      return true;
+    });
+  }
 
   const stats = {
     draft: surveys.filter(s => s.status === 'draft').length,
@@ -1601,6 +1617,53 @@ export default function Feedback360Dashboard({
             </div>
           </button>
         </Tooltip>
+      </div>
+
+      {/* Role Filter */}
+      <div className="mt-4 flex items-center gap-4">
+        <span className="text-sm font-medium text-gray-700">Filter by:</span>
+        <div className="flex gap-4">
+          <button
+            onClick={() => setFilterRole('all')}
+            className={`text-sm font-medium transition-colors ${
+              filterRole === 'all'
+                ? 'text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setFilterRole('sponsor')}
+            className={`text-sm font-medium transition-colors ${
+              filterRole === 'sponsor'
+                ? 'text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Sponsor
+          </button>
+          <button
+            onClick={() => setFilterRole('reviewer')}
+            className={`text-sm font-medium transition-colors ${
+              filterRole === 'reviewer'
+                ? 'text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Reviewer
+          </button>
+          <button
+            onClick={() => setFilterRole('subject')}
+            className={`text-sm font-medium transition-colors ${
+              filterRole === 'subject'
+                ? 'text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Subject
+          </button>
+        </div>
       </div>
 
       {/* Reviews List */}
