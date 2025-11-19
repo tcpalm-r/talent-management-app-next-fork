@@ -78,7 +78,10 @@ export default function Feedback360Dashboard({
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingDraftSurvey, setEditingDraftSurvey] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'in_progress' | 'completed' | 'needs_review' | 'needs_reanalysis' | 'finalized'>('all');
-  const [filterRole, setFilterRole] = useState<'sponsor' | 'reviewer' | 'subject'>('sponsor');
+  // Regular users can't sponsor surveys, so default to 'reviewer' for them
+  const [filterRole, setFilterRole] = useState<'sponsor' | 'reviewer' | 'subject'>(
+    currentUser?.app_role === 'user' ? 'reviewer' : 'sponsor'
+  );
   const [preselectedEmployee, setPreselectedEmployee] = useState<Employee | undefined>(undefined);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -1333,25 +1336,43 @@ export default function Feedback360Dashboard({
   }, [isDetailsModalOpen, selectedSurvey]);
 
   // Filter by role first (always applied since we removed "all" option)
+  // For Reviewer and Subject tabs, automatically apply status filters
   const roleFilteredSurveys = surveys.filter(survey => {
     const isSponsor = survey.created_by === currentUser?.id || survey.created_by === currentUser?.email;
     const isSubject = survey.employee_id === currentUser?.id;
     const isReviewer = survey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
 
-    if (filterRole === 'sponsor') return isSponsor;
-    if (filterRole === 'subject') return isSubject;
-    if (filterRole === 'reviewer') return isReviewer;
+    // Reviewer tab: only show in_progress surveys where user is a reviewer
+    if (filterRole === 'reviewer') {
+      return isReviewer && survey.status === 'in_progress';
+    }
+
+    // Subject tab: only show finalized surveys where user is the subject
+    if (filterRole === 'subject') {
+      return isSubject && survey.status === 'finalized';
+    }
+
+    // Sponsor tab: show all surveys created by user (any status)
+    if (filterRole === 'sponsor') {
+      return isSponsor;
+    }
+
     return false;
   });
 
-  // Then filter by status
-  let filteredSurveys = filterStatus === 'all'
-    ? roleFilteredSurveys
-    : filterStatus === 'needs_review'
-    ? roleFilteredSurveys.filter(s => s.flagged_for_admin === true)
-    : filterStatus === 'needs_reanalysis'
-    ? roleFilteredSurveys.filter(s => s.flagged_for_reanalysis === true)
-    : roleFilteredSurveys.filter(s => s.status === filterStatus);
+  // Then filter by status (only applies to Sponsor tab now)
+  // Reviewer and Subject tabs ignore manual status filter (automatic filtering above)
+  let filteredSurveys = roleFilteredSurveys;
+
+  if (filterRole === 'sponsor') {
+    filteredSurveys = filterStatus === 'all'
+      ? roleFilteredSurveys
+      : filterStatus === 'needs_review'
+      ? roleFilteredSurveys.filter(s => s.flagged_for_admin === true)
+      : filterStatus === 'needs_reanalysis'
+      ? roleFilteredSurveys.filter(s => s.flagged_for_reanalysis === true)
+      : roleFilteredSurveys.filter(s => s.status === filterStatus);
+  }
 
   // Calculate stats based on role-filtered surveys
   const stats = {
@@ -1517,11 +1538,12 @@ export default function Feedback360Dashboard({
       <div className="mb-6">
         <NavigationTabs
           tabs={[
-            {
+            // Only show Sponsor tab for Admin, SLT, and Leader roles
+            ...(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader' ? [{
               id: 'sponsor',
               label: 'Sponsor',
               tooltip: 'Surveys you created or are managing'
-            },
+            }] : []),
             {
               id: 'reviewer',
               label: 'Reviewer',
@@ -1539,8 +1561,8 @@ export default function Feedback360Dashboard({
         />
       </div>
 
-      {/* Header - Only show create buttons for Admin, SLT, and Leader (Sponsors) */}
-      {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
+      {/* Header - Only show create buttons for Admin, SLT, and Leader (Sponsors) on Sponsor tab */}
+      {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && filterRole === 'sponsor' && (
         <div className="relative mb-6">
           <div className="flex items-center gap-2">
             <button
@@ -1574,7 +1596,8 @@ export default function Feedback360Dashboard({
         </div>
       )}
 
-      {/* Pipeline Stats with Risk Flags */}
+      {/* Pipeline Stats with Risk Flags - Only show on Sponsor tab */}
+      {filterRole === 'sponsor' && (
       <div className={`grid gap-4 mt-6 ${
         currentUser?.app_role === 'admin'
           ? 'grid-cols-3 lg:grid-cols-6'
@@ -1697,6 +1720,7 @@ export default function Feedback360Dashboard({
           </button>
         </Tooltip>
       </div>
+      )}
 
       {/* Reviews List */}
       {loading ? (
@@ -1709,7 +1733,11 @@ export default function Feedback360Dashboard({
           <div className="text-center mb-8">
             <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {filterStatus === 'all'
+              {filterRole === 'reviewer'
+                ? 'No 360° reviews require your feedback'
+                : filterRole === 'subject'
+                ? 'Your 360° review has not been finalized'
+                : filterStatus === 'all'
                 ? 'No reviews yet'
                 : filterStatus === 'draft'
                 ? 'No review drafts'
@@ -1717,7 +1745,7 @@ export default function Feedback360Dashboard({
                 ? 'No reviews need admin review'
                 : `No reviews ${filterStatus === 'in_progress' ? 'in progress' : filterStatus}`}
             </h3>
-            {filterStatus === 'all' && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
+            {filterRole === 'sponsor' && filterStatus === 'all' && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
               <>
                 <p className="text-gray-600 mb-6">
                   Create your first 360° feedback review to gather multi-source feedback
