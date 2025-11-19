@@ -92,11 +92,14 @@ export async function POST(
     // Generate access token for survey completion
     const accessToken = uuidv4();
 
+    // Map admin role to slt relationship (database only allows: manager, slt, direct_report, cross_functional)
+    const relationship = user.app_role === 'admin' ? 'slt' : user.app_role;
+
     const reviewerData = {
       survey_id: surveyId,
       reviewer_email: profile.email,
       reviewer_name: profile.full_name,
-      relationship: user.app_role, // 'slt' or 'admin'
+      relationship, // 'slt' for both SLT and Admin users
       status: 'pending',
       access_token: accessToken,
       invited_at: new Date().toISOString(),
