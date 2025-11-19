@@ -1,8 +1,8 @@
 /**
  * POST /api/surveys/[id]/opt-out
  *
- * Allows SLT members to opt out of a 360 survey they previously opted into.
- * Only works if they opted in themselves (relationship='slt').
+ * Allows SLT and Admin members to opt out of a 360 survey they previously opted into.
+ * Only works if they opted in themselves (assigned_by_sponsor=false).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,12 +16,12 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('[SLT Opt-Out] ===== Starting opt-out request =====');
+    console.log('[SLT/Admin Opt-Out] ===== Starting opt-out request =====');
 
     // Authenticate user
     const authData = await getAuthenticatedUser(request);
     if (!authData) {
-      console.log('[SLT Opt-Out] ❌ No auth data');
+      console.log('[SLT/Admin Opt-Out] ❌ No auth data');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -31,17 +31,17 @@ export async function POST(
     const { user, profile } = authData;
     const surveyId = params.id;
 
-    console.log('[SLT Opt-Out] User:', {
+    console.log('[SLT/Admin Opt-Out] User:', {
       email: user.email,
       role: user.app_role,
       surveyId
     });
 
-    // Verify user is SLT
-    if (user.app_role !== 'slt') {
-      console.log('[SLT Opt-Out] ❌ User is not SLT, role:', user.app_role);
+    // Verify user is SLT or Admin
+    if (user.app_role !== 'slt' && user.app_role !== 'admin') {
+      console.log('[SLT/Admin Opt-Out] ❌ User is not SLT or Admin, role:', user.app_role);
       return NextResponse.json(
-        { error: 'Only SLT members can opt out of surveys' },
+        { error: 'Only SLT and Admin members can opt out of surveys' },
         { status: 403 }
       );
     }
@@ -55,18 +55,18 @@ export async function POST(
       .single();
 
     if (reviewerError || !reviewer) {
-      console.log('[SLT Opt-Out] ❌ Reviewer not found:', reviewerError);
+      console.log('[SLT/Admin Opt-Out] ❌ Reviewer not found:', reviewerError);
       return NextResponse.json(
         { error: 'You are not a reviewer for this survey' },
         { status: 404 }
       );
     }
 
-    console.log('[SLT Opt-Out] Reviewer found:', reviewer);
+    console.log('[SLT/Admin Opt-Out] Reviewer found:', reviewer);
 
     // Verify this reviewer was NOT assigned by sponsor (they opted in themselves)
     if (reviewer.assigned_by_sponsor === true) {
-      console.log('[SLT Opt-Out] ❌ Reviewer was assigned by sponsor, cannot opt out');
+      console.log('[SLT/Admin Opt-Out] ❌ Reviewer was assigned by sponsor, cannot opt out');
       return NextResponse.json(
         { error: 'You cannot opt out of surveys you were assigned to by the sponsor' },
         { status: 400 }
@@ -75,7 +75,7 @@ export async function POST(
 
     // Verify survey has not been completed by this reviewer
     if (reviewer.status === 'completed') {
-      console.log('[SLT Opt-Out] ❌ Survey already completed');
+      console.log('[SLT/Admin Opt-Out] ❌ Survey already completed');
       return NextResponse.json(
         { error: 'Cannot opt out of a survey you have already completed' },
         { status: 400 }
@@ -89,7 +89,7 @@ export async function POST(
       .eq('id', reviewer.id);
 
     if (deleteError) {
-      console.error('[SLT Opt-Out] ❌ Delete error:', {
+      console.error('[SLT/Admin Opt-Out] ❌ Delete error:', {
         message: deleteError.message,
         details: deleteError.details,
         hint: deleteError.hint,
@@ -101,7 +101,7 @@ export async function POST(
       );
     }
 
-    console.log('[SLT Opt-Out] ✅ Successfully removed reviewer');
+    console.log('[SLT/Admin Opt-Out] ✅ Successfully removed reviewer');
 
     return NextResponse.json({
       success: true,
@@ -109,7 +109,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('[SLT Opt-Out] ❌❌❌ Unexpected error:', error);
+    console.error('[SLT/Admin Opt-Out] ❌❌❌ Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }

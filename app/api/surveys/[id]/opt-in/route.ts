@@ -1,7 +1,7 @@
 /**
  * POST /api/surveys/[id]/opt-in
  *
- * Allows SLT members to opt into a 360 survey as a reviewer.
+ * Allows SLT and Admin members to opt into a 360 survey as a reviewer.
  * No email notification is sent - this is UI-only opt-in.
  */
 
@@ -17,12 +17,12 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('[SLT Opt-In] ===== Starting opt-in request =====');
+    console.log('[SLT/Admin Opt-In] ===== Starting opt-in request =====');
 
     // Authenticate user
     const authData = await getAuthenticatedUser(request);
     if (!authData) {
-      console.log('[SLT Opt-In] ❌ No auth data');
+      console.log('[SLT/Admin Opt-In] ❌ No auth data');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -32,17 +32,17 @@ export async function POST(
     const { user, profile } = authData;
     const surveyId = params.id;
 
-    console.log('[SLT Opt-In] User:', {
+    console.log('[SLT/Admin Opt-In] User:', {
       email: user.email,
       role: user.app_role,
       surveyId
     });
 
-    // Verify user is SLT
-    if (user.app_role !== 'slt') {
-      console.log('[SLT Opt-In] ❌ User is not SLT, role:', user.app_role);
+    // Verify user is SLT or Admin
+    if (user.app_role !== 'slt' && user.app_role !== 'admin') {
+      console.log('[SLT/Admin Opt-In] ❌ User is not SLT or Admin, role:', user.app_role);
       return NextResponse.json(
-        { error: 'Only SLT members can opt into surveys' },
+        { error: 'Only SLT and Admin members can opt into surveys' },
         { status: 403 }
       );
     }
@@ -55,18 +55,18 @@ export async function POST(
       .single();
 
     if (surveyError || !survey) {
-      console.log('[SLT Opt-In] ❌ Survey not found:', surveyError);
+      console.log('[SLT/Admin Opt-In] ❌ Survey not found:', surveyError);
       return NextResponse.json(
         { error: 'Survey not found' },
         { status: 404 }
       );
     }
 
-    console.log('[SLT Opt-In] Survey found:', { status: survey.status });
+    console.log('[SLT/Admin Opt-In] Survey found:', { status: survey.status });
 
     // Verify survey is in_progress
     if (survey.status !== 'in_progress') {
-      console.log('[SLT Opt-In] ❌ Survey not in_progress, status:', survey.status);
+      console.log('[SLT/Admin Opt-In] ❌ Survey not in_progress, status:', survey.status);
       return NextResponse.json(
         { error: 'Can only opt into in_progress surveys' },
         { status: 400 }
@@ -82,7 +82,7 @@ export async function POST(
       .single();
 
     if (existingReviewer) {
-      console.log('[SLT Opt-In] ❌ User already a reviewer');
+      console.log('[SLT/Admin Opt-In] ❌ User already a reviewer');
       return NextResponse.json(
         { error: 'You are already a reviewer for this survey' },
         { status: 400 }
@@ -96,23 +96,23 @@ export async function POST(
       survey_id: surveyId,
       reviewer_email: profile.email,
       reviewer_name: profile.full_name,
-      relationship: 'slt',
+      relationship: user.app_role, // 'slt' or 'admin'
       status: 'pending',
       access_token: accessToken,
       invited_at: new Date().toISOString(),
-      assigned_by_sponsor: false, // SLT opted in themselves
+      assigned_by_sponsor: false, // SLT/Admin opted in themselves
     };
 
-    console.log('[SLT Opt-In] Inserting reviewer:', reviewerData);
+    console.log('[SLT/Admin Opt-In] Inserting reviewer:', reviewerData);
 
-    // Add user as reviewer with 'slt' relationship type
+    // Add user as reviewer with their role as relationship type
     const { error: insertError, data: insertedData } = await supabaseAdmin
       .from('feedback_360_survey_reviewers')
       .insert(reviewerData)
       .select();
 
     if (insertError) {
-      console.error('[SLT Opt-In] ❌ Insert error:', {
+      console.error('[SLT/Admin Opt-In] ❌ Insert error:', {
         message: insertError.message,
         details: insertError.details,
         hint: insertError.hint,
@@ -124,9 +124,9 @@ export async function POST(
       );
     }
 
-    console.log('[SLT Opt-In] ✅ Successfully inserted reviewer:', insertedData);
+    console.log('[SLT/Admin Opt-In] ✅ Successfully inserted reviewer:', insertedData);
 
-    console.log('[SLT Opt-In] ✅ Opt-in successful');
+    console.log('[SLT/Admin Opt-In] ✅ Opt-in successful');
 
     return NextResponse.json({
       success: true,
@@ -135,7 +135,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('[SLT Opt-In] ❌❌❌ Unexpected error:', error);
+    console.error('[SLT/Admin Opt-In] ❌❌❌ Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }

@@ -1361,11 +1361,11 @@ export default function Feedback360Dashboard({
     const isAdmin = currentUser?.app_role === 'admin';
 
     // Reviewer tab: show in_progress surveys where user is a reviewer
-    // For SLT: also show in_progress surveys where they can opt in (not yet a reviewer)
+    // For SLT and Admin: also show in_progress surveys where they can opt in (not yet a reviewer)
     // BUT exclude surveys where they are the subject (cannot review themselves)
     if (filterRole === 'reviewer') {
-      if (isSLT) {
-        // SLT sees in_progress surveys where they can participate as reviewer (not the subject)
+      if (isSLT || isAdmin) {
+        // SLT/Admin sees in_progress surveys where they can participate as reviewer (not the subject)
         return survey.status === 'in_progress' && !isSubject;
       }
       return isReviewer && survey.status === 'in_progress';
@@ -1406,10 +1406,11 @@ export default function Feedback360Dashboard({
   const reviewerCount = surveys.filter(s => {
     const isReviewer = s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
     const isSLT = currentUser?.app_role === 'slt';
+    const isAdmin = currentUser?.app_role === 'admin';
     const isSubject = s.employee_id === currentUser?.id;
 
-    // SLT sees all in_progress (can opt in), but NOT surveys where they are the subject
-    if (isSLT) {
+    // SLT/Admin sees all in_progress (can opt in), but NOT surveys where they are the subject
+    if (isSLT || isAdmin) {
       return s.status === 'in_progress' && !isSubject;
     }
     return s.status === 'in_progress' && isReviewer;
@@ -2055,15 +2056,17 @@ export default function Feedback360Dashboard({
                     )}
                   </div>
 
-                  {/* Complete Review Button for Reviewers OR Opt-In/Opt-Out Buttons for SLT */}
+                  {/* Complete Review Button for Reviewers OR Opt-In/Opt-Out Buttons for SLT/Admin */}
                   {(() => {
                     const isSLT = currentUser?.app_role === 'slt';
+                    const isAdmin = currentUser?.app_role === 'admin';
+                    const canOptInOut = isSLT || isAdmin;
                     const myReviewerRecord = survey.reviewers?.find((r: any) =>
                       r.reviewer_email === currentUser?.email
                     );
                     const isCompleted = myReviewerRecord?.status === 'completed';
-                    // SLT can only opt out if they opted in themselves (not assigned by sponsor)
-                    const isSLTOptedIn = isSLT && isReviewer && myReviewerRecord?.relationship === 'slt' && myReviewerRecord?.assigned_by_sponsor === false;
+                    // SLT/Admin can only opt out if they opted in themselves (not assigned by sponsor)
+                    const hasOptedIn = canOptInOut && isReviewer && (myReviewerRecord?.relationship === 'slt' || myReviewerRecord?.relationship === 'admin') && myReviewerRecord?.assigned_by_sponsor === false;
 
                     // If user is a reviewer and not completed, show complete button
                     if (isReviewer && !isCompleted && myReviewerRecord?.access_token) {
@@ -2082,8 +2085,8 @@ export default function Feedback360Dashboard({
                             </a>
                           </Tooltip>
 
-                          {/* Show Opt Out button if SLT member opted in themselves */}
-                          {isSLTOptedIn && (
+                          {/* Show Opt Out button if SLT/Admin member opted in themselves */}
+                          {hasOptedIn && (
                             <Tooltip content="Remove yourself as a reviewer">
                               <button
                                 onClick={async (e) => {
@@ -2101,10 +2104,11 @@ export default function Feedback360Dashboard({
                       );
                     }
 
-                    // If user is SLT but not a reviewer, show opt-in button (only for in_progress surveys)
-                    if (isSLT && !isReviewer && survey.status === 'in_progress') {
+                    // If user is SLT/Admin but not a reviewer, show opt-in button (only for in_progress surveys)
+                    if (canOptInOut && !isReviewer && survey.status === 'in_progress') {
+                      const roleText = isAdmin ? 'Admin' : 'SLT member';
                       return (
-                        <Tooltip content={`You were not selected as a reviewer of ${survey.employee?.name}, but any SLT member can opt in`}>
+                        <Tooltip content={`You were not selected as a reviewer of ${survey.employee?.name}, but any ${roleText} can opt in`}>
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
