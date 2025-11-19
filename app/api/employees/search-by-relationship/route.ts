@@ -3,6 +3,8 @@ import { getActiveUsers, getUserProfile } from '@/lib/database';
 import { detectRelationship, filterEmployeesByRelationship, getEmployeesWithRelationships } from '@/lib/relationshipDetector';
 import { ParticipantRelationship } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * API endpoint for searching employees with relationship filtering
  *
