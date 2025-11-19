@@ -2227,6 +2227,7 @@ export default function Feedback360Dashboard({
       {isDetailsModalOpen && selectedSurvey && (() => {
         const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
         const isAdmin = currentUser?.app_role === 'admin';
+        const isSLT = currentUser?.app_role === 'slt';
         const isLeader = currentUser?.app_role === 'leader';
         const isSubject = selectedSurvey.employee_id === currentUser?.id;
         const isReviewer = selectedSurvey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
@@ -2318,8 +2319,8 @@ export default function Feedback360Dashboard({
                         Reviewers ({selectedSurvey.completed_count}/{selectedSurvey.reviewers_count} completed)
                       </h4>
                     )}
-                    {/* Only show reviewers list to admin or sponsor */}
-                    {(isAdmin || isSponsor) && (
+                    {/* Only show reviewers list to admin, sponsor, or SLT (for in-progress surveys) */}
+                    {(isAdmin || isSponsor || (isSLT && selectedSurvey.status === 'in_progress')) && (
                       <div className="bg-gray-50 rounded-lg p-4 space-y-2 max-h-[240px] overflow-y-auto">
                         {surveyReviewers.length === 0 ? (
                           <p className="text-sm text-gray-500 text-center py-2">No reviewers added yet</p>
@@ -2665,8 +2666,8 @@ export default function Feedback360Dashboard({
                   </div>
                 )}
 
-                {/* Only show reviewers list to admin or sponsor */}
-                {(isAdmin || isSponsor) ? (
+                {/* Only show reviewers list to admin, sponsor, or SLT (for in-progress surveys) */}
+                {(isAdmin || isSponsor || (isSLT && selectedSurvey.status === 'in_progress')) ? (
                   <div className="bg-gray-50 rounded-lg p-4 space-y-2 max-h-[240px] overflow-y-auto">
                     {surveyReviewers.length === 0 ? (
                       <p className="text-sm text-gray-500 text-center py-2">No reviewers added yet</p>
