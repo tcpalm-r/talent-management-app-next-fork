@@ -1529,23 +1529,21 @@ export default function Survey360Wizard({
                     ref={customQuestionTextareaRef}
                     value={newCustomQuestion}
                     onChange={(e) => setNewCustomQuestion(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    rows={2}
-                    placeholder="Add a custom question..."
-                  />
-                  <button
-                    onClick={() => {
-                      if (newCustomQuestion.trim()) {
-                        setCustomQuestions([...customQuestions, newCustomQuestion.trim()]);
-                        setNewCustomQuestion('');
-                        setQuestionsConfirmed(false); // Reset confirmation when new question added
+                    onKeyDown={(e) => {
+                      // Add question on Enter (without Shift)
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (newCustomQuestion.trim()) {
+                          setCustomQuestions([...customQuestions, newCustomQuestion.trim()]);
+                          setNewCustomQuestion('');
+                          setQuestionsConfirmed(false); // Reset confirmation when new question added
+                        }
                       }
                     }}
-                    disabled={!newCustomQuestion.trim()}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Add Question
-                  </button>
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={2}
+                    placeholder="Add a custom question... (Press Enter to add)"
+                  />
                 </div>
               </div>
 
@@ -1877,7 +1875,7 @@ export default function Survey360Wizard({
                   <div className="text-sm text-gray-600 mb-2">
                     Questions ({requiredQuestions.length + customQuestions.length})
                   </div>
-                  <ul className="space-y-1 text-sm text-gray-700">
+                  <ul className="space-y-3 text-sm text-gray-700">
                     {requiredQuestions.map((q, i) => (
                       <li key={`req-${i}`}>• {replaceNamePlaceholder(q, selectedEmployee?.name)}</li>
                     ))}
