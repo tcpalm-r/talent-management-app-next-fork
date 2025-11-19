@@ -139,6 +139,7 @@ export default function Survey360Wizard({
   const customQuestionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const employeeListContainerRef = useRef<HTMLDivElement | null>(null);
   const modalContentRef = useRef<HTMLDivElement | null>(null);
+  const loadedDraftIdRef = useRef<string | null>(null);
 
   const isAdmin = currentUser?.app_role === 'admin';
 
@@ -293,7 +294,19 @@ export default function Survey360Wizard({
   // Load draft survey data when editing an existing draft
   useEffect(() => {
     const loadDraftSurveyData = async () => {
-      if (!isOpen || !draftSurvey) return;
+      if (!isOpen || !draftSurvey) {
+        loadedDraftIdRef.current = null;
+        return;
+      }
+
+      // CRITICAL FIX: Prevent loading same draft multiple times (race condition fix)
+      if (loadedDraftIdRef.current === draftSurvey.id) {
+        console.log('[DRAFT LOAD] ⏭️ Skipping load - already loaded draft:', draftSurvey.id);
+        return;
+      }
+
+      console.log('[DRAFT LOAD] 🔄 Loading draft:', draftSurvey.id);
+      loadedDraftIdRef.current = draftSurvey.id;
 
       try {
         // Set the employee
@@ -303,7 +316,8 @@ export default function Survey360Wizard({
         }
 
         // Load survey questions and reviewers via API
-        const response = await fetch(`/api/surveys/load-draft?surveyId=${draftSurvey.id}`);
+        // Add timestamp to prevent browser caching
+        const response = await fetch(`/api/surveys/load-draft?surveyId=${draftSurvey.id}&t=${Date.now()}`);
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -311,7 +325,7 @@ export default function Survey360Wizard({
           throw new Error(errorData.error || 'Failed to load draft survey data');
         }
 
-        const { surveyQuestions, reviewers } = await response.json();
+        const { survey: freshSurvey, surveyQuestions, reviewers } = await response.json();
 
         if (surveyQuestions && surveyQuestions.length > 0) {
           const allQuestions: string[] = surveyQuestions
@@ -339,42 +353,43 @@ export default function Survey360Wizard({
           relationship: r.relationship,
         }));
 
-        const partialReviewers = draftSurvey.draft_partial_reviewers || [];
+        // CRITICAL FIX: Use fresh survey data from API, not stale prop
+        const partialReviewers = freshSurvey?.draft_partial_reviewers || [];
 
         console.log('[DRAFT LOAD] ========== LOADING DRAFT ==========');
         console.log('[DRAFT LOAD] Draft survey ID:', draftSurvey.id);
+        console.log('[DRAFT LOAD] Fresh survey from API:', JSON.stringify(freshSurvey, null, 2));
         console.log('[DRAFT LOAD] Complete reviewers from DB:', JSON.stringify(completeReviewers, null, 2));
-        console.log('[DRAFT LOAD] Partial reviewers from draft_partial_reviewers:', JSON.stringify(partialReviewers, null, 2));
-        console.log('[DRAFT LOAD] Draft survey current_step:', draftSurvey.current_step);
-        console.log('[DRAFT LOAD] Full draft survey object:', JSON.stringify(draftSurvey, null, 2));
+        console.log('[DRAFT LOAD] Partial reviewers from API draft_partial_reviewers:', JSON.stringify(partialReviewers, null, 2));
+        console.log('[DRAFT LOAD] Fresh survey current_step:', freshSurvey?.current_step);
 
         // Combine both arrays - partial reviewers first (they're incomplete), then complete ones
         const combinedRaters = [...partialReviewers, ...completeReviewers];
         console.log('[DRAFT LOAD] Combined raters to set:', JSON.stringify(combinedRaters, null, 2));
         setRaters(combinedRaters);
 
-        // Set other fields
-        setSurveyTitle(draftSurvey.survey_name || '');
-        if (draftSurvey.due_date) {
+        // CRITICAL FIX: Use fresh survey data from API for all fields
+        setSurveyTitle(freshSurvey?.survey_name || draftSurvey.survey_name || '');
+        if (freshSurvey?.due_date) {
           // Format date to yyyy-MM-dd for the input field
-          const dateObj = new Date(draftSurvey.due_date);
+          const dateObj = new Date(freshSurvey.due_date);
           const formattedDate = dateObj.toISOString().split('T')[0];
           setDueDate(formattedDate);
         }
-        setIsAnonymous(draftSurvey.is_anonymous !== false);
+        setIsAnonymous(freshSurvey?.is_anonymous !== false);
 
         // Restore the saved wizard step if available, otherwise infer from data
-        if (draftSurvey.current_step) {
+        if (freshSurvey?.current_step) {
           // Use the saved step from the draft
-          setCurrentStep(draftSurvey.current_step as WizardStep);
+          setCurrentStep(freshSurvey.current_step as WizardStep);
           // Mark questions as confirmed if we're past the competencies step
-          if (['raters', 'timeline', 'preview'].includes(draftSurvey.current_step)) {
+          if (['raters', 'timeline', 'preview'].includes(freshSurvey.current_step)) {
             setQuestionsConfirmed(true);
           }
         } else {
           // Fallback: Determine the appropriate step to show based on what's filled in
           // Step progression: who -> competencies -> raters -> timeline -> preview
-          if (employee && surveyQuestions && surveyQuestions.length > 0 && reviewers && reviewers.length > 0 && draftSurvey.due_date) {
+          if (employee && surveyQuestions && surveyQuestions.length > 0 && reviewers && reviewers.length > 0 && freshSurvey?.due_date) {
             // All data filled → go to preview and mark questions as confirmed
             setCurrentStep('preview');
             setQuestionsConfirmed(true);
@@ -597,8 +612,13 @@ export default function Survey360Wizard({
 
   // Filter employees for rater selection
   // Use API results with relationships if available, otherwise fall back to local filtering
+  // IMPORTANT: If a relationship filter was applied and API returned empty, don't fall back to all employees
+  const currentRater = showRaterPicker !== null ? raters[showRaterPicker] : null;
+  const hasRelationshipFilter = currentRater?.relationship && currentRater.relationship !== '';
+
   const filteredRaterEmployees: EmployeeWithRelationship[] = (
-    employeesWithRelationships.length > 0 && selectedEmployee
+    // If we have API results OR a relationship filter was set (even if results are empty), use API results
+    (employeesWithRelationships.length > 0 || hasRelationshipFilter) && selectedEmployee
       ? employeesWithRelationships
       : employees
   ).filter((emp: EmployeeWithRelationship) => {
@@ -615,7 +635,7 @@ export default function Survey360Wizard({
     if (isAlreadySelected) return false;
 
     // If using local filtering (fallback), apply search filter
-    if (employeesWithRelationships.length === 0 && raterSearch) {
+    if (employeesWithRelationships.length === 0 && raterSearch && !hasRelationshipFilter) {
       const name = emp.full_name || emp.name || '';
       return name.toLowerCase().includes(raterSearch.toLowerCase()) ||
              emp.title?.toLowerCase().includes(raterSearch.toLowerCase()) ||
@@ -818,6 +838,9 @@ export default function Survey360Wizard({
   }, [isOpen, currentStep, currentStepIndex, steps, selectedEmployee, highlightedEmployeeListIndex, filteredEmployees, isBatchMode, requiredQuestions, raters, dueDate, showRaterPicker]);
 
   const handleClose = async () => {
+    // Clear the loaded draft ref so next time we open the modal it loads fresh
+    loadedDraftIdRef.current = null;
+
     // Only save draft if there's meaningful progress and we're not on the last step
     const hasProgress = selectedEmployee && currentStepIndex < steps.length - 1;
 
@@ -1748,6 +1771,14 @@ export default function Survey360Wizard({
                                   </div>
                                 </button>
                               ))
+                            ) : rater.relationship && employeesWithRelationships.length === 0 && !isLoadingRelationships ? (
+                              <div className="p-4 text-center text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg m-2">
+                                {selectedEmployee?.name} has no{' '}
+                                {rater.relationship === 'manager' ? 'manager' :
+                                 rater.relationship === 'slt' ? 'SLT' :
+                                 rater.relationship === 'direct_report' ? 'direct reports' :
+                                 'cross-functional colleagues'} in the system
+                              </div>
                             ) : (
                               <div className="p-4 text-center text-sm text-gray-500">
                                 No employees found

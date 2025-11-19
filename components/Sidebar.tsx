@@ -1,17 +1,38 @@
 'use client';
 
 import { RotateCw, Users, Settings, Lightbulb } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState, useRef, useEffect, useContext } from 'react';
+import Avatar from './Avatar';
+import { UserContext } from '@/context/UserContext';
+import { AUTH_DISABLED } from '@/lib/auth';
 
 type View = '360-feedback' | 'directory' | 'admin-settings' | 'insights';
+
+interface TestUser {
+  id: string;
+  email: string;
+  full_name: string;
+  app_role: string;
+  department: string | null;
+  title: string | null;
+}
 
 interface SidebarProps {
   currentView: View;
   onViewChange: (view: View) => void;
   userRole?: string;
+  userProfile: any;
 }
 
-export default function Sidebar({ currentView, onViewChange, userRole }: SidebarProps) {
+export default function Sidebar({ currentView, onViewChange, userRole, userProfile }: SidebarProps) {
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const [testUsers, setTestUsers] = useState<TestUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const avatarRef = useRef<HTMLDivElement>(null);
+
+  const userContext = useContext(UserContext);
+
   const baseNavItems = [
     { id: 'directory', label: 'Talent', icon: Users },
     { id: '360-feedback', label: '360°', icon: RotateCw },
@@ -36,8 +57,184 @@ export default function Sidebar({ currentView, onViewChange, userRole }: Sidebar
     return baseNavItems;
   }, [userRole]);
 
+  // Fetch test users when avatar menu opens (only in dev mode)
+  useEffect(() => {
+    if (avatarOpen && AUTH_DISABLED && testUsers.length === 0 && !loadingUsers) {
+      setLoadingUsers(true);
+      fetch('/api/auth/switch-user')
+        .then(res => res.json())
+        .then(data => {
+          if (data.users) {
+            setTestUsers(data.users);
+          }
+        })
+        .catch(err => {
+          console.error('[Sidebar] Failed to fetch test users:', err);
+        })
+        .finally(() => {
+          setLoadingUsers(false);
+        });
+    }
+  }, [avatarOpen]);
+
+  const handleSignOut = async () => {
+    setAvatarOpen(false);
+    if (userContext?.logout) {
+      await userContext.logout();
+    }
+  };
+
+  const handleSwitchUser = async (email: string) => {
+    if (!AUTH_DISABLED) return;
+
+    setSwitching(true);
+    try {
+      const response = await fetch('/api/auth/switch-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (response.ok) {
+        window.location.reload();
+      } else {
+        const data = await response.json();
+        console.error('Failed to switch user:', data.error);
+        alert('Failed to switch user: ' + data.error);
+        setSwitching(false);
+      }
+    } catch (error) {
+      console.error('Error switching user:', error);
+      alert('Error switching user');
+      setSwitching(false);
+    }
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (avatarRef.current && !avatarRef.current.contains(event.target as Node)) {
+        setAvatarOpen(false);
+      }
+    }
+
+    if (avatarOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [avatarOpen]);
+
   return (
     <aside className="w-20 bg-gray-50 border-r border-gray-200 flex flex-col items-center">
+      {/* User Profile Section */}
+      <div className="w-full pt-4 pb-4 border-b border-gray-200 flex flex-col items-center relative" ref={avatarRef}>
+        <button
+          onClick={() => setAvatarOpen(!avatarOpen)}
+          className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+          title={userProfile?.full_name}
+        >
+          <Avatar
+            name={userProfile?.full_name}
+            picture={userProfile?.picture}
+            size="md"
+          />
+        </button>
+
+        {avatarOpen && (
+          <div className="absolute left-20 top-4 w-64 bg-white border border-gray-200 rounded-lg shadow-lg py-3 px-3 z-50">
+            {/* User Info Section */}
+            <div className="mb-3">
+              <div className="flex items-center gap-3">
+                <Avatar
+                  name={userProfile?.full_name}
+                  picture={userProfile?.picture}
+                  size="md"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    {userProfile?.full_name}
+                  </p>
+                  <p className="text-xs text-gray-600 truncate">
+                    {userProfile?.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* User Switcher - Development Only */}
+            {AUTH_DISABLED && (
+              <>
+                <div className="border-t border-gray-200 my-2"></div>
+                <div className="mb-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 mb-2">
+                    Switch User (Dev)
+                  </p>
+                  {loadingUsers ? (
+                    <div className="px-2 py-4 text-center text-sm text-gray-500">
+                      Loading users...
+                    </div>
+                  ) : testUsers.length === 0 ? (
+                    <div className="px-2 py-4 text-center text-sm text-gray-500">
+                      No test users found
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {testUsers.map((user) => {
+                        const isCurrentUser = user.email === userProfile?.email;
+                        const roleColors = {
+                          admin: 'bg-purple-100 text-purple-700',
+                          slt: 'bg-teal-100 text-teal-700',
+                          leader: 'bg-blue-100 text-blue-700',
+                          user: 'bg-gray-100 text-gray-700',
+                        };
+                        const roleColor = roleColors[user.app_role as keyof typeof roleColors] || roleColors.user;
+
+                        return (
+                          <button
+                            key={user.email}
+                            onClick={() => handleSwitchUser(user.email)}
+                            disabled={isCurrentUser || switching}
+                            className={`w-full text-left px-2 py-2 text-sm rounded transition-colors ${
+                              isCurrentUser
+                                ? 'bg-blue-50 border border-blue-200 cursor-default'
+                                : switching
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate font-medium text-gray-900">
+                                {user.full_name}
+                              </span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColor}`}>
+                                {user.app_role}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 truncate mt-0.5">
+                              {user.title}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className="border-t border-gray-200 my-2"></div>
+              </>
+            )}
+
+            {/* Return to Hub */}
+            <button
+              onClick={handleSignOut}
+              className="w-full text-left px-2 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors font-medium"
+            >
+              Return to Hub
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Navigation */}
       <nav className="flex-1 pt-0 pb-4 space-y-0 flex flex-col items-center w-full">
         {navItems.map((item) => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus } from 'lucide-react';
-import type { Employee, Department } from '../types';
+import type { Employee, Department, ParticipantRelationship } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
 import Avatar from './Avatar';
@@ -60,6 +60,11 @@ const formatRelationship = (relationship: string): string => {
   return relationship.replace(/_/g, '-');
 };
 
+// Extended employee type with detected relationship for search results
+type EmployeeWithRelationship = Employee & {
+  detected_relationship?: ParticipantRelationship;
+};
+
 export default function Feedback360Dashboard({
   employees,
   departments,
@@ -73,7 +78,7 @@ export default function Feedback360Dashboard({
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingDraftSurvey, setEditingDraftSurvey] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'in_progress' | 'completed' | 'needs_review' | 'needs_reanalysis' | 'finalized'>('all');
-  const [filterRole, setFilterRole] = useState<'all' | 'sponsor' | 'reviewer' | 'subject'>('all');
+  const [filterRole, setFilterRole] = useState<'sponsor' | 'reviewer' | 'subject'>('sponsor');
   const [preselectedEmployee, setPreselectedEmployee] = useState<Employee | undefined>(undefined);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -81,10 +86,12 @@ export default function Feedback360Dashboard({
   const [isAddingReviewer, setIsAddingReviewer] = useState(false);
   const [newReviewerName, setNewReviewerName] = useState('');
   const [newReviewerEmail, setNewReviewerEmail] = useState('');
-  const [newReviewerRelationship, setNewReviewerRelationship] = useState('peer');
+  const [newReviewerRelationship, setNewReviewerRelationship] = useState<ParticipantRelationship | ''>('');
   const [selectedReviewerEmployee, setSelectedReviewerEmployee] = useState<Employee | null>(null);
   const [reviewerSearch, setReviewerSearch] = useState('');
   const [showReviewerPicker, setShowReviewerPicker] = useState(false);
+  const [employeesWithRelationships, setEmployeesWithRelationships] = useState<EmployeeWithRelationship[]>([]);
+  const [isLoadingRelationships, setIsLoadingRelationships] = useState(false);
   const [remindedReviewers, setRemindedReviewers] = useState<Set<string>>(new Set());
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
   const [surveyResults, setSurveyResults] = useState<any>(null);
@@ -1187,7 +1194,49 @@ export default function Feedback360Dashboard({
   };
 
   // Filter employees for reviewer picker (exclude the survey subject)
-  const filteredReviewerEmployees = employees
+  // Fetch employees with detected relationships from API
+  const fetchEmployeesWithRelationships = async (
+    searchTerm: string = '',
+    relationshipFilter: ParticipantRelationship | null = null
+  ) => {
+    if (!selectedSurvey?.employee_id) return;
+
+    setIsLoadingRelationships(true);
+    try {
+      const params = new URLSearchParams({
+        subjectId: selectedSurvey.employee_id,
+      });
+
+      if (relationshipFilter) {
+        params.append('relationship', relationshipFilter);
+      }
+
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+
+      const response = await fetch(`/api/employees/search-by-relationship?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch employees');
+
+      const data = await response.json();
+      setEmployeesWithRelationships(data.employees || []);
+    } catch (error) {
+      console.error('Error fetching employees with relationships:', error);
+      notify({
+        title: 'Error',
+        description: 'Failed to load employees',
+        variant: 'error',
+      });
+      setEmployeesWithRelationships([]);
+    } finally {
+      setIsLoadingRelationships(false);
+    }
+  };
+
+  // Use API results when available, otherwise fallback to local filtering
+  const filteredReviewerEmployees: EmployeeWithRelationship[] = (
+    employeesWithRelationships.length > 0 ? employeesWithRelationships : employees
+  )
     .filter(emp => emp.id !== selectedSurvey?.employee_id) // Exclude the survey subject
     .filter(emp => {
       const searchLower = reviewerSearch.toLowerCase();
@@ -1208,6 +1257,10 @@ export default function Feedback360Dashboard({
       return;
     }
 
+    // Use auto-detected relationship if available and no manual override
+    const employeeWithRel = selectedReviewerEmployee as EmployeeWithRelationship;
+    const finalRelationship = newReviewerRelationship || employeeWithRel.detected_relationship || 'cross_functional';
+
     try {
       const response = await fetch(`/api/surveys/${selectedSurvey.id}/reviewers`, {
         method: 'POST',
@@ -1215,7 +1268,7 @@ export default function Feedback360Dashboard({
         body: JSON.stringify({
           reviewer_name: selectedReviewerEmployee.name || '',
           reviewer_email: selectedReviewerEmployee.email || '',
-          relationship: newReviewerRelationship,
+          relationship: finalRelationship,
         }),
       });
 
@@ -1251,11 +1304,12 @@ export default function Feedback360Dashboard({
       // Reset form
       setNewReviewerName('');
       setNewReviewerEmail('');
-      setNewReviewerRelationship('peer');
+      setNewReviewerRelationship('');
       setSelectedReviewerEmployee(null);
       setReviewerSearch('');
       setShowReviewerPicker(false);
       setIsAddingReviewer(false);
+      setEmployeesWithRelationships([]);
 
       // Refresh data
       loadReviewers(selectedSurvey.id);
@@ -1278,36 +1332,35 @@ export default function Feedback360Dashboard({
     }
   }, [isDetailsModalOpen, selectedSurvey]);
 
-  // First filter by status
+  // Filter by role first (always applied since we removed "all" option)
+  const roleFilteredSurveys = surveys.filter(survey => {
+    const isSponsor = survey.created_by === currentUser?.id || survey.created_by === currentUser?.email;
+    const isSubject = survey.employee_id === currentUser?.id;
+    const isReviewer = survey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
+
+    if (filterRole === 'sponsor') return isSponsor;
+    if (filterRole === 'subject') return isSubject;
+    if (filterRole === 'reviewer') return isReviewer;
+    return false;
+  });
+
+  // Then filter by status
   let filteredSurveys = filterStatus === 'all'
-    ? surveys
+    ? roleFilteredSurveys
     : filterStatus === 'needs_review'
-    ? surveys.filter(s => s.flagged_for_admin === true)
+    ? roleFilteredSurveys.filter(s => s.flagged_for_admin === true)
     : filterStatus === 'needs_reanalysis'
-    ? surveys.filter(s => s.flagged_for_reanalysis === true)
-    : surveys.filter(s => s.status === filterStatus);
+    ? roleFilteredSurveys.filter(s => s.flagged_for_reanalysis === true)
+    : roleFilteredSurveys.filter(s => s.status === filterStatus);
 
-  // Then filter by role
-  if (filterRole !== 'all') {
-    filteredSurveys = filteredSurveys.filter(survey => {
-      const isSponsor = survey.created_by === currentUser?.id || survey.created_by === currentUser?.email;
-      const isSubject = survey.employee_id === currentUser?.id;
-      const isReviewer = survey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
-
-      if (filterRole === 'sponsor') return isSponsor;
-      if (filterRole === 'subject') return isSubject;
-      if (filterRole === 'reviewer') return isReviewer;
-      return true;
-    });
-  }
-
+  // Calculate stats based on role-filtered surveys
   const stats = {
-    draft: surveys.filter(s => s.status === 'draft').length,
-    in_progress: surveys.filter(s => s.status === 'in_progress').length,
-    completed: surveys.filter(s => s.status === 'completed').length,
-    needs_review: surveys.filter(s => s.flagged_for_admin === true).length,
-    needs_reanalysis: surveys.filter(s => s.flagged_for_reanalysis === true).length,
-    finalized: surveys.filter(s => s.status === 'finalized').length,
+    draft: roleFilteredSurveys.filter(s => s.status === 'draft').length,
+    in_progress: roleFilteredSurveys.filter(s => s.status === 'in_progress').length,
+    completed: roleFilteredSurveys.filter(s => s.status === 'completed').length,
+    needs_review: roleFilteredSurveys.filter(s => s.flagged_for_admin === true).length,
+    needs_reanalysis: roleFilteredSurveys.filter(s => s.flagged_for_reanalysis === true).length,
+    finalized: roleFilteredSurveys.filter(s => s.status === 'finalized').length,
   };
 
   // Calculate risk flags (below 50% response rate with < 3 days to deadline)
@@ -1460,9 +1513,35 @@ export default function Feedback360Dashboard({
   return (
     <TooltipProvider>
     <div>
+      {/* Role Navigation Tabs - Primary sub-navigation for 360 Review section */}
+      <div className="mb-6">
+        <NavigationTabs
+          tabs={[
+            {
+              id: 'sponsor',
+              label: 'Sponsor',
+              tooltip: 'Surveys you created or are managing'
+            },
+            {
+              id: 'reviewer',
+              label: 'Reviewer',
+              tooltip: 'Surveys where you are providing feedback'
+            },
+            {
+              id: 'subject',
+              label: 'Subject',
+              tooltip: 'Surveys about you'
+            }
+          ]}
+          activeTab={filterRole}
+          onTabChange={(tabId) => setFilterRole(tabId as 'sponsor' | 'reviewer' | 'subject')}
+          variant="pills"
+        />
+      </div>
+
       {/* Header - Only show create buttons for Admin, SLT, and Leader (Sponsors) */}
       {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
-        <div className="relative">
+        <div className="relative mb-6">
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
@@ -1617,53 +1696,6 @@ export default function Feedback360Dashboard({
             </div>
           </button>
         </Tooltip>
-      </div>
-
-      {/* Role Filter */}
-      <div className="mt-4 flex items-center gap-4">
-        <span className="text-sm font-medium text-gray-700">Filter by:</span>
-        <div className="flex gap-4">
-          <button
-            onClick={() => setFilterRole('all')}
-            className={`text-sm font-medium transition-colors ${
-              filterRole === 'all'
-                ? 'text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilterRole('sponsor')}
-            className={`text-sm font-medium transition-colors ${
-              filterRole === 'sponsor'
-                ? 'text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Sponsor
-          </button>
-          <button
-            onClick={() => setFilterRole('reviewer')}
-            className={`text-sm font-medium transition-colors ${
-              filterRole === 'reviewer'
-                ? 'text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Reviewer
-          </button>
-          <button
-            onClick={() => setFilterRole('subject')}
-            className={`text-sm font-medium transition-colors ${
-              filterRole === 'subject'
-                ? 'text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Subject
-          </button>
-        </div>
       </div>
 
       {/* Reviews List */}
@@ -2250,11 +2282,20 @@ export default function Feedback360Dashboard({
                     {/* Relationship dropdown */}
                     <select
                       value={newReviewerRelationship}
-                      onChange={(e) => setNewReviewerRelationship(e.target.value)}
+                      onChange={async (e) => {
+                        const newRelationship = e.target.value as ParticipantRelationship | '';
+                        setNewReviewerRelationship(newRelationship);
+
+                        // Pattern 2: Filter First - Pre-fetch employees matching this relationship
+                        if (selectedSurvey?.employee_id && newRelationship) {
+                          await fetchEmployeesWithRelationships(reviewerSearch, newRelationship);
+                        }
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                     >
+                      <option value="">Select relationship...</option>
                       <option value="manager">Manager</option>
-                      <option value="peer">Peer</option>
+                      <option value="slt">SLT</option>
                       <option value="direct_report">Direct Report</option>
                       <option value="cross_functional">Cross-Functional</option>
                     </select>
@@ -2265,11 +2306,38 @@ export default function Feedback360Dashboard({
                         type="text"
                         placeholder="Search employees..."
                         value={reviewerSearch}
-                        onChange={(e) => {
-                          setReviewerSearch(e.target.value);
-                          setShowReviewerPicker(true);
+                        onChange={async (e) => {
+                          const searchValue = e.target.value;
+                          setReviewerSearch(searchValue);
+
+                          // Pattern 1: Search First - Fetch with auto-detection
+                          if (selectedSurvey?.employee_id && searchValue.length >= 1) {
+                            setShowReviewerPicker(true);
+                            await fetchEmployeesWithRelationships(
+                              searchValue,
+                              newReviewerRelationship || null
+                            );
+                          } else if (searchValue.length === 0) {
+                            // Clear API results when search is cleared
+                            setEmployeesWithRelationships([]);
+                            setShowReviewerPicker(false);
+                          }
                         }}
-                        onFocus={() => setShowReviewerPicker(true)}
+                        onFocus={async () => {
+                          // Only show picker if there's search input (1+ chars) or relationship already selected
+                          const shouldShowPicker = (reviewerSearch && reviewerSearch.length >= 1) || newReviewerRelationship;
+                          if (shouldShowPicker) {
+                            setShowReviewerPicker(true);
+
+                            // If relationship is selected but no employees loaded yet, fetch them
+                            if (newReviewerRelationship && employeesWithRelationships.length === 0) {
+                              await fetchEmployeesWithRelationships(
+                                reviewerSearch,
+                                newReviewerRelationship
+                              );
+                            }
+                          }
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       />
 
@@ -2279,32 +2347,69 @@ export default function Feedback360Dashboard({
                           <div className="fixed inset-0 z-[8]" onClick={() => setShowReviewerPicker(false)} />
                           <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
                             <div className="p-2">
-                              {filteredReviewerEmployees.length > 0 ? (
-                                filteredReviewerEmployees.slice(0, 20).map(emp => (
-                                  <button
-                                    key={emp.id}
-                                    onClick={() => {
-                                      setSelectedReviewerEmployee(emp);
-                                      setReviewerSearch('');
-                                      setShowReviewerPicker(false);
-                                    }}
-                                    className="w-full text-left px-3 py-2 hover:bg-blue-50 rounded-lg transition-colors border-b border-gray-100 last:border-b-0 flex items-center gap-2"
-                                  >
-                                    <Avatar
-                                      name={emp.name}
-                                      picture={emp.picture ?? undefined}
-                                      size="sm"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium text-sm text-gray-900">{emp.name}</div>
-                                      <div className="text-xs text-gray-600">
-                                        {emp.title && <span>{emp.title}</span>}
-                                        {emp.title && emp.email && <span> • </span>}
-                                        {emp.email && <span className="truncate">{emp.email}</span>}
+                              {isLoadingRelationships ? (
+                                <div className="p-4 text-center text-sm text-gray-500">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                    <span>Loading...</span>
+                                  </div>
+                                </div>
+                              ) : filteredReviewerEmployees.length > 0 ? (
+                                filteredReviewerEmployees.slice(0, 20).map(emp => {
+                                  const empWithRel = emp as EmployeeWithRelationship;
+                                  return (
+                                    <button
+                                      key={emp.id}
+                                      onClick={() => {
+                                        setSelectedReviewerEmployee(emp);
+                                        // Auto-populate relationship if detected
+                                        if (empWithRel.detected_relationship && !newReviewerRelationship) {
+                                          setNewReviewerRelationship(empWithRel.detected_relationship);
+                                        }
+                                        setReviewerSearch('');
+                                        setShowReviewerPicker(false);
+                                      }}
+                                      className="w-full text-left px-3 py-2 hover:bg-blue-50 rounded-lg transition-colors border-b border-gray-100 last:border-b-0 flex items-center gap-2"
+                                    >
+                                      <Avatar
+                                        name={emp.name}
+                                        picture={emp.picture ?? undefined}
+                                        size="sm"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <div className="font-medium text-sm text-gray-900">{emp.name}</div>
+                                          {empWithRel.detected_relationship && (
+                                            <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                                              empWithRel.detected_relationship === 'manager' ? 'bg-purple-100 text-purple-700' :
+                                              empWithRel.detected_relationship === 'slt' ? 'bg-blue-100 text-blue-700' :
+                                              empWithRel.detected_relationship === 'direct_report' ? 'bg-green-100 text-green-700' :
+                                              'bg-gray-100 text-gray-700'
+                                            }`}>
+                                              {empWithRel.detected_relationship === 'manager' ? 'Manager' :
+                                               empWithRel.detected_relationship === 'slt' ? 'SLT' :
+                                               empWithRel.detected_relationship === 'direct_report' ? 'Direct Report' :
+                                               'Cross-Functional'}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="text-xs text-gray-600">
+                                          {emp.title && <span>{emp.title}</span>}
+                                          {emp.title && emp.email && <span> • </span>}
+                                          {emp.email && <span className="truncate">{emp.email}</span>}
+                                        </div>
                                       </div>
-                                    </div>
-                                  </button>
-                                ))
+                                    </button>
+                                  );
+                                })
+                              ) : newReviewerRelationship && employeesWithRelationships.length === 0 && !isLoadingRelationships ? (
+                                <div className="p-4 text-center text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg m-2">
+                                  {selectedSurvey?.employee?.name} has no{' '}
+                                  {newReviewerRelationship === 'manager' ? 'manager' :
+                                   newReviewerRelationship === 'slt' ? 'SLT' :
+                                   newReviewerRelationship === 'direct_report' ? 'direct reports' :
+                                   'cross-functional colleagues'} in the system
+                                </div>
                               ) : (
                                 <div className="p-4 text-center text-sm text-gray-500">No employees found</div>
                               )}
@@ -2343,7 +2448,8 @@ export default function Feedback360Dashboard({
                           setSelectedReviewerEmployee(null);
                           setReviewerSearch('');
                           setShowReviewerPicker(false);
-                          setNewReviewerRelationship('peer');
+                          setNewReviewerRelationship('');
+                          setEmployeesWithRelationships([]);
                         }}
                         className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                       >

@@ -7,7 +7,6 @@ import Feedback360Dashboard from './Feedback360Dashboard';
 import AdminSettings from './AdminSettings';
 import InsightsPanel from './InsightsPanel';
 import Sidebar from './Sidebar';
-import TopHeader from './TopHeader';
 
 interface DashboardProps {
   user: SupabaseUser;
@@ -235,21 +234,17 @@ export default function Dashboard({
   };
 
   return (
-    <div className="h-screen flex flex-col bg-white">
-      {/* Top Header */}
-      <TopHeader
+    <div className="h-screen flex bg-white">
+      {/* Sidebar */}
+      <Sidebar
+        currentView={currentView}
+        onViewChange={changeView}
+        userRole={userProfile.app_role}
         userProfile={userProfile}
-        currentRole={userProfile.app_role}
-        onRoleChange={() => {}}
       />
 
-      {/* Main Content with Sidebar */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar currentView={currentView} onViewChange={changeView} userRole={userProfile.app_role} />
-
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-auto">
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-auto">
           {loading && (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">
@@ -306,8 +301,7 @@ export default function Dashboard({
               )}
             </div>
           )}
-        </main>
-      </div>
+      </main>
     </div>
   );
 }
