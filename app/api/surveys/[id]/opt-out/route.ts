@@ -49,7 +49,7 @@ export async function POST(
     // Find the reviewer record
     const { data: reviewer, error: reviewerError } = await supabaseAdmin
       .from('feedback_360_survey_reviewers')
-      .select('id, relationship, status')
+      .select('id, relationship, status, assigned_by_sponsor')
       .eq('survey_id', surveyId)
       .eq('reviewer_email', profile.email)
       .single();
@@ -64,11 +64,11 @@ export async function POST(
 
     console.log('[SLT Opt-Out] Reviewer found:', reviewer);
 
-    // Verify this is an SLT opt-in (relationship='slt')
-    if (reviewer.relationship !== 'slt') {
-      console.log('[SLT Opt-Out] ❌ Not an SLT opt-in, relationship:', reviewer.relationship);
+    // Verify this reviewer was NOT assigned by sponsor (they opted in themselves)
+    if (reviewer.assigned_by_sponsor === true) {
+      console.log('[SLT Opt-Out] ❌ Reviewer was assigned by sponsor, cannot opt out');
       return NextResponse.json(
-        { error: 'You can only opt out of surveys you opted into yourself' },
+        { error: 'You cannot opt out of surveys you were assigned to by the sponsor' },
         { status: 400 }
       );
     }

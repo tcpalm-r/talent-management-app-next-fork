@@ -100,6 +100,7 @@ export async function POST(
       status: 'pending',
       access_token: accessToken,
       invited_at: new Date().toISOString(),
+      assigned_by_sponsor: false, // SLT opted in themselves
     };
 
     console.log('[SLT Opt-In] Inserting reviewer:', reviewerData);

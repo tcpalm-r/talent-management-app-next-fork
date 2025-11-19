@@ -53,6 +53,7 @@ interface Reviewer {
   relationship: string;
   status: string;
   email_sent_at?: string | null;
+  assigned_by_sponsor?: boolean;
 }
 
 // Helper function to format relationship display
@@ -1347,10 +1348,11 @@ export default function Feedback360Dashboard({
 
     // Reviewer tab: show in_progress surveys where user is a reviewer
     // For SLT: also show in_progress surveys where they can opt in (not yet a reviewer)
+    // BUT exclude surveys where they are the subject (cannot review themselves)
     if (filterRole === 'reviewer') {
       if (isSLT) {
-        // SLT sees surveys where they're a reviewer OR can opt in
-        return survey.status === 'in_progress' && (isReviewer || !isReviewer);
+        // SLT sees in_progress surveys where they can participate as reviewer (not the subject)
+        return survey.status === 'in_progress' && !isSubject;
       }
       return isReviewer && survey.status === 'in_progress';
     }
@@ -1390,10 +1392,11 @@ export default function Feedback360Dashboard({
   const reviewerCount = surveys.filter(s => {
     const isReviewer = s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
     const isSLT = currentUser?.app_role === 'slt';
+    const isSubject = s.employee_id === currentUser?.id;
 
-    // SLT sees all in_progress (can opt in), others see only assigned reviews
+    // SLT sees all in_progress (can opt in), but NOT surveys where they are the subject
     if (isSLT) {
-      return s.status === 'in_progress';
+      return s.status === 'in_progress' && !isSubject;
     }
     return s.status === 'in_progress' && isReviewer;
   }).length;
@@ -1811,16 +1814,16 @@ export default function Feedback360Dashboard({
             onClick={() => setReviewerFilterStatus('required')}
             className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
               reviewerFilterStatus === 'required'
-                ? 'border-indigo-500 bg-indigo-50'
-                : 'bg-white border-indigo-200 hover:bg-indigo-50'
+                ? 'border-green-700 bg-green-50'
+                : 'bg-white border-green-400 hover:bg-green-50'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-indigo-700">Required</p>
-                <p className="text-2xl font-bold text-indigo-900">{reviewerStats.required}</p>
+                <p className="text-sm text-green-800">Required</p>
+                <p className="text-2xl font-bold text-green-900">{reviewerStats.required}</p>
               </div>
-              <Users className="w-8 h-8 text-indigo-400" />
+              <Users className="w-8 h-8 text-green-600" />
             </div>
           </button>
         </Tooltip>
@@ -1831,16 +1834,16 @@ export default function Feedback360Dashboard({
             onClick={() => setReviewerFilterStatus('optional')}
             className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
               reviewerFilterStatus === 'optional'
-                ? 'border-teal-500 bg-teal-50'
-                : 'bg-white border-teal-200 hover:bg-teal-50'
+                ? 'border-lime-500 bg-lime-50'
+                : 'bg-white border-lime-200 hover:bg-lime-50'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-teal-700">Optional</p>
-                <p className="text-2xl font-bold text-teal-900">{reviewerStats.optional}</p>
+                <p className="text-sm text-lime-700">Optional</p>
+                <p className="text-2xl font-bold text-lime-900">{reviewerStats.optional}</p>
               </div>
-              <UserPlus className="w-8 h-8 text-teal-400" />
+              <UserPlus className="w-8 h-8 text-lime-400" />
             </div>
           </button>
         </Tooltip>
@@ -2044,7 +2047,8 @@ export default function Feedback360Dashboard({
                       r.reviewer_email === currentUser?.email
                     );
                     const isCompleted = myReviewerRecord?.status === 'completed';
-                    const isSLTOptedIn = isSLT && isReviewer && myReviewerRecord?.relationship === 'slt';
+                    // SLT can only opt out if they opted in themselves (not assigned by sponsor)
+                    const isSLTOptedIn = isSLT && isReviewer && myReviewerRecord?.relationship === 'slt' && myReviewerRecord?.assigned_by_sponsor === false;
 
                     // If user is a reviewer and not completed, show complete button
                     if (isReviewer && !isCompleted && myReviewerRecord?.access_token) {

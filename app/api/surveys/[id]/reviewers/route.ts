@@ -152,6 +152,7 @@ export async function POST(
         relationship,
         status: 'pending',
         access_token: accessToken,
+        assigned_by_sponsor: true, // Sponsor is adding this reviewer
       })
       .select()
       .single();
