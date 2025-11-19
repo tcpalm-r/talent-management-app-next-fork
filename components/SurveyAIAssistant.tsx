@@ -33,16 +33,39 @@ export default function SurveyAIAssistant({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [originalInput, setOriginalInput] = useState<string>('');
 
   // Update feedback when currentText changes (e.g., when modal reopens)
   useEffect(() => {
     if (isOpen && currentText !== undefined) {
       setFeedback(currentText);
       setHasGenerated(false); // Reset generated state when modal opens
+      setOriginalInput(''); // Reset original input when modal opens
     }
   }, [isOpen, currentText]);
 
   console.log('[SurveyAIAssistant] Render - isOpen:', isOpen);
+
+  // Calculate text similarity (word overlap percentage)
+  const calculateSimilarity = (text1: string, text2: string): number => {
+    const words1 = text1.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
+    const words2 = text2.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
+
+    if (words1.length === 0 || words2.length === 0) return 0;
+
+    const set1 = new Set(words1);
+    const set2 = new Set(words2);
+
+    // Count overlapping words
+    let overlap = 0;
+    set1.forEach(word => {
+      if (set2.has(word)) overlap++;
+    });
+
+    // Calculate percentage based on smaller set
+    const minSize = Math.min(set1.size, set2.size);
+    return (overlap / minSize) * 100;
+  };
 
   // Handle close - save draft text back to parent (only if not generated yet)
   const handleClose = () => {
@@ -81,19 +104,44 @@ export default function SurveyAIAssistant({
     }
 
     console.log('[SurveyAIAssistant.handleProcess] Calling API with feedback for single question');
+
+    // Save original input before generating (only if not already saved)
+    if (!originalInput) {
+      setOriginalInput(feedback);
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
       console.log('[SurveyAIAssistant.handleProcess] Making fetch request to /api/ai/generate-survey-response');
+
+      // Prepare request body
+      const requestBody: any = {
+        questionText: question.question_text,
+        userThoughts: feedback.trim(),
+        subjectName: subjectName,
+      };
+
+      // If regenerating, check similarity to determine if we should include original input
+      if (hasGenerated && originalInput) {
+        const similarity = calculateSimilarity(feedback, originalInput);
+        console.log('[SurveyAIAssistant.handleProcess] Text similarity:', similarity.toFixed(1) + '%');
+
+        // Only include original input if text is still similar (≥30% overlap)
+        // If <30% similar, treat as fresh generation (user went a different direction)
+        if (similarity >= 30) {
+          requestBody.originalInput = originalInput;
+          console.log('[SurveyAIAssistant.handleProcess] Including original input (similar enough)');
+        } else {
+          console.log('[SurveyAIAssistant.handleProcess] Skipping original input (too different, treating as fresh)');
+        }
+      }
+
       const response = await fetch('/api/ai/generate-survey-response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          questionText: question.question_text,
-          userThoughts: feedback.trim(),
-          subjectName: subjectName,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       console.log('[SurveyAIAssistant.handleProcess] Response status:', response.status);
@@ -128,6 +176,16 @@ export default function SurveyAIAssistant({
       onDraftUpdate(feedback);
     }
     onClose();
+  };
+
+  const handleRevert = () => {
+    // Revert to original user input
+    if (originalInput) {
+      setFeedback(originalInput);
+      setHasGenerated(false);
+      setOriginalInput(''); // Clear original input so next generation is fresh
+      setError(null);
+    }
   };
 
   return (
@@ -189,8 +247,18 @@ export default function SurveyAIAssistant({
 
           {/* Action Buttons */}
           <div className="flex items-center justify-between">
-            {/* Center: Generate/Try Again Button */}
-            <div className="flex-1 flex justify-center">
+            {/* Left: Revert Button (only show after generation) */}
+            {hasGenerated && !isLoading && (
+              <button
+                onClick={handleRevert}
+                className="px-6 py-3 bg-red-50 border-2 border-red-200 text-red-700 font-semibold rounded-lg hover:bg-red-100 transition"
+              >
+                Revert
+              </button>
+            )}
+
+            {/* Center: Generate/Regenerate Button */}
+            <div className={`flex-1 flex justify-center ${hasGenerated ? '' : 'mr-auto'}`}>
               <button
                 onClick={handleProcess}
                 disabled={isLoading}
@@ -204,7 +272,7 @@ export default function SurveyAIAssistant({
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    {hasGenerated ? 'Try Again' : 'Generate Response'}
+                    {hasGenerated ? 'Regenerate' : 'Generate Response'}
                   </>
                 )}
               </button>

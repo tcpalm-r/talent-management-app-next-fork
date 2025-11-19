@@ -354,7 +354,7 @@ export default function SurveyCompletionPage() {
                           setActiveQuestionForAI(question.id);
                         }}
                         disabled={submitting}
-                        className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Sparkles className="w-4 h-4" />
                         AI Response Assistant
