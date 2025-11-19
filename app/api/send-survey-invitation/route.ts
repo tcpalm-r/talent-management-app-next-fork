@@ -237,9 +237,16 @@ export async function POST(request: Request) {
 
     <div style="text-align: center; margin: 30px 0;">
       <a href="${surveyUrl}"
-         style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
+         style="display: inline-block; background: #6366f1; border: 2px solid #4f46e5; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
         Complete Survey
       </a>
+    </div>
+
+    <!-- Post-Auth Instruction Banner -->
+    <div style="background: #fed7aa; border-left: 4px solid #f97316; border-radius: 6px; padding: 20px; margin: 25px 0;">
+      <p style="margin: 0; color: #7c2d12; font-size: 18px; font-weight: 600; line-height: 1.6;">
+        <strong>Important:</strong> Once Authenticated, Launch the 360° Review APP in the Hub dashboard and complete your survey!
+      </p>
     </div>
 
     <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 15px; margin-top: 25px;">
