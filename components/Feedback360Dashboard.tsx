@@ -1562,19 +1562,19 @@ export default function Feedback360Dashboard({
             ...(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader' ? [{
               id: 'sponsor',
               label: 'Sponsor',
-              tooltip: 'Surveys you created or are managing',
+              tooltip: '360 reviews you created. Launch reviews, manage reviewers, track progress, and finalize the report.',
               count: sponsorCount
             }] : []),
             {
               id: 'reviewer',
               label: 'Reviewer',
-              tooltip: 'Surveys where you are providing feedback',
+              tooltip: 'Active 360 reviews awaiting your feedback. Provide anonymous feedback to your colleagues, aggregated with AI',
               count: reviewerCount
             },
             {
               id: 'subject',
               label: 'Subject',
-              tooltip: 'Surveys about you',
+              tooltip: 'Completed 360 reviews about you. View finalized feedback, insights, and actions.',
               count: subjectCount
             }
           ]}
