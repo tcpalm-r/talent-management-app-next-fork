@@ -364,7 +364,15 @@ Materialized views:
 - Survey creation wizard
 - Survey draft saving/loading (persistent drafts)
 - Reviewer invitations via email
-- Survey reminders (automated email reminders)
+- **Survey reminders:**
+  - Manual reminders (button in UI for sponsors)
+  - **Automatic reminders** (configurable during survey creation)
+    - Send reminders 1 or 2 days before due date
+    - Runs daily at 9 AM UTC via Vercel Cron Jobs
+    - Only sent to incomplete reviewers
+    - Simple date check prevents duplicate reminders
+    - Configured per survey via `auto_reminder_days_before` field
+    - Cron endpoint: `/api/cron/send-survey-reminders`
 - Anonymous feedback collection
 - Custom & template questions
 - AI-powered analysis
@@ -544,7 +552,14 @@ ANTHROPIC_API_KEY=sk-ant-...
 **Email:**
 ```
 RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=feedback@aiintranet.sonance.com
 ```
+
+**Cron Jobs:**
+```
+CRON_SECRET=<random-secret-string>
+```
+*Note: The CRON_SECRET is used to authenticate Vercel Cron Jobs. Generate a secure random string and add it to Vercel environment variables. This prevents unauthorized access to the automatic reminder cron endpoint.*
 
 ---
 

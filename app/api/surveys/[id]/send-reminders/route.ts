@@ -128,6 +128,15 @@ export async function POST(
           `,
         });
 
+        // Update reviewer tracking fields
+        await supabaseAdmin
+          .from('feedback_360_survey_reviewers')
+          .update({
+            last_reminder_at: new Date().toISOString(),
+            reminder_count: (reviewer.reminder_count || 0) + 1,
+          })
+          .eq('id', reviewer.id);
+
         results.push({
           email: reviewer.reviewer_email,
           success: true,

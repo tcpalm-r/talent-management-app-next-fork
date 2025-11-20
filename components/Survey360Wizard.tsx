@@ -123,6 +123,7 @@ export default function Survey360Wizard({
 
   const [raters, setRaters] = useState<Rater[]>([]);
   const [dueDate, setDueDate] = useState('');
+  const [autoReminderDaysBefore, setAutoReminderDaysBefore] = useState<number | null>(null);
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [surveyTitle, setSurveyTitle] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -1130,6 +1131,7 @@ export default function Survey360Wizard({
                 employeeId: employee.id,
                 surveyName: surveyTitle || `360° Feedback - ${employeeDisplayName}`,
                 dueDate,
+                autoReminderDaysBefore,
                 preferredName: (employee.id === selectedEmployee?.id) ? (preferredName || null) : null,
                 // createdBy is now handled by the API from the authenticated session
                 requiredQuestions,
@@ -1886,6 +1888,27 @@ export default function Survey360Wizard({
                   min={new Date().toISOString().split('T')[0]}
                   className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Automatic Reminder
+                </label>
+                <select
+                  value={autoReminderDaysBefore === null ? '' : autoReminderDaysBefore}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setAutoReminderDaysBefore(value === '' ? null : parseInt(value));
+                  }}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="">No automatic reminders</option>
+                  <option value="1">1 day before due date</option>
+                  <option value="2">2 days before due date</option>
+                </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Automatic reminders will be sent to incomplete reviewers at the specified time
+                </p>
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
