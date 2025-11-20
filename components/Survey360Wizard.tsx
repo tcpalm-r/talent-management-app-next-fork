@@ -339,9 +339,12 @@ export default function Survey360Wizard({
             .filter((text: string) => text.trim().length > 0);
 
           if (allQuestions.length > 0) {
-            // First 3 questions are required, rest are custom
-            const required = allQuestions.slice(0, 3);
-            const custom = allQuestions.slice(3);
+            // CRITICAL FIX: Use actual number of default questions, not hardcoded 3
+            // Admin can configure any number of default questions in AdminSettings
+            // Use requiredQuestions.length if loaded, otherwise fetch from API
+            const defaultQuestionsCount = requiredQuestions.length > 0 ? requiredQuestions.length : 3;
+            const required = allQuestions.slice(0, defaultQuestionsCount);
+            const custom = allQuestions.slice(defaultQuestionsCount);
 
             if (required.length > 0) {
               setRequiredQuestions(required);
