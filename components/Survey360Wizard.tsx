@@ -97,7 +97,7 @@ export default function Survey360Wizard({
   const { notify } = useToast();
   const isBatchMode = !!preselectedEmployees && preselectedEmployees.length > 0;
   const initialStep: WizardStep = draftSurvey
-    ? 'preview'
+    ? (draftSurvey.current_step as WizardStep) || 'who'
     : (isBatchMode || preselectedEmployee)
       ? 'competencies'
       : 'who';
@@ -152,7 +152,7 @@ export default function Survey360Wizard({
 
   // Reset wizard state
   const resetWizard = () => {
-    const resetStep: WizardStep = draftSurvey ? 'preview' : (isBatchMode || preselectedEmployee) ? 'competencies' : 'who';
+    const resetStep: WizardStep = draftSurvey ? (draftSurvey.current_step as WizardStep) || 'who' : (isBatchMode || preselectedEmployee) ? 'competencies' : 'who';
     setCurrentStep(resetStep);
     setSelectedEmployee(preselectedEmployee);
     setPreferredName('');
@@ -383,6 +383,7 @@ export default function Survey360Wizard({
           const formattedDate = dateObj.toISOString().split('T')[0];
           setDueDate(formattedDate);
         }
+        setAutoReminderDaysBefore(freshSurvey?.auto_reminder_days_before || null);
         setIsAnonymous(freshSurvey?.is_anonymous !== false);
 
         // Restore the saved wizard step if available, otherwise infer from data
@@ -875,6 +876,7 @@ export default function Survey360Wizard({
             surveyId: draftSurvey.id,
             surveyName: surveyTitle || `360° Feedback - ${displayName}`,
             dueDate: dueDate || null,
+            autoReminderDaysBefore,
             preferredName: preferredName || null,
             requiredQuestions: requiredQuestions.filter(q => q.trim()),
             customQuestions,
@@ -886,6 +888,7 @@ export default function Survey360Wizard({
             employeeId: selectedEmployee.id,
             surveyTitle: surveyTitle || `360° Feedback - ${displayName}`,
             dueDate: dueDate || null,
+            autoReminderDaysBefore,
             preferredName: preferredName || null,
             // createdBy is now handled by the API from the authenticated session
             requiredQuestions: requiredQuestions.filter(q => q.trim()),

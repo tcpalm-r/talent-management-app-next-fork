@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
       employeeId,
       surveyTitle,
       dueDate,
+      autoReminderDaysBefore,
       preferredName,
       requiredQuestions,
       customQuestions,
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
       survey_name: surveyTitle,
       status: 'draft',
       due_date: dueDate || null,
+      auto_reminder_days_before: autoReminderDaysBefore || null,
       subject_preferred_name: preferredName || null,
       created_by: authData.profile.id, // Use authenticated user's ID
       current_step: currentStep || null, // Save the wizard step
