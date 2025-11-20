@@ -1230,10 +1230,10 @@ export default function Survey360Wizard({
 
       if (successCount > 0) {
         notify({
-          title: '360 Reviews Launched',
-          description: isBatchMode 
-            ? `Successfully created ${successCount} 360° review${successCount > 1 ? 's' : ''}. Add context while you wait for feedback!`
-            : `360° review for ${employeesToProcess[0].name} created with ${raters.length} raters.`,
+          title: '360 Feedback Launched',
+          description: isBatchMode
+            ? `Successfully created ${successCount} 360° feedback session${successCount > 1 ? 's' : ''}. Add context while you wait for feedback!`
+            : `360° feedback for ${employeesToProcess[0].name} created with ${raters.length} raters.`,
           variant: 'success',
           durationMs: 8000,
         });
@@ -1253,7 +1253,7 @@ export default function Survey360Wizard({
       console.error('Error creating surveys:', error);
       notify({
         title: 'Creation Failed',
-        description: 'Failed to create 360° reviews. Please try again.',
+        description: 'Failed to create 360° feedback. Please try again.',
         variant: 'error',
       });
     } finally {
@@ -1271,10 +1271,10 @@ export default function Survey360Wizard({
           <div className="flex-1">
             <h2 className="text-xl font-bold text-gray-900">
               {isBatchMode ? (
-                `Create 360° Reviews for ${preselectedEmployees.length} Team Members`
+                `Create 360° Feedback for ${preselectedEmployees.length} Team Members`
               ) : selectedEmployee ? (
                 <div className="flex items-center gap-2">
-                  360° Review -{' '}
+                  360° Feedback -{' '}
                   <Avatar
                     name={selectedEmployee.name}
                     picture={selectedEmployee.picture ?? undefined}
@@ -1283,7 +1283,7 @@ export default function Survey360Wizard({
                   {selectedEmployee.name}
                 </div>
               ) : (
-                'Create 360° Review'
+                'Create 360° Feedback'
               )}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
@@ -1351,7 +1351,7 @@ export default function Survey360Wizard({
           {currentStep === 'who' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Who is this review for?</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Who is this feedback for?</h3>
               </div>
 
               {/* Templates - Disabled for now */}
@@ -1852,7 +1852,7 @@ export default function Survey360Wizard({
           {currentStep === 'preview' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Review & Launch</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Details and Launch</h3>
               </div>
 
               <div className="space-y-4">
