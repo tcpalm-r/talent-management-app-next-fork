@@ -802,6 +802,7 @@ talent-management-next/
 ├── postcss.config.mjs      # PostCSS config
 ├── .eslintrc.json         # ESLint config
 ├── .gitignore             # Git ignore
+├── vercel.json            # Vercel deployment config
 └── package.json           # Dependencies
 ```
 
@@ -907,16 +908,24 @@ Version: 0.4.0 (UI Restructure - Removed TopHeader, moved profile to sidebar, ad
   **Local Directory & GitHub Repository:** `talent-management-next` (https://github.com/tcpalm-r/talent-management-app-next-fork)
   **Vercel Deployment Project:** `sonance-360-review` (https://vercel.com/elliottamadors-projects/sonance-360-review)
   **Production URL:** `https://sonance-360-review.vercel.app`
-  
-  **Deployment Branches:**
-  - `main` branch → Production deployment (https://sonance-360-review.vercel.app)
-  - Feature branches → Preview deployments only
 
-  When working on this project, remember that only pushes to the `main` branch trigger production deployments to the sonance-360-review Vercel project.
+  **Deployment Configuration:**
+  - **All branches** → Preview deployments only (configured via `vercel.json`)
+  - `main` branch → Preview deployment (automatic on push)
+  - Production → Manual deployment only (via Vercel dashboard)
 
-  **CRITICAL: Git Push Policy**
-  - **NEVER automatically push commits without explicit user approval**
-  - Every `git push` to `main` triggers an immediate production deployment on Vercel
+  **How to Deploy to Production:**
+  1. Ensure your changes are pushed to the `main` branch
+  2. Go to [Vercel Dashboard](https://vercel.com/elliottamadors-projects/sonance-360-review)
+  3. Find the preview deployment you want to promote
+  4. Click "Promote to Production"
+
+  **Why Manual Deployments:**
+  - Prevents accidental production deployments during development
+  - Allows thorough testing of preview deployments before going live
+  - Provides explicit control over what reaches production
+  - Configured via `vercel.json` with `"deploymentEnabled": { "main": false }`
+
+  **Git Push Policy:**
   - Always commit changes first, then ask the user before pushing
-  - User must explicitly say "push" or "commit and push" before running `git push`
-  - This prevents accidental production deployments
+  - User should explicitly approve before running `git push`
