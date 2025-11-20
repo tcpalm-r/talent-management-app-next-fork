@@ -49,6 +49,7 @@ export default function SurveyCompletionPage() {
 
   const [reviewer, setReviewer] = useState<Reviewer | null>(null);
   const [survey, setSurvey] = useState<Survey | null>(null);
+  const [surveyId, setSurveyId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [responses, setResponses] = useState<Record<string, string>>({});
 
@@ -90,6 +91,7 @@ export default function SurveyCompletionPage() {
       }
 
       setReviewer(startData.reviewer);
+      setSurveyId(startData.surveyId);
 
       // Check if already completed
       if (startData.reviewer.status === 'completed') {
@@ -255,15 +257,27 @@ export default function SurveyCompletionPage() {
 
   const handleMetaFeedbackSubmit = async () => {
     try {
+      // Ensure we have a survey ID
+      if (!surveyId) {
+        console.error('Cannot submit feedback: Survey ID is missing');
+        alert('Unable to submit feedback. Please try again.');
+        return;
+      }
+
+      // Ensure ratings are integers
+      const payload = {
+        surveyId: surveyId,
+        navigationRating: Math.round(navigationRating),
+        aiHelperRating: didNotUseAI ? 0 : Math.round(aiHelperRating),
+        additionalComments: additionalComments.trim() || null,
+      };
+
+      console.log('Submitting meta feedback:', payload);
+
       const response = await fetch('/api/survey-completion/meta-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          surveyId: survey?.id,
-          navigationRating,
-          aiHelperRating: didNotUseAI ? 0 : aiHelperRating,
-          additionalComments: additionalComments.trim() || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
