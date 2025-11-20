@@ -206,9 +206,20 @@ export async function POST(request: Request) {
   <title>360° Feedback Request</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+  <!--[if mso | IE]>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #667eea;">
+    <tr>
+      <td style="padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px; font-family: Arial, sans-serif;">${isReminder ? '⏰ Reminder: ' : ''}360° Feedback Request</h1>
+      </td>
+    </tr>
+  </table>
+  <![endif]-->
+  <!--[if !mso]><!-->
+  <div style="background-color: #667eea; background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 28px;">${isReminder ? '⏰ Reminder: ' : ''}360° Feedback Request</h1>
   </div>
+  <!--<![endif]-->
 
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
     <p style="font-size: 16px; margin-bottom: 20px;">Hi ${reviewer.reviewer_name || 'there'},</p>
@@ -232,7 +243,6 @@ export async function POST(request: Request) {
     <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 25px 0;">
       <p style="margin: 0; color: #555;"><strong>Survey:</strong> ${survey.survey_name || '360° Feedback'}</p>
       <p style="margin: 5px 0 0 0; color: #555;"><strong>Due Date:</strong> ${dueDate}</p>
-      <p style="margin: 5px 0 0 0; color: #555;"><strong>Your Relationship:</strong> ${reviewer.relationship || 'Colleague'}</p>
     </div>
 
     <div style="text-align: center; margin: 30px 0;">
