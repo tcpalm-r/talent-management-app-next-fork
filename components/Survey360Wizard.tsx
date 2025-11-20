@@ -1375,8 +1375,8 @@ export default function Survey360Wizard({
                 <div
                   className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold flex-shrink-0 ${
                     index <= currentStepIndex
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-500'
+                      ? 'bg-blue-600 dark:bg-blue-700 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                   }`}
                 >
                   {index + 1}
@@ -1384,7 +1384,7 @@ export default function Survey360Wizard({
                 {index < steps.length - 1 && (
                   <div
                     className={`flex-1 h-1 mx-3 rounded ${
-                      index < currentStepIndex ? 'bg-blue-600' : 'bg-gray-200'
+                      index < currentStepIndex ? 'bg-blue-600 dark:bg-blue-700' : 'bg-gray-200 dark:bg-gray-700'
                     }`}
                   />
                 )}
