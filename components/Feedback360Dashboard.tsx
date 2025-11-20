@@ -80,9 +80,9 @@ export default function Feedback360Dashboard({
   const [editingDraftSurvey, setEditingDraftSurvey] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'in_progress' | 'completed' | 'needs_review' | 'needs_reanalysis' | 'finalized'>('all');
   const [reviewerFilterStatus, setReviewerFilterStatus] = useState<'all' | 'required' | 'optional'>('all');
-  // Regular users can't sponsor surveys, so default to 'reviewer' for them
+  // Only Admin and SLT can sponsor surveys, everyone else defaults to 'reviewer'
   const [filterRole, setFilterRole] = useState<'sponsor' | 'reviewer' | 'subject'>(
-    currentUser?.app_role === 'user' ? 'reviewer' : 'sponsor'
+    (currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt') ? 'sponsor' : 'reviewer'
   );
   const [preselectedEmployee, setPreselectedEmployee] = useState<Employee | undefined>(undefined);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
@@ -117,6 +117,12 @@ export default function Feedback360Dashboard({
   const [finalNarrative, setFinalNarrative] = useState<string>('');
   const [isGeneratingNarrative, setIsGeneratingNarrative] = useState(false);
   const [narrativeOutdated, setNarrativeOutdated] = useState(false);
+
+  // Slider positions and original text for adjustment controls
+  // Format: { [itemIndex]: { specificity: 'left'|'center'|'right', tone: ..., length: ... } }
+  const [sliderPositions, setSliderPositions] = useState<Record<string, { specificity: string; tone: string; length: string }>>({});
+  // Store original text before any modifications: { [itemIndex]: originalText }
+  const [originalItemText, setOriginalItemText] = useState<Record<string, any>>({});
 
   useEffect(() => {
     loadSurveys();
@@ -582,6 +588,117 @@ export default function Feedback360Dashboard({
         title: 'Error',
         description: error.message || 'Failed to finalize review',
         variant: 'error',
+      });
+    }
+  };
+
+  // Handle slider position changes (3-position toggle: left | center | right)
+  const handleSliderChange = async (
+    itemIndex: number,
+    sectionType: 'themes' | 'strengths' | 'development_areas' | 'key_insights',
+    adjustmentType: 'specificity' | 'tone' | 'length',
+    newPosition: 'left' | 'center' | 'right'
+  ) => {
+    if (!selectedSurvey || !surveyResults) return;
+
+    const itemKey = `${sectionType}-${itemIndex}`;
+    const currentPositions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
+    const currentPosition = currentPositions[adjustmentType];
+
+    // If clicking same position, do nothing
+    if (currentPosition === newPosition) return;
+
+    // Can only move to adjacent positions (e.g., from center to left/right, or from left/right to center)
+    const isAdjacent =
+      (currentPosition === 'center' && newPosition !== 'center') ||
+      (currentPosition !== 'center' && newPosition === 'center');
+
+    if (!isAdjacent) return; // Can't jump from left to right or vice versa
+
+    // If moving to center, restore original text (no API call)
+    if (newPosition === 'center') {
+      const originalText = originalItemText[itemKey];
+      if (originalText !== undefined) {
+        // Restore the original item
+        let sectionKey: string;
+        switch (sectionType) {
+          case 'themes': sectionKey = 'themes'; break;
+          case 'strengths': sectionKey = 'overall_strengths'; break;
+          case 'development_areas': sectionKey = 'development_areas'; break;
+          case 'key_insights': sectionKey = 'key_insights'; break;
+        }
+
+        const updatedSection = [...surveyResults[sectionKey]];
+        updatedSection[itemIndex] = originalText;
+
+        setSurveyResults({
+          ...surveyResults,
+          [sectionKey]: updatedSection
+        });
+      }
+
+      // Update slider position to center
+      setSliderPositions({
+        ...sliderPositions,
+        [itemKey]: {
+          ...currentPositions,
+          [adjustmentType]: 'center'
+        }
+      });
+
+      return;
+    }
+
+    // Moving from center to left/right - store original and make API call
+    if (currentPosition === 'center') {
+      // Store original text before modification
+      let item: any;
+      let sectionKey: string;
+
+      switch (sectionType) {
+        case 'themes':
+          item = surveyResults.themes[itemIndex];
+          sectionKey = 'themes';
+          break;
+        case 'strengths':
+          item = surveyResults.overall_strengths[itemIndex];
+          sectionKey = 'overall_strengths';
+          break;
+        case 'development_areas':
+          item = surveyResults.development_areas[itemIndex];
+          sectionKey = 'development_areas';
+          break;
+        case 'key_insights':
+          item = surveyResults.key_insights[itemIndex];
+          sectionKey = 'key_insights';
+          break;
+      }
+
+      setOriginalItemText({
+        ...originalItemText,
+        [itemKey]: item
+      });
+
+      // Determine direction based on position and adjustment type
+      let direction: 'more' | 'less' | 'harsher' | 'softer' | 'longer' | 'shorter';
+      if (adjustmentType === 'specificity') {
+        direction = newPosition === 'left' ? 'less' : 'more';
+      } else if (adjustmentType === 'tone') {
+        direction = newPosition === 'left' ? 'softer' : 'harsher';
+      } else { // length
+        direction = newPosition === 'left' ? 'shorter' : 'longer';
+      }
+
+      // Make API call
+      await adjustItem(itemIndex, adjustmentType, direction, sectionType);
+
+      // Update slider position
+      setSliderPositions({
+        ...sliderPositions,
+        [itemKey]: {
+          ...currentPositions,
+          [adjustmentType]: newPosition
+        }
       });
     }
   };
@@ -1615,28 +1732,27 @@ export default function Feedback360Dashboard({
   return (
     <TooltipProvider>
     <div>
-      {/* Role Navigation Tabs - Primary sub-navigation for 360 Review section */}
+      {/* Role Navigation Tabs - Primary sub-navigation for 360 Feedback section */}
       <div className="mb-6 flex items-center justify-between">
         <NavigationTabs
           tabs={[
-            // Only show Sponsor tab for Admin, SLT, and Leader roles
-            ...(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader' ? [{
+            // Only show Sponsor tab for Admin and SLT roles
+            ...(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' ? [{
               id: 'sponsor',
               label: 'Sponsoring',
-              tooltip: '360 reviews you created. Launch reviews, manage reviewers, track progress, and finalize the report',
+              tooltip: '360 feedback you created. Launch feedback sessions, manage reviewers, track progress, and finalize the report',
               count: sponsorCount
             }] : []),
             {
               id: 'reviewer',
               label: 'Reviewing',
-              tooltip: 'Active 360 reviews awaiting your feedback. Provide anonymous feedback, aggregated with AI',
+              tooltip: 'Active 360 feedback sessions awaiting your input. Provide anonymous feedback, aggregated with AI',
               count: reviewerCount
             },
             {
               id: 'subject',
               label: 'Your 360° Feedback',
-              tooltip: 'Completed 360 reviews about you. View finalized feedback, insights, and actions',
-              count: subjectCount
+              tooltip: 'Completed 360 feedback about you. View finalized feedback, insights, and actions'
             }
           ]}
           activeTab={filterRole}
@@ -1654,7 +1770,7 @@ export default function Feedback360Dashboard({
       <div className={`grid gap-4 mt-6 ${
         currentUser?.app_role === 'admin'
           ? 'grid-cols-3 lg:grid-cols-6'
-          : (currentUser?.app_role === 'leader' || currentUser?.app_role === 'slt')
+          : currentUser?.app_role === 'slt'
           ? 'grid-cols-2 lg:grid-cols-5'
           : 'grid-cols-2 lg:grid-cols-4'
       }`}>
@@ -1672,8 +1788,8 @@ export default function Feedback360Dashboard({
           </div>
         </button>
 
-        {/* Drafts - Only show for Admin, SLT, and Leader (Sponsors) */}
-        {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
+        {/* Drafts - Only show for Admin and SLT (Sponsors) */}
+        {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt') && (
           <Tooltip content="Surveys not yet sent to reviewers">
             <button
               onClick={() => setFilterStatus('draft')}
@@ -1775,8 +1891,8 @@ export default function Feedback360Dashboard({
       </div>
       )}
 
-      {/* Launch Review Button - Only show for Admin, SLT, and Leader (Sponsors) on Sponsor tab */}
-      {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && filterRole === 'sponsor' && (
+      {/* Launch Review Button - Only show for Admin and SLT (Sponsors) on Sponsor tab */}
+      {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt') && filterRole === 'sponsor' && (
         <div className="relative mt-6 mb-6">
           <div className="flex items-center gap-2">
             <button
@@ -1786,7 +1902,7 @@ export default function Feedback360Dashboard({
               }}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
-              Launch 360° Review
+              Launch 360° Feedback
             </button>
             {/* AI-assisted review wizard button - disabled and hidden */}
             {false && (
@@ -1825,7 +1941,7 @@ export default function Feedback360Dashboard({
         </button>
 
         {/* Required (Assigned Reviewer) */}
-        <Tooltip content="360 reviews where you are an assigned reviewer">
+        <Tooltip content="360 feedback sessions where you are an assigned reviewer">
           <button
             onClick={() => setReviewerFilterStatus('required')}
             className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
@@ -1845,7 +1961,7 @@ export default function Feedback360Dashboard({
         </Tooltip>
 
         {/* Optional (Can Opt In) */}
-        <Tooltip content="360 reviews you can opt into as an SLT or Admin member">
+        <Tooltip content="360 feedback sessions you can opt into as an SLT or Admin member">
           <button
             onClick={() => setReviewerFilterStatus('optional')}
             className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
@@ -1878,9 +1994,9 @@ export default function Feedback360Dashboard({
             <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               {filterRole === 'reviewer'
-                ? 'No 360° reviews require your feedback'
+                ? 'No 360°s require your input'
                 : filterRole === 'subject'
-                ? 'Your 360° review has not been finalized'
+                ? 'Your 360° feedback has not been finalized'
                 : filterStatus === 'all'
                 ? 'No reviews yet'
                 : filterStatus === 'draft'
@@ -1889,10 +2005,10 @@ export default function Feedback360Dashboard({
                 ? 'No reviews need admin review'
                 : `No reviews ${filterStatus === 'in_progress' ? 'in progress' : filterStatus}`}
             </h3>
-            {filterRole === 'sponsor' && filterStatus === 'all' && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader') && (
+            {filterRole === 'sponsor' && filterStatus === 'all' && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt') && (
               <>
                 <p className="text-gray-600 mb-6">
-                  Create your first 360° feedback review to gather multi-source feedback
+                  Create your first 360° feedback session to gather multi-source feedback
                 </p>
                 {/* Create First Review button - disabled and hidden */}
                 {false && (
@@ -2004,7 +2120,7 @@ export default function Feedback360Dashboard({
                   <div className="flex-1">
                     <div className="flex items-center flex-wrap gap-2 mb-4">
                       <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 leading-tight">
-                        360° Review -
+                        360° Feedback -
                         <Avatar
                           name={survey.employee?.name}
                           picture={survey.employee?.picture ?? undefined}
@@ -2329,11 +2445,15 @@ export default function Feedback360Dashboard({
                 {!canSeeResults && (
                   <div>
                     {/* Only show reviewer count to Admin, SLT, and survey sponsor */}
-                    {(isAdmin || currentUser?.app_role === 'slt' || isSponsor) && (
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                        Reviewers ({selectedSurvey.completed_count}/{selectedSurvey.reviewers_count} completed)
-                      </h4>
-                    )}
+                    {(isAdmin || currentUser?.app_role === 'slt' || isSponsor) && (() => {
+                      const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 0;
+                      const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
+                      return (
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                          Reviewers ({completedReviewers}/{totalReviewers} completed)
+                        </h4>
+                      );
+                    })()}
                     {/* Only show reviewers list to admin, sponsor, or SLT (for in-progress surveys) */}
                     {(isAdmin || isSponsor || (isSLT && selectedSurvey.status === 'in_progress')) && (
                       <div className="bg-gray-50 rounded-lg p-4 space-y-2 max-h-[240px] overflow-y-auto">
@@ -2409,7 +2529,7 @@ export default function Feedback360Dashboard({
             <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 leading-tight">
-                  360° Review -
+                  360° Feedback -
                   <Avatar
                     name={selectedSurvey.employee?.name}
                     picture={selectedSurvey.employee?.picture ?? undefined}
@@ -2452,9 +2572,13 @@ export default function Feedback360Dashboard({
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-semibold text-gray-900">
-                    Reviewers ({selectedSurvey.completed_count}/{selectedSurvey.reviewers_count} completed)
+                    Reviewers ({(() => {
+                      const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 0;
+                      const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
+                      return `${completedReviewers}/${totalReviewers}`;
+                    })()} completed)
                   </h4>
-                  {isSponsor && (
+                  {isSponsor && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
                   <button
                     onClick={() => setIsAddingReviewer(!isAddingReviewer)}
                     className="text-sm text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 font-medium"
@@ -2465,7 +2589,7 @@ export default function Feedback360Dashboard({
                   )}
                 </div>
 
-                {isAddingReviewer && (
+                {isAddingReviewer && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
                   <div className="mb-3 relative">
                     <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
                       <select
@@ -2756,20 +2880,28 @@ export default function Feedback360Dashboard({
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                 <div>
                   {/* Send Backward - Always on left, always grey */}
-                  {(selectedSurvey.status === 'in_progress' || selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (
-                    <button
-                      onClick={() => sendBackward(selectedSurvey.id, selectedSurvey.status ?? undefined)}
-                      className="text-gray-600 hover:text-gray-800 transition-colors font-medium flex items-center"
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-2" />
-                      Send Backward
-                    </button>
-                  )}
+                  {(selectedSurvey.status === 'in_progress' || selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (() => {
+                    const targetStatus = selectedSurvey.status === 'finalized' ? 'Completed' :
+                                        selectedSurvey.status === 'completed' ? 'In Progress' : 'Draft';
+                    return (
+                      <Tooltip content={`Move 360° to ${targetStatus} status`}>
+                        <button
+                          onClick={() => sendBackward(selectedSurvey.id, selectedSurvey.status ?? undefined)}
+                          className="text-gray-600 hover:text-gray-800 transition-colors font-medium flex items-center"
+                        >
+                          <ChevronLeft className="w-4 h-4 mr-2" />
+                          Send Backward
+                        </button>
+                      </Tooltip>
+                    );
+                  })()}
                 </div>
                 <div className="flex items-center gap-3">
                   {/* Complete with AI for in_progress - disabled if below 70% completion threshold */}
                   {selectedSurvey.status === 'in_progress' && (() => {
-                    const completionPercent = (selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1);
+                    const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 1;
+                    const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
+                    const completionPercent = completedReviewers / totalReviewers;
                     const isAdmin = currentUser?.app_role === 'admin';
                     const meetsThreshold = completionPercent >= 0.7;
                     const canComplete = isAdmin || meetsThreshold;
@@ -2777,13 +2909,20 @@ export default function Feedback360Dashboard({
                     return (
                       <button
                         onClick={() => {
+                          if (!canComplete) {
+                            notify({
+                              title: '>70% Reviewer completion required to complete 360°',
+                              variant: 'error',
+                            });
+                            return;
+                          }
                           completeSurveyWithAI();
                         }}
-                        disabled={isGeneratingAnalysis || !canComplete}
+                        disabled={isGeneratingAnalysis}
                         className={`px-4 py-2 bg-gradient-to-r rounded-lg font-medium flex items-center ${
                           canComplete
                             ? 'from-purple-600 to-indigo-700 text-white hover:from-purple-700 hover:to-indigo-800'
-                            : 'from-gray-400 to-gray-500 text-gray-200 cursor-not-allowed'
+                            : 'from-gray-400 to-gray-500 text-gray-200 cursor-pointer'
                         } disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
                         title={!canComplete ? 'At least 70% of reviewers must submit their feedback before completing the review.' : ''}
                       >
@@ -2863,11 +3002,15 @@ export default function Feedback360Dashboard({
                     <div className="flex items-center gap-3">
                       <h2 className="text-xl font-bold text-gray-900">{selectedSurvey.survey_name}</h2>
                       {/* Only show reviewer count to Admin, SLT, and survey sponsor */}
-                      {(isAdmin || isSLT || isSponsor) && (
-                        <span className="text-sm text-gray-600">
-                          Reviewers: <span className="font-medium">{selectedSurvey.completed_count} of {selectedSurvey.reviewers_count} completed</span>
-                        </span>
-                      )}
+                      {(isAdmin || isSLT || isSponsor) && (() => {
+                        const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 0;
+                        const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
+                        return (
+                          <span className="text-sm text-gray-600">
+                            Reviewers: <span className="font-medium">{completedReviewers} of {totalReviewers} completed</span>
+                          </span>
+                        );
+                      })()}
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
                       Generated by {surveyResults.generated_by || 'Claude AI'} on {new Date(surveyResults.generated_at || Date.now()).toLocaleDateString()}
@@ -2969,7 +3112,16 @@ export default function Feedback360Dashboard({
               />
             </div>
 
-            <div className="h-[500px] overflow-y-auto p-6 space-y-6">
+            <div
+              className="h-[500px] overflow-y-auto p-6 space-y-6"
+              onClick={() => {
+                // Deselect all items when clicking blank space
+                setSelectedThemeIndex(null);
+                setSelectedStrengthIndex(null);
+                setSelectedDevelopmentIndex(null);
+                setSelectedInsightIndex(null);
+              }}
+            >
               {/* Key Themes Tab */}
               {activeReportTab === 'themes' && surveyResults.themes && surveyResults.themes.length > 0 && (() => {
                 const isSponsor = selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email;
@@ -2987,13 +3139,16 @@ export default function Feedback360Dashboard({
                       {surveyResults.themes.map((theme: any, idx: number) => (
                         <div
                           key={idx}
-                          onClick={() => canAdjustThemes && setSelectedThemeIndex(idx === selectedThemeIndex ? null : idx)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            canAdjustThemes && setSelectedThemeIndex(idx === selectedThemeIndex ? null : idx);
+                          }}
                           className={`border rounded-lg p-4 transition-colors ${
-                            canAdjustThemes ? 'cursor-pointer hover:border-purple-400' : ''
+                            canAdjustThemes ? 'cursor-pointer hover:border-blue-500' : ''
                           } ${
                             selectedThemeIndex === idx
-                              ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
-                              : 'border-gray-200 hover:border-purple-300'
+                              ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200'
+                              : 'border-gray-200 hover:border-blue-400'
                           }`}
                         >
                           <div className="flex items-start justify-between mb-2">
@@ -3030,71 +3185,169 @@ export default function Feedback360Dashboard({
                             </div>
                           )}
 
-                          {/* Adjustment buttons - only show when this theme is selected */}
-                          {canAdjustThemes && selectedThemeIndex === idx && (
-                            <div className="mt-2 pt-2 border-t border-purple-200 flex gap-1">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  adjustItem(idx, 'specificity', 'more', 'themes');
-                                }}
-                                disabled={isAdjustingItem}
-                                className="flex-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                More Specific
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  adjustItem(idx, 'specificity', 'less', 'themes');
-                                }}
-                                disabled={isAdjustingItem}
-                                className="flex-1 px-2 py-1 bg-purple-400 text-white rounded hover:bg-purple-500 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                Less Specific
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  adjustItem(idx, 'tone', 'harsher', 'themes');
-                                }}
-                                disabled={isAdjustingItem}
-                                className="flex-1 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                Harsher
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  adjustItem(idx, 'tone', 'softer', 'themes');
-                                }}
-                                disabled={isAdjustingItem}
-                                className="flex-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                Softer
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  adjustItem(idx, 'length', 'longer', 'themes');
-                                }}
-                                disabled={isAdjustingItem}
-                                className="flex-1 px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                Longer
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  adjustItem(idx, 'length', 'shorter', 'themes');
-                                }}
-                                disabled={isAdjustingItem}
-                                className="flex-1 px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                Shorter
-                              </button>
-                            </div>
-                          )}
+                          {/* Adjustment controls - only show when this theme is selected */}
+                          {canAdjustThemes && selectedThemeIndex === idx && (() => {
+                            const itemKey = `themes-${idx}`;
+                            const positions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
+
+                            return (
+                              <div className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-6">
+                                {/* Specificity Control */}
+                                <div className="flex items-center gap-2 flex-1">
+                                  <span className="text-xs text-gray-500">Less Specific</span>
+                                  <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSliderChange(idx, 'themes', 'specificity', 'left');
+                                      }}
+                                      disabled={isAdjustingItem || positions.specificity === 'right'}
+                                      className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
+                                        positions.specificity === 'left'
+                                          ? 'bg-blue-600 text-white'
+                                          : 'text-gray-700 hover:bg-gray-50'
+                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                    >
+                                      ◀
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSliderChange(idx, 'themes', 'specificity', 'center');
+                                      }}
+                                      disabled={isAdjustingItem || positions.specificity === 'center'}
+                                      className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${
+                                        positions.specificity === 'center'
+                                          ? 'bg-gray-100 text-gray-900'
+                                          : 'text-gray-700 hover:bg-gray-50'
+                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                    >
+                                      ●
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSliderChange(idx, 'themes', 'specificity', 'right');
+                                      }}
+                                      disabled={isAdjustingItem || positions.specificity === 'left'}
+                                      className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
+                                        positions.specificity === 'right'
+                                          ? 'bg-blue-600 text-white'
+                                          : 'text-gray-700 hover:bg-gray-50'
+                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                    >
+                                      ▶
+                                    </button>
+                                  </div>
+                                  <span className="text-xs text-gray-500">More Specific</span>
+                                </div>
+
+                                <div className="h-4 w-px bg-gray-300"></div>
+
+                                {/* Tone Control */}
+                                <div className="flex items-center gap-2 flex-1">
+                                  <span className="text-xs text-gray-500">Softer</span>
+                                  <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSliderChange(idx, 'themes', 'tone', 'left');
+                                      }}
+                                      disabled={isAdjustingItem || positions.tone === 'right'}
+                                      className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
+                                        positions.tone === 'left'
+                                          ? 'bg-blue-600 text-white'
+                                          : 'text-gray-700 hover:bg-gray-50'
+                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                    >
+                                      ◀
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSliderChange(idx, 'themes', 'tone', 'center');
+                                      }}
+                                      disabled={isAdjustingItem || positions.tone === 'center'}
+                                      className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${
+                                        positions.tone === 'center'
+                                          ? 'bg-gray-100 text-gray-900'
+                                          : 'text-gray-700 hover:bg-gray-50'
+                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                    >
+                                      ●
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSliderChange(idx, 'themes', 'tone', 'right');
+                                      }}
+                                      disabled={isAdjustingItem || positions.tone === 'left'}
+                                      className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
+                                        positions.tone === 'right'
+                                          ? 'bg-blue-600 text-white'
+                                          : 'text-gray-700 hover:bg-gray-50'
+                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                    >
+                                      ▶
+                                    </button>
+                                  </div>
+                                  <span className="text-xs text-gray-500">Harsher</span>
+                                </div>
+
+                                <div className="h-4 w-px bg-gray-300"></div>
+
+                                {/* Length Control */}
+                                <div className="flex items-center gap-2 flex-1">
+                                  <span className="text-xs text-gray-500">Shorter</span>
+                                  <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSliderChange(idx, 'themes', 'length', 'left');
+                                      }}
+                                      disabled={isAdjustingItem || positions.length === 'right'}
+                                      className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
+                                        positions.length === 'left'
+                                          ? 'bg-blue-600 text-white'
+                                          : 'text-gray-700 hover:bg-gray-50'
+                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                    >
+                                      ◀
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSliderChange(idx, 'themes', 'length', 'center');
+                                      }}
+                                      disabled={isAdjustingItem || positions.length === 'center'}
+                                      className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${
+                                        positions.length === 'center'
+                                          ? 'bg-gray-100 text-gray-900'
+                                          : 'text-gray-700 hover:bg-gray-50'
+                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                    >
+                                      ●
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSliderChange(idx, 'themes', 'length', 'right');
+                                      }}
+                                      disabled={isAdjustingItem || positions.length === 'left'}
+                                      className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
+                                        positions.length === 'right'
+                                          ? 'bg-blue-600 text-white'
+                                          : 'text-gray-700 hover:bg-gray-50'
+                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                    >
+                                      ▶
+                                    </button>
+                                  </div>
+                                  <span className="text-xs text-gray-500">Longer</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>
@@ -3119,84 +3372,61 @@ export default function Feedback360Dashboard({
                       {surveyResults.overall_strengths.map((strength: string, idx: number) => (
                         <li
                           key={idx}
-                          onClick={() => canAdjustItems && setSelectedStrengthIndex(idx === selectedStrengthIndex ? null : idx)}
-                          className={`flex items-start gap-2 rounded-lg p-2 transition-colors ${
-                            canAdjustItems ? 'cursor-pointer hover:bg-green-50' : ''
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            canAdjustItems && setSelectedStrengthIndex(idx === selectedStrengthIndex ? null : idx);
+                          }}
+                          className={`flex items-start gap-2 rounded-lg p-2 transition-colors border ${
+                            canAdjustItems ? 'cursor-pointer hover:border-blue-500' : ''
                           } ${
                             selectedStrengthIndex === idx
-                              ? 'bg-green-50 ring-2 ring-green-200'
-                              : ''
+                              ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200'
+                              : 'border-transparent hover:border-blue-400'
                           }`}
                         >
                           <span className="text-green-600 mt-1">•</span>
                           <div className="flex-1">
                             <span className="text-gray-700">{strength}</span>
 
-                            {/* Adjustment buttons */}
-                            {canAdjustItems && selectedStrengthIndex === idx && (
-                              <div className="mt-2 pt-2 border-t border-green-200 flex gap-1">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'specificity', 'more', 'strengths');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  More Specific
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'specificity', 'less', 'strengths');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-purple-400 text-white rounded hover:bg-purple-500 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Less Specific
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'tone', 'harsher', 'strengths');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Harsher
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'tone', 'softer', 'strengths');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Softer
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'length', 'longer', 'strengths');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Longer
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'length', 'shorter', 'strengths');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Shorter
-                                </button>
-                              </div>
-                            )}
+                            {/* Adjustment controls */}
+                            {canAdjustItems && selectedStrengthIndex === idx && (() => {
+                              const itemKey = `strengths-${idx}`;
+                              const positions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
+
+                              return (
+                                <div className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-6">
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <span className="text-xs text-gray-500">Less Specific</span>
+                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'left'); }} disabled={isAdjustingItem || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'center'); }} disabled={isAdjustingItem || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'right'); }} disabled={isAdjustingItem || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                    </div>
+                                    <span className="text-xs text-gray-500">More Specific</span>
+                                  </div>
+                                  <div className="h-4 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <span className="text-xs text-gray-500">Softer</span>
+                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'left'); }} disabled={isAdjustingItem || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'center'); }} disabled={isAdjustingItem || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'right'); }} disabled={isAdjustingItem || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                    </div>
+                                    <span className="text-xs text-gray-500">Harsher</span>
+                                  </div>
+                                  <div className="h-4 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <span className="text-xs text-gray-500">Shorter</span>
+                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'left'); }} disabled={isAdjustingItem || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'center'); }} disabled={isAdjustingItem || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'right'); }} disabled={isAdjustingItem || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                    </div>
+                                    <span className="text-xs text-gray-500">Longer</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </li>
                       ))}
@@ -3222,84 +3452,61 @@ export default function Feedback360Dashboard({
                       {surveyResults.development_areas.map((area: string, idx: number) => (
                         <li
                           key={idx}
-                          onClick={() => canAdjustItems && setSelectedDevelopmentIndex(idx === selectedDevelopmentIndex ? null : idx)}
-                          className={`flex items-start gap-2 rounded-lg p-2 transition-colors ${
-                            canAdjustItems ? 'cursor-pointer hover:bg-amber-50' : ''
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            canAdjustItems && setSelectedDevelopmentIndex(idx === selectedDevelopmentIndex ? null : idx);
+                          }}
+                          className={`flex items-start gap-2 rounded-lg p-2 transition-colors border ${
+                            canAdjustItems ? 'cursor-pointer hover:border-blue-500' : ''
                           } ${
                             selectedDevelopmentIndex === idx
-                              ? 'bg-amber-50 ring-2 ring-amber-200'
-                              : ''
+                              ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200'
+                              : 'border-transparent hover:border-blue-400'
                           }`}
                         >
                           <span className="text-amber-600 mt-1">•</span>
                           <div className="flex-1">
                             <span className="text-gray-700">{area}</span>
 
-                            {/* Adjustment buttons */}
-                            {canAdjustItems && selectedDevelopmentIndex === idx && (
-                              <div className="mt-2 pt-2 border-t border-amber-200 flex gap-1">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'specificity', 'more', 'development_areas');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  More Specific
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'specificity', 'less', 'development_areas');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-purple-400 text-white rounded hover:bg-purple-500 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Less Specific
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'tone', 'harsher', 'development_areas');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Harsher
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'tone', 'softer', 'development_areas');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Softer
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'length', 'longer', 'development_areas');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Longer
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'length', 'shorter', 'development_areas');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Shorter
-                                </button>
-                              </div>
-                            )}
+                            {/* Adjustment controls */}
+                            {canAdjustItems && selectedDevelopmentIndex === idx && (() => {
+                              const itemKey = `development_areas-${idx}`;
+                              const positions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
+
+                              return (
+                                <div className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-6">
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <span className="text-xs text-gray-500">Less Specific</span>
+                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'left'); }} disabled={isAdjustingItem || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'center'); }} disabled={isAdjustingItem || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'right'); }} disabled={isAdjustingItem || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                    </div>
+                                    <span className="text-xs text-gray-500">More Specific</span>
+                                  </div>
+                                  <div className="h-4 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <span className="text-xs text-gray-500">Softer</span>
+                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'left'); }} disabled={isAdjustingItem || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'center'); }} disabled={isAdjustingItem || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'right'); }} disabled={isAdjustingItem || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                    </div>
+                                    <span className="text-xs text-gray-500">Harsher</span>
+                                  </div>
+                                  <div className="h-4 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <span className="text-xs text-gray-500">Shorter</span>
+                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'left'); }} disabled={isAdjustingItem || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'center'); }} disabled={isAdjustingItem || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'right'); }} disabled={isAdjustingItem || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                    </div>
+                                    <span className="text-xs text-gray-500">Longer</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </li>
                       ))}
@@ -3326,84 +3533,61 @@ export default function Feedback360Dashboard({
                       {surveyResults.key_insights.map((insight: string, idx: number) => (
                         <li
                           key={idx}
-                          onClick={() => canAdjustItems && setSelectedInsightIndex(idx === selectedInsightIndex ? null : idx)}
-                          className={`flex items-start gap-2 rounded-lg p-2 transition-colors ${
-                            canAdjustItems ? 'cursor-pointer hover:bg-purple-50' : ''
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            canAdjustItems && setSelectedInsightIndex(idx === selectedInsightIndex ? null : idx);
+                          }}
+                          className={`flex items-start gap-2 rounded-lg p-2 transition-colors border ${
+                            canAdjustItems ? 'cursor-pointer hover:border-blue-500' : ''
                           } ${
                             selectedInsightIndex === idx
-                              ? 'bg-purple-50 ring-2 ring-purple-200'
-                              : ''
+                              ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200'
+                              : 'border-transparent hover:border-blue-400'
                           }`}
                         >
                           <span className="text-purple-600 mt-1">•</span>
                           <div className="flex-1">
                             <span className="text-gray-700">{insight}</span>
 
-                            {/* Adjustment buttons */}
-                            {canAdjustItems && selectedInsightIndex === idx && (
-                              <div className="mt-2 pt-2 border-t border-purple-200 flex gap-1">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'specificity', 'more', 'key_insights');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  More Specific
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'specificity', 'less', 'key_insights');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-purple-400 text-white rounded hover:bg-purple-500 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Less Specific
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'tone', 'harsher', 'key_insights');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Harsher
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'tone', 'softer', 'key_insights');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Softer
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'length', 'longer', 'key_insights');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Longer
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    adjustItem(idx, 'length', 'shorter', 'key_insights');
-                                  }}
-                                  disabled={isAdjustingItem}
-                                  className="flex-1 px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Shorter
-                                </button>
-                              </div>
-                            )}
+                            {/* Adjustment controls */}
+                            {canAdjustItems && selectedInsightIndex === idx && (() => {
+                              const itemKey = `key_insights-${idx}`;
+                              const positions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
+
+                              return (
+                                <div className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-6">
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <span className="text-xs text-gray-500">Less Specific</span>
+                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'specificity', 'left'); }} disabled={isAdjustingItem || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'specificity', 'center'); }} disabled={isAdjustingItem || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'specificity', 'right'); }} disabled={isAdjustingItem || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                    </div>
+                                    <span className="text-xs text-gray-500">More Specific</span>
+                                  </div>
+                                  <div className="h-4 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <span className="text-xs text-gray-500">Softer</span>
+                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'tone', 'left'); }} disabled={isAdjustingItem || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'tone', 'center'); }} disabled={isAdjustingItem || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'tone', 'right'); }} disabled={isAdjustingItem || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                    </div>
+                                    <span className="text-xs text-gray-500">Harsher</span>
+                                  </div>
+                                  <div className="h-4 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <span className="text-xs text-gray-500">Shorter</span>
+                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'length', 'left'); }} disabled={isAdjustingItem || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'length', 'center'); }} disabled={isAdjustingItem || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'length', 'right'); }} disabled={isAdjustingItem || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                    </div>
+                                    <span className="text-xs text-gray-500">Longer</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </li>
                       ))}
@@ -3736,7 +3920,7 @@ export default function Feedback360Dashboard({
                           <button
                             onClick={generateNarrative}
                             disabled={isGeneratingNarrative}
-                            className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isGeneratingNarrative ? (
                               <>
@@ -3759,7 +3943,7 @@ export default function Feedback360Dashboard({
                       <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                       <h4 className="text-lg font-semibold text-gray-900 mb-2">No Narrative Generated Yet</h4>
                       <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                        Generate a comprehensive one-page narrative that synthesizes all the feedback and insights from this 360 review.
+                        Generate a comprehensive one-page narrative that synthesizes all the feedback and insights from this 360 feedback.
                         This narrative will be the first page of the final report that{' '}
                         {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'} sees.
                       </p>
@@ -3768,7 +3952,7 @@ export default function Feedback360Dashboard({
                         <button
                           onClick={generateNarrative}
                           disabled={isGeneratingNarrative}
-                          className="px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isGeneratingNarrative ? (
                             <>
@@ -3838,13 +4022,21 @@ export default function Feedback360Dashboard({
                   </div>
                   {/* Bottom row: Standard actions */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <button
-                      onClick={() => sendBackward(selectedSurvey.id)}
-                      className="text-gray-600 hover:text-gray-800 transition-colors font-medium flex items-center"
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-2" />
-                      Send Backward
-                    </button>
+                    {(() => {
+                      const targetStatus = selectedSurvey.status === 'finalized' ? 'Completed' :
+                                          selectedSurvey.status === 'completed' ? 'In Progress' : 'Draft';
+                      return (
+                        <Tooltip content={`Move 360° to ${targetStatus} status`}>
+                          <button
+                            onClick={() => sendBackward(selectedSurvey.id)}
+                            className="text-gray-600 hover:text-gray-800 transition-colors font-medium flex items-center"
+                          >
+                            <ChevronLeft className="w-4 h-4 mr-2" />
+                            Send Backward
+                          </button>
+                        </Tooltip>
+                      );
+                    })()}
                     <div className="flex items-center gap-6">
                       {selectedSurvey.status === 'completed' && currentUser?.app_role === 'admin' && (
                         <button
@@ -3868,7 +4060,7 @@ export default function Feedback360Dashboard({
                       {selectedSurvey.status !== 'finalized' && (
                         <button
                           onClick={() => finalizeSurvey(selectedSurvey.id)}
-                          className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center"
+                          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center"
                         >
                           <ArrowDownCircle className="w-4 h-4 mr-2" />
                           Finalize
@@ -3881,15 +4073,21 @@ export default function Feedback360Dashboard({
                 /* Normal footer for non-admin or non-flagged surveys */
                 <div className="flex items-center justify-between">
                   {/* Send Backward - Only visible to sponsor or admin */}
-                  {(currentUser?.app_role === 'admin' || selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (
-                    <button
-                      onClick={() => sendBackward(selectedSurvey.id)}
-                      className="text-gray-600 hover:text-gray-800 transition-colors font-medium flex items-center"
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-2" />
-                      Send Backward
-                    </button>
-                  )}
+                  {(currentUser?.app_role === 'admin' || selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (() => {
+                    const targetStatus = selectedSurvey.status === 'finalized' ? 'Completed' :
+                                        selectedSurvey.status === 'completed' ? 'In Progress' : 'Draft';
+                    return (
+                      <Tooltip content={`Move 360° to ${targetStatus} status`}>
+                        <button
+                          onClick={() => sendBackward(selectedSurvey.id)}
+                          className="text-gray-600 hover:text-gray-800 transition-colors font-medium flex items-center"
+                        >
+                          <ChevronLeft className="w-4 h-4 mr-2" />
+                          Send Backward
+                        </button>
+                      </Tooltip>
+                    );
+                  })()}
 
                   <div className={`flex items-center gap-6 ${!(currentUser?.app_role === 'admin' || selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) ? 'ml-auto' : ''}`}>
                     {/* Workflow controls - Only visible to sponsor or admin */}
@@ -3911,7 +4109,7 @@ export default function Feedback360Dashboard({
                         {selectedSurvey.status !== 'finalized' && (
                           <button
                             onClick={() => finalizeSurvey(selectedSurvey.id)}
-                            className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center"
+                            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center"
                           >
                             <ArrowDownCircle className="w-4 h-4 mr-2" />
                             Finalize
@@ -4107,7 +4305,12 @@ export default function Feedback360Dashboard({
                 <div>
                   <h2 className="text-lg font-bold text-gray-900">Minimum Completion Not Met</h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    {selectedSurvey.completed_count}/{selectedSurvey.reviewers_count} reviewers completed ({Math.round((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1) * 100)}%)
+                    {(() => {
+                      const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 0;
+                      const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
+                      const completionPercent = totalReviewers > 0 ? Math.round((completedReviewers / totalReviewers) * 100) : 0;
+                      return `${completedReviewers}/${totalReviewers} reviewers completed (${completionPercent}%)`;
+                    })()}
                   </p>
                 </div>
               </div>
@@ -4117,7 +4320,11 @@ export default function Feedback360Dashboard({
               <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
                 <p className="text-sm text-gray-700 font-medium mb-2">70% completion required</p>
                 <p className="text-sm text-gray-600">
-                  A minimum of 70% of reviewers must complete their feedback before the review can be closed. You currently have {Math.round((selectedSurvey.completed_count ?? 0) / (selectedSurvey.reviewers_count ?? 1) * 100)}% completion.
+                  A minimum of 70% of reviewers must complete their feedback before the review can be closed. You currently have {(() => {
+                    const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 1;
+                    const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
+                    return Math.round((completedReviewers / totalReviewers) * 100);
+                  })()} % completion.
                 </p>
               </div>
             </div>

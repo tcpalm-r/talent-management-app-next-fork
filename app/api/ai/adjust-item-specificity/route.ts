@@ -167,9 +167,34 @@ export async function POST(request: NextRequest) {
         throw new Error(`Invalid section type: ${section_type}`);
     }
 
+    // Extract relevant response context from raw_responses
+    let responseContext = '';
+    if (raw_responses && raw_responses.length > 0) {
+      console.log('[adjust-item-specificity API] Processing', raw_responses.length, 'raw responses');
+
+      // Collect all response text with relationship context
+      const responseTexts: string[] = [];
+      raw_responses.forEach((response: any, idx: number) => {
+        const relationship = response.relationship || 'Reviewer';
+        const answers = response.answers || response.responses || [];
+
+        answers.forEach((answer: any) => {
+          const text = answer.answer || answer.text || answer.response || '';
+          if (text && text.trim().length > 0) {
+            responseTexts.push(`[${relationship}]: ${text.trim()}`);
+          }
+        });
+      });
+
+      if (responseTexts.length > 0) {
+        responseContext = `\n\nORIGINAL SURVEY RESPONSES (you must use ONLY information from these):\n${responseTexts.slice(0, 15).join('\n\n')}`; // Limit to 15 responses to avoid token limits
+        console.log('[adjust-item-specificity API] Added', responseTexts.length, 'response excerpts to context');
+      }
+    }
+
     const isThemeBullets = section_type === 'themes';
 
-    const prompt = `You are an expert HR analyst helping refine 360-degree feedback report items. You have ${isThemeBullets ? 'supporting evidence bullet points' : `a ${sectionLabel}`} from an AI-generated report that needs to be adjusted for specificity.
+    const prompt = `You are an expert HR analyst helping refine 360-degree feedback report items. You have ${isThemeBullets ? 'supporting evidence bullet points' : `a ${sectionLabel}`} from an AI-generated report that needs to be adjusted.${responseContext}
 
 CURRENT ${sectionLabel.toUpperCase()}:
 ${isThemeBullets ? itemText : `"${itemText}"`}${contextInfo}
@@ -177,10 +202,18 @@ ${isThemeBullets ? itemText : `"${itemText}"`}${contextInfo}
 YOUR TASK:
 ${directionInstruction}
 
+CRITICAL ANTI-HALLUCINATION RULES:
+- DO NOT add information that is not present in the original survey responses above
+- DO NOT invent examples, names, behaviors, or details
+- DO NOT embellish or exaggerate beyond what the responses state
+- ONLY rephrase, reorganize, or adjust the tone/length of EXISTING information
+- If making something "more specific," use ONLY details from the actual responses
+- If no survey responses are available, maintain the current text with minimal changes
+
 IMPORTANT GUIDELINES:
 1. Maintain the same sentiment and general meaning
 2. ${isThemeBullets ? 'Keep each bullet point concise and clear' : `Keep the ${sectionLabel} concise (1-2 sentences typically)`}
-3. Ensure it still accurately reflects the supporting evidence (if available)
+3. Ground all content in the original survey responses provided above
 4. Make sure it's appropriate for a professional 360 feedback report
 5. The adjusted ${sectionLabel} should feel natural and well-written
 6. For strengths, maintain a positive tone
@@ -194,7 +227,7 @@ Return ONLY the adjusted ${sectionLabel} text. ${isThemeBullets ? 'Return each b
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 512,
-      temperature: 0.4,
+      temperature: 0.2, // Lower temperature for more deterministic, less creative outputs
       messages: [
         {
           role: 'user',

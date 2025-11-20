@@ -447,3 +447,51 @@ html, body {
     @apply text-xs;
   }
 }
+
+/* 3-position slider styling */
+.slider-3-pos {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.slider-3-pos::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.slider-3-pos::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.slider-3-pos::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.slider-3-pos::-moz-range-thumb:hover {
+  transform: scale(1.1);
+}
+
+.slider-3-pos:disabled::-webkit-slider-thumb {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.slider-3-pos:disabled::-moz-range-thumb {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
