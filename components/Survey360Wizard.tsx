@@ -14,6 +14,7 @@ import {
   Sparkles,
   Search,
   Trash2,
+  Pencil,
 } from 'lucide-react';
 import type { Employee, Survey360, ParticipantRelationship } from '../types';
 import { useToast } from './unified';
@@ -103,6 +104,8 @@ export default function Survey360Wizard({
 
   const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>(preselectedEmployee);
+  const [preferredName, setPreferredName] = useState<string>('');
+  const [isEditingName, setIsEditingName] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [shouldAutoLaunch, setShouldAutoLaunch] = useState(false);
@@ -151,6 +154,8 @@ export default function Survey360Wizard({
     const resetStep: WizardStep = draftSurvey ? 'preview' : (isBatchMode || preselectedEmployee) ? 'competencies' : 'who';
     setCurrentStep(resetStep);
     setSelectedEmployee(preselectedEmployee);
+    setPreferredName('');
+    setIsEditingName(false);
     setSelectedTemplate(null);
     // Don't reset requiredQuestions - they are loaded from API and should persist
     setCustomQuestions([]);
@@ -370,6 +375,7 @@ export default function Survey360Wizard({
 
         // CRITICAL FIX: Use fresh survey data from API for all fields
         setSurveyTitle(freshSurvey?.survey_name || draftSurvey.survey_name || '');
+        setPreferredName(freshSurvey?.subject_preferred_name || '');
         if (freshSurvey?.due_date) {
           // Format date to yyyy-MM-dd for the input field
           const dateObj = new Date(freshSurvey.due_date);
@@ -866,8 +872,9 @@ export default function Survey360Wizard({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(isUpdating ? {
             surveyId: draftSurvey.id,
-            surveyName: surveyTitle || `360° Feedback - ${selectedEmployee.name}`,
+            surveyName: surveyTitle || `360° Feedback - ${displayName}`,
             dueDate: dueDate || null,
+            preferredName: preferredName || null,
             requiredQuestions: requiredQuestions.filter(q => q.trim()),
             customQuestions,
             raters, // Save ALL raters, including partial ones (relationship-only)
@@ -876,8 +883,9 @@ export default function Survey360Wizard({
           } : {
             organizationId,
             employeeId: selectedEmployee.id,
-            surveyTitle: surveyTitle || `360° Feedback - ${selectedEmployee.name}`,
+            surveyTitle: surveyTitle || `360° Feedback - ${displayName}`,
             dueDate: dueDate || null,
+            preferredName: preferredName || null,
             // createdBy is now handled by the API from the authenticated session
             requiredQuestions: requiredQuestions.filter(q => q.trim()),
             customQuestions,
@@ -992,8 +1000,9 @@ export default function Survey360Wizard({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               surveyId: draftSurvey.id,
-              surveyName: surveyTitle || `360° Feedback - ${selectedEmployee?.name}`,
+              surveyName: surveyTitle || `360° Feedback - ${displayName}`,
               dueDate,
+              preferredName: preferredName || null,
               requiredQuestions,
               customQuestions,
               raters: raters.filter(r => r.name && r.name.trim()),
@@ -1112,13 +1121,16 @@ export default function Survey360Wizard({
         for (const employee of employeesToProcess) {
           try {
             // Create survey via API
+            // Use preferred name only for the selected employee, not batch employees
+            const employeeDisplayName = (employee.id === selectedEmployee?.id && preferredName) ? preferredName : employee.name;
             const createResponse = await fetch('/api/surveys/create', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 employeeId: employee.id,
-                surveyName: surveyTitle || `360° Feedback - ${employee.name}`,
+                surveyName: surveyTitle || `360° Feedback - ${employeeDisplayName}`,
                 dueDate,
+                preferredName: (employee.id === selectedEmployee?.id) ? (preferredName || null) : null,
                 // createdBy is now handled by the API from the authenticated session
                 requiredQuestions,
                 customQuestions,
@@ -1263,6 +1275,9 @@ export default function Survey360Wizard({
 
   if (!isOpen) return null;
 
+  // Use preferred name if set, otherwise use employee's full name
+  const displayName = preferredName || selectedEmployee?.name || '';
+
   const modalContent = (
     <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/50 flex items-center justify-center p-4 pb-20">
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl min-h-[600px] max-h-[80vh] overflow-hidden flex flex-col">
@@ -1276,11 +1291,44 @@ export default function Survey360Wizard({
                 <div className="flex items-center gap-2">
                   360° Feedback -{' '}
                   <Avatar
-                    name={selectedEmployee.name}
+                    name={displayName}
                     picture={selectedEmployee.picture ?? undefined}
                     size="xs"
                   />
-                  {selectedEmployee.name}
+                  {isEditingName ? (
+                    <input
+                      type="text"
+                      value={preferredName || selectedEmployee.name}
+                      onChange={(e) => setPreferredName(e.target.value)}
+                      onBlur={() => setIsEditingName(false)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === 'Escape') {
+                          setIsEditingName(false);
+                        }
+                      }}
+                      autoFocus
+                      className="px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={selectedEmployee.name}
+                    />
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      {displayName}
+                      <span className="relative group">
+                        <button
+                          onClick={() => setIsEditingName(true)}
+                          className="p-1 hover:bg-blue-100 rounded transition-colors"
+                          title="Edit preferred name"
+                        >
+                          <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                        </button>
+                        {/* Tooltip */}
+                        <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-2 py-1 bg-gray-900 text-white text-xs font-normal rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[10000]">
+                          Edit preferred name
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-px border-4 border-transparent border-b-gray-900"></span>
+                        </span>
+                      </span>
+                    </span>
+                  )}
                 </div>
               ) : (
                 'Create 360° Feedback'
@@ -1494,7 +1542,7 @@ export default function Survey360Wizard({
                 <div className="space-y-3">
                   {requiredQuestions.map((question, index) => (
                     <div key={index} className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700">
-                      {replaceNamePlaceholder(question, selectedEmployee?.name)}
+                      {replaceNamePlaceholder(question, displayName)}
                     </div>
                   ))}
                 </div>
@@ -1509,7 +1557,7 @@ export default function Survey360Wizard({
                     {customQuestions.map((question, index) => (
                       <div key={index} className="flex items-start gap-2">
                         <div className="flex-1 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700">
-                          {replaceNamePlaceholder(question, selectedEmployee?.name)}
+                          {replaceNamePlaceholder(question, displayName)}
                         </div>
                         <button
                           onClick={() => {
@@ -1860,12 +1908,12 @@ export default function Survey360Wizard({
                   <div className="text-sm text-gray-600 mb-2">Employee</div>
                   <div className="flex items-center gap-3">
                     <Avatar
-                      name={selectedEmployee?.name}
+                      name={displayName}
                       picture={selectedEmployee?.picture ?? undefined}
                       size="md"
                     />
                     <div>
-                      <div className="font-semibold text-gray-900">{selectedEmployee?.name}</div>
+                      <div className="font-semibold text-gray-900">{displayName}</div>
                       <div className="text-sm text-gray-600">{selectedEmployee?.title}</div>
                     </div>
                   </div>
@@ -1877,10 +1925,10 @@ export default function Survey360Wizard({
                   </div>
                   <ul className="space-y-3 text-sm text-gray-700">
                     {requiredQuestions.map((q, i) => (
-                      <li key={`req-${i}`}>• {replaceNamePlaceholder(q, selectedEmployee?.name)}</li>
+                      <li key={`req-${i}`}>• {replaceNamePlaceholder(q, displayName)}</li>
                     ))}
                     {customQuestions.map((q, i) => (
-                      <li key={`custom-${i}`} className="text-blue-700">• {replaceNamePlaceholder(q, selectedEmployee?.name)}</li>
+                      <li key={`custom-${i}`} className="text-blue-700">• {replaceNamePlaceholder(q, displayName)}</li>
                     ))}
                   </ul>
                 </div>

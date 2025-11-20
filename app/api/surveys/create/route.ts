@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       employeeId,
       surveyName,
       dueDate,
+      preferredName,
       requiredQuestions,
       customQuestions,
       raters,
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
         survey_name: surveyName,
         status: 'draft',
         due_date: dueDate,
+        subject_preferred_name: preferredName || null,
         created_by: authData.profile.id, // Use authenticated user's ID
       })
       .select()

@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
       employeeId,
       surveyTitle,
       dueDate,
+      preferredName,
       requiredQuestions,
       customQuestions,
       raters,
@@ -91,6 +92,7 @@ export async function POST(request: NextRequest) {
       survey_name: surveyTitle,
       status: 'draft',
       due_date: dueDate || null,
+      subject_preferred_name: preferredName || null,
       created_by: authData.profile.id, // Use authenticated user's ID
       current_step: currentStep || null, // Save the wizard step
       draft_partial_reviewers: partialRaters.length > 0 ? partialRaters : null, // Save partial reviewers as JSON

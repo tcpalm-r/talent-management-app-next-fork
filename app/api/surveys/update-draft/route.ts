@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       surveyId,
       surveyName,
       dueDate,
+      preferredName,
       requiredQuestions,
       customQuestions,
       raters,
@@ -98,6 +99,7 @@ export async function POST(request: NextRequest) {
     const updateData = {
       survey_name: surveyName,
       due_date: dueDate,
+      subject_preferred_name: preferredName || null,
       current_step: currentStep || null,
       draft_partial_reviewers: partialRaters.length > 0 ? partialRaters : null,
     };
