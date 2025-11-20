@@ -900,8 +900,8 @@ talent-management-next/
 
 ---
 
-Last Updated: 2025-11-18
-Version: 0.4.0 (UI Restructure - Removed TopHeader, moved profile to sidebar, added role-based tabs to 360 dashboard)
+Last Updated: 2025-11-20
+Version: 0.4.1 (Deployment Configuration - Main branch now deploys as preview only, production requires manual promotion)
 
 ## Important Naming Note
 
