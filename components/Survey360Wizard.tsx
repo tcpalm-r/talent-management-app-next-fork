@@ -1900,15 +1900,12 @@ export default function Survey360Wizard({
                     const value = e.target.value;
                     setAutoReminderDaysBefore(value === '' ? null : parseInt(value));
                   }}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="pl-4 pr-12 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%239ca3af%22%20d%3D%22M10.293%203.293L6%207.586%201.707%203.293A1%201%200%2000.293%204.707l5%205a1%201%200%20001.414%200l5-5a1%201%200%2010-1.414-1.414z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_1rem_center] bg-no-repeat"
                 >
                   <option value="">No automatic reminders</option>
                   <option value="1">1 day before due date</option>
                   <option value="2">2 days before due date</option>
                 </select>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Automatic reminders will be sent to incomplete reviewers at the specified time
-                </p>
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
