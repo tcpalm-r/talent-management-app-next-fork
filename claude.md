@@ -910,21 +910,24 @@ Version: 0.4.0 (UI Restructure - Removed TopHeader, moved profile to sidebar, ad
   **Production URL:** `https://sonance-360-review.vercel.app`
 
   **Deployment Configuration:**
-  - **All branches** → Preview deployments only (configured via `vercel.json`)
-  - `main` branch → Preview deployment (automatic on push)
-  - Production → Manual deployment only (via Vercel dashboard)
+  - **Production Branch:** Set to `production` (or custom branch) in Vercel dashboard settings
+  - **`main` branch** → Preview deployment (automatic on push)
+  - **Other branches** → Preview deployments (automatic on push)
+  - **Production** → Manual promotion only (via Vercel dashboard)
 
   **How to Deploy to Production:**
-  1. Ensure your changes are pushed to the `main` branch
-  2. Go to [Vercel Dashboard](https://vercel.com/elliottamadors-projects/sonance-360-review)
-  3. Find the preview deployment you want to promote
-  4. Click "Promote to Production"
+  1. Push changes to `main` branch (creates preview deployment)
+  2. Test the preview deployment thoroughly
+  3. Go to [Vercel Dashboard](https://vercel.com/elliottamadors-projects/sonance-360-review)
+  4. Find the preview deployment you want to promote
+  5. Click "Promote to Production"
 
-  **Why Manual Deployments:**
+  **Why This Setup:**
+  - `main` deploys as preview because Vercel's production branch is set to a different branch
   - Prevents accidental production deployments during development
   - Allows thorough testing of preview deployments before going live
   - Provides explicit control over what reaches production
-  - Configured via `vercel.json` with `"deploymentEnabled": { "main": false }`
+  - Configured via Vercel Dashboard (Settings → Git → Production Branch)
 
   **Git Push Policy:**
   - Always commit changes first, then ask the user before pushing
