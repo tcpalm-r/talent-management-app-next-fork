@@ -379,7 +379,7 @@ export default function SurveyCompletionPage() {
                         const meetsMinimum = wordCount >= 50;
                         return (
                           <span className={`font-medium ${meetsMinimum ? 'text-green-600' : 'text-orange-600'}`}>
-                            {wordCount} / 50 words {meetsMinimum ? '✓' : ''}
+                            {wordCount} / 50 word minimum {meetsMinimum ? '✓' : ''}
                           </span>
                         );
                       })()}
