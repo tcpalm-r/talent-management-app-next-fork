@@ -171,7 +171,7 @@ export default function EmployeeList({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* 360 Status Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">360 Review Status</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">360 Feedback Status</label>
                 <div className="space-y-2">
                   <label className="flex items-center">
                     <input
@@ -293,7 +293,7 @@ export default function EmployeeList({
                 .join('')
                 .toUpperCase();
 
-              // Check if employee has a finalized 360 review
+              // Check if employee has finalized 360 feedback
               const has360Review = finalizedSurveys[employee.id] && finalizedSurveys[employee.id] > 0;
 
               return (

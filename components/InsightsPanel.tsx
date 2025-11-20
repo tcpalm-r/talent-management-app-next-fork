@@ -94,7 +94,7 @@ export default function InsightsPanel({
     const sampleInsights: TeamInsight[] = [
       {
         title: 'Strong Team Collaboration',
-        description: `Based on ${surveyCount} completed 360° review${surveyCount > 1 ? 's' : ''}, team members highlighted cross-functional collaboration as a key strength.`,
+        description: `Based on ${surveyCount} completed 360° feedback session${surveyCount > 1 ? 's' : ''}, team members highlighted cross-functional collaboration as a key strength.`,
         category: 'strength',
       },
       {
@@ -165,7 +165,7 @@ export default function InsightsPanel({
           <div className="text-center">
             <Lightbulb className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-lg text-gray-600">
-              Sponsor one or more 360° Reviews to see team-level insights
+              Sponsor one or more 360° Feedback sessions to see team-level insights
             </p>
           </div>
         </div>
@@ -206,8 +206,8 @@ export default function InsightsPanel({
       {/* Empty State Info */}
       <div className="mt-12 p-6 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-sm text-blue-900">
-          <strong>Note:</strong> AI-generated insights will be compiled from your team's 360 review feedback.
-          The more 360 reviews completed, the more detailed and accurate these insights will become.
+          <strong>Note:</strong> AI-generated insights will be compiled from your team's 360 feedback.
+          The more 360 feedback sessions completed, the more detailed and accurate these insights will become.
         </p>
       </div>
     </div>

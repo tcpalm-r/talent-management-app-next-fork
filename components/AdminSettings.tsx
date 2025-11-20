@@ -177,10 +177,10 @@ function Default360QuestionsManager() {
           <div>
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
               <HelpCircle className="w-5 h-5 mr-2" />
-              360 Review Default Questions
+              360 Feedback Default Questions
             </h3>
             <p className="text-sm text-gray-600 mt-1">
-              Configure the required questions for all 360 reviews
+              Configure the required questions for all 360 feedback sessions
             </p>
           </div>
           {!isEditing ? (
@@ -476,7 +476,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
-      {/* 360 Review Settings */}
+      {/* 360 Feedback Settings */}
       <Default360QuestionsManager />
 
       {/* Employee Management */}

@@ -126,6 +126,14 @@ export async function POST(
       );
     }
 
+    // Prevent adding reviewers to completed or finalized surveys
+    if (survey.status === 'completed' || survey.status === 'finalized') {
+      return NextResponse.json(
+        { error: 'Cannot add reviewers to a survey that is already completed or finalized' },
+        { status: 400 }
+      );
+    }
+
     // Check permission to modify survey - admins, SLT, and survey creators
     const canModify =
       user.app_role === 'admin' ||

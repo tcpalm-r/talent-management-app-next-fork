@@ -59,7 +59,7 @@ export default function CreateWithAIModal({
 }: CreateWithAIModalProps) {
   // Pre-populate description with employee name if available
   const initialDescription = selectedEmployee
-    ? `Create a 360 review for ${selectedEmployee.name || selectedEmployee.full_name}. `
+    ? `Create a 360 feedback for ${selectedEmployee.name || selectedEmployee.full_name}. `
     : '';
 
   const [description, setDescription] = useState(initialDescription);
@@ -213,7 +213,7 @@ export default function CreateWithAIModal({
           <div className="flex items-center gap-3">
             <Sparkles className="w-6 h-6" />
             <h2 className="text-2xl font-bold">
-              {clarifications ? 'Confirm Survey Details' : 'Create 360° Review with AI'}
+              {clarifications ? 'Confirm Survey Details' : 'Create 360° Feedback with AI'}
             </h2>
           </div>
           <button
@@ -232,11 +232,11 @@ export default function CreateWithAIModal({
               {/* Initial Description Input */}
               <div className="mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Describe your 360° review
+                  Describe your 360° feedback
                 </label>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                   <p className="text-sm text-blue-900">
-                    <strong>Example:</strong> "Create a 360 review for Sarah Chen to assess her leadership and communication skills. Get feedback from her manager John, 2 cross-functional colleagues Mike and Anna, and 2 direct reports. Focus on leadership, collaboration, and communication. Due next Friday."
+                    <strong>Example:</strong> "Create a 360 feedback for Sarah Chen to assess her leadership and communication skills. Get feedback from her manager John, 2 cross-functional colleagues Mike and Anna, and 2 direct reports. Focus on leadership, collaboration, and communication. Due next Friday."
                   </p>
                 </div>
 

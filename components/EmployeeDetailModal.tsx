@@ -1064,7 +1064,7 @@ export default function EmployeeDetailModal({
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-blue-700 mb-1">Most Recent Review</p>
-                          <p className="font-medium text-gray-900">{mostRecent.survey_name || '360° Review'}</p>
+                          <p className="font-medium text-gray-900">{mostRecent.survey_name || '360° Feedback'}</p>
                           <p className="text-sm text-gray-600 mt-1">
                             {mostRecent.status === 'finalized' ? 'Finalized' : 'Completed'} • {new Date(mostRecent.created_at).toLocaleDateString()}
                           </p>
@@ -1111,7 +1111,7 @@ export default function EmployeeDetailModal({
                               className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
                             >
                               <div>
-                                <p className="font-medium text-gray-900">{survey.survey_name || '360° Review'}</p>
+                                <p className="font-medium text-gray-900">{survey.survey_name || '360° Feedback'}</p>
                                 <p className="text-sm text-gray-600">
                                   {survey.status === 'finalized' ? 'Finalized' : 'Completed'} • {new Date(survey.created_at).toLocaleDateString()}
                                 </p>
@@ -1250,7 +1250,7 @@ export default function EmployeeDetailModal({
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">{selectedCompletedSurvey.survey_name || '360° Review'}</h2>
+                <h2 className="text-2xl font-bold text-gray-900">{selectedCompletedSurvey.survey_name || '360° Feedback'}</h2>
                 <p className="text-sm text-gray-600 mt-1">
                   {new Date(selectedCompletedSurvey.created_at).toLocaleDateString()}
                 </p>

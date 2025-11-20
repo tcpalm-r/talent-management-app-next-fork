@@ -1,12 +1,12 @@
 'use client';
 
-import { RotateCw, Users, Settings, Lightbulb } from 'lucide-react';
+import { RotateCw, Users, Settings } from 'lucide-react';
 import { useMemo, useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
 import { UserContext } from '@/context/UserContext';
 import { AUTH_DISABLED } from '@/lib/auth';
 
-type View = '360-feedback' | 'directory' | 'admin-settings' | 'insights';
+type View = '360-feedback' | 'directory' | 'admin-settings';
 
 interface TestUser {
   id: string;
@@ -38,12 +38,9 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
     { id: '360-feedback', label: '360°', icon: RotateCw },
   ] as const;
 
-  const leaderNavItems = [
-    { id: 'insights', label: 'Insights', icon: Lightbulb },
-  ] as const;
+  const leaderNavItems = [] as const;
 
   const adminNavItems = [
-    { id: 'insights', label: 'Insights', icon: Lightbulb },
     { id: 'admin-settings', label: 'Admin', icon: Settings },
   ] as const;
 

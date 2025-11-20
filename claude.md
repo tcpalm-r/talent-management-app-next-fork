@@ -269,7 +269,7 @@ Located in `app/api/`:
 ### Database Schema
 Key tables:
 - `user_profiles` - Employee data with role field
-- `feedback_360_surveys` - 360 review surveys
+- `feedback_360_surveys` - 360 feedback surveys
 - `feedback_360_reviewers` - Survey participants
 - `feedback_360_questions` - Question bank
 - `feedback_360_survey_questions` - Survey-specific questions
@@ -329,7 +329,7 @@ Materialized views:
 - All changes persist to Supabase user_profiles table
 
 **360 Default Questions:**
-- Configure 3 default questions for all 360 reviews
+- Configure 3 default questions for all 360 feedback sessions
 - Browse categorized template questions:
   - Impact
   - Growth (Start/Stop/Continue)

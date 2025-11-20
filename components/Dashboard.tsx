@@ -5,7 +5,6 @@ import type { User, Organization, Employee, Department } from '../types';
 import PeopleDashboard from './PeopleDashboard';
 import Feedback360Dashboard from './Feedback360Dashboard';
 import AdminSettings from './AdminSettings';
-import InsightsPanel from './InsightsPanel';
 import Sidebar from './Sidebar';
 
 interface DashboardProps {
@@ -20,7 +19,7 @@ interface DashboardProps {
   onRegisterNavigate?: (fn: ((view: string) => void) | null) => void;
 }
 
-type View = '360-feedback' | 'directory' | 'admin-settings' | 'insights';
+type View = '360-feedback' | 'directory' | 'admin-settings';
 
 export default function Dashboard({
   user: _user,
@@ -101,10 +100,6 @@ export default function Dashboard({
     if (currentView === 'admin-settings' && currentRole !== 'admin') {
       setCurrentView('360-feedback');
     }
-
-    if (currentView === 'insights' && currentRole !== 'admin' && currentRole !== 'leader' && currentRole !== 'slt') {
-      setCurrentView('360-feedback');
-    }
   }, [userProfile.app_role, currentView]);
 
   const changeView = useCallback((view: View) => {
@@ -121,9 +116,6 @@ export default function Dashboard({
       case 'people':
       case 'directory':
         changeView('directory');
-        break;
-      case 'insights':
-        changeView('insights');
         break;
       default:
         break;
@@ -288,16 +280,6 @@ export default function Dashboard({
 
               {currentView === 'admin-settings' && (
                 <AdminSettings />
-              )}
-
-              {currentView === 'insights' && (
-                <InsightsPanel
-                  employees={employees}
-                  departments={departments}
-                  userRole={userProfile.app_role}
-                  currentUserEmployee={currentUserEmployee}
-                  organizationId={organization.id}
-                />
               )}
             </div>
           )}

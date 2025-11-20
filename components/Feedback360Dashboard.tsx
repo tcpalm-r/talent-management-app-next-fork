@@ -1739,20 +1739,20 @@ export default function Feedback360Dashboard({
             // Only show Sponsor tab for Admin and SLT roles
             ...(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' ? [{
               id: 'sponsor',
-              label: 'Sponsoring',
+              label: 'Sponsor',
               tooltip: '360 feedback you created. Launch feedback sessions, manage reviewers, track progress, and finalize the report',
               count: sponsorCount
             }] : []),
             {
               id: 'reviewer',
-              label: 'Reviewing',
+              label: 'Give Feedback',
               tooltip: 'Active 360 feedback sessions awaiting your input. Provide anonymous feedback, aggregated with AI',
               count: reviewerCount
             },
             {
               id: 'subject',
-              label: 'Your 360° Feedback',
-              tooltip: 'Completed 360 feedback about you. View finalized feedback, insights, and actions'
+              label: 'View Your Report',
+              tooltip: 'View feedback your colleagues gave you, compiled into a report with themes, insights, and recommended actions'
             }
           ]}
           activeTab={filterRole}
@@ -1902,7 +1902,7 @@ export default function Feedback360Dashboard({
               }}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
-              Launch 360° Feedback
+              Launch 360° Review
             </button>
             {/* AI-assisted review wizard button - disabled and hidden */}
             {false && (
@@ -1992,24 +1992,27 @@ export default function Feedback360Dashboard({
         <div className="bg-white rounded-lg shadow border border-gray-200 p-12 mt-6">
           <div className="text-center mb-8">
             <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-normal text-gray-500 mb-2">
               {filterRole === 'reviewer'
                 ? 'No 360°s require your input'
                 : filterRole === 'subject'
                 ? 'Your 360° feedback has not been finalized'
                 : filterStatus === 'all'
-                ? 'No reviews yet'
+                ? 'No 360°s yet. Launch a 360° Review and it will show up here.'
                 : filterStatus === 'draft'
-                ? 'No review drafts'
+                ? 'Nothing drafted'
+                : filterStatus === 'in_progress'
+                ? 'Nothing in progress'
+                : filterStatus === 'completed'
+                ? 'Nothing completed'
+                : filterStatus === 'finalized'
+                ? 'Nothing finalized'
                 : filterStatus === 'needs_review'
                 ? 'No reviews need admin review'
-                : `No reviews ${filterStatus === 'in_progress' ? 'in progress' : filterStatus}`}
+                : `No reviews ${filterStatus}`}
             </h3>
             {filterRole === 'sponsor' && filterStatus === 'all' && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt') && (
               <>
-                <p className="text-gray-600 mb-6">
-                  Create your first 360° feedback session to gather multi-source feedback
-                </p>
                 {/* Create First Review button - disabled and hidden */}
                 {false && (
                   <button

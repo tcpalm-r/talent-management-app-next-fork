@@ -42,8 +42,8 @@ export default function SurveyCompletionPage() {
 
   // Meta feedback state
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-  const [navigationRating, setNavigationRating] = useState<number | null>(null);
-  const [aiHelperRating, setAiHelperRating] = useState<number | null>(null);
+  const [navigationRating, setNavigationRating] = useState<number>(3);
+  const [aiHelperRating, setAiHelperRating] = useState<number>(3);
   const [didNotUseAI, setDidNotUseAI] = useState(false);
   const [additionalComments, setAdditionalComments] = useState('');
 
@@ -254,17 +254,6 @@ export default function SurveyCompletionPage() {
   };
 
   const handleMetaFeedbackSubmit = async () => {
-    // Validate required fields
-    if (navigationRating === null) {
-      alert('Please provide a rating for question 1 before submitting.');
-      return;
-    }
-
-    if (!didNotUseAI && aiHelperRating === null) {
-      alert('Please provide a rating for question 2 or check "I didn\'t use the AI helper".');
-      return;
-    }
-
     try {
       const response = await fetch('/api/survey-completion/meta-feedback', {
         method: 'POST',
@@ -334,7 +323,7 @@ export default function SurveyCompletionPage() {
                       min="1"
                       max="5"
                       step="0.01"
-                      value={navigationRating || 3}
+                      value={navigationRating}
                       onChange={(e) => setNavigationRating(Number(e.target.value))}
                       onMouseUp={(e) => setNavigationRating(Math.round(Number((e.target as HTMLInputElement).value)))}
                       onTouchEnd={(e) => setNavigationRating(Math.round(Number((e.target as HTMLInputElement).value)))}
@@ -370,8 +359,8 @@ export default function SurveyCompletionPage() {
                       checked={didNotUseAI}
                       onChange={(e) => {
                         setDidNotUseAI(e.target.checked);
-                        if (e.target.checked) {
-                          setAiHelperRating(null);
+                        if (!e.target.checked) {
+                          setAiHelperRating(3);
                         }
                       }}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
@@ -413,7 +402,7 @@ export default function SurveyCompletionPage() {
 
               {/* Question 3: Additional Comments */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-4">
                   3. Any other thoughts, suggestions, or issues you'd like to share?
                 </label>
                 <textarea
