@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus, Check, User } from 'lucide-react';
 import type { Employee, Department, ParticipantRelationship } from '../types';
 import Survey360Wizard from './Survey360Wizard';
@@ -112,6 +112,19 @@ export default function Feedback360Dashboard({
   const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
   const [isAdjustingItem, setIsAdjustingItem] = useState(false);
   const [activeReportTab, setActiveReportTab] = useState<string>('themes');
+
+  // Ref for selected reviewer display to enable auto-focus
+  const selectedReviewerDisplayRef = useRef<HTMLDivElement>(null);
+
+  // Auto-focus the selected reviewer display when a reviewer is selected
+  useEffect(() => {
+    if (selectedReviewerEmployee && selectedReviewerDisplayRef.current) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        selectedReviewerDisplayRef.current?.focus();
+      }, 100);
+    }
+  }, [selectedReviewerEmployee]);
   const [editingRecommendationIndex, setEditingRecommendationIndex] = useState<number | null>(null);
   const [editingRecommendationText, setEditingRecommendationText] = useState<string>('');
   const [finalNarrative, setFinalNarrative] = useState<string>('');
@@ -2676,7 +2689,21 @@ export default function Feedback360Dashboard({
                         </div>
                       ) : (
                         <div className="flex-1 flex items-center gap-2">
-                          <div className="flex-1 flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                          <div
+                            ref={selectedReviewerDisplayRef}
+                            className="flex-1 flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 outline-none cursor-pointer"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addReviewer();
+                              }
+                            }}
+                            onClick={(e) => {
+                              // Focus this element when clicked so Enter key works
+                              (e.currentTarget as HTMLElement).focus();
+                            }}
+                          >
                             <Avatar
                               name={(selectedReviewerEmployee as any).full_name || selectedReviewerEmployee.name}
                               picture={selectedReviewerEmployee.picture ?? undefined}
