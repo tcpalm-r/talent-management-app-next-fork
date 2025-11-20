@@ -852,8 +852,8 @@ export default function Survey360Wizard({
     // Clear the loaded draft ref so next time we open the modal it loads fresh
     loadedDraftIdRef.current = null;
 
-    // Only save draft if there's meaningful progress and we're not on the last step
-    const hasProgress = selectedEmployee && currentStepIndex < steps.length - 1;
+    // Save draft if there's meaningful progress (including preview step)
+    const hasProgress = selectedEmployee;
 
     console.log('[DRAFT SAVE] ========== STARTING SAVE ==========');
     console.log('[DRAFT SAVE] Has progress?', hasProgress);
