@@ -362,13 +362,7 @@ export default function Feedback360Dashboard({
         throw new Error('Failed to delete draft survey');
       }
 
-      notify({
-        title: 'Draft deleted',
-        description: 'Your draft survey has been deleted.',
-        variant: 'success',
-      });
-
-      // Reload surveys
+      // Reload surveys (no notification for draft deletion)
       await loadSurveys();
     } catch (error: any) {
       console.error('Error deleting draft survey:', error);
