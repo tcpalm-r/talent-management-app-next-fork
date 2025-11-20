@@ -5,6 +5,7 @@ import { useMemo, useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
 import { UserContext } from '@/context/UserContext';
 import { AUTH_DISABLED } from '@/lib/auth';
+import { ThemeToggle } from './unified';
 
 type View = '360-feedback' | 'directory' | 'admin-settings';
 
@@ -123,12 +124,12 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
   }, [avatarOpen]);
 
   return (
-    <aside className="w-20 bg-gray-50 border-r border-gray-200 flex flex-col items-center">
+    <aside className="w-20 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col items-center">
       {/* User Profile Section */}
-      <div className="w-full pt-4 pb-4 border-b border-gray-200 flex flex-col items-center relative" ref={avatarRef}>
+      <div className="w-full pt-4 pb-4 border-b border-gray-200 dark:border-gray-700 flex flex-col items-center relative" ref={avatarRef}>
         <button
           onClick={() => setAvatarOpen(!avatarOpen)}
-          className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
           title={userProfile?.full_name}
         >
           <Avatar
@@ -139,7 +140,7 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
         </button>
 
         {avatarOpen && (
-          <div className="absolute left-20 top-4 w-64 bg-white border border-gray-200 rounded-lg shadow-lg py-3 px-3 z-50">
+          <div className="absolute left-20 top-4 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-3 px-3 z-50">
             {/* User Info Section */}
             <div className="mb-3">
               <div className="flex items-center gap-3">
@@ -149,10 +150,10 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
                   size="md"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                     {userProfile?.full_name}
                   </p>
-                  <p className="text-xs text-gray-600 truncate">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
                     {userProfile?.email}
                   </p>
                 </div>
@@ -162,17 +163,17 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
             {/* User Switcher - Development Only */}
             {AUTH_DISABLED && (
               <>
-                <div className="border-t border-gray-200 my-2"></div>
+                <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                 <div className="mb-2">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 mb-2">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2 mb-2">
                     Switch User (Dev)
                   </p>
                   {loadingUsers ? (
-                    <div className="px-2 py-4 text-center text-sm text-gray-500">
+                    <div className="px-2 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                       Loading users...
                     </div>
                   ) : testUsers.length === 0 ? (
-                    <div className="px-2 py-4 text-center text-sm text-gray-500">
+                    <div className="px-2 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                       No test users found
                     </div>
                   ) : (
@@ -194,21 +195,21 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
                             disabled={isCurrentUser || switching}
                             className={`w-full text-left px-2 py-2 text-sm rounded transition-colors ${
                               isCurrentUser
-                                ? 'bg-blue-50 border border-blue-200 cursor-default'
+                                ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 cursor-default'
                                 : switching
                                 ? 'opacity-50 cursor-not-allowed'
-                                : 'hover:bg-gray-50'
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                             }`}
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <span className="truncate font-medium text-gray-900">
+                              <span className="truncate font-medium text-gray-900 dark:text-gray-100">
                                 {user.full_name}
                               </span>
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColor}`}>
                                 {user.app_role}
                               </span>
                             </div>
-                            <div className="text-xs text-gray-500 truncate mt-0.5">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
                               {user.title}
                             </div>
                           </button>
@@ -217,14 +218,14 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
                     </div>
                   )}
                 </div>
-                <div className="border-t border-gray-200 my-2"></div>
+                <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
               </>
             )}
 
             {/* Return to Hub */}
             <button
               onClick={handleSignOut}
-              className="w-full text-left px-2 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors font-medium"
+              className="w-full text-left px-2 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors font-medium"
             >
               Return to Hub
             </button>
@@ -244,13 +245,13 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
               onClick={() => onViewChange(item.id as View)}
               className={`w-full flex flex-col items-center justify-center py-3 px-2 rounded-none transition-colors relative ${
                 isActive
-                  ? 'text-blue-600'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
               {/* Left indicator bar with padding */}
               {isActive && (
-                <div className="absolute left-1 top-1 bottom-1 w-1 bg-blue-600" style={{ borderRadius: '1px' }} />
+                <div className="absolute left-1 top-1 bottom-1 w-1 bg-blue-600 dark:bg-blue-400" style={{ borderRadius: '1px' }} />
               )}
               <Icon className="w-5 h-5 mb-1" />
               <span className="text-xs font-normal text-center leading-tight">{item.label}</span>
@@ -260,8 +261,9 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
       </nav>
 
       {/* Footer */}
-      <div className="pb-4 border-t border-gray-200 w-full flex items-center justify-center pt-4">
-        <p className="text-xs text-gray-500">v1</p>
+      <div className="pb-4 border-t border-gray-200 dark:border-gray-700 w-full flex flex-col items-center justify-center pt-4 gap-3">
+        <ThemeToggle />
+        <p className="text-xs text-gray-500 dark:text-gray-400">v1</p>
       </div>
     </aside>
   );

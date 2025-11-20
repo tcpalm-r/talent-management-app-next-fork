@@ -6,6 +6,7 @@ export { default as EmptyState } from './EmptyState';
 export { default as StatCard } from './StatCard';
 export { default as EmployeeNameLink } from './EmployeeNameLink';
 export { Tooltip, TooltipProvider } from './Tooltip';
+export { ThemeToggle } from './ThemeToggle';
 
 // Re-export useToast from TalentAppContext for backwards compatibility
 export { useToast } from '../../context/TalentAppContext';

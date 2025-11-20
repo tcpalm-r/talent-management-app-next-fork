@@ -132,12 +132,12 @@ export default function EmployeeList({
 
   return (
     <>
-      <div className="px-6 py-4 border-b">
+      <div className="px-6 py-4 border-b dark:border-gray-700">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Employees ({filteredEmployees.length})</h2>
+          <h2 className="text-xl font-semibold dark:text-gray-100">Employees ({filteredEmployees.length})</h2>
           <button
             onClick={handleExport}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
           >
             <Download className="w-4 h-4 mr-2" />
             Export CSV
@@ -146,20 +146,20 @@ export default function EmployeeList({
 
         {/* Search */}
         <div className="relative mb-4">
-          <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder="Search employees..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
           />
         </div>
 
         {/* Filter Toggle */}
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg border border-gray-300"
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600"
         >
           <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
           Filters {selectedDepartments.length + selectedRoles.length + (status360 !== 'all' ? 1 : 0) > 0 && `(${selectedDepartments.length + selectedRoles.length + (status360 !== 'all' ? 1 : 0)})`}
@@ -167,11 +167,11 @@ export default function EmployeeList({
 
         {/* Filter Panel */}
         {showFilters && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* 360 Status Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">360 Feedback Status</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">360 Feedback Status</label>
                 <div className="space-y-2">
                   <label className="flex items-center">
                     <input
@@ -182,7 +182,7 @@ export default function EmployeeList({
                       onChange={() => setStatus360('all')}
                       className="rounded"
                     />
-                    <span className="ml-2 text-sm text-gray-600">All</span>
+                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">All</span>
                   </label>
                   <label className="flex items-center">
                     <input
@@ -193,7 +193,7 @@ export default function EmployeeList({
                       onChange={() => setStatus360('completed')}
                       className="rounded"
                     />
-                    <span className="ml-2 text-sm text-gray-600">Completed</span>
+                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Completed</span>
                   </label>
                   <label className="flex items-center">
                     <input
@@ -204,14 +204,14 @@ export default function EmployeeList({
                       onChange={() => setStatus360('pending')}
                       className="rounded"
                     />
-                    <span className="ml-2 text-sm text-gray-600">Pending</span>
+                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Pending</span>
                   </label>
                 </div>
               </div>
 
               {/* Department Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Departments</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Departments</label>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {departments.map((dept) => (
                     <label key={dept.id} className="flex items-center">
@@ -227,7 +227,7 @@ export default function EmployeeList({
                         }}
                         className="rounded"
                       />
-                      <span className="ml-2 text-sm text-gray-600">{dept.name}</span>
+                      <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">{dept.name}</span>
                     </label>
                   ))}
                 </div>
@@ -235,7 +235,7 @@ export default function EmployeeList({
 
               {/* Role Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Roles</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Roles</label>
                 <div className="space-y-2">
                   {['admin', 'leader', 'user'].map((role) => (
                     <label key={role} className="flex items-center">
@@ -251,7 +251,7 @@ export default function EmployeeList({
                         }}
                         className="rounded"
                       />
-                      <span className="ml-2 text-sm text-gray-600 capitalize">{role}</span>
+                      <span className="ml-2 text-sm text-gray-600 dark:text-gray-400 capitalize">{role}</span>
                     </label>
                   ))}
                 </div>
@@ -266,7 +266,7 @@ export default function EmployeeList({
                   setSelectedRoles([]);
                   setStatus360('all');
                 }}
-                className="mt-4 flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+                className="mt-4 flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
               >
                 <X className="w-4 h-4" />
                 Clear All Filters
@@ -300,17 +300,17 @@ export default function EmployeeList({
                 <div
                   key={employee.id}
                   onClick={() => handleEmployeeClick(employee)}
-                  className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-lg transition-shadow cursor-pointer"
+                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5 hover:shadow-lg transition-shadow cursor-pointer"
                 >
                   {/* Header with name and avatar */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-3 flex-1">
-                      <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold text-sm flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-blue-500 dark:bg-blue-600 text-white flex items-center justify-center font-semibold text-sm flex-shrink-0">
                         {initials}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 truncate">{employee.name}</h3>
-                        <p className="text-sm text-gray-600 truncate">{employee.title || 'No title'}</p>
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{employee.name}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{employee.title || 'No title'}</p>
                       </div>
                     </div>
                   </div>

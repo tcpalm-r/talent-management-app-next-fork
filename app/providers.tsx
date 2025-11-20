@@ -1,6 +1,7 @@
 'use client';
 
 import { UserProvider } from '@/context/UserContext';
+import { ThemeProvider } from 'next-themes';
 
 /**
  * Application Providers
@@ -9,5 +10,9 @@ import { UserProvider } from '@/context/UserContext';
  * Uses AI Intranet authentication via UserContext.
  */
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <UserProvider>{children}</UserProvider>;
+  return (
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <UserProvider>{children}</UserProvider>
+    </ThemeProvider>
+  );
 }

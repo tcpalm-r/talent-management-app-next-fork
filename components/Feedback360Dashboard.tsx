@@ -1776,14 +1776,14 @@ export default function Feedback360Dashboard({
       }`}>
         <button
           onClick={() => setFilterStatus('all')}
-          className={`bg-white rounded-lg shadow p-3 border-2 transition-all text-left ${
-            filterStatus === 'all' ? 'border-blue-500' : 'border-gray-200 hover:border-gray-300'
+          className={`bg-white dark:bg-gray-800 rounded-lg shadow p-3 border-2 transition-all text-left ${
+            filterStatus === 'all' ? 'border-blue-500 dark:border-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
           }`}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{roleFilteredSurveys.length}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{roleFilteredSurveys.length}</p>
             </div>
           </div>
         </button>
@@ -1793,16 +1793,16 @@ export default function Feedback360Dashboard({
           <Tooltip content="Surveys not yet sent to reviewers">
             <button
               onClick={() => setFilterStatus('draft')}
-              className={`bg-white rounded-lg shadow p-3 border-2 transition-all text-left ${
-                filterStatus === 'draft' ? 'border-gray-500' : 'border-gray-200 hover:border-gray-300'
+              className={`bg-white dark:bg-gray-800 rounded-lg shadow p-3 border-2 transition-all text-left ${
+                filterStatus === 'draft' ? 'border-gray-500 dark:border-gray-400' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Drafts</p>
-                  <p className="text-2xl font-bold text-gray-700">{stats.draft}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Drafts</p>
+                  <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{stats.draft}</p>
                 </div>
-                <Clock className="w-8 h-8 text-gray-400" />
+                <Clock className="w-8 h-8 text-gray-400 dark:text-gray-500" />
               </div>
             </button>
           </Tooltip>
@@ -1813,16 +1813,16 @@ export default function Feedback360Dashboard({
             onClick={() => setFilterStatus('in_progress')}
             className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
               filterStatus === 'in_progress'
-                ? 'border-yellow-500 bg-yellow-50'
-                : 'bg-white border-yellow-200 hover:bg-yellow-50'
+                ? 'border-yellow-500 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                : 'bg-white dark:bg-gray-800 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-yellow-700">In Progress</p>
-                <p className="text-2xl font-bold text-yellow-900">{stats.in_progress}</p>
+                <p className="text-sm text-yellow-700 dark:text-yellow-400">In Progress</p>
+                <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-300">{stats.in_progress}</p>
               </div>
-              <MessageSquare className="w-8 h-8 text-yellow-400" />
+              <MessageSquare className="w-8 h-8 text-yellow-400 dark:text-yellow-500" />
             </div>
           </button>
         </Tooltip>
@@ -1833,16 +1833,16 @@ export default function Feedback360Dashboard({
             onClick={() => setFilterStatus('completed')}
             className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
               filterStatus === 'completed'
-                ? 'border-green-500 bg-green-50'
-                : 'bg-white border-green-200 hover:bg-green-50'
+                ? 'border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
+                : 'bg-white dark:bg-gray-800 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-700">Completed</p>
-                <p className="text-2xl font-bold text-green-900">{stats.completed}</p>
+                <p className="text-sm text-green-700 dark:text-green-400">Completed</p>
+                <p className="text-2xl font-bold text-green-900 dark:text-green-300">{stats.completed}</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-400" />
+              <CheckCircle className="w-8 h-8 text-green-400 dark:text-green-500" />
             </div>
           </button>
         </Tooltip>
@@ -1854,16 +1854,16 @@ export default function Feedback360Dashboard({
               onClick={() => setFilterStatus('needs_reanalysis')}
               className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
                 filterStatus === 'needs_reanalysis'
-                  ? 'border-red-500 bg-red-50'
-                  : 'bg-white border-red-200 hover:bg-red-50'
+                  ? 'border-red-500 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
+                  : 'bg-white dark:bg-gray-800 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-red-700">Needs Reanalysis</p>
-                  <p className="text-2xl font-bold text-red-900">{stats.needs_reanalysis}</p>
+                  <p className="text-sm text-red-700 dark:text-red-400">Needs Reanalysis</p>
+                  <p className="text-2xl font-bold text-red-900 dark:text-red-300">{stats.needs_reanalysis}</p>
                 </div>
-                <AlertTriangle className="w-8 h-8 text-red-400" />
+                <AlertTriangle className="w-8 h-8 text-red-400 dark:text-red-500" />
               </div>
             </button>
           </Tooltip>
@@ -1875,16 +1875,16 @@ export default function Feedback360Dashboard({
             onClick={() => setFilterStatus('finalized')}
             className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
               filterStatus === 'finalized'
-                ? 'border-purple-500 bg-purple-50'
-                : 'bg-white border-purple-200 hover:bg-purple-50'
+                ? 'border-purple-500 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20'
+                : 'bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/20'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-700">Finalized</p>
-                <p className="text-2xl font-bold text-purple-900">{stats.finalized}</p>
+                <p className="text-sm text-purple-700 dark:text-purple-400">Finalized</p>
+                <p className="text-2xl font-bold text-purple-900 dark:text-purple-300">{stats.finalized}</p>
               </div>
-              <ArrowDownCircle className="w-8 h-8 text-purple-400" />
+              <ArrowDownCircle className="w-8 h-8 text-purple-400 dark:text-purple-500" />
             </div>
           </button>
         </Tooltip>
@@ -1900,7 +1900,7 @@ export default function Feedback360Dashboard({
                 setPreselectedEmployee(undefined);
                 setIsWizardOpen(true);
               }}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors font-medium"
             >
               Launch 360° Review
             </button>
@@ -1928,14 +1928,14 @@ export default function Feedback360Dashboard({
         {/* Total */}
         <button
           onClick={() => setReviewerFilterStatus('all')}
-          className={`bg-white rounded-lg shadow p-3 border-2 transition-all text-left ${
-            reviewerFilterStatus === 'all' ? 'border-cyan-500' : 'border-cyan-200 hover:border-cyan-300'
+          className={`bg-white dark:bg-gray-800 rounded-lg shadow p-3 border-2 transition-all text-left ${
+            reviewerFilterStatus === 'all' ? 'border-cyan-500 dark:border-cyan-400' : 'border-cyan-200 dark:border-cyan-800 hover:border-cyan-300 dark:hover:border-cyan-700'
           }`}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-cyan-700">Total</p>
-              <p className="text-2xl font-bold text-cyan-900">{reviewerStats.total}</p>
+              <p className="text-sm text-cyan-700 dark:text-cyan-400">Total</p>
+              <p className="text-2xl font-bold text-cyan-900 dark:text-cyan-300">{reviewerStats.total}</p>
             </div>
           </div>
         </button>
@@ -1946,16 +1946,16 @@ export default function Feedback360Dashboard({
             onClick={() => setReviewerFilterStatus('required')}
             className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
               reviewerFilterStatus === 'required'
-                ? 'border-green-700 bg-green-50'
-                : 'bg-white border-green-400 hover:bg-green-50'
+                ? 'border-green-700 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
+                : 'bg-white dark:bg-gray-800 border-green-400 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-800">Required</p>
-                <p className="text-2xl font-bold text-green-900">{reviewerStats.required}</p>
+                <p className="text-sm text-green-800 dark:text-green-400">Required</p>
+                <p className="text-2xl font-bold text-green-900 dark:text-green-300">{reviewerStats.required}</p>
               </div>
-              <Users className="w-8 h-8 text-green-600" />
+              <Users className="w-8 h-8 text-green-600 dark:text-green-500" />
             </div>
           </button>
         </Tooltip>
@@ -1966,16 +1966,16 @@ export default function Feedback360Dashboard({
             onClick={() => setReviewerFilterStatus('optional')}
             className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
               reviewerFilterStatus === 'optional'
-                ? 'border-lime-500 bg-lime-50'
-                : 'bg-white border-lime-200 hover:bg-lime-50'
+                ? 'border-lime-500 dark:border-lime-600 bg-lime-50 dark:bg-lime-900/20'
+                : 'bg-white dark:bg-gray-800 border-lime-200 dark:border-lime-800 hover:bg-lime-50 dark:hover:bg-lime-900/20'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-lime-700">Optional</p>
-                <p className="text-2xl font-bold text-lime-900">{reviewerStats.optional}</p>
+                <p className="text-sm text-lime-700 dark:text-lime-400">Optional</p>
+                <p className="text-2xl font-bold text-lime-900 dark:text-lime-300">{reviewerStats.optional}</p>
               </div>
-              <UserPlus className="w-8 h-8 text-lime-400" />
+              <UserPlus className="w-8 h-8 text-lime-400 dark:text-lime-500" />
             </div>
           </button>
         </Tooltip>
@@ -1985,14 +1985,14 @@ export default function Feedback360Dashboard({
       {/* Reviews List */}
       {loading ? (
         <div className="text-center py-12 mt-6">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading reviews...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto"></div>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">Loading reviews...</p>
         </div>
       ) : filteredSurveys.length === 0 ? (
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-12 mt-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-12 mt-6">
           <div className="text-center mb-8">
-            <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-normal text-gray-500 mb-2">
+            <MessageSquare className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <h3 className="text-lg font-normal text-gray-500 dark:text-gray-400 mb-2">
               {filterRole === 'reviewer'
                 ? 'No 360°s require your input'
                 : filterRole === 'subject'
@@ -2054,7 +2054,7 @@ export default function Feedback360Dashboard({
             return (
               <div
                 key={survey.id}
-                className="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer relative"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow cursor-pointer relative"
                 onClick={() => {
                   // If it's a draft and user is the sponsor, open wizard to edit/launch
                   if (survey.status === 'draft' && isSponsor) {
@@ -2122,7 +2122,7 @@ export default function Feedback360Dashboard({
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center flex-wrap gap-2 mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 leading-tight">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 leading-tight">
                         360° Feedback -
                         <Avatar
                           name={survey.employee?.name}
@@ -2135,21 +2135,21 @@ export default function Feedback360Dashboard({
                       {/* Relationship badges */}
                       {isSponsor && (
                         <Tooltip content="You created this survey">
-                          <span className="text-xs font-medium text-indigo-700 cursor-help">
+                          <span className="text-xs font-medium text-indigo-700 dark:text-indigo-400 cursor-help">
                             Sponsor
                           </span>
                         </Tooltip>
                       )}
                       {isReviewee && (
                         <Tooltip content="You are being reviewed">
-                          <span className="text-xs font-medium text-orange-700 cursor-help">
+                          <span className="text-xs font-medium text-orange-700 dark:text-orange-400 cursor-help">
                             Subject
                           </span>
                         </Tooltip>
                       )}
                       {isReviewer && (
                         <Tooltip content="You were invited to provide feedback">
-                          <span className="text-xs font-medium text-cyan-700 cursor-help">
+                          <span className="text-xs font-medium text-cyan-700 dark:text-cyan-400 cursor-help">
                             Reviewer
                           </span>
                         </Tooltip>
@@ -2160,17 +2160,17 @@ export default function Feedback360Dashboard({
                     {/* Only show reviewer count to Admin, SLT, and survey sponsor */}
                     {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || isSponsor) && (
                       <div className="flex items-center">
-                        <span className="text-gray-500">Reviewers:</span>
-                        <span className="ml-2 font-semibold text-gray-900">
+                        <span className="text-gray-500 dark:text-gray-400">Reviewers:</span>
+                        <span className="ml-2 font-semibold text-gray-900 dark:text-gray-100">
                           {survey.completed_count ?? 0}/{survey.reviewers_count ?? 0}
                         </span>
-                        <span className="ml-1 text-gray-500">completed</span>
+                        <span className="ml-1 text-gray-500 dark:text-gray-400">completed</span>
                       </div>
                     )}
                     {survey.due_date && (
                       <div className="flex items-center">
-                        <Clock className="w-4 h-4 mr-1 text-gray-400" />
-                        <span className="text-gray-500">Due: {new Date(survey.due_date).toLocaleDateString()}</span>
+                        <Clock className="w-4 h-4 mr-1 text-gray-400 dark:text-gray-500" />
+                        <span className="text-gray-500 dark:text-gray-400">Due: {new Date(survey.due_date).toLocaleDateString()}</span>
                       </div>
                     )}
                   </div>
@@ -2223,7 +2223,7 @@ export default function Feedback360Dashboard({
                                   e.stopPropagation();
                                   await handleSLTOptOut(survey.id);
                                 }}
-                                className="inline-flex items-center px-4 py-2 bg-red-800 text-white rounded-lg hover:bg-red-900 transition-all font-medium shadow-md hover:shadow-lg"
+                                className="inline-flex items-center px-4 py-2 bg-red-800 dark:bg-red-900 text-white rounded-lg hover:bg-red-900 dark:hover:bg-red-950 transition-all font-medium shadow-md hover:shadow-lg"
                               >
                                 <UserMinus className="w-4 h-4 mr-2" />
                                 Opt Out
@@ -2244,7 +2244,7 @@ export default function Feedback360Dashboard({
                               e.stopPropagation();
                               await handleSLTOptIn(survey.id);
                             }}
-                            className="inline-flex items-center px-4 py-2 bg-lime-500 text-white rounded-lg hover:bg-lime-600 transition-all font-medium shadow-md hover:shadow-lg mt-4"
+                            className="inline-flex items-center px-4 py-2 bg-lime-500 dark:bg-lime-600 text-white rounded-lg hover:bg-lime-600 dark:hover:bg-lime-700 transition-all font-medium shadow-md hover:shadow-lg mt-4"
                           >
                             <UserPlus className="w-4 h-4 mr-2" />
                             Opt In?
@@ -2258,7 +2258,7 @@ export default function Feedback360Dashboard({
                   {survey.status === 'active' && (survey.reviewers_count ?? 0) > 0 && (
                     <div className="mt-3">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-600">
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
                           Response Rate: {Math.round(((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) * 100)}% (70% required)
                         </span>
                         {(() => {
@@ -2269,23 +2269,23 @@ export default function Feedback360Dashboard({
                           const isAtRisk = responseRate < 0.5 && daysUntilDue <= 3 && daysUntilDue > 0;
 
                           return isAtRisk && (
-                            <span className="text-xs text-orange-600 font-semibold flex items-center gap-1">
+                            <span className="text-xs text-orange-600 dark:text-orange-400 font-semibold flex items-center gap-1">
                               <AlertTriangle className="w-3 h-3" />
                               At Risk
                             </span>
                           );
                         })()}
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 relative">
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative">
                         <div
                           className={`h-2 rounded-full transition-all ${
-                            ((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) < 0.7 ? 'bg-orange-500' : 'bg-green-600'
+                            ((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) < 0.7 ? 'bg-orange-500 dark:bg-orange-600' : 'bg-green-600 dark:bg-green-500'
                           }`}
                           style={{ width: `${((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) * 100}%` }}
                         />
                         {/* Show 70% requirement marker */}
                         <div
-                          className="absolute top-0 bottom-0 w-0.5 bg-gray-400 opacity-50"
+                          className="absolute top-0 bottom-0 w-0.5 bg-gray-400 dark:bg-gray-500 opacity-50"
                           style={{ left: '70%' }}
                           title="70% completion required"
                         />
@@ -2306,7 +2306,7 @@ export default function Feedback360Dashboard({
                         e.stopPropagation();
                         sendReminders(survey.id);
                       }}
-                      className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-medium flex items-center whitespace-nowrap"
+                      className="px-3 py-1.5 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors text-sm font-medium flex items-center whitespace-nowrap"
                     >
                       <Send className="w-4 h-4 mr-1" />
                       Remind
@@ -2323,7 +2323,7 @@ export default function Feedback360Dashboard({
                         e.stopPropagation();
                         deleteInProgressSurvey(survey.id);
                       }}
-                      className="absolute bottom-6 right-6 mt-4 text-red-600 hover:text-red-700 transition-colors text-sm font-medium"
+                      className="absolute bottom-6 right-6 mt-4 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors text-sm font-medium"
                     >
                       Delete
                     </button>
@@ -2386,18 +2386,18 @@ export default function Feedback360Dashboard({
           // If finalized, only subject or admin (not leaders) can see the complete review results
           const canSeeResults = (isSubject || isFinalizedNonSponsorAdmin) && selectedSurvey.status === 'finalized';
           return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6 border-b border-gray-200 sticky top-0 bg-white flex items-center justify-between">
+            <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2 text-gray-500" />
-                      <span className="text-sm text-gray-600">Employee:</span>
-                      <span className="ml-2 text-sm font-semibold text-gray-900">
+                      <Users className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Employee:</span>
+                      <span className="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
                         {selectedSurvey.employee?.name || 'Unknown'}
                       </span>
                       {selectedSurvey.employee?.title && (
-                        <span className="ml-2 text-sm text-gray-600">• {selectedSurvey.employee.title}</span>
+                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">• {selectedSurvey.employee.title}</span>
                       )}
                     </div>
                     <div className="mt-2">
@@ -2406,7 +2406,7 @@ export default function Feedback360Dashboard({
                   </div>
                   <button
                     onClick={() => setIsDetailsModalOpen(false)}
-                    className="text-gray-400 hover:text-gray-600 ml-4"
+                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 ml-4"
                   >
                     <X className="w-6 h-6" />
                   </button>
@@ -2417,16 +2417,16 @@ export default function Feedback360Dashboard({
                     <div className="flex items-center gap-6">
                       {selectedSurvey.due_date && (
                         <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-2 text-gray-500" />
-                          <span className="text-sm text-gray-600">Due Date:</span>
-                          <span className="ml-2 text-sm font-semibold text-gray-900">
+                          <Clock className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Due Date:</span>
+                          <span className="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
                             {new Date(selectedSurvey.due_date).toLocaleDateString()}
                           </span>
                         </div>
                       )}
                       <div className="flex items-center">
-                        <span className="text-sm text-gray-600">Created:</span>
-                        <span className="ml-2 text-sm text-gray-900">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Created:</span>
+                        <span className="ml-2 text-sm text-gray-900 dark:text-gray-100">
                           {selectedSurvey.created_at ? new Date(selectedSurvey.created_at).toLocaleDateString() : 'N/A'}
                         </span>
                       </div>
@@ -2437,7 +2437,7 @@ export default function Feedback360Dashboard({
                 {canSeeResults && (
                   <button
                     onClick={() => loadAndShowResults(selectedSurvey)}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 dark:hover:from-blue-800 dark:hover:to-blue-900 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                   >
                     <Eye className="w-4 h-4" />
                     View Complete Review
@@ -2452,21 +2452,21 @@ export default function Feedback360Dashboard({
                       const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 0;
                       const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
                       return (
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
                           Reviewers ({completedReviewers}/{totalReviewers} completed)
                         </h4>
                       );
                     })()}
                     {/* Only show reviewers list to admin, sponsor, or SLT (for in-progress surveys) */}
                     {(isAdmin || isSponsor || (isSLT && selectedSurvey.status === 'in_progress')) && (
-                      <div className="bg-gray-50 rounded-lg p-4 space-y-2 max-h-[240px] overflow-y-auto">
+                      <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4 space-y-2 max-h-[240px] overflow-y-auto">
                         {surveyReviewers.length === 0 ? (
-                          <p className="text-sm text-gray-500 text-center py-2">No reviewers added yet</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No reviewers added yet</p>
                         ) : (
                           surveyReviewers.map((reviewer) => (
                             <div
                               key={reviewer.id}
-                              className="flex items-center justify-between p-3 bg-white rounded border border-gray-200"
+                              className="flex items-center justify-between p-3 bg-white dark:bg-gray-700/50 rounded border border-gray-200 dark:border-gray-600"
                             >
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
@@ -2475,18 +2475,18 @@ export default function Feedback360Dashboard({
                                     picture={undefined}
                                     size="sm"
                                   />
-                                  <span className="font-medium text-gray-900 text-sm">{reviewer.reviewer_name}</span>
+                                  <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">{reviewer.reviewer_name}</span>
                                   <span className={`px-2 py-0.5 text-xs rounded ${
                                     reviewer.status === 'completed'
-                                      ? 'bg-green-100 text-green-700'
+                                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                                       : reviewer.status === 'in_progress'
-                                      ? 'bg-yellow-100 text-yellow-700'
-                                      : 'bg-gray-100 text-gray-600'
+                                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                                   }`}>
                                     {reviewer.status === 'completed' ? 'Completed' : reviewer.status === 'in_progress' ? 'In Progress' : 'Pending'}
                                   </span>
                                 </div>
-                                <div className="text-xs text-gray-600 mt-1">
+                                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                                   {reviewer.reviewer_email} • {formatRelationship(reviewer.relationship)}
                                 </div>
                               </div>
@@ -2501,10 +2501,10 @@ export default function Feedback360Dashboard({
                 {/* Completion Message or Button - Only for reviewers, not for subject */}
                 {isReviewer && !isSubject && (
                   userCompletedReview ? (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
+                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4 mt-4">
                       <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm font-medium text-green-900">
+                        <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm font-medium text-green-900 dark:text-green-200">
                           Your input towards the review is already complete. Thank you!
                         </p>
                       </div>
@@ -2528,10 +2528,10 @@ export default function Feedback360Dashboard({
         // Sponsor view - full management interface
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 leading-tight">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 leading-tight">
                   360° Feedback -
                   <Avatar
                     name={selectedSurvey.employee?.name}
@@ -2542,7 +2542,7 @@ export default function Feedback360Dashboard({
                 </h2>
                 <button
                   onClick={() => setIsDetailsModalOpen(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -2551,18 +2551,18 @@ export default function Feedback360Dashboard({
 
             <div className="p-6 space-y-6">
               {/* Metadata line */}
-              <div className="flex items-center justify-between text-sm text-gray-600 pb-4 border-b border-gray-200">
+              <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 pb-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-6">
                   <div>
-                    <span className="text-gray-600">Created: </span>
-                    <span className="text-gray-900">
+                    <span className="text-gray-600 dark:text-gray-400">Created: </span>
+                    <span className="text-gray-900 dark:text-gray-100">
                       {selectedSurvey.created_at ? new Date(selectedSurvey.created_at).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                   {selectedSurvey.due_date && (
                     <div>
-                      <span className="text-gray-600">Due Date: </span>
-                      <span className="font-semibold text-gray-900">
+                      <span className="text-gray-600 dark:text-gray-400">Due Date: </span>
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">
                         {new Date(selectedSurvey.due_date).toLocaleDateString()}
                       </span>
                     </div>
@@ -2574,7 +2574,7 @@ export default function Feedback360Dashboard({
               {/* Reviewers */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-gray-900">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     Reviewers ({(() => {
                       const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 0;
                       const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
@@ -2584,7 +2584,7 @@ export default function Feedback360Dashboard({
                   {isSponsor && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
                   <button
                     onClick={() => setIsAddingReviewer(!isAddingReviewer)}
-                    className="text-sm text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 font-medium"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 font-medium"
                   >
                     <Plus className="w-4 h-4" />
                     Add Reviewer
@@ -2594,7 +2594,7 @@ export default function Feedback360Dashboard({
 
                 {isAddingReviewer && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
                   <div className="mb-3 relative">
-                    <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
                       <select
                         value={newReviewerRelationship}
                         onChange={async (e) => {
@@ -2606,7 +2606,7 @@ export default function Feedback360Dashboard({
                             await fetchEmployeesWithRelationships(reviewerSearch, newRelationship);
                           }
                         }}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       >
                         <option value="">Select relationship...</option>
                         <option value="manager">Manager</option>
@@ -2619,7 +2619,7 @@ export default function Feedback360Dashboard({
                       {!selectedReviewerEmployee ? (
                         <div className="flex-1 relative">
                           <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                             <input
                               type="text"
                               value={reviewerSearch}
@@ -2656,21 +2656,21 @@ export default function Feedback360Dashboard({
                                 }
                               }}
                               placeholder="Search employees..."
-                              className="w-full pl-9 pr-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              className="w-full pl-9 pr-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
                             />
                           </div>
                         </div>
                       ) : (
                         <div className="flex-1 flex items-center gap-2">
-                          <div className="flex-1 flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                          <div className="flex-1 flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
                             <Avatar
                               name={(selectedReviewerEmployee as any).full_name || selectedReviewerEmployee.name}
                               picture={selectedReviewerEmployee.picture ?? undefined}
                               size="sm"
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-sm text-gray-900">{(selectedReviewerEmployee as any).full_name || selectedReviewerEmployee.name}</div>
-                              <div className="text-xs text-gray-600 truncate">{selectedReviewerEmployee.email}</div>
+                              <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{(selectedReviewerEmployee as any).full_name || selectedReviewerEmployee.name}</div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400 truncate">{selectedReviewerEmployee.email}</div>
                             </div>
                           </div>
                         </div>
@@ -2680,7 +2680,7 @@ export default function Feedback360Dashboard({
                       {selectedReviewerEmployee ? (
                         <button
                           onClick={addReviewer}
-                          className="px-3 py-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                          className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
                           title="Add & Send Invitation"
                         >
                           Add
@@ -2696,7 +2696,7 @@ export default function Feedback360Dashboard({
                           setNewReviewerRelationship('');
                           setEmployeesWithRelationships([]);
                         }}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
                         title="Cancel"
                       >
                         <X className="w-4 h-4" />
@@ -2714,12 +2714,12 @@ export default function Feedback360Dashboard({
                             setReviewerSearch('');
                           }}
                         />
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
                           <div className="p-2">
                             {isLoadingRelationships ? (
-                              <div className="p-4 text-center text-sm text-gray-500">
+                              <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
                                 <div className="flex items-center justify-center gap-2">
-                                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                  <div className="w-4 h-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                                   <span>Loading...</span>
                                 </div>
                               </div>
@@ -2744,8 +2744,8 @@ export default function Feedback360Dashboard({
                                     }}
                                     className={`w-full text-left p-2 rounded-lg transition-colors flex items-center gap-2 ${
                                       isAlreadyAdded
-                                        ? 'opacity-60 cursor-not-allowed bg-gray-50'
-                                        : 'hover:bg-blue-50 cursor-pointer'
+                                        ? 'opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-700'
+                                        : 'hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer'
                                     }`}
                                     disabled={isAlreadyAdded}
                                   >
@@ -2756,18 +2756,18 @@ export default function Feedback360Dashboard({
                                     />
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2 flex-wrap">
-                                        <div className="font-semibold text-sm text-gray-900">{emp.full_name || emp.name}</div>
+                                        <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">{emp.full_name || emp.name}</div>
                                         {isAlreadyAdded && (
-                                          <span className="px-2 py-0.5 text-xs font-medium rounded bg-gray-200 text-gray-600">
+                                          <span className="px-2 py-0.5 text-xs font-medium rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                                             Already Added
                                           </span>
                                         )}
                                         {empWithRel.detected_relationship && !isAlreadyAdded && (
                                           <span className={`px-2 py-0.5 text-xs font-medium rounded ${
-                                            empWithRel.detected_relationship === 'manager' ? 'bg-purple-100 text-purple-700' :
-                                            empWithRel.detected_relationship === 'slt' ? 'bg-blue-100 text-blue-700' :
-                                            empWithRel.detected_relationship === 'direct_report' ? 'bg-green-100 text-green-700' :
-                                            'bg-gray-100 text-gray-700'
+                                            empWithRel.detected_relationship === 'manager' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
+                                            empWithRel.detected_relationship === 'slt' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                                            empWithRel.detected_relationship === 'direct_report' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
+                                            'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                                           }`}>
                                             {empWithRel.detected_relationship === 'manager' ? 'Manager' :
                                              empWithRel.detected_relationship === 'slt' ? 'SLT' :
@@ -2776,13 +2776,13 @@ export default function Feedback360Dashboard({
                                           </span>
                                         )}
                                       </div>
-                                      {emp.title && <div className="text-xs text-gray-600">{emp.title}</div>}
+                                      {emp.title && <div className="text-xs text-gray-600 dark:text-gray-400">{emp.title}</div>}
                                     </div>
                                   </button>
                                 );
                               })
                             ) : newReviewerRelationship && employeesWithRelationships.length === 0 && !isLoadingRelationships ? (
-                              <div className="p-4 text-center text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg m-2">
+                              <div className="p-4 text-center text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg m-2">
                                 {selectedSurvey?.employee?.name} has no{' '}
                                 {newReviewerRelationship === 'manager' ? 'manager' :
                                  newReviewerRelationship === 'slt' ? 'SLT' :
@@ -2790,14 +2790,14 @@ export default function Feedback360Dashboard({
                                  'cross-functional colleagues'} in the system
                               </div>
                             ) : (
-                              <div className="p-4 text-center text-sm text-gray-500">No employees found</div>
+                              <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">No employees found</div>
                             )}
                             <button
                               onClick={() => {
                                 setShowReviewerPicker(false);
                                 setReviewerSearch('');
                               }}
-                              className="w-full mt-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                              className="w-full mt-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                             >
                               Enter manually instead
                             </button>
@@ -2810,14 +2810,14 @@ export default function Feedback360Dashboard({
 
                 {/* Only show reviewers list to admin, sponsor, or SLT (for in-progress surveys) */}
                 {(isAdmin || isSponsor || (isSLT && selectedSurvey.status === 'in_progress')) ? (
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-2 max-h-[240px] overflow-y-auto">
+                  <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4 space-y-2 max-h-[240px] overflow-y-auto">
                     {surveyReviewers.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-2">No reviewers added yet</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No reviewers added yet</p>
                     ) : (
                       surveyReviewers.map((reviewer) => (
                         <div
                           key={reviewer.id}
-                          className="flex items-center justify-between p-3 bg-white rounded border border-gray-200"
+                          className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600"
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
@@ -2826,18 +2826,18 @@ export default function Feedback360Dashboard({
                                 picture={undefined}
                                 size="sm"
                               />
-                              <span className="font-medium text-gray-900 text-sm">{reviewer.reviewer_name}</span>
+                              <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">{reviewer.reviewer_name}</span>
                               <span className={`px-2 py-0.5 text-xs rounded ${
                                 reviewer.status === 'completed'
-                                  ? 'bg-green-100 text-green-700'
+                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                                   : reviewer.status === 'in_progress'
-                                  ? 'bg-yellow-100 text-yellow-700'
-                                  : 'bg-gray-100 text-gray-600'
+                                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                               }`}>
                                 {reviewer.status === 'completed' ? 'Completed' : reviewer.status === 'in_progress' ? 'In Progress' : 'Pending'}
                               </span>
                             </div>
-                            <div className="text-xs text-gray-600 mt-1">
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                               {reviewer.reviewer_email} • {formatRelationship(reviewer.relationship)}
                             </div>
                           </div>
@@ -2845,14 +2845,14 @@ export default function Feedback360Dashboard({
                           <div className="flex items-center gap-6">
                             {reviewer.status !== 'completed' && (
                               remindedReviewers.has(reviewer.id) ? (
-                                <span className="px-3 py-1.5 text-xs bg-green-50 text-green-700 rounded flex items-center gap-1">
+                                <span className="px-3 py-1.5 text-xs bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded flex items-center gap-1">
                                   <CheckCircle className="w-3 h-3" />
                                   Reminded
                                 </span>
                               ) : (
                                 <button
                                   onClick={() => sendReminderToReviewer(reviewer.id, reviewer.reviewer_email)}
-                                  className="text-xs text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 font-medium"
+                                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 font-medium"
                                   title="Send reminder email"
                                 >
                                   <Send className="w-3 h-3" />
@@ -2862,7 +2862,7 @@ export default function Feedback360Dashboard({
                             )}
                             <button
                               onClick={() => removeReviewer(reviewer.id)}
-                              className="text-red-600 hover:text-red-700 transition-colors"
+                              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
                               title="Remove reviewer"
                             >
                               <X className="w-4 h-4" />
@@ -2874,13 +2874,13 @@ export default function Feedback360Dashboard({
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 text-center py-2">Reviewer details are only visible to admins and the review sponsor.</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">Reviewer details are only visible to admins and the review sponsor.</p>
                 )}
               </div>
 
               {/* Actions - Only visible to sponsor */}
               {isSponsor && (
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div>
                   {/* Send Backward - Always on left, always grey */}
                   {(selectedSurvey.status === 'in_progress' || selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (() => {
@@ -2890,7 +2890,7 @@ export default function Feedback360Dashboard({
                       <Tooltip content={`Move 360° to ${targetStatus} status`}>
                         <button
                           onClick={() => sendBackward(selectedSurvey.id, selectedSurvey.status ?? undefined)}
-                          className="text-gray-600 hover:text-gray-800 transition-colors font-medium flex items-center"
+                          className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors font-medium flex items-center"
                         >
                           <ChevronLeft className="w-4 h-4 mr-2" />
                           Send Backward
@@ -2998,8 +2998,8 @@ export default function Feedback360Dashboard({
 
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden">
-              <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <div className="flex items-center gap-3">
@@ -3198,7 +3198,7 @@ export default function Feedback360Dashboard({
                                 {/* Specificity Control */}
                                 <div className="flex items-center gap-2 flex-1">
                                   <span className="text-xs text-gray-500">Less Specific</span>
-                                  <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                  <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -3250,7 +3250,7 @@ export default function Feedback360Dashboard({
                                 {/* Tone Control */}
                                 <div className="flex items-center gap-2 flex-1">
                                   <span className="text-xs text-gray-500">Softer</span>
-                                  <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                  <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -3302,7 +3302,7 @@ export default function Feedback360Dashboard({
                                 {/* Length Control */}
                                 <div className="flex items-center gap-2 flex-1">
                                   <span className="text-xs text-gray-500">Shorter</span>
-                                  <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                  <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -3400,7 +3400,7 @@ export default function Feedback360Dashboard({
                                 <div className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-6">
                                   <div className="flex items-center gap-2 flex-1">
                                     <span className="text-xs text-gray-500">Less Specific</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'left'); }} disabled={isAdjustingItem || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'center'); }} disabled={isAdjustingItem || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'right'); }} disabled={isAdjustingItem || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
@@ -3410,7 +3410,7 @@ export default function Feedback360Dashboard({
                                   <div className="h-4 w-px bg-gray-300"></div>
                                   <div className="flex items-center gap-2 flex-1">
                                     <span className="text-xs text-gray-500">Softer</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'left'); }} disabled={isAdjustingItem || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'center'); }} disabled={isAdjustingItem || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'right'); }} disabled={isAdjustingItem || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
@@ -3420,7 +3420,7 @@ export default function Feedback360Dashboard({
                                   <div className="h-4 w-px bg-gray-300"></div>
                                   <div className="flex items-center gap-2 flex-1">
                                     <span className="text-xs text-gray-500">Shorter</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'left'); }} disabled={isAdjustingItem || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'center'); }} disabled={isAdjustingItem || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'right'); }} disabled={isAdjustingItem || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
@@ -3480,7 +3480,7 @@ export default function Feedback360Dashboard({
                                 <div className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-6">
                                   <div className="flex items-center gap-2 flex-1">
                                     <span className="text-xs text-gray-500">Less Specific</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'left'); }} disabled={isAdjustingItem || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'center'); }} disabled={isAdjustingItem || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'right'); }} disabled={isAdjustingItem || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
@@ -3490,7 +3490,7 @@ export default function Feedback360Dashboard({
                                   <div className="h-4 w-px bg-gray-300"></div>
                                   <div className="flex items-center gap-2 flex-1">
                                     <span className="text-xs text-gray-500">Softer</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'left'); }} disabled={isAdjustingItem || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'center'); }} disabled={isAdjustingItem || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'right'); }} disabled={isAdjustingItem || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
@@ -3500,7 +3500,7 @@ export default function Feedback360Dashboard({
                                   <div className="h-4 w-px bg-gray-300"></div>
                                   <div className="flex items-center gap-2 flex-1">
                                     <span className="text-xs text-gray-500">Shorter</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'left'); }} disabled={isAdjustingItem || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'center'); }} disabled={isAdjustingItem || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'right'); }} disabled={isAdjustingItem || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
@@ -3561,7 +3561,7 @@ export default function Feedback360Dashboard({
                                 <div className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-6">
                                   <div className="flex items-center gap-2 flex-1">
                                     <span className="text-xs text-gray-500">Less Specific</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'specificity', 'left'); }} disabled={isAdjustingItem || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'specificity', 'center'); }} disabled={isAdjustingItem || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'specificity', 'right'); }} disabled={isAdjustingItem || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
@@ -3571,7 +3571,7 @@ export default function Feedback360Dashboard({
                                   <div className="h-4 w-px bg-gray-300"></div>
                                   <div className="flex items-center gap-2 flex-1">
                                     <span className="text-xs text-gray-500">Softer</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'tone', 'left'); }} disabled={isAdjustingItem || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'tone', 'center'); }} disabled={isAdjustingItem || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'tone', 'right'); }} disabled={isAdjustingItem || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
@@ -3581,7 +3581,7 @@ export default function Feedback360Dashboard({
                                   <div className="h-4 w-px bg-gray-300"></div>
                                   <div className="flex items-center gap-2 flex-1">
                                     <span className="text-xs text-gray-500">Shorter</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden flex-1">
+                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'length', 'left'); }} disabled={isAdjustingItem || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'length', 'center'); }} disabled={isAdjustingItem || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'length', 'right'); }} disabled={isAdjustingItem || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
@@ -3739,7 +3739,7 @@ export default function Feedback360Dashboard({
               })() && (
                 <>
                   {/* Privacy Notice Banner */}
-                  <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 dark:border-amber-600 p-4 mb-6">
                     <div className="flex items-start">
                       <AlertTriangle className="w-5 h-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
                       <div>
@@ -3754,7 +3754,7 @@ export default function Feedback360Dashboard({
                     </div>
                   </div>
 
-                  <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                  <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-6 border border-blue-200 dark:border-blue-700">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4">
                     Sentiment by Relationship Type
                   </h4>
@@ -3835,7 +3835,7 @@ export default function Feedback360Dashboard({
               {activeReportTab === 'consensus' && (surveyResults.consensus_areas?.length > 0 || surveyResults.outlier_opinions?.length > 0) && (
                 <>
                   {/* Privacy Notice Banner */}
-                  <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 dark:border-amber-600 p-4 mb-6">
                     <div className="flex items-start">
                       <AlertTriangle className="w-5 h-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
                       <div>
@@ -3852,7 +3852,7 @@ export default function Feedback360Dashboard({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {surveyResults.consensus_areas && surveyResults.consensus_areas.length > 0 && (
-                      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                      <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-4 border border-green-200 dark:border-green-700">
                         <h4 className="text-lg font-semibold text-gray-900 mb-2">
                           Strong Consensus
                         </h4>
@@ -3865,7 +3865,7 @@ export default function Feedback360Dashboard({
                     )}
 
                     {surveyResults.outlier_opinions && surveyResults.outlier_opinions.length > 0 && (
-                      <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                      <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-700">
                         <h4 className="text-lg font-semibold text-gray-900 mb-2">
                           Unique Perspectives
                         </h4>
@@ -3885,7 +3885,7 @@ export default function Feedback360Dashboard({
                 <div className="space-y-6">
                   {/* Warning if narrative is outdated */}
                   {narrativeOutdated && finalNarrative && (
-                    <div className="bg-amber-50 border-l-4 border-amber-400 p-4">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 dark:border-amber-600 p-4">
                       <div className="flex items-start">
                         <AlertTriangle className="w-5 h-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
                         <div>
@@ -3983,7 +3983,7 @@ export default function Feedback360Dashboard({
             </div>
 
             {/* Actions Footer - Anchored at bottom */}
-            <div className="border-t border-gray-200 bg-white p-6">
+            <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
               {/* Admin viewing flagged survey - special controls */}
               {currentUser?.app_role === 'admin' && (selectedSurvey.flagged_for_admin || selectedSurvey.flagged_for_reanalysis) ? (
                 <div className="space-y-4">
@@ -4132,9 +4132,9 @@ export default function Feedback360Dashboard({
       {/* Raw Data Modal */}
       {showRawData && rawSurveyData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Raw Survey Data</h2>
@@ -4188,7 +4188,7 @@ export default function Feedback360Dashboard({
                 <h3 className="font-semibold text-gray-900 mb-3">Reviewers</h3>
                 <div className="space-y-2">
                   {rawSurveyData.reviewers?.map((reviewer: any) => (
-                    <div key={reviewer.id} className="bg-white border border-gray-200 rounded-lg p-3">
+                    <div key={reviewer.id} className="bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-gray-900">{reviewer.reviewer_name}</p>
@@ -4230,7 +4230,7 @@ export default function Feedback360Dashboard({
                     return Object.entries(groupedByReviewer).map(([email, reviewerResponses]: [string, any[]]) => {
                       const reviewer = reviewerResponses[0]?.reviewer;
                       return (
-                        <div key={email} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                        <div key={email} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                           {/* Reviewer Header */}
                           <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
                             <div className="flex items-center justify-between">
@@ -4283,7 +4283,7 @@ export default function Feedback360Dashboard({
             </div>
 
             {/* Footer */}
-            <div className="border-t border-gray-200 bg-white p-6">
+            <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
               <button
                 onClick={() => {
                   setShowRawData(false);
@@ -4301,8 +4301,8 @@ export default function Feedback360Dashboard({
       {/* Incomplete Reviewers Warning Dialog */}
       {showIncompleteWarning && selectedSurvey && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <div className="p-6 border-b border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
@@ -4321,8 +4321,8 @@ export default function Feedback360Dashboard({
 
             <div className="p-6 space-y-4">
               <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                <p className="text-sm text-gray-700 font-medium mb-2">70% completion required</p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-2">70% completion required</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   A minimum of 70% of reviewers must complete their feedback before the review can be closed. You currently have {(() => {
                     const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 1;
                     const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;

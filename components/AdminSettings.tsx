@@ -56,22 +56,22 @@ function SortableQuestionItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg"
+      className="flex items-center p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg"
     >
       <button
         {...attributes}
         {...listeners}
-        className="flex-shrink-0 mr-3 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+        className="flex-shrink-0 mr-3 cursor-grab active:cursor-grabbing text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
       >
         <GripVertical className="w-5 h-5" />
       </button>
-      <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">
+      <span className="flex-shrink-0 w-6 h-6 bg-blue-600 dark:bg-blue-700 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">
         {index + 1}
       </span>
-      <p className="text-sm text-gray-700 flex-1">{text}</p>
+      <p className="text-sm text-gray-700 dark:text-gray-300 flex-1">{text}</p>
       <button
         onClick={onDelete}
-        className="ml-3 p-1 text-red-600 hover:bg-red-50 rounded"
+        className="ml-3 p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
         title="Delete question"
       >
         <Trash2 className="w-4 h-4" />
@@ -171,22 +171,22 @@ function Default360QuestionsManager() {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow border border-gray-200">
-      <div className="p-6 border-b border-gray-200">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
               <HelpCircle className="w-5 h-5 mr-2" />
               360 Feedback Default Questions
             </h3>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               Configure the required questions for all 360 feedback sessions
             </p>
           </div>
           {!isEditing ? (
             <button
               onClick={() => setIsEditing(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 text-sm"
             >
               Manage Questions
             </button>
@@ -195,7 +195,7 @@ function Default360QuestionsManager() {
               <button
                 onClick={saveDefaultQuestions}
                 disabled={saving}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-800 text-sm disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
@@ -205,7 +205,7 @@ function Default360QuestionsManager() {
                   loadDefaultQuestions();
                 }}
                 disabled={saving}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 text-sm disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -217,25 +217,25 @@ function Default360QuestionsManager() {
       <div className="p-6">
         {!isEditing ? (
           <div className="space-y-3">
-            <p className="text-sm font-medium text-gray-700 mb-3">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
               Current Required Questions ({questions.length}):
             </p>
             {questions.map((question, index) => (
-              <div key={question.id} className="flex items-start p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">
+              <div key={question.id} className="flex items-start p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
+                <span className="flex-shrink-0 w-6 h-6 bg-blue-600 dark:bg-blue-700 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">
                   {index + 1}
                 </span>
-                <p className="text-sm text-gray-700">{question.text}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{question.text}</p>
               </div>
             ))}
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="border rounded-lg p-3 mb-4 bg-blue-50 border-blue-200">
-              <p className="text-sm text-blue-800">
+            <div className="border rounded-lg p-3 mb-4 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700">
+              <p className="text-sm text-blue-800 dark:text-blue-300">
                 <strong>Total Questions: {questions.length}</strong>
               </p>
-              <p className="text-xs mt-1 text-gray-600">
+              <p className="text-xs mt-1 text-gray-600 dark:text-gray-400">
                 Drag and drop to reorder questions
               </p>
             </div>
@@ -243,7 +243,7 @@ function Default360QuestionsManager() {
             {/* Drag and Drop Question List */}
             {questions.length > 0 && (
               <div className="space-y-2 mb-4">
-                <h4 className="font-semibold text-gray-900 text-sm">Required Questions</h4>
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Required Questions</h4>
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -273,13 +273,13 @@ function Default360QuestionsManager() {
             {!showCustomInput ? (
               <button
                 onClick={() => setShowCustomInput(true)}
-                className="w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 text-sm font-medium"
+                className="w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-blue-500 dark:hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm font-medium"
               >
                 + Add Question
               </button>
             ) : (
-              <div className="p-4 border-2 border-blue-300 rounded-lg bg-blue-50">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="p-4 border-2 border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50 dark:bg-blue-900/30">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Enter your question:
                 </label>
                 <textarea
@@ -287,12 +287,12 @@ function Default360QuestionsManager() {
                   onChange={(e) => setCustomQuestionText(e.target.value)}
                   placeholder="What question should reviewers answer?"
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mb-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                 />
                 <div className="flex space-x-2">
                   <button
                     onClick={addCustomQuestion}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                    className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 text-sm"
                   >
                     Add Question
                   </button>
@@ -301,7 +301,7 @@ function Default360QuestionsManager() {
                       setShowCustomInput(false);
                       setCustomQuestionText('');
                     }}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 text-sm"
                   >
                     Cancel
                   </button>
@@ -454,12 +454,14 @@ export default function AdminSettings() {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
+        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-700';
+      case 'slt':
+        return 'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-700';
       case 'leader':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-700';
       case 'user':
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600';
     }
   };
 
@@ -468,11 +470,11 @@ export default function AdminSettings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-            <Settings className="w-7 h-7 mr-2 text-blue-600" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
+            <Settings className="w-7 h-7 mr-2 text-blue-600 dark:text-blue-400" />
             Admin Settings
           </h2>
-          <p className="text-gray-600 mt-1">Configure system settings and manage organization</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Configure system settings and manage organization</p>
         </div>
       </div>
 
@@ -480,27 +482,27 @@ export default function AdminSettings() {
       <Default360QuestionsManager />
 
       {/* Employee Management */}
-      <div className="bg-white rounded-lg shadow border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center mb-4">
             <User className="w-5 h-5 mr-2" />
             Employee Management
           </h3>
-          <p className="text-sm text-gray-600 mb-4">Search and edit employee information and manage access levels</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Search and edit employee information and manage access levels</p>
 
           {/* Search Bar */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               placeholder="Search by name, email, title, or department..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
             />
           </div>
           {searchQuery && (
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
               Found {filteredEmployees.length} matching {filteredEmployees.length === 1 ? 'employee' : 'employees'}
             </p>
           )}
@@ -509,32 +511,32 @@ export default function AdminSettings() {
         {/* Scrollable table container with fixed height */}
         <div className="overflow-x-auto" style={{ maxHeight: '500px', overflowY: 'auto' }}>
           {loading ? (
-            <div className="p-8 text-center text-gray-500">Loading employees...</div>
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading employees...</div>
           ) : !searchQuery ? (
-            <div className="p-8 text-center text-gray-500">
-              <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+              <Search className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
               <p>Enter a name, email, title, or department to search for employees</p>
             </div>
           ) : filteredEmployees.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
               <p>No employees found matching &quot;{searchQuery}&quot;</p>
             </div>
           ) : (
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Title</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Department</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredEmployees.map((employee) => (
-                  <tr key={employee.id} className="hover:bg-gray-50">
+                  <tr key={employee.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     {employee.isEditing ? (
                       <>
                         <td className="px-6 py-4">
@@ -542,7 +544,7 @@ export default function AdminSettings() {
                             type="text"
                             value={editValues[employee.id]?.full_name || ''}
                             onChange={(e) => updateEditValue(employee.id, 'full_name', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
                           />
                         </td>
                         <td className="px-6 py-4">
@@ -550,7 +552,7 @@ export default function AdminSettings() {
                             type="email"
                             value={editValues[employee.id]?.email || ''}
                             onChange={(e) => updateEditValue(employee.id, 'email', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
                           />
                         </td>
                         <td className="px-6 py-4">
@@ -558,7 +560,7 @@ export default function AdminSettings() {
                             type="text"
                             value={editValues[employee.id]?.title || ''}
                             onChange={(e) => updateEditValue(employee.id, 'title', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
                           />
                         </td>
                         <td className="px-6 py-4">
@@ -566,7 +568,7 @@ export default function AdminSettings() {
                             type="text"
                             value={editValues[employee.id]?.department || ''}
                             onChange={(e) => updateEditValue(employee.id, 'department', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
                           />
                         </td>
                         <td className="px-6 py-4">
@@ -574,17 +576,18 @@ export default function AdminSettings() {
                             type="text"
                             value={editValues[employee.id]?.location || ''}
                             onChange={(e) => updateEditValue(employee.id, 'location', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
                           />
                         </td>
                         <td className="px-6 py-4">
                           <select
                             value={editValues[employee.id]?.role || 'user'}
                             onChange={(e) => updateEditValue(employee.id, 'role', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
                           >
                             <option value="user">User</option>
                             <option value="leader">Leader</option>
+                            <option value="slt">SLT</option>
                             <option value="admin">Admin</option>
                           </select>
                         </td>
@@ -593,7 +596,7 @@ export default function AdminSettings() {
                             <button
                               onClick={() => saveEdit(employee)}
                               disabled={saving === employee.id}
-                              className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-50"
+                              className="p-1 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded disabled:opacity-50"
                               title="Save"
                             >
                               <Save className="w-4 h-4" />
@@ -601,7 +604,7 @@ export default function AdminSettings() {
                             <button
                               onClick={() => cancelEdit(employee.id)}
                               disabled={saving === employee.id}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+                              className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-50"
                               title="Cancel"
                             >
                               <X className="w-4 h-4" />
@@ -611,19 +614,19 @@ export default function AdminSettings() {
                       </>
                     ) : (
                       <>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                           {employee.full_name}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {employee.email}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {employee.title || '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {employee.department || '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {employee.location || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -636,7 +639,7 @@ export default function AdminSettings() {
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => startEdit(employee)}
-                              className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                              className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
                               title="Edit"
                             >
                               <Pencil className="w-4 h-4" />
@@ -644,7 +647,7 @@ export default function AdminSettings() {
                             <button
                               onClick={() => deleteEmployee(employee)}
                               disabled={deleting === employee.id}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+                              className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-50"
                               title="Delete"
                             >
                               <Trash2 className="w-4 h-4" />

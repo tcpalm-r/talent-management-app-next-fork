@@ -226,7 +226,7 @@ export default function Dashboard({
   };
 
   return (
-    <div className="h-screen flex bg-white">
+    <div className="h-screen flex bg-white dark:bg-gray-900">
       {/* Sidebar */}
       <Sidebar
         currentView={currentView}
@@ -240,8 +240,8 @@ export default function Dashboard({
           {loading && (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-3 text-sm text-gray-600">Loading...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto"></div>
+                <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">Loading...</p>
               </div>
             </div>
           )}

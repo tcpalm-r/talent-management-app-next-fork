@@ -39,7 +39,7 @@ export default function PeopleDashboard({
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
         <EmployeeList
           employees={scopedEmployees}
           departments={departments}

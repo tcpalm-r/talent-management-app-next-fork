@@ -833,16 +833,16 @@ function ToastViewport({ toasts, onDismiss }: ToastViewportProps) {
         {toasts.map(toast => (
           <article
             key={toast.id}
-            className="pointer-events-auto rounded-xl border border-gray-200 shadow-lg bg-white/95 backdrop-blur-sm px-4 py-3 flex flex-col gap-1 transition-transform duration-200 ease-out translate-x-0"
+            className="pointer-events-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm px-4 py-3 flex flex-col gap-1 transition-transform duration-200 ease-out translate-x-0"
           >
             <header className="flex items-start justify-between gap-4">
               <div>
-                {toast.title && <p className="text-sm font-semibold text-gray-900">{toast.title}</p>}
-                {toast.description && <p className="text-sm text-gray-600 whitespace-pre-line">{toast.description}</p>}
+                {toast.title && <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{toast.title}</p>}
+                {toast.description && <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">{toast.description}</p>}
               </div>
               <button
                 onClick={() => onDismiss(toast.id)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 aria-label="Dismiss notification"
               >
                 ×
@@ -856,7 +856,7 @@ function ToastViewport({ toasts, onDismiss }: ToastViewportProps) {
                     toast.onAction();
                     onDismiss(toast.id);
                   }}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
                 >
                   {toast.actionLabel}
                 </button>
@@ -885,13 +885,13 @@ function variantLabel(variant: ToastVariant) {
 function variantColorClass(variant: ToastVariant) {
   switch (variant) {
     case 'success':
-      return 'text-green-600';
+      return 'text-green-600 dark:text-green-400';
     case 'warning':
-      return 'text-amber-600';
+      return 'text-amber-600 dark:text-amber-400';
     case 'error':
-      return 'text-red-600';
+      return 'text-red-600 dark:text-red-400';
     default:
-      return 'text-blue-600';
+      return 'text-blue-600 dark:text-blue-400';
   }
 }
 
