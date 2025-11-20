@@ -257,9 +257,15 @@ export default function SurveyCompletionPage() {
 
   const handleMetaFeedbackSubmit = async () => {
     try {
-      // Ensure we have a survey ID
+      // Ensure we have a survey ID and reviewer ID
       if (!surveyId) {
         console.error('Cannot submit feedback: Survey ID is missing');
+        alert('Unable to submit feedback. Please try again.');
+        return;
+      }
+
+      if (!reviewer?.id) {
+        console.error('Cannot submit feedback: Reviewer ID is missing');
         alert('Unable to submit feedback. Please try again.');
         return;
       }
@@ -267,6 +273,7 @@ export default function SurveyCompletionPage() {
       // Ensure ratings are integers
       const payload = {
         surveyId: surveyId,
+        reviewerId: reviewer.id,
         navigationRating: Math.round(navigationRating),
         aiHelperRating: didNotUseAI ? 0 : Math.round(aiHelperRating),
         additionalComments: additionalComments.trim() || null,

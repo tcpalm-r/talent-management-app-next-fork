@@ -6,6 +6,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       surveyId,
+      reviewerId,
       navigationRating,
       aiHelperRating,
       additionalComments,
@@ -15,6 +16,13 @@ export async function POST(request: NextRequest) {
     if (!surveyId) {
       return NextResponse.json(
         { error: 'Survey ID is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!reviewerId) {
+      return NextResponse.json(
+        { error: 'Reviewer ID is required' },
         { status: 400 }
       );
     }
@@ -59,11 +67,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Insert meta feedback (anonymous - no reviewer info)
+    // Insert meta feedback (tied to specific reviewer)
     const { data: feedback, error: insertError } = await supabaseAdmin
       .from('survey_meta_feedback')
       .insert({
         survey_id: surveyId,
+        reviewer_id: reviewerId,
         navigation_rating: navigationRating,
         ai_helper_rating: aiHelperRating,
         additional_comments: additionalComments || null,
@@ -74,10 +83,10 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error('[API /survey-completion/meta-feedback] Insert error:', insertError);
 
-      // Handle unique constraint violation (feedback already submitted for this survey)
+      // Handle unique constraint violation (feedback already submitted by this reviewer)
       if (insertError.code === '23505') {
         return NextResponse.json(
-          { error: 'Feedback already submitted for this survey' },
+          { error: 'You have already submitted feedback for this survey' },
           { status: 409 }
         );
       }
