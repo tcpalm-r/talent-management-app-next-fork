@@ -911,13 +911,7 @@ export default function Survey360Wizard({
         const responseData = await response.json();
         console.log('[DRAFT SAVE] ✅ API response:', responseData);
 
-        notify({
-          title: 'Draft saved',
-          description: 'Your review has been saved as a draft.',
-          variant: 'success',
-        });
-
-        // Refresh the survey list to show the new draft
+        // Refresh the survey list to show the new draft (no notification for draft save)
         onSurveyCreated();
       } catch (error: any) {
         console.error('[DRAFT SAVE] ❌ Error saving draft:', error);
