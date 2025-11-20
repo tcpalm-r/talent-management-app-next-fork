@@ -2588,7 +2588,15 @@ export default function Feedback360Dashboard({
 
                 {isAddingReviewer && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
                   <div className="mb-3 relative">
-                    <div className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+                    <div
+                      className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && selectedReviewerEmployee) {
+                          e.preventDefault();
+                          addReviewer();
+                        }
+                      }}
+                    >
                       <select
                         value={newReviewerRelationship}
                         onChange={async (e) => {
@@ -2598,6 +2606,12 @@ export default function Feedback360Dashboard({
                           // Pattern 2: Filter First - Pre-fetch employees matching this relationship
                           if (selectedSurvey?.employee_id && newRelationship) {
                             await fetchEmployeesWithRelationships(reviewerSearch, newRelationship);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && selectedReviewerEmployee) {
+                            e.preventDefault();
+                            addReviewer();
                           }
                         }}
                         className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -2632,6 +2646,12 @@ export default function Feedback360Dashboard({
                                   // Clear API results when search is cleared
                                   setEmployeesWithRelationships([]);
                                   setShowReviewerPicker(false);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && selectedReviewerEmployee) {
+                                  e.preventDefault();
+                                  addReviewer();
                                 }
                               }}
                               onFocus={async () => {
