@@ -2601,15 +2601,7 @@ export default function Feedback360Dashboard({
 
                 {isAddingReviewer && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
                   <div className="mb-3 relative">
-                    <div
-                      className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && selectedReviewerEmployee) {
-                          e.preventDefault();
-                          addReviewer();
-                        }
-                      }}
-                    >
+                    <div className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
                       <select
                         value={newReviewerRelationship}
                         onChange={async (e) => {
@@ -2624,6 +2616,7 @@ export default function Feedback360Dashboard({
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && selectedReviewerEmployee) {
                             e.preventDefault();
+                            e.stopPropagation();
                             addReviewer();
                           }
                         }}
@@ -2664,6 +2657,7 @@ export default function Feedback360Dashboard({
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' && selectedReviewerEmployee) {
                                   e.preventDefault();
+                                  e.stopPropagation();
                                   addReviewer();
                                 }
                               }}
@@ -2696,6 +2690,7 @@ export default function Feedback360Dashboard({
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
                                 e.preventDefault();
+                                e.stopPropagation();
                                 addReviewer();
                               }
                             }}
