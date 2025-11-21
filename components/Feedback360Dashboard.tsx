@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus, Check, User } from 'lucide-react';
+import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus, Check, User, Search } from 'lucide-react';
 import type { Employee, Department, ParticipantRelationship } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
@@ -81,9 +81,11 @@ export default function Feedback360Dashboard({
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'in_progress' | 'completed' | 'needs_review' | 'needs_reanalysis' | 'finalized'>('all');
   const [reviewerFilterStatus, setReviewerFilterStatus] = useState<'all' | 'required' | 'optional'>('all');
   // Only Admin and SLT can sponsor surveys, everyone else defaults to 'reviewer'
-  const [filterRole, setFilterRole] = useState<'sponsor' | 'reviewer' | 'subject'>(
+  const [filterRole, setFilterRole] = useState<'sponsor' | 'reviewer'>(
     (currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt') ? 'sponsor' : 'reviewer'
   );
+  const [reviewerSearchQuery, setReviewerSearchQuery] = useState('');
+  const [sponsorSearchQuery, setSponsorSearchQuery] = useState('');
   const [preselectedEmployee, setPreselectedEmployee] = useState<Employee | undefined>(undefined);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -1495,10 +1497,7 @@ export default function Feedback360Dashboard({
       return isReviewer && survey.status === 'in_progress';
     }
 
-    // Subject tab: only show finalized surveys where user is the subject
-    if (filterRole === 'subject') {
-      return isSubject && survey.status === 'finalized';
-    }
+    // Subject tab removed - users can view their finalized reports in the "My Report" page
 
     // Sponsor tab:
     // - Admin sees ALL surveys (full oversight)
@@ -1559,13 +1558,37 @@ export default function Feedback360Dashboard({
       : roleFilteredSurveys.filter(s => s.status === filterStatus);
   }
 
-  // Apply reviewer filter (only for SLT on Reviewer tab)
-  if (filterRole === 'reviewer' && currentUser?.app_role === 'slt') {
+  // Apply reviewer filter (for SLT and Admin on Reviewer tab)
+  if (filterRole === 'reviewer' && (currentUser?.app_role === 'slt' || currentUser?.app_role === 'admin')) {
     filteredSurveys = reviewerFilterStatus === 'all'
       ? roleFilteredSurveys
       : reviewerFilterStatus === 'required'
       ? roleFilteredSurveys.filter(s => s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email))
       : roleFilteredSurveys.filter(s => !s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email));
+  }
+
+  // Apply search filter on Reviewer tab
+  if (filterRole === 'reviewer' && reviewerSearchQuery.trim()) {
+    const query = reviewerSearchQuery.toLowerCase().trim();
+    filteredSurveys = filteredSurveys.filter(survey => {
+      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || '';
+
+      // Check if query matches start of first name or last name ONLY
+      const nameParts = employeeName.split(/\s+/).filter(part => part.length > 0); // Split by whitespace and remove empty strings
+      return nameParts.some(part => part.startsWith(query));
+    });
+  }
+
+  // Apply search filter on Sponsor tab
+  if (filterRole === 'sponsor' && sponsorSearchQuery.trim()) {
+    const query = sponsorSearchQuery.toLowerCase().trim();
+    filteredSurveys = filteredSurveys.filter(survey => {
+      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || '';
+
+      // Check if query matches start of first name or last name ONLY
+      const nameParts = employeeName.split(/\s+/).filter(part => part.length > 0); // Split by whitespace and remove empty strings
+      return nameParts.some(part => part.startsWith(query));
+    });
   }
 
   // Calculate stats based on role-filtered surveys
@@ -1755,17 +1778,14 @@ export default function Feedback360Dashboard({
               label: 'Give Feedback',
               tooltip: 'Active 360 feedback sessions awaiting your input. Provide anonymous feedback, aggregated with AI',
               count: reviewerCount
-            },
-            {
-              id: 'subject',
-              label: 'View Your Report',
-              tooltip: 'View feedback your colleagues gave you, compiled into a report with themes, insights, and recommended actions'
             }
           ]}
           activeTab={filterRole}
           onTabChange={(tabId) => {
-            setFilterRole(tabId as 'sponsor' | 'reviewer' | 'subject');
+            setFilterRole(tabId as 'sponsor' | 'reviewer');
             setReviewerFilterStatus('all'); // Reset reviewer filter when switching tabs
+            setReviewerSearchQuery(''); // Clear reviewer search when switching tabs
+            setSponsorSearchQuery(''); // Clear sponsor search when switching tabs
           }}
           variant="underline"
         />
@@ -1901,16 +1921,28 @@ export default function Feedback360Dashboard({
       {/* Launch Review Button - Only show for Admin and SLT (Sponsors) on Sponsor tab */}
       {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt') && filterRole === 'sponsor' && (
         <div className="relative mt-6 mb-6">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => {
                 setPreselectedEmployee(undefined);
                 setIsWizardOpen(true);
               }}
-              className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors font-medium"
+              className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors font-medium whitespace-nowrap"
             >
               Launch 360° Review
             </button>
+
+            {/* Search Bar */}
+            <div className="relative w-[675px]">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by employee name..."
+                value={sponsorSearchQuery}
+                onChange={(e) => setSponsorSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              />
+            </div>
             {/* AI-assisted review wizard button - disabled and hidden */}
             {false && (
               <button
@@ -1989,6 +2021,22 @@ export default function Feedback360Dashboard({
       </div>
       )}
 
+      {/* Search Bar - Only show on Reviewer tab */}
+      {filterRole === 'reviewer' && (
+        <div className="mt-6">
+          <div className="relative w-[675px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by employee name..."
+              value={reviewerSearchQuery}
+              onChange={(e) => setReviewerSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Reviews List */}
       {loading ? (
         <div className="text-center py-12 mt-6">
@@ -2002,8 +2050,6 @@ export default function Feedback360Dashboard({
             <h3 className="text-lg font-normal text-gray-500 dark:text-gray-400 mb-2">
               {filterRole === 'reviewer'
                 ? 'No 360°s require your input'
-                : filterRole === 'subject'
-                ? 'Your 360° feedback has not been finalized'
                 : filterStatus === 'all'
                 ? 'No 360°s yet. Launch a 360° Review and it will show up here.'
                 : filterStatus === 'draft'

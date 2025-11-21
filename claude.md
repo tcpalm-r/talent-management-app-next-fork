@@ -129,12 +129,14 @@ NEXT_PUBLIC_DISABLE_AUTH=true
 User roles are stored in `user_profiles.app_role` field (also accessible via the `employees` materialized view) with four levels:
 
 - **Admin** - Full system access
+  - Can create 360 feedback surveys
   - Can view all surveys across the organization
   - Can manage all users and settings
   - Can delete, finalize, or revert any survey
   - Can access admin settings panel
 
 - **SLT** (Senior Leadership Team) - Executive leadership access
+  - Can create 360 feedback surveys
   - Can view surveys they created
   - Can view surveys where they are the subject
   - Can view surveys for their direct reports
@@ -142,14 +144,16 @@ User roles are stored in `user_profiles.app_role` field (also accessible via the
   - Cannot see other leaders' draft surveys
 
 - **Leader** - Team management access
-  - Can view surveys they created
+  - **Cannot create 360 feedback surveys** (view-only access)
+  - Can view surveys they created (if any exist from before role change)
   - Can view surveys where they are the subject
   - Can view surveys for their direct reports
   - Can view surveys where they are a reviewer (except drafts)
   - Cannot see other leaders' draft surveys
 
 - **User** - Individual contributor access
-  - Can view surveys they created
+  - **Cannot create 360 feedback surveys** (view-only access)
+  - Can view surveys they created (if any exist from before role change)
   - Can view surveys where they are the subject
   - Can view surveys where they are a reviewer (except drafts)
   - Cannot see drafts created by others

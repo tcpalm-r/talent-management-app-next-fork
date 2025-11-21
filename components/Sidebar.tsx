@@ -1,13 +1,13 @@
 'use client';
 
-import { RotateCw, Users, Settings } from 'lucide-react';
+import { RotateCw, Users, Settings, FileText } from 'lucide-react';
 import { useMemo, useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
 import { UserContext } from '@/context/UserContext';
 import { AUTH_DISABLED } from '@/lib/auth';
 import { ThemeToggle } from './unified';
 
-type View = '360-feedback' | 'directory' | 'admin-settings';
+type View = '360-feedback' | 'my-report' | 'directory' | 'admin-settings';
 
 interface TestUser {
   id: string;
@@ -37,6 +37,7 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
   const baseNavItems = [
     { id: 'directory', label: 'Talent', icon: Users },
     { id: '360-feedback', label: '360°', icon: RotateCw },
+    { id: 'my-report', label: 'My Review', icon: FileText },
   ] as const;
 
   const leaderNavItems = [] as const;
@@ -254,7 +255,7 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
                 <div className="absolute left-1 top-1 bottom-1 w-1 bg-blue-600 dark:bg-blue-400" style={{ borderRadius: '1px' }} />
               )}
               <Icon className="w-5 h-5 mb-1" />
-              <span className="text-xs font-normal text-center leading-tight">{item.label}</span>
+              <span className="text-[0.65rem] font-normal text-center leading-tight">{item.label}</span>
             </button>
           );
         })}
