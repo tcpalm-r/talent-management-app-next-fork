@@ -224,6 +224,12 @@ export async function POST(request: Request) {
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
     <p style="font-size: 16px; margin-bottom: 20px;">Hi ${reviewer.reviewer_name || 'there'},</p>
 
+    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 15px; margin-bottom: 25px;">
+      <p style="margin: 0; color: #856404; font-size: 14px;">
+        <strong>🔒 Privacy Note:</strong> Your responses will be kept confidential and aggregated with other feedback to ensure anonymity - your comments cannot be traced back to you.
+      </p>
+    </div>
+
     ${isReminder && daysRemaining !== null ? `
     <div style="background: ${daysRemaining <= 3 ? '#fee2e2' : '#fef3c7'}; border-left: 4px solid ${daysRemaining <= 3 ? '#dc2626' : '#f59e0b'}; padding: 15px; margin: 25px 0;">
       <p style="margin: 0; color: ${daysRemaining <= 3 ? '#7f1d1d' : '#78350f'}; font-weight: 600; font-size: 18px;">
@@ -241,8 +247,7 @@ export async function POST(request: Request) {
     </p>
 
     <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 25px 0;">
-      <p style="margin: 0; color: #555;"><strong>Survey:</strong> ${survey.survey_name || '360° Feedback'}</p>
-      <p style="margin: 5px 0 0 0; color: #555;"><strong>Due Date:</strong> ${dueDate}</p>
+      <p style="margin: 0; color: #555;"><strong>Due Date:</strong> ${dueDate}</p>
     </div>
 
     <div style="text-align: center; margin: 30px 0;">
@@ -256,12 +261,6 @@ export async function POST(request: Request) {
     <div style="background: #fed7aa; border-left: 4px solid #f97316; border-radius: 6px; padding: 20px; margin: 25px 0;">
       <p style="margin: 0; color: #7c2d12; font-size: 18px; font-weight: 600; line-height: 1.6;">
         <strong>Important:</strong> Once Authenticated, Launch the 360° Review APP in the Hub dashboard and complete your survey!
-      </p>
-    </div>
-
-    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 15px; margin-top: 25px;">
-      <p style="margin: 0; color: #856404; font-size: 14px;">
-        <strong>🔒 Privacy Note:</strong> Your responses will be kept confidential and aggregated with other feedback to ensure anonymity.
       </p>
     </div>
 
