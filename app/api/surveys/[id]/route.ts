@@ -185,15 +185,15 @@ export async function DELETE(
       );
     }
 
-    // Authorization check - only creator, admin, or SLT can delete
-    const canDelete =
-      user.app_role === 'admin' ||
-      user.app_role === 'slt' ||  // HIGH PRIORITY FIX: SLT has elevated access
-      existingSurvey.created_by === profile.id;
+    // Authorization check - only Admin and SLT can delete their own surveys
+    // Leaders and Users cannot delete surveys (they can't create them anyway)
+    const isAdminOrSLT = user.app_role === 'admin' || user.app_role === 'slt';
+    const isCreator = existingSurvey.created_by === profile.id;
+    const canDelete = isAdminOrSLT && isCreator;
 
     if (!canDelete) {
       return NextResponse.json(
-        { error: 'Forbidden: Only the creator or admins can delete surveys' },
+        { error: 'Forbidden: Only the survey sponsor (Admin or SLT) can delete their own surveys' },
         { status: 403 }
       );
     }
@@ -272,24 +272,25 @@ export async function DELETE(
 /**
  * Check if user has permission to modify this survey
  *
- * CRITICAL FIX: Leaders can ONLY modify surveys they CREATED (not all direct report surveys)
- * This prevents conflict of interest where a leader modifies a direct report's survey
- * created by an admin or another leader
+ * Permission Rules:
+ * - Admins can modify any survey
+ * - SLT can only modify surveys they created/sponsored
+ * - Leaders can only modify surveys they created
+ * - Users can only modify surveys they created
+ *
+ * This prevents conflict of interest and ensures only the survey sponsor
+ * (or admin) can make changes to survey configuration and status.
  */
 async function checkSurveyModifyPermission(
   survey: any,
   role: string,
   profile: any
 ): Promise<boolean> {
-  // Admins and SLT can modify everything
-  if (role === 'admin' || role === 'slt') return true;
+  // Admins can modify everything
+  if (role === 'admin') return true;
 
-  // Survey creator can modify their own surveys
+  // Everyone else (including SLT) can only modify surveys they created
   if (survey.created_by === profile.id) return true;
-
-  // CRITICAL FIX: Removed direct report modification permission for leaders
-  // Leaders can only modify surveys THEY created, not direct reports' surveys
-  // This enforces read-only access to direct reports' surveys (to avoid conflict)
 
   return false;
 }

@@ -15,10 +15,11 @@ export async function POST(request: NextRequest) {
 
     const { user, profile } = authData;
 
-    // CRITICAL FIX: Only admin, SLT, and leader can update drafts
-    if (user.app_role !== 'admin' && user.app_role !== 'slt' && user.app_role !== 'leader') {
+    // ROLE CHECK: Only admin and SLT can update drafts
+    // Leaders and Users CANNOT create or sponsor surveys
+    if (user.app_role !== 'admin' && user.app_role !== 'slt') {
       return NextResponse.json(
-        { error: 'Forbidden: Only admins, SLT, and leaders can update draft surveys' },
+        { error: 'Forbidden: Only admins and SLT can update draft surveys' },
         { status: 403 }
       );
     }

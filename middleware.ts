@@ -263,7 +263,8 @@ export async function middleware(request: NextRequest) {
             requestHeaders.set('x-user-email', mappedUser.email);
 
             // Create response and redirect without auth_token
-            const cleanUrl = new URL(pathname, request.url);
+            // Use request.url as base to preserve query parameters (e.g. survey IDs)
+            const cleanUrl = new URL(request.url);
             cleanUrl.searchParams.delete('auth_token');
 
             const response = NextResponse.redirect(cleanUrl);
@@ -376,8 +377,13 @@ export async function middleware(request: NextRequest) {
       if (authResponse.status === 401) {
         console.log('[Sonance Auth] User not authenticated, redirecting to Sonance hub login');
         const loginUrl = new URL('/login', process.env.AI_INTRANET_URL);
-        loginUrl.searchParams.set('returnTo', request.url);
-        loginUrl.searchParams.set('app', process.env.APP_ID || '');
+        
+        // Clean auth_token from return URL to prevent loops
+        const returnTo = new URL(request.url);
+        returnTo.searchParams.delete('auth_token');
+        
+        loginUrl.searchParams.set('returnTo', returnTo.toString());
+        loginUrl.searchParams.set('app', process.env.APP_ID || process.env.NEXT_PUBLIC_APP_ID || '');
         return NextResponse.redirect(loginUrl);
       }
 
@@ -504,15 +510,25 @@ export async function middleware(request: NextRequest) {
       // Redirect to AI Intranet login if all auth methods fail
       console.log('[Sonance Auth] No valid session, redirecting to AI Intranet login');
       const loginUrl = new URL('/login', process.env.AI_INTRANET_URL);
-      loginUrl.searchParams.set('returnTo', request.url);
-      loginUrl.searchParams.set('app', process.env.APP_ID || '');
+      
+      // Clean auth_token from return URL to prevent loops
+      const returnTo = new URL(request.url);
+      returnTo.searchParams.delete('auth_token');
+      
+      loginUrl.searchParams.set('returnTo', returnTo.toString());
+      loginUrl.searchParams.set('app', process.env.APP_ID || process.env.NEXT_PUBLIC_APP_ID || '');
       return NextResponse.redirect(loginUrl);
     }
   } catch (error) {
     console.error('[Sonance Auth] Unexpected middleware error:', error);
     const loginUrl = new URL('/login', process.env.AI_INTRANET_URL);
-    loginUrl.searchParams.set('returnTo', request.url);
-    loginUrl.searchParams.set('app', process.env.APP_ID || '');
+    
+    // Clean auth_token from return URL to prevent loops
+    const returnTo = new URL(request.url);
+    returnTo.searchParams.delete('auth_token');
+    
+    loginUrl.searchParams.set('returnTo', returnTo.toString());
+    loginUrl.searchParams.set('app', process.env.APP_ID || process.env.NEXT_PUBLIC_APP_ID || '');
     return NextResponse.redirect(loginUrl);
   }
 }

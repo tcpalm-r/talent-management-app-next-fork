@@ -1,770 +1,318 @@
-# Talent Management App - Software Stack Documentation
+# Talent Management App - Technical Documentation
 
-## Frontend Framework & UI Layer
+> **Version:** 0.4.1 | **Updated:** 2025-11-20
+> **Repo:** talent-management-next | **Deployment:** sonance-360-review | **URL:** https://sonance-360-review.vercel.app
 
-### Core Framework
-- **Next.js 14.2.33** (App Router)
-  - React 18 (React Server Components + Client Components)
-  - React Strict Mode enabled
-  - Port: 3004 (dev/prod)
+---
 
-### Language
-- **TypeScript 5**
-  - Strict mode enabled
-  - Full type safety across codebase
-  - Path aliases: `@/*` maps to project root
+## Quick Reference
 
-### Styling & UI Components
-- **Tailwind CSS 3.4.1** (Utility-first CSS framework)
-  - Custom design tokens (primary colors, grid layouts)
-  - Custom color palette (primary 50-900 shades)
-  - Extended grid templates (3x3 layouts)
-- **Lucide React** (Icon library)
-- **Custom CSS** (globals.css with design system)
+### Tech Stack
+| Layer | Technology | Version | Purpose |
+|-------|-----------|---------|---------|
+| **Framework** | Next.js (App Router) | 14.2.33 | React SSR/SSG |
+| **Language** | TypeScript | 5 | Type-safe development |
+| **UI** | Tailwind CSS | 3.4.1 | Utility-first styling |
+| **Database** | Supabase (PostgreSQL) | 2.76.1 | Primary data store |
+| **Auth** | Auth0 + AI Intranet | - | SSO authentication |
+| **AI** | Anthropic Claude | 0.67 | AI features |
+| **Email** | Resend | 6.2.2 | Transactional emails |
+| **Icons** | Lucide React | - | Icon library |
+| **Validation** | Zod | 4.1.11 | Schema validation |
+| **Testing** | Jest + Playwright | - | Unit + E2E tests |
 
-### Specialized UI Libraries
-- **@dnd-kit** (Drag & drop functionality)
-  - @dnd-kit/core
-  - @dnd-kit/utilities
-- **Zod 4.1.11** (Schema validation)
-- **html2canvas** (Screenshot/export capabilities)
+### Key Commands
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Start dev server (port 3004) |
+| `npm run dev:local` | Dev with mock auth |
+| `npm run build` | Production build |
+| `npm run test` | Run Jest unit tests |
+| `npm run e2e` | Run Playwright E2E tests |
+| `npm run lint` | ESLint code check |
+
+### Essential Environment Variables
+```bash
+# Database
+NEXT_PUBLIC_SUPABASE_URL=https://[project].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+
+# Auth (Production)
+AI_INTRANET_URL=https://aiintranet.sonance.com
+AUTH0_ISSUER_BASE_URL=https://[tenant].auth0.com
+AUTH0_CLIENT_ID=...
+AUTH0_CLIENT_SECRET=...
+AUTH0_SECRET=...
+APP_ID=talent-management-app
+APP_API_KEY=...
+
+# Auth (Development - Bypass)
+DISABLE_AUTH=true
+
+# Services
+ANTHROPIC_API_KEY=sk-ant-...
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=feedback@aiintranet.sonance.com
+CRON_SECRET=<random-secret>
+```
+
+---
+
+## Architecture Overview
+
+### Frontend Stack
+- **Next.js 14 App Router:** React Server Components + Client Components
+- **TypeScript 5:** Strict mode, path aliases (@/*), ES2018 target
+- **Tailwind CSS:** Custom design tokens, responsive utilities, primary color palette (50-900)
+- **UI Libraries:** Lucide React (icons), @dnd-kit (drag & drop), html2canvas (screenshots)
+
+### Backend & API
+**Located in `app/api/`:**
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/auth/*` | Login, logout, callback, validate-token, me, switch-user, sync |
+| `/surveys/*` | CRUD operations, reviewers, reminders, finalization, drafts |
+| `/survey-completion/*` | Survey taking workflow (start, questions, submit) |
+| `/360-default-questions` | Default question configuration |
+| `/360-generate-report` | PDF report generation |
+| `/ai/*` | Survey response generation, parsing, analysis |
+| `/dashboard/*` | Dashboard data and statistics |
+| `/employees/[id]/surveys` | Employee survey history |
+| `/users/list` | User management with filtering |
+| `/send-survey-invitation` | Email invitations |
+| `/cron/send-survey-reminders` | Auto-reminder cron job (9 AM UTC daily) |
+
+**Services:**
+- **Email:** Resend for invitations, reminders, notifications
+- **AI:** Anthropic Claude for survey analysis, response generation, AI Coach
+- **Cron:** Vercel Cron Jobs for automatic reminders (authenticated via CRON_SECRET)
+
+### Database (Supabase PostgreSQL)
+
+**Key Tables:**
+- `user_profiles` - Employee data with app_role field
+- `feedback_360_surveys` - Survey metadata
+- `feedback_360_reviewers` - Survey participants
+- `feedback_360_questions` - Question bank
+- `feedback_360_survey_questions` - Survey-question junction
+- `feedback_360_responses` - Survey answers
+- `departments` - Department data
+
+**Materialized Views:**
+- `employees` - Active employees (includes app_role)
+- `active_users` - User activity tracking
+
+**Access Pattern:**
+1. **Client Components:** Use `lib/supabase.ts` (respects RLS)
+2. **Server Components/API:** Use `lib/supabase-admin.ts` (service role) or `lib/database.ts` (helpers)
+3. **Type Safety:** Types from `lib/schema.ts` (no ORM layer)
 
 ---
 
 ## Authentication & Authorization
 
-### Auth Architecture Overview
-This app uses a **custom "Sonance Auth" system** that integrates with the **AI Intranet (Sonance hub)** for centralized authentication across Sonance applications.
+### Architecture
+**Production Flow:** User → AI Intranet → Auth0 OAuth → JWT → This App
 
-**Production Authentication Flow:**
-- **Primary Auth Provider**: AI Intranet (https://aiintranet.sonance.com)
-- **OAuth Provider**: Auth0 (used by AI Intranet for SSO)
-- **Authentication Flow**: User → AI Intranet → Auth0 OAuth → JWT token → This app
-- **Token Validation**: Middleware validates JWT by calling AI Intranet's `/api/auth/validate-token`
-- **Session Management**: JWT stored in cookies (`ai-intranet-session`, `ai-intranet-user`)
-- **Cross-Domain Auth**: Tokens can be passed via URL parameter (`?auth_token=...`)
-
-**Development Authentication Mode:**
-- Set `DISABLE_AUTH=true` or `NEXT_PUBLIC_DISABLE_AUTH=true` in environment
-- Mock user automatically injected into all requests
-- No external authentication calls required
-- Useful for local development and testing
-
-### Custom Auth Layer Files
-- **lib/auth.ts** - Core auth utilities
-  - AI Intranet token validation logic
-  - Mock user constants for development
-  - Session helper functions
-  - `AUTH_DISABLED` constant exports
-- **lib/auth-wrapper.ts** - Auth wrapper components
-  - Client-side auth state management
-  - User context providers
-- **lib/auth-supabase.ts** - Supabase auth integration
-  - Syncs authenticated users with Supabase user_profiles table
-
-### Middleware
-- **middleware.ts** - Route protection and auth enforcement
-  - Checks authentication for all non-public routes
-  - Validates JWT tokens with AI Intranet in production
-  - Injects mock user headers/cookies in development mode
-  - Handles cross-domain authentication via URL tokens
-  - Skips auth for public paths (API routes, static assets, etc.)
-
-### Auth API Routes
-Located in `app/api/auth/`:
-
-- **`/login`** - Initiates Auth0 login flow (redirects to AI Intranet)
-  - Bypasses in development mode (when `DISABLE_AUTH=true`)
-
-- **`/logout`** - Clears session cookies and logs user out
-
-- **`/callback`** - Handles Auth0 OAuth callback after successful login
-  - Exchanges authorization code for tokens
-  - Sets session cookies
-
-- **`/validate-token`** - Validates JWT token with AI Intranet API
-  - Called by middleware on each request
-
-- **`/me`** - Returns current authenticated user data
-  - Reads from session cookies
-
-- **`/switch-user`** - Development mode: Switch between mock users
-  - Only available when `DISABLE_AUTH=true`
-  - Allows testing different user roles
-
-- **`/sync`** - Syncs user data from Auth0/AI Intranet to Supabase
-  - Updates user_profiles table with latest user information
-
-### Environment Variables
-
-**Required for Production:**
-```bash
-# AI Intranet Integration (Primary Auth)
-AI_INTRANET_URL=https://aiintranet.sonance.com
-# or for local testing:
-# AI_INTRANET_URL_LOCAL=http://localhost:3001
-# AI_INTRANET_URL_PROD=https://aiintranet.sonance.com
-
-APP_ID=talent-management-app
-NEXT_PUBLIC_APP_ID=talent-management-app
-APP_API_KEY=<secret-api-key>
-
-# Auth0 Configuration (OAuth Provider)
-AUTH0_ISSUER_BASE_URL=https://<tenant>.auth0.com
-AUTH0_CLIENT_ID=<client-id>
-AUTH0_CLIENT_SECRET=<secret>
-AUTH0_BASE_URL=https://your-app-url.com
-AUTH0_SECRET=<secret-for-session-encryption>
-```
+**Key Components:**
+- `middleware.ts` - Route protection, JWT validation, mock user injection (dev mode)
+- `lib/auth.ts` - Token validation, mock users, session helpers
+- `lib/auth-wrapper.ts` - Client-side auth state, context providers
+- `lib/auth-supabase.ts` - Syncs auth users to Supabase user_profiles
 
 **Development Mode:**
-```bash
-# Bypass all authentication
-DISABLE_AUTH=true
-# or
-NEXT_PUBLIC_DISABLE_AUTH=true
-```
+Set `DISABLE_AUTH=true` to bypass authentication and inject mock user.
 
 ### Role-Based Access Control (RBAC)
-User roles are stored in `user_profiles.app_role` field (also accessible via the `employees` materialized view) with four levels:
 
-- **Admin** - Full system access
-  - Can create 360 feedback surveys
-  - Can view all surveys across the organization
-  - Can manage all users and settings
-  - Can delete, finalize, or revert any survey
-  - Can access admin settings panel
+| Role | 360 Survey Creation | Survey Deletion | Survey Modification | Survey Visibility |
+|------|---------------------|-----------------|---------------------|-------------------|
+| **Admin** | ✅ Yes | ✅ Own only | ✅ Any survey | All surveys |
+| **SLT** | ✅ Yes | ✅ Own only | ✅ Own only | Own + direct reports + subject + reviewer |
+| **Leader** | ❌ No | ❌ No | ✅ Own only | Own + direct reports + subject + reviewer |
+| **User** | ❌ No | ❌ No | ✅ Own only | Own + subject + reviewer |
 
-- **SLT** (Senior Leadership Team) - Executive leadership access
-  - Can create 360 feedback surveys
-  - Can view surveys they created
-  - Can view surveys where they are the subject
-  - Can view surveys for their direct reports
-  - Can view surveys where they are a reviewer (except drafts)
-  - Cannot see other leaders' draft surveys
+#### Survey Permissions by Role
 
-- **Leader** - Team management access
-  - **Cannot create 360 feedback surveys** (view-only access)
-  - Can view surveys they created (if any exist from before role change)
-  - Can view surveys where they are the subject
-  - Can view surveys for their direct reports
-  - Can view surveys where they are a reviewer (except drafts)
-  - Cannot see other leaders' draft surveys
+**Survey Creation:**
+- **Admin & SLT:** Can create surveys for any employee
+- **Leader & User:** CANNOT create or sponsor surveys
+- Enforced in: `/api/surveys/create`, `/api/surveys/save-draft`, `/api/surveys/update-draft`
 
-- **User** - Individual contributor access
-  - **Cannot create 360 feedback surveys** (view-only access)
-  - Can view surveys they created (if any exist from before role change)
-  - Can view surveys where they are the subject
-  - Can view surveys where they are a reviewer (except drafts)
-  - Cannot see drafts created by others
+**Survey Deletion:**
+- **Admin & SLT:** Can delete surveys they created/sponsored
+- **Leader & User:** Cannot delete surveys (they cannot create them)
+- **No one** can delete another person's survey
+- Enforced in: `/api/surveys/[id]` (DELETE method)
 
-**Permission Enforcement:**
-- Client-side: Role-based filtering in components (Dashboard, Feedback360Dashboard)
-- Server-side: API routes rely on authenticated user context
-- Middleware: Ensures all requests have valid authentication
+**Survey Modification:**
+- **Admin:** Can modify any survey (status, name, due date, flags, etc.)
+- **SLT, Leader, User:** Can only modify surveys they created/sponsored
+- Enforced in: `/api/surveys/[id]` (PATCH method)
 
----
+**Enforcement:**
+- Client: Role-based filtering in Dashboard, Feedback360Dashboard
+- Server: API routes validate role + ownership before operations
+- Middleware: Validates all requests have authentication
 
-## Backend / API Layer
-
-### API Routes (Next.js App Router)
-Located in `app/api/`:
-
-- **`/api/auth/*`**
-  - AI Intranet authentication handlers (see Authentication & Authorization section above for details)
-  - Routes: login, logout, callback, validate-token, me, switch-user, sync
-
-- **`/api/360-default-questions`**
-  - GET: Retrieve default 360 question settings
-  - POST: Update default questions and custom questions
-  - Settings stored in `/data/360-default-questions.json`
-
-- **`/api/send-survey-invitation`**
-  - Email workflow for 360 feedback surveys
-  - Reviewer invitation management
-
-- **`/api/surveys/*`** - Survey management
-  - `/api/surveys/list` - List surveys with role-based filtering
-  - `/api/surveys/create` - Create new survey
-  - `/api/surveys/[id]` - Get/update survey by ID
-  - `/api/surveys/[id]/details` - Get survey with full details
-  - `/api/surveys/[id]/finalize` - Finalize survey
-  - `/api/surveys/[id]/revert-draft` - Revert finalized survey to draft
-  - `/api/surveys/[id]/reviewers` - Manage survey reviewers
-  - `/api/surveys/[id]/reviewers/[reviewerId]` - Individual reviewer operations
-  - `/api/surveys/[id]/send-reminders` - Send reminder emails
-  - `/api/surveys/save-draft` - Save survey draft
-  - `/api/surveys/load-draft` - Load saved draft
-  - `/api/surveys/update-draft` - Update draft
-  - `/api/surveys/update-status` - Update survey status
-
-- **`/api/survey-completion/*`** - Survey completion workflow
-  - `/api/survey-completion/survey` - Get survey for completion
-  - `/api/survey-completion/questions` - Get survey questions
-  - `/api/survey-completion/start` - Start survey completion
-  - `/api/survey-completion/submit` - Submit completed survey
-
-- **`/api/360-generate-report`**
-  - Generate PDF reports from survey data
-  - Export functionality for completed surveys
-
-- **`/api/ai/*`** - AI integration endpoints
-  - `/api/ai/generate-survey-response` - AI-assisted response generation
-  - `/api/ai/parse-survey-description` - Parse natural language survey descriptions
-  - `/api/ai/parse-survey-responses` - Analyze survey responses
-
-- **`/api/dashboard/*`** - Dashboard data endpoints
-  - `/api/dashboard/data` - Dashboard statistics
-  - `/api/dashboard/surveys` - Dashboard survey data
-
-- **`/api/employees/[id]/surveys`**
-  - Get all surveys for a specific employee
-
-- **`/api/users/list`**
-  - List users with filtering and pagination
-
-- **`/api/debug/env`**
-  - Debug endpoint for environment variable inspection (development only)
-
-### Email Service
-- **Resend v6.2.2**
-  - Transactional email API
-  - 360 feedback invitations
-  - System notifications
-  - Survey reminders
-
-### AI Integration
-- **Anthropic SDK v0.67**
-  - Claude API integration
-  - Features:
-    - AI Coach micro-panel
-    - Action item generation (lib/actionItemGenerator.ts)
-    - Survey analysis & insights (lib/survey360Analyzer.ts)
-    - Review analysis (lib/reviewAnalyzer.ts)
+**Session Management:**
+- Cookies: `ai-intranet-session`, `ai-intranet-user`
+- Cross-domain auth: `?auth_token=...` URL parameter
+- Token validation: AI Intranet `/api/auth/validate-token` endpoint
 
 ---
 
-## Database & ORM Layer
+## Major Features
 
-### Primary Database
-- **Supabase (PostgreSQL Backend)**
-  - @supabase/supabase-js v2.76.1 (Client SDK)
-  - Direct postgres connection via connection pooler
-  - Materialized views for performance optimization
-  - Connection via Supabase connection pooler
+### 1. 360° Feedback System
+**Primary Components:**
+- `Feedback360Dashboard.tsx` - Hub dashboard with role-based tabs (Sponsor | Reviewer | Subject)
+- `Survey360Wizard.tsx` - Multi-step survey creation wizard
+- `Quick360Modal.tsx` - Fast survey creation
+- `CreateWithAIModal.tsx` - AI-powered survey generation
+- `SurveyAIAssistant.tsx` - AI response helper
 
-### Database Abstractions
-- **lib/database.ts** - Query helper functions
-  - getUserProfile, getActiveUsers
-  - get360Questions, get360Surveys
-  - Department queries
-  - Statistics queries
+**Capabilities:**
+- Survey creation with default + custom questions (configured via AdminSettings)
+- Reviewer management (add/remove, email invitations)
+- Draft saving/loading (persistent across sessions)
+- Manual + automatic reminders (1-2 days before due date, configurable per survey)
+- Anonymous feedback collection
+- AI-powered response analysis and suggestions
+- Survey status workflow: Draft → Active → Closed → Finalized (with revert option)
+- PDF report generation
 
-- **lib/supabase.ts** - Main Supabase client
-  - Client-side operations
-  - Re-exports for convenience
-  - Type definitions
+**Navigation:**
+- Text-based tabs with underline indicator
+- Status cards dynamically filtered by active role tab
+- Statuses: Draft, In Progress, Completed, Needs Review, Needs Reanalysis, Finalized
 
-- **lib/supabase-admin.ts** - Admin operations
-  - Server-side only
-  - Privileged operations
-  - Service role key access
-
-### Database Schema
-Key tables:
-- `user_profiles` - Employee data with role field
-- `feedback_360_surveys` - 360 feedback surveys
-- `feedback_360_reviewers` - Survey participants
-- `feedback_360_questions` - Question bank
-- `feedback_360_survey_questions` - Survey-specific questions
-- `feedback_360_responses` - Survey answers
-- `departments` - Department data
-
-Materialized views:
-- `employees` - Active employees view (includes app_role field)
-- `active_users` - User activity tracking
-
----
-
-## Data Management & Storage
-
-### File-Based Settings
-- **`/data/360-default-questions.json`**
-  - Custom 360 question configuration
-  - Default question IDs
-  - Custom question text
-  - Persisted via API endpoint
-
-### CSV Import/Export
-- **PapaParse v5.5.3** (CSV parsing)
-- **JSZip v3.10.1** (Archive generation)
-- **Features:**
-  - Employee data import
-  - Bulk operations
-  - Export functionality (lib/export.ts)
-
-### Data Management Libraries
-- **lib/transcriptImporter.ts** - Import conversation transcripts
-- **lib/export.ts** - Export utilities
-- **lib/exportReport.ts** - Report export functionality
-
----
-
-## Major Application Features
-
-### 1. Admin Settings Dashboard
+### 2. Admin Settings Dashboard
 **Location:** `components/AdminSettings.tsx`
 
 **Employee Management:**
-- Search-based interface with scrollable results (500px container)
-- Inline editing of employee fields:
-  - Name (full_name)
-  - Email
-  - Title
-  - Department
-  - Location
-  - Role (user/leader/slt/admin)
-- Color-coded role badges:
-  - Purple: Admin
-  - Teal: SLT
-  - Blue: Leader
-  - Gray: User
-- Soft delete functionality (sets is_active=false)
-- All changes persist to Supabase user_profiles table
+- Search-based interface (500px scrollable container)
+- Inline editing: name, email, title, department, location, role
+- Color-coded role badges (Purple: Admin, Teal: SLT, Blue: Leader, Gray: User)
+- Soft delete (sets is_active=false)
+- Changes persist to Supabase user_profiles
 
 **360 Default Questions:**
-- Configure 3 default questions for all 360 feedback sessions
-- Browse categorized template questions:
-  - Impact
-  - Growth (Start/Stop/Continue)
-  - Leadership
-  - Collaboration
-  - Performance
-  - Value
-  - Trust
-  - General
-- Create custom questions with free-form text
-- Mix template and custom questions
-- Delete custom questions
-- Settings persist to JSON file
-
-### 2. 360° Feedback System
-**Components:**
-- `Feedback360Dashboard.tsx` - Main dashboard
-- `Survey360Wizard.tsx` - Survey creation wizard
-- `Quick360Modal.tsx` - Quick survey creation
-
-**Navigation Structure:**
-- **Primary Role-Based Tabs**: Sponsor | Reviewer | Subject
-  - **Sponsor**: Surveys you created or are managing
-  - **Reviewer**: Surveys where you are providing feedback
-  - **Subject**: Surveys about you
-- **Status Cards**: Dynamically update based on active role tab
-  - Draft, In Progress, Completed, Needs Review, Needs Reanalysis, Finalized
-- **Tab Style**: Text-based with underline indicator (no background colors or button appearance)
-
-**Features:**
-- Role-based primary navigation (Sponsor/Reviewer/Subject tabs)
-- Survey creation wizard
-- Survey draft saving/loading (persistent drafts)
-- Reviewer invitations via email
-- **Survey reminders:**
-  - Manual reminders (button in UI for sponsors)
-  - **Automatic reminders** (configurable during survey creation)
-    - Send reminders 1 or 2 days before due date
-    - Runs daily at 9 AM UTC via Vercel Cron Jobs
-    - Only sent to incomplete reviewers
-    - Simple date check prevents duplicate reminders
-    - Configured per survey via `auto_reminder_days_before` field
-    - Cron endpoint: `/api/cron/send-survey-reminders`
-- Anonymous feedback collection
-- Custom & template questions
-- AI-powered analysis
-- AI-assisted response generation (`/api/ai/generate-survey-response`)
-- Response tracking
-- Survey status management (draft/active/closed/finalized)
-- Survey finalization workflow (revert finalized surveys back to draft)
-- Survey report generation (`/api/360-generate-report` - PDF export)
-- Admin/SLT/Leader role-based permissions
+- Configure 3 default questions for all surveys
+- Browse categorized templates: Impact, Growth, Leadership, Collaboration, Performance, Value, Trust, General
+- Create custom questions
+- Settings persist to `/data/360-default-questions.json`
 
 ### 3. Employee Management
 **Components:**
-- `EmployeeDetailModal.tsx` - Employee details (feature-rich)
-- `EmployeeList.tsx` - List view
-- `EmployeeCardUnified.tsx` - Unified card component (in unified/ directory)
+- `PeopleDashboard.tsx` - Directory container
+- `EmployeeList.tsx` - Searchable grid/list with filters
+- `EmployeeDetailModal.tsx` - 9-panel employee profile (OneOnOne, Retention, CriticalRole, etc.)
+- `EmployeeCardUnified.tsx` - Reusable card with multiple layout variants (in unified/)
 
 **Features:**
 - Org chart visualization
 - Department filtering
 - Skills & capabilities tracking
-- Import/export functionality
-- Employee profiles
+- Import/export (CSV via PapaParse, JSZip)
 - Manager relationships
 
 ### 4. AI Features
-- **AI Coach** (AICoachMicroPanel.tsx)
-  - Contextual assistance
-  - Suggestions and insights
-
-- **Document Generation**
-  - Action item extraction (lib/actionItemGenerator.ts)
-  - Survey analysis & insights (lib/survey360Analyzer.ts)
-
-- **Analysis**
-  - Review analysis (lib/reviewAnalyzer.ts)
-  - Survey insights (lib/survey360Analyzer.ts)
-
-### 5. Other Features
-- **Dashboard** (Dashboard.tsx) - Main application dashboard
-- **Critical Role Setup** (CriticalRoleSetupModal.tsx)
-
----
-
-## Development Tools & Configuration
-
-### Build & Dev Tools
-- **Next.js** (Webpack bundler)
-- **PostCSS** (CSS processing)
-- **ESLint** (Code linting with next config)
-- **dotenv** (Environment management)
-
-### Configuration Files
-- **next.config.mjs** - Next.js configuration
-  - React strict mode
-  - Transpile packages: lucide-react
-  - TypeScript build errors ignored (`ignoreBuildErrors: true`) - TODO: Fix schema mismatches
-  - ESLint build errors ignored (`ignoreDuringBuilds: true`)
-
-- **tailwind.config.ts** - Tailwind configuration
-  - Custom color palette
-  - Extended grid templates
-  - Content paths for all components
-
-- **tsconfig.json** - TypeScript configuration
-  - Strict mode enabled
-  - Path aliases (@/*)
-  - ES2018 target
-
-- **postcss.config.mjs** - PostCSS configuration
-
-### Testing & Quality
-- TypeScript strict mode
-- React Strict Mode
-- ESLint Next.js config
-- **Jest** - Unit testing framework (configured in jest.config.js)
-  - Test files in `__tests__/` and `**/__tests__/` directories
-  - Coverage thresholds: 50% for branches, functions, lines, statements
-  - Test utilities: @testing-library/react, @testing-library/jest-dom
-- **Playwright** - E2E testing framework
-  - E2E tests in `e2e/` directory
-  - Test files: `360-survey.spec.ts`
-
-### Custom Scripts
-Located in `scripts/`:
-- **setup-mcp.js** - MCP server setup
-- **verify-supabase.js** - Database verification
-- **smart-supabase-mcp.js** - Database tooling
-
-### MCP Integration
-This project has **Model Context Protocol (MCP) servers** configured and available:
-
-- **GitHub MCP** - Repository and code management
-  - Available tools for repository operations
-  - Code search and file management
-  - Issue and PR management
-  - Use `mcp_github_*` functions for GitHub operations
-
-**Note:** This MCP server is configured in the Cursor IDE environment. When working on this codebase, Claude has direct access to these tools and should use them for GitHub operations rather than suggesting manual steps.
-
-### NPM Scripts
-```json
-{
-  "dev": "bash ./run-dev.sh",
-  "dev:open": "bash ./run-dev.sh --turbo",
-  "dev:local": "LOCAL_TESTING_MODE=true bash ./run-dev.sh",
-  "dev:prod": "LOCAL_TESTING_MODE=false bash ./run-dev.sh",
-  "dev:360": "PORT=${PORT:-3005} bash ./run-dev.sh",
-  "dev:employee": "PORT=${PORT:-3006} bash ./run-dev.sh",
-  "dev:performance": "PORT=${PORT:-3007} bash ./run-dev.sh",
-  "build": "next build",
-  "start": "next start -p 3004",
-  "lint": "next lint",
-  "test": "jest",
-  "test:watch": "jest --watch",
-  "test:coverage": "jest --coverage",
-  "e2e": "playwright test",
-  "e2e:ui": "playwright test --ui",
-  "setup-mcp": "node scripts/setup-mcp.js",
-  "verify-db": "node scripts/verify-supabase.js",
-  "mcp": "node scripts/smart-supabase-mcp.js",
-  "generate-test-360": "npx ts-node scripts/generate-test-360-data.ts",
-  "ts-prune": "ts-prune",
-  "knip": "knip"
-}
-```
-
-**Note:** All `dev` scripts use `run-dev.sh` wrapper script which handles environment variable loading and port configuration.
-
----
-
-## Environment & Deployment
-
-### Runtime
-- **Node.js 20+** required
-- **Port:** 3004 (both dev and production)
-
-### Environment Modes
-- **LOCAL_TESTING_MODE** - Local development with mock data
-- **Production Mode** - Live environment
-
-### Required Environment Variables
-
-**Supabase:**
-```
-NEXT_PUBLIC_SUPABASE_URL=https://[project-id].supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
-```
-
-**Authentication:**
-```
-# Development Mode - Bypass Auth
-DISABLE_AUTH=true
-# or
-NEXT_PUBLIC_DISABLE_AUTH=true
-
-# Production Mode - AI Intranet + Auth0
-AI_INTRANET_URL=https://aiintranet.sonance.com
-AI_INTRANET_URL_LOCAL=http://localhost:3001
-AI_INTRANET_URL_PROD=https://aiintranet.sonance.com
-APP_ID=talent-management-app
-NEXT_PUBLIC_APP_ID=talent-management-app
-APP_API_KEY=<secret-api-key>
-
-AUTH0_ISSUER_BASE_URL=https://[tenant].auth0.com
-AUTH0_CLIENT_ID=...
-AUTH0_CLIENT_SECRET=...
-AUTH0_BASE_URL=http://localhost:3004 (or production URL)
-AUTH0_SECRET=...
-```
-
-**AI Services:**
-```
-ANTHROPIC_API_KEY=sk-ant-...
-```
-
-**Email:**
-```
-RESEND_API_KEY=re_...
-RESEND_FROM_EMAIL=feedback@aiintranet.sonance.com
-```
-
-**Cron Jobs:**
-```
-CRON_SECRET=<random-secret-string>
-```
-*Note: The CRON_SECRET is used to authenticate Vercel Cron Jobs. Generate a secure random string and add it to Vercel environment variables. This prevents unauthorized access to the automatic reminder cron endpoint.*
+- **AI Coach** (`AICoachMicroPanel.tsx`) - Contextual assistance panel
+- **Document Generation** - Action items (`lib/actionItemGenerator.ts`), survey insights (`lib/survey360Analyzer.ts`)
+- **Analysis** - Review analysis (`lib/reviewAnalyzer.ts`)
+- **AI-Assisted Responses** - `/api/ai/generate-survey-response`
 
 ---
 
 ## Component Architecture
 
-### Overview
-- Components organized across 3 locations:
-  - Root-level feature components
-  - Unified design system components
-  - Index re-export file
-
-### Component Organization
-
-**Directory Structure:**
+### Organization
 ```
 components/
-├── Root - Feature-specific components
-├── unified/ - Design system & reusable patterns
-└── admin/ (empty)
+├── Root/ - Feature-specific components
+│   ├── Feedback360Dashboard.tsx (>1500 LOC)
+│   ├── Survey360Wizard.tsx (>1500 LOC)
+│   ├── EmployeeDetailModal.tsx (>1500 LOC)
+│   ├── OneOnOneModal.tsx (>1500 LOC)
+│   ├── AdminSettings.tsx (500-1500 LOC)
+│   ├── RetentionPlanModal.tsx (500-1500 LOC)
+│   └── ...other feature components
+│
+└── unified/ - Design system & reusable patterns
+    ├── EmployeeCardUnified.tsx - Flexible card (4 layout variants)
+    ├── BadgeSystem.tsx - Status indicators (8 badge types)
+    ├── NavigationTabs.tsx - Tab navigation pattern
+    ├── ModalLayout.tsx - Standardized modal wrapper
+    ├── EmptyState.tsx - Consistent empty states
+    ├── StatCard.tsx - Metric display cards
+    ├── EmployeeNameLink.tsx - Context-aware employee links
+    └── index.ts - Re-exports
 ```
 
-### Distribution by Size & Complexity
-
-**Large Components (>1500 LOC):**
-- `Feedback360Dashboard.tsx` - 360° feedback hub & survey management
-- `OneOnOneModal.tsx` - 1-on-1 meeting management + transcripts
-- `EmployeeDetailModal.tsx` - Central employee profile (9 sub-panels)
-- `Survey360Wizard.tsx` - Multi-step survey builder
-
-**Medium Components (500-1500 LOC):**
-- `RetentionPlanModal.tsx` - Retention strategy & stay interviews
-- `AdminSettings.tsx` - Employee management + question configuration
-- `EmployeeCardUnified.tsx` - Flexible card with multiple layout variants
-- `ManagerNotes.tsx` - Feedback notes with severity tracking
-- `Quick360Modal.tsx` - Fast survey creation
-- `CreateWithAIModal.tsx` - AI-powered survey generation
-- `CriticalRoleSetupModal.tsx` - Succession planning
-
-**Small Components (<500 LOC):**
-- Navigation: `Dashboard.tsx`, `Sidebar.tsx`
-- Utilities: `EmployeeList.tsx`, `AICoachMicroPanel.tsx`, `SurveyAIAssistant.tsx`
-- Layout: `PeopleDashboard.tsx`, `InsightsPanel.tsx`, `Avatar.tsx`
-
-### Feature Area Organization
-
-**1. 360° Feedback Management**
-- `Feedback360Dashboard.tsx` - Main hub for survey creation and tracking
-- `Survey360Wizard.tsx` - Step-by-step survey builder
-- `Quick360Modal.tsx` - Fast survey creation shortcut
-- `CreateWithAIModal.tsx` - AI-assisted survey generation
-- `SurveyAIAssistant.tsx` - AI response helper
-
-**2. Employee Management**
-- `PeopleDashboard.tsx` - Directory container
-- `EmployeeList.tsx` - Searchable employee grid/list
-- `EmployeeDetailModal.tsx` - Comprehensive profile modal
-- `EmployeeCardUnified.tsx` - Reusable card with multiple layout variants
-
-**3. Performance & Development**
-- `OneOnOneModal.tsx` - 1-on-1 meeting management
-- `RetentionPlanModal.tsx` - Retention strategy planning
-- `CriticalRoleSetupModal.tsx` - Succession planning
-- `ManagerNotes.tsx` - Feedback notes display
-*(All nested within EmployeeDetailModal)*
-
-**4. Admin & Configuration**
-- `AdminSettings.tsx` - Employee management + 360 default questions
-- `Dashboard.tsx` - Main router (includes admin view)
-
-**5. Navigation & Layout**
-- `Dashboard.tsx` - Main application orchestrator (horizontal layout: sidebar + main content)
-- `Sidebar.tsx` - Navigation sidebar with role-based menu + user profile/avatar
-- `Avatar.tsx` - User avatar utility
-- `InsightsPanel.tsx` - Team insights dashboard
-- `AICoachMicroPanel.tsx` - Contextual AI suggestions
-
-**6. Design System (in `unified/` subdirectory)**
-- `EmployeeCardUnified.tsx` - Flexible card component with multiple variants
-- `BadgeSystem.tsx` - Status indicators with multiple badge types
-- `NavigationTabs.tsx` - Tab navigation pattern
-- `ModalLayout.tsx` - Standardized modal wrapper
-- `EmptyState.tsx` - Consistent empty state pattern
-- `StatCard.tsx` - Metric display card
-- `EmployeeNameLink.tsx` - Smart employee link with context-aware navigation
-- `index.ts` - Re-exports for unified components
-
-### Dependency Analysis
-
-**Hub Components (Highest Centrality):**
-1. `EmployeeDetailModal.tsx` - Imports multiple nested modals (OneOnOne, Retention, CriticalRole)
-2. `Dashboard.tsx` - Orchestrates all major feature areas
-3. `Feedback360Dashboard.tsx` - Composes wizard, AI modal, and analytics
-4. `EmployeeList.tsx` - Imports detail modal and card component
-
-**Universal Primitives (Used Everywhere):**
-- `EmployeeNameLink.tsx` - Imported by 9+ components for context-aware navigation
-- `EmployeeCardUnified.tsx` - Used throughout for employee display
-- `BadgeSystem.tsx` - Used in 8+ components for status indicators
-- `useToast` hook - Available globally via `unified/index.ts`
-
-**Context Providers:**
-- `UnifiedAICoachContext` - Powers `AICoachMicroPanel`
-- `QuickActionContext` - Enables global employee card access
-- `EmployeeFocusContext` - Used by `EmployeeCardUnified`
-- `TalentAppContext` - Provides `useToast` hook
-
-### Component Interaction Architecture
-
+### Component Hierarchy
 ```
-Dashboard (Router - Horizontal Layout)
+Dashboard (Horizontal Layout)
 ├── Sidebar (nav + user profile/avatar)
-└── Main Content Area:
-    ├── PeopleDashboard
-    │  └── EmployeeList
-    │     ├── EmployeeCardUnified
-    │     └── EmployeeDetailModal (9 panels)
-    │        ├── OneOnOneModal
-    │        ├── RetentionPlanModal
-    │        ├── CriticalRoleSetupModal
-    │        └── Survey360Wizard
-    ├── Feedback360Dashboard (hub)
-    │  ├── NavigationTabs (Sponsor | Reviewer | Subject)
-    │  ├── Survey360Wizard
-    │  ├── Quick360Modal
-    │  ├── CreateWithAIModal
-    │  └── SurveyAIAssistant
-    ├── AdminSettings
+└── Main Content:
+    ├── PeopleDashboard → EmployeeList → EmployeeDetailModal (9 panels)
+    ├── Feedback360Dashboard → Survey360Wizard/Quick360/CreateWithAI
+    ├── AdminSettings (employee mgmt + default questions)
     └── InsightsPanel
 ```
 
-### Key Patterns & Observations
+### Key Patterns
+✅ **Strengths:**
+- Modular modal system with consistent ModalLayout base
+- Unified design system components for consistency
+- Context-driven navigation via EmployeeNameLink
+- Three distinct AI integration points
 
-✅ **Well-Implemented Patterns:**
-- **Modular Modal System** - Consistent modal patterns with ModalLayout base
-- **Design System Integration** - Unified components provide consistency
-- **Context-Driven Navigation** - EmployeeNameLink enables global profile access
-- **Nested Modal Composition** - Complex workflows compose simple modals effectively
-- **AI Integration Points** - Three distinct AI features (Survey generation, Response help, Suggestions)
+⚠️ **Improvement Areas:**
+- Large components (>1500 LOC) are refactoring candidates
+- Modal nesting in EmployeeDetailModal (could use modal router)
+- Prop drilling (more context providers recommended)
+- Expand test coverage (Jest configured, needs more tests)
 
-⚠️ **Areas for Improvement:**
-- **Large Component Size** - Several large components are candidates for decomposition
-- **Modal Nesting** - EmployeeDetailModal contains multiple nested modals (could flatten with modal router)
-- **Prop Drilling** - Multiple components pass many props (context providers would help)
-- **Test Coverage** - Jest is configured with test files, but coverage could be expanded
-- **Limited Documentation** - Components lack JSDoc/TSDoc for complex logic
-
-### Recommended Review Sequence
-
-**Phase 1: Design System Foundation** (2-3 days)
-- `BadgeSystem.tsx` - Verify 8 badge types consistency
-- `EmployeeCardUnified.tsx` - Review 4 layout variants
-- `ModalLayout.tsx` - Check sizing and accessibility
-
-**Phase 2: Navigation & Routing** (1-2 days)
-- `Dashboard.tsx` - Main router and horizontal layout orchestration
-- `Sidebar.tsx` - Navigation structure + user profile/avatar/role switching
-
-**Phase 3: Employee Management** (3-4 days)
-- `EmployeeList.tsx` - Search, filter, actions
-- `EmployeeDetailModal.tsx` - Complex 9-panel modal (refactoring candidate)
-- `PeopleDashboard.tsx` - Container coordination
-
-**Phase 4: 360° Feedback System** (3-4 days)
-- `Feedback360Dashboard.tsx` - Hub dashboard (refactoring candidate)
-- `Survey360Wizard.tsx` - Wizard workflow
-- `Quick360Modal.tsx` - Fast path
-
-**Phase 5: HR Workflows** (2-3 days)
-- `OneOnOneModal.tsx` - Meeting management (refactoring candidate)
-- `RetentionPlanModal.tsx` - Retention planning
-- `CriticalRoleSetupModal.tsx` - Succession planning
-
-**Phase 6: Admin & AI Features** (1-2 days)
-- `AdminSettings.tsx` - Configuration interface
-- `AICoachMicroPanel.tsx` - AI suggestions
-- `CreateWithAIModal.tsx` - AI generation
+**For detailed component documentation, dependency graphs, and review sequences:** See [COMPONENTS.md](./docs/COMPONENTS.md)
 
 ---
 
-## Library Categories
+## Configuration & Setup
 
-### Core Dependencies (Production)
-- **Framework:** next, react, react-dom
-- **Database:** @supabase/supabase-js
-- **AI:** @anthropic-ai/sdk
-- **Email:** resend
-- **UI:** lucide-react, @dnd-kit/core, @dnd-kit/utilities
-- **Validation:** zod
-- **Utilities:** uuid
-- **Data:** papaparse, jszip, html2canvas, jspdf
+### File-Based Settings
+- `/data/360-default-questions.json` - Default survey questions (managed via AdminSettings)
 
-### Dev Dependencies
-- **TypeScript:** typescript, @types/*
-- **Linting:** eslint, eslint-config-next
-- **Styling:** tailwindcss, postcss
-- **Environment:** dotenv
+### Configuration Files
+| File | Purpose |
+|------|---------|
+| `next.config.mjs` | Next.js config (strict mode, transpile packages, build error handling) |
+| `tailwind.config.ts` | Custom palette, grid templates, content paths |
+| `tsconfig.json` | Strict mode, path aliases, ES2018 target |
+| `vercel.json` | Deployment config, cron jobs |
+| `jest.config.js` | Unit test config (50% coverage thresholds) |
+| `playwright.config.ts` | E2E test config |
+
+### NPM Scripts
+| Script | Purpose |
+|--------|---------|
+| `dev` / `dev:local` / `dev:prod` | Dev server variants (via run-dev.sh) |
+| `build` / `start` | Production build and start (port 3004) |
+| `test` / `test:watch` / `test:coverage` | Jest unit tests |
+| `e2e` / `e2e:ui` | Playwright E2E tests |
+| `lint` | ESLint check |
+| `setup-mcp` / `verify-db` / `mcp` | Database and MCP tooling |
+
+**Note:** All dev scripts use `run-dev.sh` wrapper for environment variable loading and port configuration.
+
+### MCP Integration
+**GitHub MCP Server:** Configured for repository operations, code search, issue/PR management. Use `mcp_github_*` functions instead of manual git commands.
 
 ---
 
-
-## Architecture Patterns
+## Development Patterns
 
 ### Next.js App Router Structure
 ```
@@ -777,177 +325,111 @@ app/
 └── globals.css       # Global styles
 ```
 
-### Component Pattern
-- Server Components by default
-- Client Components marked with 'use client'
-- Server-side data fetching where possible
-- Client-side state management with hooks
-
-### Database Access Pattern
-1. **Client Components:** Use Supabase SDK (lib/supabase.ts) - respects Row Level Security (RLS)
-2. **Server Components/API Routes:** Use Supabase admin SDK (lib/supabase-admin.ts) or database helpers (lib/database.ts)
-3. **Type Safety:** TypeScript types from lib/schema.ts (type definitions only, not ORM schema)
-4. **Note:** All database operations use Supabase client directly - no ORM layer (Drizzle or similar)
-
-### Auth Pattern
-1. Middleware checks authentication
-2. Mock user in development mode
-3. Auth0 in production
-4. Role-based access in components
-
----
-
-## File Organization
-
 ### Key Directories
 ```
 talent-management-next/
-├── app/                    # Next.js app router
-├── components/             # React components
-├── lib/                    # Utilities & services
-├── context/                # React contexts
-├── hooks/                  # Custom hooks
-├── scripts/                # Build/dev scripts
-├── public/                 # Static assets
-├── types/                  # TypeScript types
-└── data/                   # Runtime data storage
+├── app/           # Next.js app router
+├── components/    # React components
+├── lib/           # Utilities & services
+├── context/       # React contexts
+├── hooks/         # Custom hooks
+├── scripts/       # Build/dev scripts
+├── data/          # Runtime data (JSON settings)
+├── types/         # TypeScript types
+└── public/        # Static assets
 ```
 
-### Configuration Files
-```
-├── next.config.mjs         # Next.js config
-├── tailwind.config.ts      # Tailwind config
-├── tsconfig.json           # TypeScript config
-├── postcss.config.mjs      # PostCSS config
-├── .eslintrc.json         # ESLint config
-├── .gitignore             # Git ignore
-├── vercel.json            # Vercel deployment config
-└── package.json           # Dependencies
-```
+### Best Practices
+| Area | Practice |
+|------|----------|
+| **TypeScript** | Strict mode, full type coverage, Zod validation, types from lib/schema.ts |
+| **React** | Functional components, hooks for state, Server Components default, clear client/server boundaries |
+| **Styling** | Tailwind utilities, consistent design tokens, responsive, accessible |
+| **Database** | Type-safe Supabase SDK queries (no ORM), materialized views for performance, proper indexing |
+| **Security** | Environment validation, auth middleware, RBAC, secure API endpoints |
 
 ---
 
-## Best Practices
+## Deployment
 
-### TypeScript
-- Strict mode enabled
-- Full type coverage
-- Schema validation with Zod
-- Type imports from lib/schema.ts
+### Naming & URLs
+- **Local Directory:** `talent-management-next`
+- **GitHub Repo:** https://github.com/tcpalm-r/talent-management-app-next-fork
+- **Vercel Project:** `sonance-360-review`
+- **Production URL:** https://sonance-360-review.vercel.app
 
-### React
-- Functional components
-- Hooks for state management
-- Server Components when possible
-- Clear client/server boundaries
+### Deployment Strategy
+| Branch | Behavior |
+|--------|----------|
+| `main` | → Preview deployment (automatic) |
+| Other branches | → Preview deployments (automatic) |
+| Production | → Manual promotion via Vercel Dashboard |
 
-### Styling
-- Tailwind utility classes
-- Consistent design tokens
-- Responsive design
-- Accessible components
+**Production Deployment Process:**
+1. Push changes to `main` (creates preview)
+2. Test preview thoroughly
+3. Go to [Vercel Dashboard](https://vercel.com/elliottamadors-projects/sonance-360-review)
+4. Find preview deployment → Click "Promote to Production"
 
-### Database
-- Type-safe queries with Supabase client
-- Supabase SDK for all database operations (no ORM layer)
-- TypeScript types from lib/schema.ts for type safety
-- Materialized views for performance
-- Proper indexing
+**Why This Setup:** Prevents accidental production deployments, allows thorough preview testing, provides explicit production control.
 
-### Security
-- Environment variable validation
-- Auth middleware protection
-- Role-based access control
-- Secure API endpoints
+**Git Push Policy:** Always commit first, then ask user before pushing.
 
----
-
-## Future Considerations
-
-### Potential Enhancements
-1. **Testing:**
-   - Expand Jest test coverage
-   - Add component testing
-   - Expand Playwright E2E tests
-
-2. **Database:**
-   - Implement organization_settings table
-   - Move file-based settings to DB
-   - Add data migrations framework
-
-3. **Performance:**
-   - Implement caching strategy
-   - Optimize bundle size
-   - Add performance monitoring
-
-4. **Features:**
-   - Advanced analytics
-   - Custom report builder
-   - Mobile app
-   - Offline support
+### Runtime Requirements
+- **Node.js:** 20+
+- **Port:** 3004 (dev and prod)
+- **Environment Modes:** LOCAL_TESTING_MODE (dev with mocks) or Production
 
 ---
 
 ## Troubleshooting
 
 ### Common Issues
-1. **Auth not working:** Check DISABLE_AUTH environment variable and AI Intranet configuration
-2. **Database connection:** Verify Supabase credentials
-3. **Build errors:** Clear .next directory and rebuild
-4. **Type errors:** Run `npm run lint` and check imports
+| Issue | Solution |
+|-------|----------|
+| Auth not working | Check `DISABLE_AUTH` env var, verify AI Intranet config |
+| Database connection | Verify Supabase credentials in env |
+| Build errors | Clear `.next/` directory and rebuild |
+| Type errors | Run `npm run lint`, check imports |
 
 ### Debug Mode
-- Use `dev:local` for local testing mode
-- Check middleware.ts for auth bypass
+- Use `dev:local` for local testing with mock auth
+- Check `middleware.ts` for auth bypass logic
 - Enable console logging in development
+- Use `/api/debug/env` endpoint (dev only)
+
+---
+
+## Future Enhancements
+
+| Area | Potential Improvements |
+|------|------------------------|
+| **Testing** | Expand Jest coverage, add component tests, more E2E scenarios |
+| **Database** | Migrate file-based settings to DB, add migrations framework |
+| **Performance** | Implement caching strategy, optimize bundle size, add monitoring |
+| **Features** | Advanced analytics, custom report builder, mobile app, offline support |
 
 ---
 
 ## Additional Resources
 
-### Documentation Links
+### Documentation
 - Next.js: https://nextjs.org/docs
 - Supabase: https://supabase.com/docs
 - Auth0: https://auth0.com/docs
 - Anthropic: https://docs.anthropic.com
 
-### Internal Documentation
+### Internal Docs
 - Migration scripts in project root
-- Schema definitions in lib/schema.ts
+- Schema definitions in `lib/schema.ts`
 - API documentation in route files
-- Component documentation in JSDoc comments
+- Component JSDoc comments
 
 ---
 
-Last Updated: 2025-11-20
-Version: 0.4.1 (Deployment Configuration - Main branch now deploys as preview only, production requires manual promotion)
-
-## Important Naming Note
-
-  **Local Directory & GitHub Repository:** `talent-management-next` (https://github.com/tcpalm-r/talent-management-app-next-fork)
-  **Vercel Deployment Project:** `sonance-360-review` (https://vercel.com/elliottamadors-projects/sonance-360-review)
-  **Production URL:** `https://sonance-360-review.vercel.app`
-
-  **Deployment Configuration:**
-  - **Production Branch:** Set to `production` (or custom branch) in Vercel dashboard settings
-  - **`main` branch** → Preview deployment (automatic on push)
-  - **Other branches** → Preview deployments (automatic on push)
-  - **Production** → Manual promotion only (via Vercel dashboard)
-
-  **How to Deploy to Production:**
-  1. Push changes to `main` branch (creates preview deployment)
-  2. Test the preview deployment thoroughly
-  3. Go to [Vercel Dashboard](https://vercel.com/elliottamadors-projects/sonance-360-review)
-  4. Find the preview deployment you want to promote
-  5. Click "Promote to Production"
-
-  **Why This Setup:**
-  - `main` deploys as preview because Vercel's production branch is set to a different branch
-  - Prevents accidental production deployments during development
-  - Allows thorough testing of preview deployments before going live
-  - Provides explicit control over what reaches production
-  - Configured via Vercel Dashboard (Settings → Git → Production Branch)
-
-  **Git Push Policy:**
-  - Always commit changes first, then ask the user before pushing
-  - User should explicitly approve before running `git push`
+**For detailed documentation:**
+- Authentication setup and flows → [AUTHENTICATION.md](./docs/AUTHENTICATION.md)
+- API endpoint specifications → [API.md](./docs/API.md)
+- Component architecture deep-dive → [COMPONENTS.md](./docs/COMPONENTS.md)
+- Environment variable guide → [ENVIRONMENT.md](./docs/ENVIRONMENT.md)
+- Deployment workflows → [DEPLOYMENT.md](./docs/DEPLOYMENT.md)
