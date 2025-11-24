@@ -514,9 +514,18 @@ export async function middleware(request: NextRequest) {
       // Clean auth_token from return URL to prevent loops
       const returnTo = new URL(request.url);
       returnTo.searchParams.delete('auth_token');
+      const returnToString = returnTo.toString();
       
-      loginUrl.searchParams.set('returnTo', returnTo.toString());
-      loginUrl.searchParams.set('app', process.env.APP_ID || process.env.NEXT_PUBLIC_APP_ID || '');
+      const appId = process.env.APP_ID || process.env.NEXT_PUBLIC_APP_ID || '';
+      
+      console.log('[Sonance Auth] Debug Redirect Params:', {
+        returnTo: returnToString,
+        appId: appId,
+        intranetUrl: process.env.AI_INTRANET_URL
+      });
+
+      loginUrl.searchParams.set('returnTo', returnToString);
+      loginUrl.searchParams.set('app', appId);
       return NextResponse.redirect(loginUrl);
     }
   } catch (error) {
@@ -526,9 +535,17 @@ export async function middleware(request: NextRequest) {
     // Clean auth_token from return URL to prevent loops
     const returnTo = new URL(request.url);
     returnTo.searchParams.delete('auth_token');
+    const returnToString = returnTo.toString();
     
-    loginUrl.searchParams.set('returnTo', returnTo.toString());
-    loginUrl.searchParams.set('app', process.env.APP_ID || process.env.NEXT_PUBLIC_APP_ID || '');
+    const appId = process.env.APP_ID || process.env.NEXT_PUBLIC_APP_ID || '';
+    
+    console.log('[Sonance Auth] Error Recovery Redirect Params:', {
+      returnTo: returnToString,
+      appId: appId
+    });
+    
+    loginUrl.searchParams.set('returnTo', returnToString);
+    loginUrl.searchParams.set('app', appId);
     return NextResponse.redirect(loginUrl);
   }
 }
