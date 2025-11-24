@@ -518,11 +518,7 @@ export async function middleware(request: NextRequest) {
       
       const appId = process.env.APP_ID || process.env.NEXT_PUBLIC_APP_ID || '';
       
-      console.log('[Sonance Auth] Debug Redirect Params:', {
-        returnTo: returnToString,
-        appId: appId,
-        intranetUrl: process.env.AI_INTRANET_URL
-      });
+      console.log(`[Sonance Auth] REDIRECT DEBUG: AppID=${appId} ReturnTo=${returnToString}`);
 
       loginUrl.searchParams.set('returnTo', returnToString);
       loginUrl.searchParams.set('app', appId);
@@ -539,10 +535,7 @@ export async function middleware(request: NextRequest) {
     
     const appId = process.env.APP_ID || process.env.NEXT_PUBLIC_APP_ID || '';
     
-    console.log('[Sonance Auth] Error Recovery Redirect Params:', {
-      returnTo: returnToString,
-      appId: appId
-    });
+    console.log(`[Sonance Auth] REDIRECT RECOVERY: AppID=${appId} ReturnTo=${returnToString}`);
     
     loginUrl.searchParams.set('returnTo', returnToString);
     loginUrl.searchParams.set('app', appId);
