@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     // Admin and SLT can create drafts for any employee (no additional restrictions)
 
-    // Create draft survey - use authenticated user's profile ID
+    // Create draft survey - use authenticated user's profile ID and email
     const surveyData = {
       organization_id: organizationId,
       employee_id: employeeId,
@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
       auto_reminder_days_before: autoReminderDaysBefore || null,
       subject_preferred_name: preferredName || null,
       created_by: authData.profile.id, // Use authenticated user's ID
+      created_by_email: authData.profile.email, // Store email for reliable matching
       current_step: currentStep || null, // Save the wizard step
       draft_partial_reviewers: partialRaters.length > 0 ? partialRaters : null, // Save partial reviewers as JSON
     };

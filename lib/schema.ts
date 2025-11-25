@@ -174,6 +174,7 @@ export interface Feedback360Survey {
   id: string;
   employee_id: string;
   created_by: string;
+  created_by_email: string | null;
   status: string | null;
   survey_name: string | null;
   due_date: string | null;

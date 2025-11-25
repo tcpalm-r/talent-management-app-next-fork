@@ -95,7 +95,11 @@ export async function GET(request: NextRequest) {
       // 4. Surveys where they're a reviewer (all statuses except draft)
       filteredSurveys = (allSurveys || []).filter((survey: any) => {
         // Show surveys created by this SLT member (all statuses)
-        const isCreator = survey.created_by === profile.id || survey.created_by === profile.email;
+        // Check both ID and email for reliable matching (handles DB lookup failures)
+        const isCreator =
+          survey.created_by === profile.id ||
+          survey.created_by_email === profile.email ||
+          survey.created_by === profile.email; // Backward compatibility
         if (isCreator) return true;
 
         // Show surveys where SLT is the subject (finalized only)
@@ -128,8 +132,11 @@ export async function GET(request: NextRequest) {
       const directReportIds = directReports?.map(dr => dr.id) || [];
 
       filteredSurveys = (allSurveys || []).filter((survey: any) => {
-        // Created by this leader (check both ID and email for legacy support)
-        const isCreator = survey.created_by === profile.id || survey.created_by === profile.email;
+        // Created by this leader (check both ID and email for reliable matching)
+        const isCreator =
+          survey.created_by === profile.id ||
+          survey.created_by_email === profile.email ||
+          survey.created_by === profile.email; // Backward compatibility
         const isSubject = survey.employee_id === profile.id;
         const isDirectReport = directReportIds.includes(survey.employee_id);
         const isReviewer = survey.reviewers?.some(
@@ -193,8 +200,11 @@ export async function GET(request: NextRequest) {
       // 3. Surveys where they're a reviewer
 
       filteredSurveys = (allSurveys || []).filter((survey: any) => {
-        // Check if user is creator, subject, or reviewer
-        const isCreator = survey.created_by === profile.id || survey.created_by === profile.email;
+        // Check if user is creator, subject, or reviewer (check both ID and email for reliable matching)
+        const isCreator =
+          survey.created_by === profile.id ||
+          survey.created_by_email === profile.email ||
+          survey.created_by === profile.email; // Backward compatibility
         const isSubject = survey.employee_id === profile.id;
         const isReviewer = survey.reviewers?.some(
           (r: any) => r.reviewer_email === profile.email

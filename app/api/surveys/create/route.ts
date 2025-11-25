@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Admin and SLT can create for any employee (no additional restrictions)
 
-    // Create survey - use authenticated user's profile ID
+    // Create survey - use authenticated user's profile ID and email
     const { data: survey, error: surveyError } = await supabaseAdmin
       .from('feedback_360_surveys')
       .insert({
@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
         auto_reminder_days_before: autoReminderDaysBefore || null,
         subject_preferred_name: preferredName || null,
         created_by: authData.profile.id, // Use authenticated user's ID
+        created_by_email: authData.profile.email, // Store email for reliable matching
       })
       .select()
       .single();
