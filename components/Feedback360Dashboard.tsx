@@ -1500,12 +1500,8 @@ export default function Feedback360Dashboard({
     // Subject tab removed - users can view their finalized reports in the "My Report" page
 
     // Sponsor tab:
-    // - Admin sees ALL surveys (full oversight)
-    // - Others see only surveys they created
+    // - All users (including admins) see only surveys they created
     if (filterRole === 'sponsor') {
-      if (isAdmin) {
-        return true; // Admin sees ALL surveys
-      }
       return isSponsor;
     }
 
@@ -1514,15 +1510,8 @@ export default function Feedback360Dashboard({
 
   // Calculate counts for tab badges - must match the roleFilteredSurveys logic exactly
   const sponsorCount = surveys.filter(s => {
-    // Check if current user is the creator (sponsor) of this survey
+    // All users (including admins) count only surveys they personally created
     const isCreator = (s.created_by === currentUser?.id || s.created_by === currentUser?.email);
-
-    // Admin sees ALL surveys
-    if (currentUser?.app_role === 'admin') {
-      return true;
-    }
-
-    // Everyone else (SLT, Leader, User) ONLY sees surveys they personally created
     return isCreator;
   }).length;
 
