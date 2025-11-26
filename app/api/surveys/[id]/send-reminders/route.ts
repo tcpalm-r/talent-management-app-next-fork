@@ -115,13 +115,6 @@ export async function POST(
 
             <p><a href="${surveyUrl}" style="display: inline-block; background: #6366f1; border: 2px solid #4f46e5; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">Complete Survey</a></p>
 
-            <!-- Post-Auth Instruction Banner -->
-            <div style="background: #fed7aa; border-left: 4px solid #f97316; border-radius: 6px; padding: 20px; margin: 25px 0;">
-              <p style="margin: 0; color: #7c2d12; font-size: 18px; font-weight: 600; line-height: 1.6;">
-                <strong>Important:</strong> Once Authenticated, Launch the 360° Review APP in the Hub dashboard and complete your survey!
-              </p>
-            </div>
-
             ${survey.due_date ? `<p><em>Due date: ${new Date(survey.due_date).toLocaleDateString()}</em></p>` : ''}
 
             <p>Thank you for your time!</p>

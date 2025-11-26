@@ -257,13 +257,6 @@ export async function POST(request: Request) {
       </a>
     </div>
 
-    <!-- Post-Auth Instruction Banner -->
-    <div style="background: #fed7aa; border-left: 4px solid #f97316; border-radius: 6px; padding: 20px; margin: 25px 0;">
-      <p style="margin: 0; color: #7c2d12; font-size: 18px; font-weight: 600; line-height: 1.6;">
-        <strong>Important:</strong> Once Authenticated, Launch the 360° Review APP in the Hub dashboard and complete your survey!
-      </p>
-    </div>
-
     <p style="font-size: 14px; color: #666; margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
       If you have any questions or need assistance, please reach out to your HR department.
     </p>
