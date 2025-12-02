@@ -93,12 +93,16 @@ jobs:
         continue-on-error: true
 
   build:
-    name: Build
-    runs-on: ubuntu-latest
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     needs: quality
     strategy:
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         node-version: [20.x]
+      fail-fast: false
+    # Only fail the workflow on Linux failures; macOS/Windows are informational
+    continue-on-error: ${{ matrix.os != 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -122,3 +126,8 @@ jobs:
           AI_INTRANET_URL_LOCAL: ${{ secrets.AI_INTRANET_URL_LOCAL }}
           AI_INTRANET_URL_PROD: ${{ secrets.AI_INTRANET_URL_PROD }}
           DISABLE_AUTH: 'true'
+
+      - name: Validate HTML (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run validate:html
+        continue-on-error: true

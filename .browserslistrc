@@ -1,0 +1,18 @@
+# Production browsers - defines target browsers for CSS/JS transpilation
+# Used by Tailwind CSS, PostCSS autoprefixer, and build tools
+
+# Market share based targeting
+>0.5%
+last 2 versions
+Firefox ESR
+not dead
+not op_mini all
+
+# Explicit minimum versions for major browsers
+Chrome >= 90
+Firefox >= 90
+Safari >= 14
+Edge >= 90
+
+# Note: This file enables consistent cross-browser support
+# and is used by Next.js build process, Tailwind CSS, and PostCSS

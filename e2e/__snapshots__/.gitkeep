@@ -1,0 +1,2 @@
+# This directory stores visual regression snapshots
+# Run: npm run e2e:visual:update to generate baseline snapshots

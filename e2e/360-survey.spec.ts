@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 
 test.describe('360 Feedback Survey Workflow', () => {
   test.beforeEach(async ({ page }) => {
@@ -72,6 +73,19 @@ test.describe('360 Feedback Survey Workflow', () => {
         expect(alt).toBeTruthy()
       }
     }
+  })
+
+  test('should have no critical accessibility violations', async ({ page }) => {
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze()
+
+    // Only fail on critical violations
+    const criticalViolations = results.violations.filter(
+      (v) => v.impact === 'critical'
+    )
+
+    expect(criticalViolations).toHaveLength(0)
   })
 })
 

@@ -17,7 +17,22 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
 
+  // Visual regression snapshot configuration
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixels: 100, // Allow small differences (anti-aliasing, fonts)
+      threshold: 0.2, // 20% pixel difference threshold
+    },
+    toMatchSnapshot: {
+      maxDiffPixelRatio: 0.05, // 5% max diff ratio
+    },
+  },
+
+  // Snapshot output directory
+  snapshotDir: './e2e/__snapshots__',
+
   projects: [
+    // Desktop browsers
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
@@ -29,6 +44,20 @@ export default defineConfig({
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+    },
+    // Mobile browsers
+    {
+      name: 'mobile-chrome',
+      use: { ...devices['Pixel 5'] },
+    },
+    {
+      name: 'mobile-safari',
+      use: { ...devices['iPhone 12'] },
+    },
+    // Tablet
+    {
+      name: 'tablet',
+      use: { ...devices['iPad (gen 7)'] },
     },
   ],
 
