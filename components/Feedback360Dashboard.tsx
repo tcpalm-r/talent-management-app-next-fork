@@ -2992,11 +2992,11 @@ export default function Feedback360Dashboard({
                           }
                           completeSurveyWithAI();
                         }}
-                        disabled={isGeneratingAnalysis}
+                        disabled={isGeneratingAnalysis || !canComplete}
                         className={`px-4 py-2 bg-gradient-to-r rounded-lg font-medium flex items-center ${
                           canComplete
                             ? 'from-purple-600 to-indigo-700 text-white hover:from-purple-700 hover:to-indigo-800'
-                            : 'from-gray-400 to-gray-500 text-gray-200 cursor-pointer'
+                            : 'from-gray-400 to-gray-500 text-gray-200 cursor-not-allowed'
                         } disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
                         title={!canComplete ? 'At least 70% of reviewers must submit their feedback before completing the review.' : ''}
                       >

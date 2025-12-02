@@ -4,10 +4,10 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 export const dynamic = 'force-dynamic';
 
 const DEFAULT_QUESTIONS = [
-  { id: 'default-1', text: 'What is the ONE thing [NAME] does that creates the most value for you, your team, or the organization? Be specific with an example.' },
-  { id: 'default-2', text: 'If [NAME] could change or improve ONE thing about how they work over the next 6 months, what would create the biggest positive impact? What would success look like?' },
-  { id: 'default-3', text: 'Complete this sentence: \'I wish [NAME] knew that when they _____, it creates _____ for me/the team.\' OR \'What do you need most from [NAME] that you\'re not currently getting?\'' },
-  { id: 'default-4', text: 'What is one obstacle, bottleneck, or decision that [NAME] could help remove or accelerate to increase team performance?' },
+  { id: 'default-1', text: 'What is the ONE thing [NAME] does that creates the most value for you, your team, or the organization? Be specific with an example.', minWords: 50 },
+  { id: 'default-2', text: 'If [NAME] could change or improve ONE thing about how they work over the next 6 months, what would create the biggest positive impact? What would success look like?', minWords: 50 },
+  { id: 'default-3', text: 'Complete this sentence: \'I wish [NAME] knew that when they _____, it creates _____ for me/the team.\' OR \'What do you need most from [NAME] that you\'re not currently getting?\'', minWords: 50 },
+  { id: 'default-4', text: 'What is one obstacle, bottleneck, or decision that [NAME] could help remove or accelerate to increase team performance?', minWords: 50 },
 ];
 
 const SETTING_KEY = '360_default_questions';
@@ -49,7 +49,7 @@ export async function GET() {
 
     // Return the stored configuration
     const settingValue = data.setting_value as {
-      questions: Array<{ id: string; text: string }>;
+      questions: Array<{ id: string; text: string; minWords?: number }>;
     };
 
     return NextResponse.json({
@@ -86,6 +86,16 @@ export async function POST(request: NextRequest) {
           { error: 'Each question must have an id and text' },
           { status: 400 }
         );
+      }
+      // Validate minWords if provided
+      if (question.minWords !== undefined) {
+        const minWords = Number(question.minWords);
+        if (isNaN(minWords) || minWords < 10 || minWords > 500) {
+          return NextResponse.json(
+            { error: 'minWords must be a number between 10 and 500' },
+            { status: 400 }
+          );
+        }
       }
     }
 

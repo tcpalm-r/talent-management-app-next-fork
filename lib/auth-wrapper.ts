@@ -277,6 +277,9 @@ export async function requireAdmin(
 
 /**
  * Require specific permission - throws if not permitted
+ * 
+ * Derives permissions from app_role (single source of truth).
+ * Ignores app_permissions column (zombie code from AI Intranet template).
  */
 export async function requirePermission(
   request: NextRequest,
@@ -284,13 +287,23 @@ export async function requirePermission(
 ): Promise<{ user: SessionUser; profile: UserProfile }> {
   const authData = await requireAuth(request);
 
-  // Admins have all permissions
+  // Admin has all permissions
   if (authData.user.app_role === 'admin') {
     return authData;
   }
 
-  // Check specific permission
-  if (authData.user.app_permissions?.[permission] !== true) {
+  // Derive permission from role
+  let hasPermission = false;
+  
+  if (permission === 'admin') {
+    hasPermission = authData.user.app_role === 'admin';
+  } else if (permission === 'write') {
+    hasPermission = ['admin', 'slt', 'leader'].includes(authData.user.app_role);
+  } else if (permission === 'read') {
+    hasPermission = true;
+  }
+
+  if (!hasPermission) {
     throw new Error(`Forbidden: ${permission} permission required`);
   }
 

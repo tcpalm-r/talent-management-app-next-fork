@@ -15,13 +15,13 @@ export async function POST(request: NextRequest) {
     console.log('[generate-survey-response API] POST request received');
 
     // Check for API key
-    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     console.log('[generate-survey-response API] API Key present:', !!apiKey);
 
     if (!apiKey) {
-      console.error('[generate-survey-response API] Neither ANTHROPIC_API_KEY nor NEXT_PUBLIC_ANTHROPIC_API_KEY is set');
+      console.error('[generate-survey-response API] ANTHROPIC_API_KEY is not set');
       return NextResponse.json(
-        { error: 'ANTHROPIC_API_KEY is not configured. Please add it to your .env.local file.' },
+        { error: 'ANTHROPIC_API_KEY is not configured. Please add it to your environment.' },
         { status: 500 }
       );
     }

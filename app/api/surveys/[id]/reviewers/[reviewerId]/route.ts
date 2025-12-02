@@ -164,6 +164,31 @@ export async function DELETE(
       );
     }
 
+    // Check current reviewer count before deletion
+    const { data: currentReviewers, error: verifyCountError } = await supabaseAdmin
+      .from('feedback_360_survey_reviewers')
+      .select('id')
+      .eq('survey_id', surveyId);
+
+    if (verifyCountError) {
+      console.error('Error fetching reviewer count:', verifyCountError);
+      return NextResponse.json(
+        { error: 'Failed to verify reviewer count', details: verifyCountError.message },
+        { status: 500 }
+      );
+    }
+
+    const currentReviewerCount = currentReviewers?.length || 0;
+    const MINIMUM_REVIEWERS = 4;
+
+    // Prevent removal if it would drop below minimum
+    if (currentReviewerCount <= MINIMUM_REVIEWERS) {
+      return NextResponse.json(
+        { error: `Cannot remove reviewer. A minimum of ${MINIMUM_REVIEWERS} reviewers is required.` },
+        { status: 400 }
+      );
+    }
+
     // Delete reviewer
     const { error: deleteError } = await supabaseAdmin
       .from('feedback_360_survey_reviewers')

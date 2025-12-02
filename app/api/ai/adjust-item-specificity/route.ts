@@ -17,13 +17,13 @@ export async function POST(request: NextRequest) {
     console.log('[adjust-item-specificity API] POST request received');
 
     // Check for API key
-    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     console.log('[adjust-item-specificity API] API Key present:', !!apiKey);
 
     if (!apiKey) {
       console.error('[adjust-item-specificity API] ANTHROPIC_API_KEY is not configured');
       return NextResponse.json(
-        { error: 'ANTHROPIC_API_KEY is not configured. Please add it to your .env.local file.' },
+        { error: 'ANTHROPIC_API_KEY is not configured. Please add it to your environment.' },
         { status: 500 }
       );
     }

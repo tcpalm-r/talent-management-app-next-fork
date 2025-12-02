@@ -24,13 +24,13 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[generate-narrative API] POST request received');
 
-    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     console.log('[generate-narrative API] API Key present:', !!apiKey);
 
     if (!apiKey) {
       console.error('[generate-narrative API] ANTHROPIC_API_KEY is not configured');
       return NextResponse.json(
-        { error: 'ANTHROPIC_API_KEY is not configured. Please add it to your .env.local file.' },
+        { error: 'ANTHROPIC_API_KEY is not configured. Please add it to your environment.' },
         { status: 500 }
       );
     }

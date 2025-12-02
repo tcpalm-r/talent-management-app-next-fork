@@ -49,11 +49,7 @@ export async function GET() {
       'ANTHROPIC_API_KEY': {
         status: isSet(process.env.ANTHROPIC_API_KEY),
         value: maskSecret(process.env.ANTHROPIC_API_KEY, 'ANTHROPIC_API_KEY'),
-        issue: process.env.ANTHROPIC_API_KEY ? null : '⚠️ Missing (code expects NEXT_PUBLIC_ANTHROPIC_API_KEY)'
-      },
-      'NEXT_PUBLIC_ANTHROPIC_API_KEY': {
-        status: isSet(process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY),
-        value: maskSecret(process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY, 'NEXT_PUBLIC_ANTHROPIC_API_KEY')
+        issue: process.env.ANTHROPIC_API_KEY ? null : '⚠️ Missing - Required for AI features'
       },
     },
 

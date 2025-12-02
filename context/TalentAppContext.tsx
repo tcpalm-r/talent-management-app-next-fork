@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import type { Employee, EmployeePlan, Performance, Potential, PlanType } from '../types';
-import { getAnthropicClient, isAnthropicConfigured } from '../lib/anthropicService';
 
 // ============================================
 // TYPES & INTERFACES
@@ -533,49 +532,30 @@ export function TalentAppProvider({
           timestamp: Date.now(),
         };
 
-        if (isAnthropicConfigured()) {
-          try {
-            const anthropic = getAnthropicClient();
+        try {
+          // Call the server-side API route
+          const response = await fetch('/api/ai/coach-chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              question: trimmed,
+              conversationHistory: conversationHistory.map(msg => ({
+                role: msg.role,
+                content: msg.content,
+              })),
+            }),
+          });
 
-            const systemPrompt = `You are the AI assistant inside the Sonance Talent Management platform. You help users manage talent, conduct performance reviews, create development plans, and optimize their HR workflows.
-
-Key features to reference:
-- Evaluate tab: Assess employees on the 9-box grid (performance vs potential)
-- Prepare tab: Draft and import performance reviews
-- Calibrate tab: Align ratings across teams
-- Follow Through tab: Track development plans and action items
-- People tab: View all employees and their details
-- Command Center: Executive dashboard with key metrics
-
-Be conversational, helpful, and remember the context of the conversation. Answer succinctly (150 words or fewer) with actionable guidance.`;
-
-            const messages = conversationHistory.map(msg => ({
-              role: msg.role,
-              content: msg.content,
-            }));
-
-            messages.push({
-              role: 'user',
-              content: trimmed,
-            });
-
-            const response = await anthropic.messages.create({
-              model: 'claude-3-5-sonnet-20241022',
-              max_tokens: 600,
-              temperature: 0.5,
-              system: systemPrompt,
-              messages: messages as any,
-            });
-
-            const content = response.content[0];
-            if (content.type === 'text') {
-              answer = content.text.trim();
-            }
-          } catch (error) {
-            console.warn('[TalentApp] Anthropic Q&A failed, using fallback', error);
-            answer = generateFallbackAnswer(trimmed);
+          if (!response.ok) {
+            throw new Error(`API request failed: ${response.status}`);
           }
-        } else {
+
+          const data = await response.json();
+          answer = data.answer;
+        } catch (error) {
+          console.warn('[TalentApp] AI Coach API failed, using fallback', error);
           answer = generateFallbackAnswer(trimmed);
         }
 

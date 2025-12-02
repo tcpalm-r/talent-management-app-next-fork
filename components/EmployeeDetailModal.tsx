@@ -10,7 +10,7 @@ import type {
   PlanType,
   ActionItem,
 } from '../types';
-import { analyzePerformanceReview } from '../lib/reviewAnalyzer';
+// Import removed - now using API route
 import { calculateActionItemStatus, calculatePlanProgress } from '../lib/actionItemGenerator';
 import ManagerNotes from './ManagerNotes';
 import OneOnOneModal from './OneOnOneModal';
@@ -371,7 +371,23 @@ export default function EmployeeDetailModal({
     setAnalysisError(null);
 
     try {
-      const analysis = await analyzePerformanceReview(reviewText, employee.name);
+      // Call the server-side API route
+      const response = await fetch('/api/ai/analyze-review', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reviewText,
+          employeeName: employee.name,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const analysis = await response.json();
       const { suggestedPlacement, developmentPlan, insights } = analysis;
 
       const performance = suggestedPlacement?.performance;

@@ -1,11 +1,14 @@
+import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import type { Performance, Potential, EmployeePlan, ActionItem } from '../types';
-import { generateSmartActionItems } from './actionItemGenerator';
+import type { Performance, Potential, EmployeePlan, ActionItem } from '@/types';
+import { generateSmartActionItems } from '@/lib/actionItemGenerator';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY,
-  dangerouslyAllowBrowser: true
-});
+export const dynamic = 'force-dynamic';
+
+interface AnalyzeReviewRequest {
+  reviewText: string;
+  employeeName: string;
+}
 
 interface ReviewInsights {
   strengths: string[];
@@ -25,11 +28,48 @@ interface ReviewAnalysis {
   insights: ReviewInsights;
 }
 
-export async function analyzePerformanceReview(
-  reviewText: string,
-  employeeName: string
-): Promise<ReviewAnalysis> {
-  const prompt = `You are an expert organizational psychologist and talent management consultant. Analyze this performance review and provide a structured assessment.
+export async function POST(request: NextRequest) {
+  try {
+    console.log('[analyze-review API] POST request received');
+
+    // Check for API key
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    console.log('[analyze-review API] API Key present:', !!apiKey);
+
+    if (!apiKey) {
+      console.error('[analyze-review API] ANTHROPIC_API_KEY is not set');
+      return NextResponse.json(
+        { error: 'ANTHROPIC_API_KEY is not configured. Please add it to your environment.' },
+        { status: 500 }
+      );
+    }
+
+    // Initialize Anthropic client
+    const anthropic = new Anthropic({
+      apiKey: apiKey,
+    });
+
+    const body: AnalyzeReviewRequest = await request.json();
+    const { reviewText, employeeName } = body;
+
+    console.log('[analyze-review API] Employee name:', employeeName);
+    console.log('[analyze-review API] Review text length:', reviewText?.length || 0);
+
+    if (!reviewText || !reviewText.trim()) {
+      return NextResponse.json(
+        { error: 'Review text is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!employeeName || !employeeName.trim()) {
+      return NextResponse.json(
+        { error: 'Employee name is required' },
+        { status: 400 }
+      );
+    }
+
+    const prompt = `You are an expert organizational psychologist and talent management consultant. Analyze this performance review and provide a structured assessment.
 
 EMPLOYEE: ${employeeName}
 
@@ -71,7 +111,8 @@ IMPORTANT GUIDELINES:
 
 Return ONLY the JSON object, no additional text.`;
 
-  try {
+    console.log('[analyze-review API] Calling Claude API...');
+
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
@@ -82,6 +123,8 @@ Return ONLY the JSON object, no additional text.`;
         }
       ]
     });
+
+    console.log('[analyze-review API] Claude API response received');
 
     const content = response.content[0];
     if (content.type !== 'text') {
@@ -131,7 +174,7 @@ Return ONLY the JSON object, no additional text.`;
       updated_at: new Date().toISOString()
     };
 
-    return {
+    const result: ReviewAnalysis = {
       suggestedPlacement: {
         performance: analysis.performance,
         potential: analysis.potential,
@@ -146,13 +189,16 @@ Return ONLY the JSON object, no additional text.`;
         summary: analysis.reasoning || ''
       }
     };
-  } catch (error) {
-    console.error('Error analyzing review:', error);
 
-    // If parsing fails or API error, return a fallback based on keywords
+    return NextResponse.json(result);
+  } catch (error: any) {
+    console.error('[analyze-review API] Error:', error);
+
+    // If parsing fails or API error, return a fallback
+    const body: AnalyzeReviewRequest = await request.json();
+    const { reviewText, employeeName } = body;
+    
     const fallbackAnalysis = analyzeFallback(reviewText);
-
-    // Generate smart action items based on fallback
     const actionItems = generateSmartActionItems(
       fallbackAnalysis.performance,
       fallbackAnalysis.potential,
@@ -162,7 +208,7 @@ Return ONLY the JSON object, no additional text.`;
     const nextReview = new Date();
     nextReview.setDate(nextReview.getDate() + 30);
 
-    return {
+    const fallbackResult: ReviewAnalysis = {
       suggestedPlacement: {
         performance: fallbackAnalysis.performance,
         potential: fallbackAnalysis.potential,
@@ -201,6 +247,8 @@ Return ONLY the JSON object, no additional text.`;
         summary: 'Generated from fallback keyword analysis. Please review and customize before finalizing.'
       }
     };
+
+    return NextResponse.json(fallbackResult);
   }
 }
 
@@ -256,3 +304,4 @@ function analyzeFallback(reviewText: string): { performance: Performance; potent
 
   return { performance, potential };
 }
+

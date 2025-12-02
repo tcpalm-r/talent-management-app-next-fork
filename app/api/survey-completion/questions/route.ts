@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     // Load survey questions
     const { data: surveyQuestions, error: questionsError } = await supabaseAdmin
       .from('feedback_360_survey_questions')
-      .select('question:feedback_360_questions(id, question_text, category)')
+      .select('question:feedback_360_questions(id, question_text, category, min_words)')
       .eq('survey_id', surveyId)
       .order('question_order');
 

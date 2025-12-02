@@ -16,7 +16,7 @@ import type {
   OneOnOneTranscript,
   WorkingGenius
 } from '../types';
-import { generateOneOnOneSummary } from '../lib/anthropicService';
+// Import removed - now using API route
 import { importTranscriptFromFile, normalizeTranscriptText } from '../lib/transcriptImporter';
 import { EmployeeNameLink } from './unified';
 
@@ -749,18 +749,31 @@ export default function OneOnOneModal({
         comments: (agendaComments[item.id] || []).map(comment => `${comment.author_name}: ${comment.comment}`),
       }));
 
-      const response = await generateOneOnOneSummary({
-        managerName: currentUserName,
-        employeeName: employee.name,
-        agenda: agendaContext,
-        sharedNotes: sharedNotes.map(note => `${note.created_by}: ${note.note}`),
-        meetingComments: meetingComments.map(comment => `${comment.author_name}: ${comment.comment}`),
-        existingActionItems: actionItems.map(action => ({
-          title: action.title,
-          owner: action.assigned_to,
-        })),
-        highlights: summaryNotes.trim(),
+      // Call the server-side API route
+      const apiResponse = await fetch('/api/ai/generate-1on1-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          managerName: currentUserName,
+          employeeName: employee.name,
+          agenda: agendaContext,
+          sharedNotes: sharedNotes.map(note => `${note.created_by}: ${note.note}`),
+          meetingComments: meetingComments.map(comment => `${comment.author_name}: ${comment.comment}`),
+          existingActionItems: actionItems.map(action => ({
+            title: action.title,
+            owner: action.assigned_to,
+          })),
+          highlights: summaryNotes.trim(),
+        }),
       });
+
+      if (!apiResponse.ok) {
+        throw new Error(`API request failed: ${apiResponse.status}`);
+      }
+
+      const response = await apiResponse.json();
 
       setGeneratedSummary(response.summary);
       setGeneratedHighlights(response.highlights || []);

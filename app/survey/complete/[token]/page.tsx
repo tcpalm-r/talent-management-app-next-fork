@@ -11,6 +11,7 @@ interface Question {
   id: string;
   question_text: string;
   category: string;
+  min_words?: number;
 }
 
 interface Survey {
@@ -196,12 +197,14 @@ export default function SurveyCompletionPage() {
       return;
     }
 
-    // Validate word count minimum (50 words per question)
-    const belowMinimum = Object.entries(responses).filter(([_, text]) => {
-      return getWordCount(text) < 50;
+    // Validate word count minimum per question
+    const belowMinimum = Object.entries(responses).filter(([questionId, text]) => {
+      const question = questions.find(q => q.id === questionId);
+      const minWords = question?.min_words || 50;
+      return getWordCount(text) < minWords;
     });
     if (belowMinimum.length > 0) {
-      setValidationError(`Please provide at least 50 words for each question. ${belowMinimum.length} question(s) need more detail.`);
+      setValidationError(`Please meet the minimum word count for all questions. ${belowMinimum.length} question(s) need more detail.`);
       // Scroll to top to show error
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -559,10 +562,11 @@ export default function SurveyCompletionPage() {
                     <div className="mt-2 text-sm">
                       {(() => {
                         const wordCount = getWordCount(responses[question.id] || '');
-                        const meetsMinimum = wordCount >= 50;
+                        const minWords = question.min_words || 50;
+                        const meetsMinimum = wordCount >= minWords;
                         return (
                           <span className={`font-medium ${meetsMinimum ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                            {wordCount} / 50 word minimum {meetsMinimum ? '✓' : ''}
+                            {wordCount} / {minWords} word minimum {meetsMinimum ? '✓' : ''}
                           </span>
                         );
                       })()}

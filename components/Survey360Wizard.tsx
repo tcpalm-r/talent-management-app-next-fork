@@ -82,6 +82,17 @@ const SURVEY_TEMPLATES = [
   },
 ];
 
+// Helper function to format relationship type for display
+const formatRelationship = (relationship: ParticipantRelationship | string): string => {
+  const mapping: Record<string, string> = {
+    'manager': 'Manager',
+    'slt': 'SLT',
+    'direct_report': 'Direct Report',
+    'cross_functional': 'Cross-Functional',
+  };
+  return mapping[relationship] || relationship;
+};
+
 export default function Survey360Wizard({
   isOpen,
   onClose,
@@ -111,10 +122,10 @@ export default function Survey360Wizard({
   const [shouldAutoLaunch, setShouldAutoLaunch] = useState(false);
 
   // Required questions (admin-only editable)
-  const [requiredQuestions, setRequiredQuestions] = useState<string[]>([
-    "What are this employee's key strengths?",
-    'What areas could this employee improve?',
-    'How effectively does this employee collaborate with others?'
+  const [requiredQuestions, setRequiredQuestions] = useState<Array<{ text: string; minWords?: number }>>([
+    { text: "What are this employee's key strengths?", minWords: 50 },
+    { text: 'What areas could this employee improve?', minWords: 50 },
+    { text: 'How effectively does this employee collaborate with others?', minWords: 50 }
   ]);
 
   // Custom questions (any creator can add)
@@ -276,10 +287,13 @@ export default function Survey360Wizard({
         const response = await fetch('/api/360-default-questions');
         if (response.ok) {
           const data = await response.json();
-          // Load the default questions from the new API format
+          // Load the default questions from the new API format (with minWords)
           if (data.questions && Array.isArray(data.questions)) {
-            const questionTexts = data.questions.map((q: any) => q.text);
-            setRequiredQuestions(questionTexts);
+            const questions = data.questions.map((q: any) => ({
+              text: q.text,
+              minWords: q.minWords || 50
+            }));
+            setRequiredQuestions(questions);
           }
         }
       } catch (error) {
@@ -765,7 +779,7 @@ export default function Survey360Wizard({
       case 'who':
         return isBatchMode || !!selectedEmployee || (highlightedEmployeeListIndex >= 0 && filteredEmployees.length > 0);
       case 'competencies':
-        return requiredQuestions.length >= 3 && requiredQuestions.every(q => q.trim().length > 0);
+        return requiredQuestions.length >= 3 && requiredQuestions.every(q => q.text && q.text.trim().length > 0);
       case 'raters':
         return raters.length >= 3 && raters.slice(0, 3).every(r => r.name && r.name.trim().length > 0 && r.email && r.email.trim().length > 0);
       case 'timeline':
@@ -881,7 +895,7 @@ export default function Survey360Wizard({
             dueDate: dueDate || null,
             autoReminderDaysBefore,
             preferredName: preferredName || null,
-            requiredQuestions: requiredQuestions.filter(q => q.trim()),
+            requiredQuestions: requiredQuestions.filter(q => q.text && q.text.trim()),
             customQuestions,
             raters, // Save ALL raters, including partial ones (relationship-only)
             questionsConfirmed,
@@ -894,7 +908,7 @@ export default function Survey360Wizard({
             autoReminderDaysBefore,
             preferredName: preferredName || null,
             // createdBy is now handled by the API from the authenticated session
-            requiredQuestions: requiredQuestions.filter(q => q.trim()),
+            requiredQuestions: requiredQuestions.filter(q => q.text && q.text.trim()),
             customQuestions,
             raters, // Save ALL raters, including partial ones (relationship-only)
             questionsConfirmed,
@@ -960,7 +974,7 @@ export default function Survey360Wizard({
       missingFields.push('Employee selection');
     }
 
-    if (!requiredQuestions || requiredQuestions.length === 0 || requiredQuestions.some(q => !q.trim())) {
+    if (!requiredQuestions || requiredQuestions.length === 0 || requiredQuestions.some(q => !q.text || !q.text.trim())) {
       missingFields.push('Required questions');
     }
 
@@ -1544,7 +1558,7 @@ export default function Survey360Wizard({
                 <div className="space-y-3">
                   {requiredQuestions.map((question, index) => (
                     <div key={index} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300">
-                      {replaceNamePlaceholder(question, displayName)}
+                      {replaceNamePlaceholder(question.text, displayName)}
                     </div>
                   ))}
                 </div>
@@ -1866,10 +1880,10 @@ export default function Survey360Wizard({
               </button>
 
               {/* Reviewer count validation message */}
-              {raters.length < 3 && (
+              {raters.length < 4 && (
                 <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700">
                   <div className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                    Add at least 3 reviewers.
+                    Add at least 4 reviewers.
                   </div>
                 </div>
               )}
@@ -1945,7 +1959,7 @@ export default function Survey360Wizard({
                   </div>
                   <ul className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
                     {requiredQuestions.map((q, i) => (
-                      <li key={`req-${i}`}>• {replaceNamePlaceholder(q, displayName)}</li>
+                      <li key={`req-${i}`}>• {replaceNamePlaceholder(q.text, displayName)}</li>
                     ))}
                     {customQuestions.map((q, i) => (
                       <li key={`custom-${i}`} className="text-blue-700 dark:text-blue-400">• {replaceNamePlaceholder(q, displayName)}</li>
@@ -1963,7 +1977,7 @@ export default function Survey360Wizard({
                           picture={undefined}
                           size="sm"
                         />
-                        <span>{r.name || 'Pending'} ({r.relationship})</span>
+                        <span>{r.name || 'Pending'} ({formatRelationship(r.relationship)})</span>
                       </li>
                     ))}
                   </ul>

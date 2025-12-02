@@ -74,11 +74,15 @@ export async function POST(request: NextRequest) {
     const allQuestions = [...requiredQuestions, ...(customQuestions || [])];
     const questionUUIDs: string[] = [];
 
-    for (const questionText of allQuestions) {
+    for (const question of allQuestions) {
+      // Support both string format (backward compatibility) and object format (with minWords)
+      const questionText = typeof question === 'string' ? question : question.text;
+      const minWords = typeof question === 'object' && question.minWords ? question.minWords : 50;
+
       // Check if question exists
       let { data: existingQuestion, error: checkError } = await supabaseAdmin
         .from('feedback_360_questions')
-        .select('id')
+        .select('id, min_words')
         .eq('question_text', questionText)
         .maybeSingle();
 
@@ -99,6 +103,7 @@ export async function POST(request: NextRequest) {
             category: 'general',
             is_default: false,
             is_active: true,
+            min_words: minWords,
           })
           .select('id')
           .single();
@@ -112,6 +117,13 @@ export async function POST(request: NextRequest) {
         }
         questionUUIDs.push(newQuestion.id);
       } else {
+        // Update min_words if different from existing
+        if (existingQuestion.min_words !== minWords) {
+          await supabaseAdmin
+            .from('feedback_360_questions')
+            .update({ min_words: minWords })
+            .eq('question_text', questionText);
+        }
         questionUUIDs.push(existingQuestion.id);
       }
     }

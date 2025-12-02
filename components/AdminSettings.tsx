@@ -29,13 +29,19 @@ type EditableEmployee = UserProfile & {
 function SortableQuestionItem({
   id,
   text,
+  minWords,
   index,
-  onDelete
+  onDelete,
+  onMinWordsChange,
+  onTextChange
 }: {
   id: string;
   text: string;
+  minWords?: number;
   index: number;
   onDelete: () => void;
+  onMinWordsChange: (minWords: number) => void;
+  onTextChange: (newText: string) => void;
 }) {
   const {
     attributes,
@@ -56,37 +62,59 @@ function SortableQuestionItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg"
+      className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg"
     >
-      <button
-        {...attributes}
-        {...listeners}
-        className="flex-shrink-0 mr-3 cursor-grab active:cursor-grabbing text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-      >
-        <GripVertical className="w-5 h-5" />
-      </button>
-      <span className="flex-shrink-0 w-6 h-6 bg-blue-600 dark:bg-blue-700 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">
-        {index + 1}
-      </span>
-      <p className="text-sm text-gray-700 dark:text-gray-300 flex-1">{text}</p>
-      <button
-        onClick={onDelete}
-        className="ml-3 p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
-        title="Delete question"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
+      <div className="flex items-start gap-3">
+        <button
+          {...attributes}
+          {...listeners}
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 mt-1"
+        >
+          <GripVertical className="w-5 h-5" />
+        </button>
+        <span className="flex-shrink-0 w-6 h-6 bg-blue-600 dark:bg-blue-700 text-white rounded-full flex items-center justify-center text-xs font-bold mt-1">
+          {index + 1}
+        </span>
+        <div className="flex-1">
+          <textarea
+            value={text}
+            onChange={(e) => onTextChange(e.target.value)}
+            rows={2}
+            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg mb-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 resize-y"
+            placeholder="Enter question text..."
+          />
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-600 dark:text-gray-400">Min words:</label>
+            <input
+              type="number"
+              min="10"
+              max="500"
+              value={minWords || 50}
+              onChange={(e) => onMinWordsChange(parseInt(e.target.value) || 50)}
+              className="w-20 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+          </div>
+        </div>
+        <button
+          onClick={onDelete}
+          className="flex-shrink-0 p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+          title="Delete question"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }
 
 // Component for managing default 360 questions
 function Default360QuestionsManager() {
-  const [questions, setQuestions] = useState<Array<{ id: string; text: string }>>([]);
+  const [questions, setQuestions] = useState<Array<{ id: string; text: string; minWords?: number }>>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customQuestionText, setCustomQuestionText] = useState('');
+  const [customMinWords, setCustomMinWords] = useState(50);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -146,16 +174,30 @@ function Default360QuestionsManager() {
 
     const newQuestion = {
       id: `custom-${Date.now()}`,
-      text: customQuestionText.trim()
+      text: customQuestionText.trim(),
+      minWords: customMinWords
     };
 
     setQuestions(prev => [...prev, newQuestion]);
     setCustomQuestionText('');
+    setCustomMinWords(50);
     setShowCustomInput(false);
   };
 
   const deleteQuestion = (id: string) => {
     setQuestions(prev => prev.filter(q => q.id !== id));
+  };
+
+  const updateQuestionMinWords = (id: string, minWords: number) => {
+    setQuestions(prev => prev.map(q =>
+      q.id === id ? { ...q, minWords } : q
+    ));
+  };
+
+  const updateQuestionText = (id: string, text: string) => {
+    setQuestions(prev => prev.map(q =>
+      q.id === id ? { ...q, text } : q
+    ));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -221,11 +263,16 @@ function Default360QuestionsManager() {
               Current Required Questions ({questions.length}):
             </p>
             {questions.map((question, index) => (
-              <div key={question.id} className="flex items-start p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
-                <span className="flex-shrink-0 w-6 h-6 bg-blue-600 dark:bg-blue-700 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">
-                  {index + 1}
-                </span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{question.text}</p>
+              <div key={question.id} className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 dark:bg-blue-700 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                    {index + 1}
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">{question.text}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Minimum words: {question.minWords || 50}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -259,8 +306,11 @@ function Default360QuestionsManager() {
                           key={question.id}
                           id={question.id}
                           text={question.text}
+                          minWords={question.minWords}
                           index={index}
                           onDelete={() => deleteQuestion(question.id)}
+                          onMinWordsChange={(minWords) => updateQuestionMinWords(question.id, minWords)}
+                          onTextChange={(text) => updateQuestionText(question.id, text)}
                         />
                       ))}
                     </div>
@@ -287,8 +337,24 @@ function Default360QuestionsManager() {
                   onChange={(e) => setCustomQuestionText(e.target.value)}
                   placeholder="What question should reviewers answer?"
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mb-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mb-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                 />
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Minimum word count:
+                  </label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="500"
+                    value={customMinWords}
+                    onChange={(e) => setCustomMinWords(parseInt(e.target.value) || 50)}
+                    className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Reviewers must write at least this many words
+                  </p>
+                </div>
                 <div className="flex space-x-2">
                   <button
                     onClick={addCustomQuestion}
@@ -300,6 +366,7 @@ function Default360QuestionsManager() {
                     onClick={() => {
                       setShowCustomInput(false);
                       setCustomQuestionText('');
+                      setCustomMinWords(50);
                     }}
                     className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 text-sm"
                   >

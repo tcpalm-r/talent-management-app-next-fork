@@ -21,7 +21,6 @@ describe('GET /api/debug/env', () => {
       DATABASE_URL: 'postgresql://user:pass@host:5432/db',
       // Anthropic
       ANTHROPIC_API_KEY: 'sk-ant-test-key-123456',
-      NEXT_PUBLIC_ANTHROPIC_API_KEY: 'sk-ant-public-test-key-123456',
       // Email
       RESEND_API_KEY: 're_test_key_123456',
       RESEND_FROM_EMAIL: 'test@example.com',
@@ -225,17 +224,13 @@ describe('GET /api/debug/env', () => {
     expect(timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
   });
 
-  it('should handle partial Anthropic configuration', async () => {
-    delete process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
-
+  it('should show Anthropic configuration when key is set', async () => {
     const response = await GET();
     const data = await response.json();
 
     const serverKey = data.variables.anthropic.ANTHROPIC_API_KEY;
     expect(serverKey.status).toBe('✓ SET');
-
-    const publicKey = data.variables.anthropic.NEXT_PUBLIC_ANTHROPIC_API_KEY;
-    expect(publicKey.status).toBe('❌ NOT SET');
+    expect(serverKey.issue).toBeNull();
   });
 
   it('should note issue with missing ANTHROPIC_API_KEY', async () => {
@@ -246,7 +241,7 @@ describe('GET /api/debug/env', () => {
 
     const anthropicKey = data.variables.anthropic.ANTHROPIC_API_KEY;
     expect(anthropicKey.issue).toContain('Missing');
-    expect(anthropicKey.issue).toContain('NEXT_PUBLIC_ANTHROPIC_API_KEY');
+    expect(anthropicKey.issue).toContain('Required for AI features');
   });
 
   it('should show fallback message for RESEND_FROM_EMAIL', async () => {

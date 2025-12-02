@@ -10,8 +10,7 @@ import type {
 } from '../types';
 
 const anthropic = new Anthropic({
-  apiKey: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY,
-  dangerouslyAllowBrowser: true,
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 interface AnalysisInput {
