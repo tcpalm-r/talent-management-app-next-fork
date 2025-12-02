@@ -161,6 +161,7 @@ export interface Feedback360Question {
   is_default: boolean | null;
   is_active: boolean | null;
   display_order: number | null;
+  min_words: number | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -311,8 +312,8 @@ export type UpdateFeedback360Survey = Partial<Omit<Feedback360Survey, 'id'>>;
 /**
  * Role types for user permissions
  */
-export type AppRole = 'admin' | 'leader' | 'user';
-export type GlobalRole = 'admin' | 'leader' | 'user';
+export type AppRole = 'admin' | 'slt' | 'leader' | 'user';
+export type GlobalRole = 'admin' | 'slt' | 'leader' | 'user';
 
 /**
  * Assessment status types
@@ -332,7 +333,7 @@ export type ReviewStatus = 'draft' | 'active' | 'completed' | 'archived';
 /**
  * Participant role types
  */
-export type ParticipantRole = 'employee' | 'manager' | 'slt' | 'direct_report';
+export type ParticipantRole = 'employee' | 'manager' | 'slt' | 'direct_report' | 'cross_functional';
 
 /**
  * Reviewer status types
@@ -359,8 +360,28 @@ export function isLeader(user: UserProfile | SessionUser): boolean {
 
 /**
  * Type guard to check if a user has specific permission
+ * 
+ * Derives permissions from app_role (single source of truth).
+ * Ignores app_permissions column (zombie code from AI Intranet template).
  */
 export function hasPermission(user: UserProfile | SessionUser, permission: string): boolean {
-  if (!user.app_permissions) return false;
-  return user.app_permissions[permission] === true;
+  if (!user || !user.app_role) return false;
+  
+  // Admin has all permissions
+  if (user.app_role === 'admin') return true;
+  
+  // Derive permissions from role
+  if (permission === 'admin') {
+    return user.app_role === 'admin';
+  }
+  
+  if (permission === 'write') {
+    return ['admin', 'slt', 'leader'].includes(user.app_role);
+  }
+  
+  if (permission === 'read') {
+    return true;
+  }
+  
+  return false;
 }

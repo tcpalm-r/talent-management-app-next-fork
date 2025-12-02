@@ -118,7 +118,7 @@ export default function Quick360Modal({
   };
 
   const addReviewer = () => {
-    setReviewers([...reviewers, { name: '', email: '', relationship: 'peer' }]);
+    setReviewers([...reviewers, { name: '', email: '', relationship: 'cross_functional' }]);
   };
 
   const updateReviewer = (index: number, field: keyof Reviewer, value: string) => {
