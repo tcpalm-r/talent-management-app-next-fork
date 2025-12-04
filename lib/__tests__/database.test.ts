@@ -30,7 +30,6 @@ import {
   isUserLeader,
   getUserManager,
 } from '../database';
-import { supabase } from '../supabase';
 import {
   mockUserProfiles,
   mock360Questions,
@@ -43,14 +42,13 @@ import {
 } from '../../test-utils/mockData';
 import { mockSupabaseResponse, mockSupabaseQuery } from '../../test-utils/testHelpers';
 
-// Mock the supabase client
-jest.mock('../supabase', () => ({
-  supabase: {
-    from: jest.fn(),
+// Mock the supabase-admin client (which is what database.ts actually uses)
+const mockFrom = jest.fn();
+jest.mock('../supabase-admin', () => ({
+  supabaseAdmin: {
+    from: (...args: any[]) => mockFrom(...args),
   },
 }));
-
-const mockFrom = supabase.from as jest.MockedFunction<typeof supabase.from>;
 
 describe('database.ts - User Profile Queries', () => {
   beforeEach(() => {

@@ -81,11 +81,12 @@ export default function Feedback360Dashboard({
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'in_progress' | 'completed' | 'needs_review' | 'needs_reanalysis' | 'finalized'>('all');
   const [reviewerFilterStatus, setReviewerFilterStatus] = useState<'all' | 'required' | 'optional'>('all');
   // Only Admin and SLT can sponsor surveys, everyone else defaults to 'reviewer'
-  const [filterRole, setFilterRole] = useState<'sponsor' | 'reviewer'>(
-    (currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt') ? 'sponsor' : 'reviewer'
+  const [filterRole, setFilterRole] = useState<'all' | 'sponsor' | 'reviewer' | 'needs_reanalysis'>(
+    currentUser?.app_role === 'admin' ? 'all' : (currentUser?.app_role === 'slt') ? 'sponsor' : 'reviewer'
   );
   const [reviewerSearchQuery, setReviewerSearchQuery] = useState('');
   const [sponsorSearchQuery, setSponsorSearchQuery] = useState('');
+  const [allSurveysSearchQuery, setAllSurveysSearchQuery] = useState('');
   const [preselectedEmployee, setPreselectedEmployee] = useState<Employee | undefined>(undefined);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -390,17 +391,31 @@ export default function Feedback360Dashboard({
   };
 
   const deleteInProgressSurvey = async (surveyId: string) => {
-    // Verify user is the sponsor or an admin
+    // Verify user has permission to delete
+    // - Admin sponsors can delete their surveys in any status
+    // - SLT sponsors can only delete their draft or in_progress surveys
     const survey = surveys.find(s => s.id === surveyId);
     const isSponsor = survey?.created_by === currentUser?.id || survey?.created_by === currentUser?.email;
     const isAdmin = currentUser?.app_role === 'admin';
+    const isSLT = currentUser?.app_role === 'slt';
+    const isDraftOrInProgress = survey?.status === 'draft' || survey?.status === 'in_progress';
 
-    if (!isSponsor && !isAdmin) {
-      notify({
-        title: 'Error',
-        description: 'Only the sponsor or an admin can delete this review.',
-        variant: 'error',
-      });
+    const canDelete = isSponsor && (isAdmin || (isSLT && isDraftOrInProgress));
+
+    if (!canDelete) {
+      if (isSLT && isSponsor && !isDraftOrInProgress) {
+        notify({
+          title: 'Cannot Delete',
+          description: 'SLT can only delete draft or in-progress surveys. Contact an Admin to delete completed or finalized surveys.',
+          variant: 'error',
+        });
+      } else {
+        notify({
+          title: 'Error',
+          description: 'Only the survey sponsor (Admin or SLT for draft/in-progress) can delete their own surveys.',
+          variant: 'error',
+        });
+      }
       return;
     }
 
@@ -560,6 +575,16 @@ export default function Feedback360Dashboard({
   };
 
   const finalizeSurvey = async (surveyId: string) => {
+    // Block finalization if flagged for reanalysis
+    if (selectedSurvey?.flagged_for_reanalysis) {
+      notify({
+        title: 'Cannot Finalize',
+        description: 'This survey has been flagged for reanalysis. An admin must resolve this before it can be finalized.',
+        variant: 'error',
+      });
+      return;
+    }
+
     // Check if narrative has been generated
     if (!finalNarrative) {
       notify({
@@ -1068,7 +1093,7 @@ export default function Feedback360Dashboard({
       const response = await fetch(`/api/surveys/${surveyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ flagged_for_reanalysis: false }),
+        body: JSON.stringify({ flagged_for_reanalysis: false, resolved_by_admin: true }),
       });
 
       if (!response.ok) {
@@ -1076,11 +1101,12 @@ export default function Feedback360Dashboard({
         throw new Error(errorData.error || 'Failed to resolve review');
       }
 
-      // Update selectedSurvey to remove the tag immediately
+      // Update selectedSurvey to remove the tag and mark as resolved by admin
       if (selectedSurvey) {
         const updatedSurvey = {
           ...selectedSurvey,
-          flagged_for_reanalysis: false
+          flagged_for_reanalysis: false,
+          resolved_by_admin: true
         };
         setSelectedSurvey(updatedSurvey);
 
@@ -1090,7 +1116,7 @@ export default function Feedback360Dashboard({
 
       notify({
         title: 'Review Resolved',
-        description: 'The "Needs Reanalysis" tag has been removed.',
+        description: 'The review has been marked as resolved by admin.',
         variant: 'success',
       });
 
@@ -1492,6 +1518,10 @@ export default function Feedback360Dashboard({
     if (filterRole === 'reviewer') {
       if (isSLT || isAdmin) {
         // SLT/Admin sees in_progress surveys where they can participate as reviewer (not the subject)
+        // ALSO: If admin is explicitly a reviewer on a flagged survey, show it here too
+        if (isAdmin && isReviewer && survey.flagged_for_reanalysis) {
+          return !isSubject;
+        }
         return survey.status === 'in_progress' && !isSubject;
       }
       return isReviewer && survey.status === 'in_progress';
@@ -1503,6 +1533,16 @@ export default function Feedback360Dashboard({
     // - All users (including admins) see only surveys they created
     if (filterRole === 'sponsor') {
       return isSponsor;
+    }
+
+    // Needs Reanalysis tab (Admin only): ALL flagged surveys
+    if (filterRole === 'needs_reanalysis') {
+      return survey.flagged_for_reanalysis === true;
+    }
+
+    // All 360°s tab (Admin only): Show ALL surveys EXCEPT drafts
+    if (filterRole === 'all') {
+      return survey.status !== 'draft';
     }
 
     return false;
@@ -1522,7 +1562,11 @@ export default function Feedback360Dashboard({
     const isSubject = s.employee_id === currentUser?.id;
 
     // SLT/Admin sees all in_progress (can opt in), but NOT surveys where they are the subject
+    // ALSO: If admin is explicitly a reviewer on a flagged survey, count it
     if (isSLT || isAdmin) {
+      if (isAdmin && isReviewer && s.flagged_for_reanalysis) {
+        return !isSubject;
+      }
       return s.status === 'in_progress' && !isSubject;
     }
     return s.status === 'in_progress' && isReviewer;
@@ -1532,6 +1576,14 @@ export default function Feedback360Dashboard({
     s.status === 'finalized' &&
     s.employee_id === currentUser?.id
   ).length;
+
+  // Count for Needs Reanalysis tab (Admin only) - ALL flagged surveys
+  const needsReanalysisCount = surveys.filter(s =>
+    s.flagged_for_reanalysis === true
+  ).length;
+
+  // Count for All 360°s tab (Admin only) - ALL surveys except drafts
+  const allSurveysCount = surveys.filter(s => s.status !== 'draft').length;
 
   // Then filter by status (only applies to Sponsor tab now)
   // Reviewer and Subject tabs ignore manual status filter (automatic filtering above)
@@ -1580,6 +1632,26 @@ export default function Feedback360Dashboard({
     });
   }
 
+  // Apply search filter on Needs Reanalysis tab
+  if (filterRole === 'needs_reanalysis' && sponsorSearchQuery.trim()) {
+    const query = sponsorSearchQuery.toLowerCase().trim();
+    filteredSurveys = filteredSurveys.filter(survey => {
+      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || '';
+      const nameParts = employeeName.split(/\s+/).filter(part => part.length > 0);
+      return nameParts.some(part => part.startsWith(query));
+    });
+  }
+
+  // Apply search filter on All 360°s tab
+  if (filterRole === 'all' && allSurveysSearchQuery.trim()) {
+    const query = allSurveysSearchQuery.toLowerCase().trim();
+    filteredSurveys = filteredSurveys.filter(survey => {
+      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || '';
+      const nameParts = employeeName.split(/\s+/).filter(part => part.length > 0);
+      return nameParts.some(part => part.startsWith(query));
+    });
+  }
+
   // Calculate stats based on role-filtered surveys
   const stats = {
     draft: roleFilteredSurveys.filter(s => s.status === 'draft').length,
@@ -1609,7 +1681,7 @@ export default function Feedback360Dashboard({
     return responseRate < 0.5 && daysUntilDue <= 3 && daysUntilDue > 0;
   });
 
-  const getStatusBadge = (status: string, flaggedForAdmin?: boolean, flaggedForReanalysis?: boolean) => {
+  const getStatusBadge = (status: string, flaggedForAdmin?: boolean, flaggedForReanalysis?: boolean, resolvedByAdmin?: boolean) => {
     // Show "Needs Reanalysis" badge for flagged surveys
     if ((flaggedForAdmin || flaggedForReanalysis) && currentUser?.app_role === 'admin') {
       return (
@@ -1629,6 +1701,18 @@ export default function Feedback360Dashboard({
           <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300 cursor-help">
             <AlertTriangle className="w-3 h-3 mr-1" />
             Needs Reanalysis
+          </span>
+        </Tooltip>
+      );
+    }
+
+    // Show "Resolved By Admin" badge when admin has resolved a flagged survey
+    if (resolvedByAdmin && status === 'completed') {
+      return (
+        <Tooltip content="This survey was reviewed and resolved by an admin">
+          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-green-100 text-green-700 border-green-300 cursor-help">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Resolved By Admin
           </span>
         </Tooltip>
       );
@@ -1755,6 +1839,13 @@ export default function Feedback360Dashboard({
       <div className="mb-6 flex items-center justify-between">
         <NavigationTabs
           tabs={[
+            // Only show All 360°s tab for Admin role (first position)
+            ...(currentUser?.app_role === 'admin' ? [{
+              id: 'all',
+              label: 'All 360°s',
+              tooltip: 'View all 360 feedback surveys across the organization',
+              count: allSurveysCount
+            }] : []),
             // Only show Sponsor tab for Admin and SLT roles
             ...(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' ? [{
               id: 'sponsor',
@@ -1767,14 +1858,23 @@ export default function Feedback360Dashboard({
               label: 'Give Feedback',
               tooltip: 'Active 360 feedback sessions awaiting your input. Provide anonymous feedback, aggregated with AI',
               count: reviewerCount
-            }
+            },
+            // Only show Needs Reanalysis tab for Admin role
+            ...(currentUser?.app_role === 'admin' ? [{
+              id: 'needs_reanalysis',
+              label: 'Needs Reanalysis',
+              tooltip: 'Surveys flagged for admin review and reanalysis across all sponsors',
+              count: needsReanalysisCount
+            }] : [])
           ]}
           activeTab={filterRole}
           onTabChange={(tabId) => {
-            setFilterRole(tabId as 'sponsor' | 'reviewer');
+            setFilterRole(tabId as 'all' | 'sponsor' | 'reviewer' | 'needs_reanalysis');
+            setFilterStatus('all'); // Reset status filter when switching tabs
             setReviewerFilterStatus('all'); // Reset reviewer filter when switching tabs
             setReviewerSearchQuery(''); // Clear reviewer search when switching tabs
             setSponsorSearchQuery(''); // Clear sponsor search when switching tabs
+            setAllSurveysSearchQuery(''); // Clear all surveys search when switching tabs
           }}
           variant="underline"
         />
@@ -1785,7 +1885,7 @@ export default function Feedback360Dashboard({
       {filterRole === 'sponsor' && (
       <div className={`grid gap-4 mt-6 ${
         currentUser?.app_role === 'admin'
-          ? 'grid-cols-3 lg:grid-cols-6'
+          ? 'grid-cols-3 lg:grid-cols-5'
           : currentUser?.app_role === 'slt'
           ? 'grid-cols-2 lg:grid-cols-5'
           : 'grid-cols-2 lg:grid-cols-4'
@@ -1862,28 +1962,6 @@ export default function Feedback360Dashboard({
             </div>
           </button>
         </Tooltip>
-
-        {/* Needs Reanalysis - Admin Only */}
-        {currentUser?.app_role === 'admin' && (
-          <Tooltip content="Surveys flagged for admin review and reanalysis">
-            <button
-              onClick={() => setFilterStatus('needs_reanalysis')}
-              className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
-                filterStatus === 'needs_reanalysis'
-                  ? 'border-red-500 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
-                  : 'bg-white dark:bg-gray-800 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-red-700 dark:text-red-400">Needs Reanalysis</p>
-                  <p className="text-2xl font-bold text-red-900 dark:text-red-300">{stats.needs_reanalysis}</p>
-                </div>
-                <AlertTriangle className="w-8 h-8 text-red-400 dark:text-red-500" />
-              </div>
-            </button>
-          </Tooltip>
-        )}
 
         {/* Finalized - Available to all users (they see only their own finalized reviews) */}
         <Tooltip content="Surveys marked as final and archived">
@@ -2026,6 +2104,38 @@ export default function Feedback360Dashboard({
         </div>
       )}
 
+      {/* Needs Reanalysis Tab - Search Only (Admin Only) */}
+      {filterRole === 'needs_reanalysis' && currentUser?.app_role === 'admin' && (
+        <div className="mt-6 mb-6">
+          <div className="relative w-[675px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by employee name..."
+              value={sponsorSearchQuery}
+              onChange={(e) => setSponsorSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* All 360°s Tab - Search Only (Admin Only) */}
+      {filterRole === 'all' && currentUser?.app_role === 'admin' && (
+        <div className="mt-6 mb-6">
+          <div className="relative w-[675px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by employee name..."
+              value={allSurveysSearchQuery}
+              onChange={(e) => setAllSurveysSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Reviews List */}
       {loading ? (
         <div className="text-center py-12 mt-6">
@@ -2039,6 +2149,10 @@ export default function Feedback360Dashboard({
             <h3 className="text-lg font-normal text-gray-500 dark:text-gray-400 mb-2">
               {filterRole === 'reviewer'
                 ? 'No 360°s require your input'
+                : filterRole === 'needs_reanalysis'
+                ? 'No surveys need reanalysis'
+                : filterRole === 'all'
+                ? 'No 360°s in the system yet'
                 : filterStatus === 'all'
                 ? 'No 360°s yet. Launch a 360° Review and it will show up here.'
                 : filterStatus === 'draft'
@@ -2339,7 +2453,7 @@ export default function Feedback360Dashboard({
                 {/* Right side: Status badge and actions */}
                 <div className="ml-4 flex flex-col items-end gap-2">
                   {/* Status badge - Only show on Sponsor tab */}
-                  {filterRole === 'sponsor' && getStatusBadge(survey.status || 'unknown', survey.flagged_for_admin ?? undefined, survey.flagged_for_reanalysis ?? undefined)}
+                  {filterRole === 'sponsor' && getStatusBadge(survey.status || 'unknown', survey.flagged_for_admin ?? undefined, survey.flagged_for_reanalysis ?? undefined, survey.resolved_by_admin ?? undefined)}
 
                   {/* Remind button */}
                   {survey.status === 'active' && (survey.completed_count ?? 0) !== (survey.reviewers_count ?? 0) && (
@@ -2358,7 +2472,9 @@ export default function Feedback360Dashboard({
                 </div>
 
                 {/* Delete button - bottom right of card */}
-                {(currentUser?.app_role === 'admin' || isSponsor) && (
+                {/* Admin sponsors can delete any survey; SLT sponsors can only delete draft/in_progress */}
+                {((currentUser?.app_role === 'admin' && isSponsor) || 
+                  (currentUser?.app_role === 'slt' && isSponsor && (survey.status === 'draft' || survey.status === 'in_progress'))) && (
                   <Tooltip content="Permanently delete this survey for everyone involved" side="bottom">
                     <button
                       onClick={(e) => {
@@ -2411,22 +2527,24 @@ export default function Feedback360Dashboard({
 
         // Only sponsors and admins can manage surveys
         // Leaders can only manage if they are the sponsor
+        // IMPORTANT: Admins should ALWAYS see the full management view, regardless of
+        // whether they're the sponsor or a reviewer
         const canManage = isSponsor || isAdmin;
 
-        // For finalized surveys, only non-sponsor admins can see read-only view
-        // Leaders who are reviewers should see the completion message, not results
-        const isFinalizedNonSponsorAdmin = !isSponsor && isAdmin && selectedSurvey.status === 'finalized';
-        
         // Leaders who are reviewers on finalized surveys should see read-only view, not sponsor view
         const isLeaderReviewerOnFinalized = isLeader && isReviewer && !isSponsor && selectedSurvey.status === 'finalized';
 
         // Leaders who are reviewers (not sponsors) should always see read-only view
         const isLeaderReviewer = isLeader && isReviewer && !isSponsor;
 
-        if (!canManage || isFinalizedNonSponsorAdmin || isLeaderReviewerOnFinalized || isLeaderReviewer) {
-          // Read-only view for reviewers and subject
-          // If finalized, only subject or admin (not leaders) can see the complete review results
-          const canSeeResults = (isSubject || isFinalizedNonSponsorAdmin) && selectedSurvey.status === 'finalized';
+        // DEBUG: Log modal decision
+        const willShowReadOnlyModal = !canManage || isLeaderReviewerOnFinalized || isLeaderReviewer;
+        console.log('[Modal Debug] userRole:', currentUser?.app_role, 'isAdmin:', isAdmin, 'canManage:', canManage, 'willShowReadOnlyModal:', willShowReadOnlyModal);
+
+        if (willShowReadOnlyModal) {
+          // Read-only view for reviewers and subject (admins always go to management view above)
+          // If finalized, subject can see the complete review results
+          const canSeeResults = isSubject && selectedSurvey.status === 'finalized';
           return (
             <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
               <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -2443,7 +2561,7 @@ export default function Feedback360Dashboard({
                       )}
                     </div>
                     <div className="mt-2">
-                      {getStatusBadge(selectedSurvey.status || 'unknown', selectedSurvey.flagged_for_admin ?? undefined, selectedSurvey.flagged_for_reanalysis ?? undefined)}
+                      {getStatusBadge(selectedSurvey.status || 'unknown', selectedSurvey.flagged_for_admin ?? undefined, selectedSurvey.flagged_for_reanalysis ?? undefined, selectedSurvey.resolved_by_admin ?? undefined)}
                     </div>
                   </div>
                   <button
@@ -2610,7 +2728,7 @@ export default function Feedback360Dashboard({
                     </div>
                   )}
                 </div>
-                {getStatusBadge(selectedSurvey.status ?? 'draft', selectedSurvey.flagged_for_admin ?? undefined, selectedSurvey.flagged_for_reanalysis ?? undefined)}
+                {getStatusBadge(selectedSurvey.status ?? 'draft', selectedSurvey.flagged_for_admin ?? undefined, selectedSurvey.flagged_for_reanalysis ?? undefined, selectedSurvey.resolved_by_admin ?? undefined)}
               </div>
 
               {/* Reviewers */}
@@ -2623,7 +2741,7 @@ export default function Feedback360Dashboard({
                       return `${completedReviewers}/${totalReviewers}`;
                     })()} completed)
                   </h4>
-                  {isSponsor && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
+                  {(isSponsor || isAdmin) && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
                   <button
                     onClick={() => setIsAddingReviewer(!isAddingReviewer)}
                     className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 font-medium"
@@ -2949,8 +3067,8 @@ export default function Feedback360Dashboard({
                 )}
               </div>
 
-              {/* Actions - Only visible to sponsor */}
-              {isSponsor && (
+              {/* Actions - Visible to sponsor and admins */}
+              {(isSponsor || isAdmin) && (
               <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div>
                   {/* Send Backward - Always on left, always grey */}
@@ -3152,7 +3270,9 @@ export default function Feedback360Dashboard({
                     <Download className="w-4 h-4 mr-2" />
                     Export PDF
                   </button>
-                  {(currentUser?.app_role === 'admin' || ((selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || currentUser?.app_role === 'leader'))) && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
+                  {/* Delete button: Admin sponsors can delete any status; SLT sponsors can only delete draft/in_progress */}
+                  {((currentUser?.app_role === 'admin' && (selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email)) || 
+                    (currentUser?.app_role === 'slt' && (selectedSurvey.created_by === currentUser?.id || selectedSurvey.created_by === currentUser?.email) && (selectedSurvey.status === 'draft' || selectedSurvey.status === 'in_progress'))) && (
                     <button
                       onClick={() => {
                         deleteInProgressSurvey(selectedSurvey.id);
@@ -4134,7 +4254,12 @@ export default function Feedback360Dashboard({
                       {selectedSurvey.status !== 'finalized' && (
                         <button
                           onClick={() => finalizeSurvey(selectedSurvey.id)}
-                          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center"
+                          disabled={!!selectedSurvey.flagged_for_reanalysis}
+                          className={`px-6 py-3 bg-blue-600 text-white rounded-lg font-medium flex items-center ${
+                            selectedSurvey.flagged_for_reanalysis
+                              ? 'opacity-50 cursor-not-allowed'
+                              : 'hover:bg-blue-700 transition-colors'
+                          }`}
                         >
                           <ArrowDownCircle className="w-4 h-4 mr-2" />
                           Finalize
@@ -4183,7 +4308,12 @@ export default function Feedback360Dashboard({
                         {selectedSurvey.status !== 'finalized' && (
                           <button
                             onClick={() => finalizeSurvey(selectedSurvey.id)}
-                            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center"
+                            disabled={!!selectedSurvey.flagged_for_reanalysis}
+                            className={`px-6 py-3 bg-blue-600 text-white rounded-lg font-medium flex items-center ${
+                              selectedSurvey.flagged_for_reanalysis
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'hover:bg-blue-700 transition-colors'
+                            }`}
                           >
                             <ArrowDownCircle className="w-4 h-4 mr-2" />
                             Finalize

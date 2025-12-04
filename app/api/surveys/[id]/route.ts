@@ -185,15 +185,29 @@ export async function DELETE(
       );
     }
 
-    // Authorization check - only Admin and SLT can delete their own surveys
-    // Leaders and Users cannot delete surveys (they can't create them anyway)
-    const isAdminOrSLT = user.app_role === 'admin' || user.app_role === 'slt';
+    // Authorization check for deletion:
+    // - Admin can delete their own surveys in ANY status
+    // - SLT can only delete their own DRAFT or IN_PROGRESS surveys
+    // - Leaders and Users cannot delete surveys (they can't create them anyway)
+    const isAdmin = user.app_role === 'admin';
+    const isSLT = user.app_role === 'slt';
     const isCreator = existingSurvey.created_by === profile.id;
-    const canDelete = isAdminOrSLT && isCreator;
+    const isDraftOrInProgress = existingSurvey.status === 'draft' || existingSurvey.status === 'in_progress';
+
+    // Admin: can delete own surveys in any status
+    // SLT: can only delete own draft or in_progress surveys
+    const canDelete = isCreator && (isAdmin || (isSLT && isDraftOrInProgress));
 
     if (!canDelete) {
+      // Provide specific error message based on why deletion failed
+      if (isSLT && isCreator && !isDraftOrInProgress) {
+        return NextResponse.json(
+          { error: 'Forbidden: SLT can only delete draft or in-progress surveys. Contact an Admin to delete completed or finalized surveys.' },
+          { status: 403 }
+        );
+      }
       return NextResponse.json(
-        { error: 'Forbidden: Only the survey sponsor (Admin or SLT) can delete their own surveys' },
+        { error: 'Forbidden: Only the survey sponsor (Admin or SLT for draft/in-progress) can delete their own surveys' },
         { status: 403 }
       );
     }

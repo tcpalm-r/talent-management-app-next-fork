@@ -2,7 +2,7 @@
  * Tests for schema.ts - Type Guards and Helper Functions
  */
 
-import { isAdmin, isLeader, hasPermission } from '../schema';
+import { isAdmin, isLeader } from '../schema';
 import { mockUserProfiles, mockSessionUsers, createMockUserProfile, createMockSessionUser } from '../../test-utils/mockData';
 
 describe('schema.ts - Type Guards', () => {
@@ -61,49 +61,6 @@ describe('schema.ts - Type Guards', () => {
     });
   });
 
-  describe('hasPermission', () => {
-    it('should return true when user has the specific permission', () => {
-      const admin = mockUserProfiles.admin;
-      expect(hasPermission(admin, 'manage_users')).toBe(true);
-      expect(hasPermission(admin, 'manage_reviews')).toBe(true);
-    });
-
-    it('should return false when user lacks the permission', () => {
-      const user = mockUserProfiles.user;
-      expect(hasPermission(user, 'manage_users')).toBe(false);
-    });
-
-    it('should handle session user correctly', () => {
-      const leader = mockSessionUsers.leader;
-      expect(hasPermission(leader, 'manage_surveys')).toBe(true);
-      expect(hasPermission(leader, 'view_analytics')).toBe(true);
-      expect(hasPermission(leader, 'manage_users')).toBe(false);
-    });
-
-    it('should return false when user has null app_permissions', () => {
-      const userWithoutPerms = createMockUserProfile({ app_permissions: null });
-      expect(hasPermission(userWithoutPerms, 'any_permission')).toBe(false);
-    });
-
-    it('should return false when permission is explicitly false', () => {
-      const user = createMockUserProfile({
-        app_permissions: {
-          manage_users: false,
-        },
-      });
-      expect(hasPermission(user, 'manage_users')).toBe(false);
-    });
-
-    it('should return false when permission key does not exist', () => {
-      const admin = mockUserProfiles.admin;
-      expect(hasPermission(admin, 'nonexistent_permission')).toBe(false);
-    });
-
-    it('should handle empty app_permissions object', () => {
-      const user = createMockUserProfile({ app_permissions: {} });
-      expect(hasPermission(user, 'any_permission')).toBe(false);
-    });
-  });
 
   describe('Edge Cases', () => {
     it('should handle users with various role combinations', () => {
@@ -120,42 +77,11 @@ describe('schema.ts - Type Guards', () => {
       expect(isLeader(customUser3)).toBe(false);
     });
 
-    it('should handle session users with various permission sets', () => {
-      const noPerms = createMockSessionUser({ app_permissions: {} });
-      const somePerms = createMockSessionUser({
-        app_permissions: {
-          view_analytics: true,
-          manage_surveys: false,
-        },
-      });
-      const allPerms = createMockSessionUser({
-        app_permissions: {
-          manage_users: true,
-          manage_reviews: true,
-          manage_surveys: true,
-          view_analytics: true,
-        },
-      });
-
-      expect(hasPermission(noPerms, 'view_analytics')).toBe(false);
-      expect(hasPermission(somePerms, 'view_analytics')).toBe(true);
-      expect(hasPermission(somePerms, 'manage_surveys')).toBe(false);
-      expect(hasPermission(allPerms, 'manage_users')).toBe(true);
-    });
-
     it('should be case-sensitive for app_role', () => {
       // TypeScript should prevent this, but test runtime behavior
       const userWithWeirdRole = createMockUserProfile({ app_role: 'Admin' as any });
 
       expect(isAdmin(userWithWeirdRole)).toBe(false); // 'Admin' !== 'admin'
-    });
-
-    it('should be case-sensitive for permission names', () => {
-      const admin = mockUserProfiles.admin;
-
-      // Assuming permissions are case-sensitive
-      expect(hasPermission(admin, 'manage_users')).toBe(true);
-      expect(hasPermission(admin, 'MANAGE_USERS')).toBe(false);
     });
   });
 });
@@ -166,19 +92,5 @@ describe('schema.ts - Type Consistency', () => {
     expect(['admin', 'leader', 'user']).toContain(mockUserProfiles.admin.app_role);
     expect(['admin', 'leader', 'user']).toContain(mockUserProfiles.leader.app_role);
     expect(['admin', 'leader', 'user']).toContain(mockUserProfiles.user.app_role);
-  });
-
-  it('should maintain consistent permission keys', () => {
-    const admin = mockUserProfiles.admin;
-    const leader = mockUserProfiles.leader;
-
-    // Verify common permission keys exist
-    expect(admin.app_permissions).toHaveProperty('manage_users');
-    expect(admin.app_permissions).toHaveProperty('manage_reviews');
-    expect(admin.app_permissions).toHaveProperty('manage_surveys');
-    expect(admin.app_permissions).toHaveProperty('view_analytics');
-
-    expect(leader.app_permissions).toHaveProperty('manage_surveys');
-    expect(leader.app_permissions).toHaveProperty('view_analytics');
   });
 });

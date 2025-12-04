@@ -183,6 +183,7 @@ export interface Feedback360Survey {
   completed_at: string | null;
   flagged_for_admin: boolean | null;
   flagged_for_reanalysis: boolean | null;
+  resolved_by_admin: boolean | null;
   reanalysis_requested_at: string | null;
   reanalysis_requested_by: string | null;
   is_anonymous: boolean | null;
@@ -358,30 +359,3 @@ export function isLeader(user: UserProfile | SessionUser): boolean {
   return user.app_role === 'leader' || user.app_role === 'admin';
 }
 
-/**
- * Type guard to check if a user has specific permission
- * 
- * Derives permissions from app_role (single source of truth).
- * Ignores app_permissions column (zombie code from AI Intranet template).
- */
-export function hasPermission(user: UserProfile | SessionUser, permission: string): boolean {
-  if (!user || !user.app_role) return false;
-  
-  // Admin has all permissions
-  if (user.app_role === 'admin') return true;
-  
-  // Derive permissions from role
-  if (permission === 'admin') {
-    return user.app_role === 'admin';
-  }
-  
-  if (permission === 'write') {
-    return ['admin', 'slt', 'leader'].includes(user.app_role);
-  }
-  
-  if (permission === 'read') {
-    return true;
-  }
-  
-  return false;
-}

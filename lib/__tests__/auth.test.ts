@@ -15,7 +15,6 @@ import {
   createAuthenticatedResponse,
   clearAuthCookies,
   isProtectedRoute,
-  hasPermission,
   hasRole,
   exchangeAIIntranetToken,
   getClientUser,
@@ -160,39 +159,6 @@ describe('auth.ts - Route Protection', () => {
     });
   });
 
-  describe('hasPermission', () => {
-    it('should return true for admin users (admins have all permissions)', () => {
-      const admin = mockSessionUsers.admin;
-
-      expect(hasPermission(admin, 'manage_users')).toBe(true);
-      expect(hasPermission(admin, 'any_permission')).toBe(true);
-    });
-
-    it('should return true when user has specific permission', () => {
-      const leader = mockSessionUsers.leader;
-
-      expect(hasPermission(leader, 'manage_surveys')).toBe(true);
-      expect(hasPermission(leader, 'view_analytics')).toBe(true);
-    });
-
-    it('should return false when user lacks permission', () => {
-      const user = mockSessionUsers.user;
-
-      expect(hasPermission(user, 'manage_users')).toBe(false);
-      expect(hasPermission(user, 'manage_surveys')).toBe(false);
-    });
-
-    it('should return false for null user', () => {
-      expect(hasPermission(null, 'any_permission')).toBe(false);
-    });
-
-    it('should handle users without app_permissions object', () => {
-      const userWithoutPerms = { ...mockSessionUsers.user, app_permissions: null };
-
-      expect(hasPermission(userWithoutPerms, 'any_permission')).toBe(false);
-    });
-  });
-
   describe('hasRole', () => {
     it('should return true when user has one of the specified roles', () => {
       const admin = mockSessionUsers.admin;
@@ -286,11 +252,17 @@ describe('auth.ts - Client-Side Helpers', () => {
       }
     });
 
-    it('should return null in server-side environment', () => {
+    it('should return MOCK_USER when AUTH_DISABLED is true and no cookies set', () => {
       const result = getClientUser();
 
-      // This test runs in Node (server-side), so it should return null
-      expect(result).toBeNull();
+      // In Jest with jsdom, window is defined
+      // When AUTH_DISABLED=true (set in test environment) and no cookies,
+      // the function falls back to returning MOCK_USER
+      if (AUTH_DISABLED) {
+        expect(result).toEqual(MOCK_USER);
+      } else {
+        expect(result).toBeNull();
+      }
     });
 
     // Note: Full client-side cookie tests would require jsdom or browser environment

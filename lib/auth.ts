@@ -362,34 +362,6 @@ export function isProtectedRoute(pathname: string): boolean {
   return !publicRoutes.some(route => pathname.startsWith(route));
 }
 
-/**
- * Check if user has required permission
- * 
- * Derives permissions from app_role (single source of truth).
- * Ignores app_permissions column (zombie code from AI Intranet template).
- */
-export function hasPermission(user: SessionUser | null, permission: string): boolean {
-  if (!user || !user.app_role) return false;
-  
-  // Admin has all permissions
-  if (user.app_role === 'admin') return true;
-  
-  // Derive permissions from role
-  if (permission === 'admin') {
-    return user.app_role === 'admin';  // Only admin has admin permission
-  }
-  
-  if (permission === 'write') {
-    return ['admin', 'slt', 'leader'].includes(user.app_role);
-  }
-  
-  if (permission === 'read') {
-    return true;  // All roles can read
-  }
-  
-  // For any other permission, default to false
-  return false;
-}
 
 /**
  * Check if user has required role

@@ -3,20 +3,41 @@
  */
 
 import { GET } from '../route';
-import { getActiveUsers } from '@/lib/database';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 import { mockSessionUsers, mockUserProfiles } from '@/test-utils/mockData';
 
-// Mock dependencies
-jest.mock('@/lib/database');
+// Mock supabase-admin (which the route actually uses)
+const mockFrom = jest.fn();
+jest.mock('@/lib/supabase-admin', () => ({
+  supabaseAdmin: {
+    from: (...args: any[]) => mockFrom(...args),
+  },
+}));
+
+// Mock auth-wrapper
 jest.mock('@/lib/auth-wrapper');
 
 describe('GET /api/users/list', () => {
-  const mockGetActiveUsers = getActiveUsers as jest.MockedFunction<typeof getActiveUsers>;
   const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
+  const originalEnv = process.env;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Enable dev mode for these tests
+    process.env = { ...originalEnv, DISABLE_AUTH: 'true' };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  // Helper to create mock supabase query chain
+  const createMockQueryChain = (users: any[], error: any = null) => ({
+    select: jest.fn().mockReturnValue({
+      eq: jest.fn().mockReturnValue({
+        order: jest.fn().mockResolvedValue({ data: users, error }),
+      }),
+    }),
   });
 
   const createMockRequest = (): any => {
@@ -47,7 +68,7 @@ describe('GET /api/users/list', () => {
     ];
 
     mockGetAuthenticatedUser.mockResolvedValue(mockAuthData);
-    mockGetActiveUsers.mockResolvedValue(mockUsers);
+    mockFrom.mockReturnValue(createMockQueryChain(mockUsers));
 
     const request = createMockRequest();
     const response = await GET(request);
@@ -73,7 +94,7 @@ describe('GET /api/users/list', () => {
 
     expect(response.status).toBe(401);
     expect(data).toEqual({ error: 'Unauthorized' });
-    expect(mockGetActiveUsers).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 
   it('should return 401 when user is null in auth data', async () => {
@@ -96,7 +117,7 @@ describe('GET /api/users/list', () => {
     const mockUsers = [mockUserProfiles.admin];
 
     mockGetAuthenticatedUser.mockResolvedValue(mockAuthData);
-    mockGetActiveUsers.mockResolvedValue(mockUsers);
+    mockFrom.mockReturnValue(createMockQueryChain(mockUsers));
 
     const request = createMockRequest();
     const response = await GET(request);
@@ -123,7 +144,7 @@ describe('GET /api/users/list', () => {
     };
 
     mockGetAuthenticatedUser.mockResolvedValue(mockAuthData);
-    mockGetActiveUsers.mockResolvedValue([userWithoutRole] as any);
+    mockFrom.mockReturnValue(createMockQueryChain([userWithoutRole]));
 
     const request = createMockRequest();
     const response = await GET(request);
@@ -139,7 +160,7 @@ describe('GET /api/users/list', () => {
     };
 
     mockGetAuthenticatedUser.mockResolvedValue(mockAuthData);
-    mockGetActiveUsers.mockResolvedValue([]);
+    mockFrom.mockReturnValue(createMockQueryChain([]));
 
     const request = createMockRequest();
     const response = await GET(request);
@@ -157,7 +178,7 @@ describe('GET /api/users/list', () => {
     };
 
     mockGetAuthenticatedUser.mockResolvedValue(mockAuthData);
-    mockGetActiveUsers.mockRejectedValue(new Error('Database connection failed'));
+    mockFrom.mockReturnValue(createMockQueryChain([], { message: 'Database connection failed' }));
 
     const request = createMockRequest();
     const response = await GET(request);
@@ -177,7 +198,7 @@ describe('GET /api/users/list', () => {
     for (const authData of roles) {
       jest.clearAllMocks();
       mockGetAuthenticatedUser.mockResolvedValue(authData);
-      mockGetActiveUsers.mockResolvedValue([mockUserProfiles.admin]);
+      mockFrom.mockReturnValue(createMockQueryChain([mockUserProfiles.admin]));
 
       const request = createMockRequest();
       const response = await GET(request);
@@ -200,7 +221,7 @@ describe('GET /api/users/list', () => {
     };
 
     mockGetAuthenticatedUser.mockResolvedValue(mockAuthData);
-    mockGetActiveUsers.mockResolvedValue([userWithDepartment] as any);
+    mockFrom.mockReturnValue(createMockQueryChain([userWithDepartment]));
 
     const request = createMockRequest();
     const response = await GET(request);
@@ -221,7 +242,7 @@ describe('GET /api/users/list', () => {
     };
 
     mockGetAuthenticatedUser.mockResolvedValue(mockAuthData);
-    mockGetActiveUsers.mockResolvedValue([userWithoutDepartment]);
+    mockFrom.mockReturnValue(createMockQueryChain([userWithoutDepartment]));
 
     const request = createMockRequest();
     const response = await GET(request);
