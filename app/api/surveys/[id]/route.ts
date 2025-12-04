@@ -78,6 +78,7 @@ export async function PATCH(
       'due_date',
       'flagged_for_admin',
       'flagged_for_reanalysis',
+      'resolved_by_admin',
       'ai_report_generated',
       'report_data',
       'final_narrative',
@@ -211,6 +212,62 @@ export async function DELETE(
         { status: 403 }
       );
     }
+
+    // ============================================================
+    // ARCHIVE SURVEY DATA BEFORE DELETION
+    // Captures complete snapshot for data insurance/retention
+    // ============================================================
+    
+    // Fetch all related data for archiving
+    const [reviewersResult, questionsResult, responsesResult, employeeResult] = await Promise.all([
+      supabaseAdmin
+        .from('feedback_360_survey_reviewers')
+        .select('*')
+        .eq('survey_id', surveyId),
+      supabaseAdmin
+        .from('feedback_360_survey_questions')
+        .select('*, question:feedback_360_questions(*)')
+        .eq('survey_id', surveyId),
+      supabaseAdmin
+        .from('feedback_360_responses')
+        .select('*')
+        .eq('survey_id', surveyId),
+      supabaseAdmin
+        .from('user_profiles')
+        .select('full_name')
+        .eq('id', existingSurvey.employee_id)
+        .single()
+    ]);
+
+    // Create archive record with complete snapshot
+    const archiveData = {
+      original_survey_id: surveyId,
+      survey_name: existingSurvey.survey_name,
+      employee_id: existingSurvey.employee_id,
+      employee_name: employeeResult.data?.full_name || null,
+      created_by: existingSurvey.created_by,
+      deleted_by: profile.id,
+      original_created_at: existingSurvey.created_at,
+      original_status: existingSurvey.status,
+      survey_data: existingSurvey,
+      reviewers_data: reviewersResult.data || [],
+      questions_data: questionsResult.data || [],
+      responses_data: responsesResult.data || []
+    };
+
+    const { error: archiveError } = await supabaseAdmin
+      .from('feedback_360_deleted_surveys')
+      .insert(archiveData);
+
+    if (archiveError) {
+      console.error('Error archiving survey:', archiveError);
+      // Don't block deletion if archiving fails, but log it
+      // In production, you might want to alert on this
+    }
+
+    // ============================================================
+    // CASCADE DELETE
+    // ============================================================
 
     // Cascade delete in the correct order to avoid foreign key constraints
     // 1. Delete responses
