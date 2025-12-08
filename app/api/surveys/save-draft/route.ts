@@ -96,14 +96,22 @@ export async function POST(request: NextRequest) {
 
     // Save questions only if confirmed or if custom questions were added
     const shouldSaveQuestions = questionsConfirmed || (customQuestions && customQuestions.length > 0);
+    // CRITICAL FIX: Properly extract text from question objects
     const allQuestions = shouldSaveQuestions
-      ? [...(requiredQuestions || []).filter((q: string) => q.trim()), ...(customQuestions || [])]
+      ? [
+          ...(requiredQuestions || []).map((q: any) => typeof q === 'string' ? q : q?.text).filter((t: string) => t && t.trim()),
+          ...(customQuestions || []).map((q: any) => typeof q === 'string' ? q : q?.text).filter((t: string) => t && t.trim())
+        ]
       : [];
 
     if (allQuestions.length > 0 && shouldSaveQuestions) {
       const questionUUIDs: string[] = [];
 
       for (const questionText of allQuestions) {
+        if (!questionText || !questionText.trim()) {
+          continue; // Skip empty questions
+        }
+
         let { data: existingQuestion } = await supabaseAdmin
           .from('feedback_360_questions')
           .select('id')

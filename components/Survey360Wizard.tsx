@@ -29,6 +29,38 @@ import {
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
 import { replaceNamePlaceholder } from '../lib/questionUtils';
 
+// Helper to unwrap deeply nested JSON strings from corrupted database data
+// Handles cases like '{"text":"{"text":"actual question"}"}'
+const unwrapQuestionText = (text: string | unknown): string => {
+  if (typeof text !== 'string') {
+    if (text && typeof text === 'object' && 'text' in text) {
+      return unwrapQuestionText((text as { text: unknown }).text);
+    }
+    return String(text || '');
+  }
+
+  // Try to parse as JSON and extract nested text
+  let current = text;
+  let maxIterations = 20; // Prevent infinite loops
+  while (maxIterations-- > 0) {
+    // Check if it looks like JSON
+    if (current.startsWith('{') && current.includes('"text"')) {
+      try {
+        const parsed = JSON.parse(current);
+        if (parsed && typeof parsed.text === 'string') {
+          current = parsed.text;
+          continue;
+        }
+      } catch {
+        // Not valid JSON, return as-is
+        break;
+      }
+    }
+    break;
+  }
+  return current;
+};
+
 interface Survey360WizardProps {
   isOpen: boolean;
   onClose: () => void;
@@ -348,8 +380,9 @@ export default function Survey360Wizard({
         const { survey: freshSurvey, surveyQuestions, reviewers } = await response.json();
 
         if (surveyQuestions && surveyQuestions.length > 0) {
+          // CRITICAL FIX: Unwrap nested JSON from potentially corrupted database data
           const allQuestions: string[] = surveyQuestions
-            .map((sq: any) => sq.feedback_360_questions?.question_text || '')
+            .map((sq: any) => unwrapQuestionText(sq.feedback_360_questions?.question_text || ''))
             .filter((text: string) => text.trim().length > 0);
 
           if (allQuestions.length > 0) {

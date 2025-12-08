@@ -128,7 +128,14 @@ export async function POST(request: NextRequest) {
     const allQuestions = [...(requiredQuestions || []), ...(customQuestions || [])];
     const questionUUIDs: string[] = [];
 
-    for (const questionText of allQuestions) {
+    for (const question of allQuestions) {
+      // CRITICAL FIX: Extract text from object or use string directly
+      const questionText = typeof question === 'string' ? question : (question?.text || String(question));
+
+      if (!questionText || !questionText.trim()) {
+        continue; // Skip empty questions
+      }
+
       // Check if question exists
       let { data: existingQuestion, error: checkError } = await supabaseAdmin
         .from('feedback_360_questions')
