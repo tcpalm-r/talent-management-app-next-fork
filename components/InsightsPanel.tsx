@@ -42,9 +42,12 @@ export default function InsightsPanel({
         const response = await fetch(`/api/surveys/list?organization_id=${organizationId}&status=finalized`);
         if (response.ok) {
           const data = await response.json();
-          // Filter surveys sponsored by the current user (created_by field)
+          // Filter surveys sponsored by the current user (check ID, email, and created_by_email for reliability)
           const sponsoredSurveys = data.surveys.filter(
-            (survey: any) => survey.created_by === currentUserEmployee.id
+            (survey: any) =>
+              survey.created_by === currentUserEmployee.id ||
+              survey.created_by_email === currentUserEmployee.email ||
+              survey.created_by === currentUserEmployee.email
           );
           console.log('[InsightsPanel] Current user ID:', currentUserEmployee.id);
           console.log('[InsightsPanel] Finalized surveys:', data.surveys.length);
