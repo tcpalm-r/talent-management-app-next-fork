@@ -104,7 +104,7 @@ Do not include markdown fences.`;
     console.log('[generate-1on1-summary API] Calling Claude API...');
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 1200,
       temperature: 0.5,
       messages: [

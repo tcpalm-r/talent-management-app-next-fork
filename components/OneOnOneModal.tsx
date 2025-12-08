@@ -1053,7 +1053,7 @@ export default function OneOnOneModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+            className="p-2 hover:bg-white/20 rounded-md transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
@@ -1159,7 +1159,7 @@ export default function OneOnOneModal({
                     type="date"
                     value={meetingForm.meetingDate}
                     onChange={(e) => setMeetingForm({ ...meetingForm, meetingDate: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
 
@@ -1172,7 +1172,7 @@ export default function OneOnOneModal({
                     type="time"
                     value={meetingForm.meetingTime}
                     onChange={(e) => setMeetingForm({ ...meetingForm, meetingTime: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
 
@@ -1186,7 +1186,7 @@ export default function OneOnOneModal({
                       <button
                         key={duration}
                         onClick={() => setMeetingForm({ ...meetingForm, durationType: duration as '30' | '60' | '90' })}
-                        className={`py-3 px-4 rounded-lg border-2 font-medium transition-all ${
+                        className={`py-3 px-4 rounded-md border-2 font-medium transition-all ${
                           meetingForm.durationType === duration
                             ? 'border-purple-600 bg-purple-50 text-purple-700'
                             : 'border-gray-300 hover:border-gray-400'
@@ -1208,7 +1208,7 @@ export default function OneOnOneModal({
                     value={meetingForm.location}
                     onChange={(e) => setMeetingForm({ ...meetingForm, location: e.target.value })}
                     placeholder="e.g., Conference Room A, Zoom, etc."
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
 
@@ -1220,7 +1220,7 @@ export default function OneOnOneModal({
                   <select
                     value={meetingForm.meetingType}
                     onChange={(e) => setMeetingForm({ ...meetingForm, meetingType: e.target.value as OneOnOneMeetingType })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
                     <option value="regular">Regular Check-in</option>
                     <option value="performance">Performance Review</option>
@@ -1238,7 +1238,7 @@ export default function OneOnOneModal({
                   <select
                     value={meetingForm.template}
                     onChange={(e) => setMeetingForm({ ...meetingForm, template: e.target.value as MeetingForm['template'] })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
                     <option value="sonance">Sonance 1:1 Manager Template (Recommended)</option>
                     <option value="rob_roland">1:1 Template by Rob Roland</option>
@@ -1257,13 +1257,13 @@ export default function OneOnOneModal({
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => setView('list')}
-                    className="flex-1 py-3 px-6 border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                    className="flex-1 py-3 px-6 border-2 border-gray-300 rounded-md font-semibold hover:bg-gray-50 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleCreateMeeting}
-                    className="flex-1 py-3 px-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+                    className="flex-1 py-3 px-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-md font-semibold hover:shadow-lg transition-all"
                   >
                     Create Meeting
                   </button>
@@ -1309,13 +1309,13 @@ export default function OneOnOneModal({
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleUpdateMeetingStatus('in_progress')}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                      className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
                     >
                       Start Meeting
                     </button>
                     <button
                       onClick={() => handleUpdateMeetingStatus('cancelled')}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                      className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 transition-colors"
                     >
                       Cancel Meeting
                     </button>
@@ -1324,7 +1324,7 @@ export default function OneOnOneModal({
                 {selectedMeeting.status === 'in_progress' && (
                   <button
                     onClick={() => handleUpdateMeetingStatus('completed')}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                    className="px-4 py-2 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700 transition-colors"
                   >
                     Complete Meeting
                   </button>
@@ -1349,7 +1349,7 @@ export default function OneOnOneModal({
                         onChange={(e) => setNewAgendaTitle(e.target.value)}
                         placeholder="Agenda item title..."
                         maxLength={200}
-                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
                       <textarea
                         value={newAgendaDescription}
@@ -1357,12 +1357,12 @@ export default function OneOnOneModal({
                         placeholder="Description (optional)..."
                         maxLength={2000}
                         rows={2}
-                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                       />
                       <button
                         onClick={handleAddAgendaItem}
                         disabled={!newAgendaTitle.trim()}
-                        className="w-full py-2 px-4 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="w-full py-2 px-4 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
                         Add Agenda Item
@@ -1381,7 +1381,7 @@ export default function OneOnOneModal({
                           const commentDraft = agendaCommentDrafts[item.id] ?? '';
 
                           return (
-                            <div key={item.id} className="space-y-3 rounded-lg bg-gray-50 p-3">
+                            <div key={item.id} className="space-y-3 rounded-md bg-gray-50 p-3">
                               <div className="flex items-start gap-3">
                                 <button
                                   onClick={() => handleToggleAgendaItem(item.id)}
@@ -1427,12 +1427,12 @@ export default function OneOnOneModal({
                                   onChange={(e) => setAgendaCommentDrafts(prev => ({ ...prev, [item.id]: e.target.value }))}
                                   placeholder="Add a quick comment or note for this topic..."
                                   rows={2}
-                                  className="flex-1 resize-none rounded-lg border border-gray-200 px-3 py-2 text-xs focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                  className="flex-1 resize-none rounded-md border border-gray-200 px-3 py-2 text-xs focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
                                 />
                                 <button
                                   onClick={() => handleAddAgendaComment(item.id)}
                                   disabled={!commentDraft.trim()}
-                                  className="flex-shrink-0 rounded-lg bg-purple-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                  className="flex-shrink-0 rounded-md bg-purple-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                   Comment
                                 </button>
@@ -1460,7 +1460,7 @@ export default function OneOnOneModal({
                         placeholder="Add a shared note that both you and the employee can see..."
                         maxLength={5000}
                         rows={3}
-                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                       />
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Working Genius focus</p>
@@ -1473,7 +1473,7 @@ export default function OneOnOneModal({
                         <button
                           onClick={handleAddSharedNote}
                           disabled={!newSharedNote.trim()}
-                          className="py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          className="py-2 px-4 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                           <Plus className="w-4 h-4" />
                           Add Note
@@ -1489,7 +1489,7 @@ export default function OneOnOneModal({
                         </p>
                       ) : (
                         sharedNotes.map((note) => (
-                          <div key={note.id} className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                          <div key={note.id} className="p-4 bg-blue-50 rounded-md border-2 border-blue-200">
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex-1">
                                 <div className="flex items-center space-x-2 mb-1">
@@ -1538,14 +1538,14 @@ export default function OneOnOneModal({
                         placeholder="Capture real-time observations, commitments, or follow-ups..."
                         rows={3}
                         maxLength={3000}
-                        className="w-full resize-none rounded-lg border-2 border-gray-300 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                        className="w-full resize-none rounded-md border-2 border-gray-300 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                       />
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-gray-500">{meetingCommentDraft.length}/3000</span>
                         <button
                           onClick={handleAddMeetingComment}
                           disabled={!meetingCommentDraft.trim()}
-                          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <MessageSquare className="h-4 w-4" />
                           Add Comment
@@ -1560,7 +1560,7 @@ export default function OneOnOneModal({
                         </p>
                       ) : (
                         meetingComments.map(comment => (
-                          <div key={comment.id} className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-800">
+                          <div key={comment.id} className="rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-800">
                             <div className="mb-1 flex items-center gap-2 text-xs text-gray-500">
                               <span className="font-semibold text-gray-700">{comment.author_name}</span>
                               <span>·</span>
@@ -1583,7 +1583,7 @@ export default function OneOnOneModal({
                       Recording & AI Summary
                     </h4>
 
-                    <div className="space-y-3 rounded-lg border border-purple-200 bg-white p-4">
+                    <div className="space-y-3 rounded-md border border-purple-200 bg-white p-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-semibold text-gray-800">Live recording</p>
@@ -1603,7 +1603,7 @@ export default function OneOnOneModal({
                           <button
                             onClick={startRecording}
                             disabled={!recordingSupported}
-                            className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <Mic className="h-4 w-4" />
                             Start recording
@@ -1611,7 +1611,7 @@ export default function OneOnOneModal({
                         ) : (
                           <button
                             onClick={stopRecording}
-                            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
+                            className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
                           >
                             <MicOff className="h-4 w-4" />
                             Stop recording
@@ -1621,7 +1621,7 @@ export default function OneOnOneModal({
                         {recordingUrl && (
                           <button
                             onClick={clearRecording}
-                            className="rounded-lg border border-purple-200 px-3 py-2 text-xs font-medium text-purple-600 hover:bg-purple-100"
+                            className="rounded-md border border-purple-200 px-3 py-2 text-xs font-medium text-purple-600 hover:bg-purple-100"
                           >
                             Remove recording
                           </button>
@@ -1646,13 +1646,13 @@ export default function OneOnOneModal({
                         placeholder="Capture key quotes, decisions, or transcript excerpts to help the AI summarize."
                         rows={3}
                         maxLength={4000}
-                        className="w-full resize-none rounded-lg border border-purple-200 bg-white px-3 py-2 text-sm focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                        className="w-full resize-none rounded-md border border-purple-200 bg-white px-3 py-2 text-sm focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-200"
                       />
                       <div className="flex items-center justify-between">
                         <button
                           onClick={handleGenerateSummary}
                           disabled={isGeneratingSummary}
-                          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {isGeneratingSummary ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                           {isGeneratingSummary ? 'Summarizing...' : 'Generate AI summary'}
@@ -1667,7 +1667,7 @@ export default function OneOnOneModal({
                       )}
 
                       {generatedSummary && (
-                        <div className="space-y-3 rounded-lg border border-indigo-200 bg-white p-4">
+                        <div className="space-y-3 rounded-md border border-indigo-200 bg-white p-4">
                           <div>
                             <p className="text-sm font-semibold text-gray-800">AI Summary</p>
                             <p className="mt-1 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{generatedSummary}</p>
@@ -1687,7 +1687,7 @@ export default function OneOnOneModal({
                               <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Suggested action items</p>
                               <ul className="space-y-2">
                                 {suggestedActions.map((suggestion, index) => (
-                                  <li key={`${suggestion.title}-${index}`} className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+                                  <li key={`${suggestion.title}-${index}`} className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
                                     <p className="font-semibold text-gray-800">{suggestion.title}</p>
                                     <p className="text-xs text-gray-500">Owner: {suggestion.owner}</p>
                                     <p className="mt-1 text-xs text-gray-500">{suggestion.rationale}</p>
@@ -1715,7 +1715,7 @@ export default function OneOnOneModal({
                       Transcript Library
                     </h4>
 
-                    <div className="space-y-4 rounded-lg border border-amber-200 bg-white p-4">
+                    <div className="space-y-4 rounded-md border border-amber-200 bg-white p-4">
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
                           <label className="text-xs font-semibold uppercase tracking-wide text-amber-700">
@@ -1725,7 +1725,7 @@ export default function OneOnOneModal({
                             type="date"
                             value={transcriptDate}
                             onChange={(event) => setTranscriptDate(event.target.value)}
-                            className="w-full rounded-lg border border-amber-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                            className="w-full rounded-md border border-amber-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
                           />
                         </div>
                         <div className="space-y-1">
@@ -1736,7 +1736,7 @@ export default function OneOnOneModal({
                             type="time"
                             value={transcriptTime}
                             onChange={(event) => setTranscriptTime(event.target.value)}
-                            className="w-full rounded-lg border border-amber-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                            className="w-full rounded-md border border-amber-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
                           />
                         </div>
                       </div>
@@ -1750,7 +1750,7 @@ export default function OneOnOneModal({
                           value={transcriptTagsInput}
                           onChange={(event) => setTranscriptTagsInput(event.target.value)}
                           placeholder="growth, recognition, blockers"
-                          className="w-full rounded-lg border border-amber-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                          className="w-full rounded-md border border-amber-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
                         />
                         <p className="text-xs text-amber-700/70">Separate tags with commas to make transcripts searchable later.</p>
                       </div>
@@ -1764,7 +1764,7 @@ export default function OneOnOneModal({
                           onChange={(event) => setTranscriptContent(event.target.value)}
                           placeholder="Paste the meeting transcript or enter key moments..."
                           rows={5}
-                          className="w-full resize-y rounded-lg border border-amber-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                          className="w-full resize-y rounded-md border border-amber-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
                         />
                         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-amber-800/70">
                           <span>{transcriptContent.length.toLocaleString()} characters</span>
@@ -1818,7 +1818,7 @@ export default function OneOnOneModal({
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3">
-                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-100">
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-100">
                           <UploadCloud className="h-4 w-4" />
                           Import from file
                           <input
@@ -1851,7 +1851,7 @@ export default function OneOnOneModal({
                         <button
                           onClick={handleAddTranscript}
                           disabled={isTranscriptImporting || !transcriptContent.trim()}
-                          className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <Plus className="h-4 w-4" />
                           Add transcript entry
@@ -1866,7 +1866,7 @@ export default function OneOnOneModal({
                         </p>
                       ) : (
                         transcripts.map((transcript) => (
-                          <div key={transcript.id} className="space-y-3 rounded-lg border border-amber-200 bg-white p-4">
+                          <div key={transcript.id} className="space-y-3 rounded-md border border-amber-200 bg-white p-4">
                             <div className="flex flex-wrap items-start justify-between gap-3">
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2 text-xs text-gray-600">
@@ -1951,7 +1951,7 @@ export default function OneOnOneModal({
                         placeholder="Private observations, concerns, or reminders (not visible to employee)..."
                         maxLength={5000}
                         rows={3}
-                        className="w-full px-3 py-2 border-2 border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none bg-white"
+                        className="w-full px-3 py-2 border-2 border-orange-300 rounded-md text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none bg-white"
                       />
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-orange-500 mb-1">Working Genius focus</p>
@@ -1964,7 +1964,7 @@ export default function OneOnOneModal({
                         <button
                           onClick={handleAddPrivateNote}
                           disabled={!newPrivateNote.trim()}
-                          className="py-2 px-4 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          className="py-2 px-4 bg-orange-600 text-white rounded-md text-sm font-medium hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                           <Lock className="w-4 h-4" />
                           Add Private Note
@@ -1980,7 +1980,7 @@ export default function OneOnOneModal({
                         </p>
                       ) : (
                         privateNotes.map((note) => (
-                          <div key={note.id} className="p-4 bg-white border-2 border-orange-300 rounded-lg">
+                          <div key={note.id} className="p-4 bg-white border-2 border-orange-300 rounded-md">
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex-1">
                                 <div className="flex items-center space-x-2 mb-1">
@@ -2028,13 +2028,13 @@ export default function OneOnOneModal({
                         onChange={(e) => setNewActionTitle(e.target.value)}
                         placeholder="Action item..."
                         maxLength={200}
-                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
                       <div className="grid grid-cols-2 gap-2">
                         <select
                           value={newActionAssignee}
                           onChange={(e) => setNewActionAssignee(e.target.value as 'manager' | 'employee')}
-                          className="px-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className="px-3 py-2 border-2 border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         >
                           <option value="employee">Assign to {employee.name}</option>
                           <option value="manager">Assign to Me</option>
@@ -2043,7 +2043,7 @@ export default function OneOnOneModal({
                           type="date"
                           value={newActionDueDate}
                           onChange={(e) => setNewActionDueDate(e.target.value)}
-                          className="px-3 py-2 border-2 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className="px-3 py-2 border-2 border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         />
                       </div>
                       <div>
@@ -2053,7 +2053,7 @@ export default function OneOnOneModal({
                       <button
                         onClick={handleAddActionItem}
                         disabled={!newActionTitle.trim()}
-                        className="w-full py-2 px-4 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="w-full py-2 px-4 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
                         Add Action Item
@@ -2070,7 +2070,7 @@ export default function OneOnOneModal({
                         actionItems.map((action) => (
                           <div
                             key={action.id}
-                            className="p-3 bg-gray-50 rounded-lg"
+                            className="p-3 bg-gray-50 rounded-md"
                           >
                             <div className="flex items-start justify-between mb-2">
                               <p className="text-sm font-medium text-gray-900 flex-1">

@@ -139,7 +139,7 @@ test.describe('Visual Regression - Component Library', () => {
 
     // Look for card-like components
     const cards = page.locator(
-      '.card, [class*="card"], .rounded-lg.shadow, .rounded-xl.shadow'
+      '.card, [class*="card"], .rounded-md.shadow, .rounded-xl.shadow'
     )
 
     if ((await cards.count()) > 0) {

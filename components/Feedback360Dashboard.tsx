@@ -1917,7 +1917,7 @@ export default function Feedback360Dashboard({
       }`}>
         <button
           onClick={() => setFilterStatus('all')}
-          className={`bg-white dark:bg-gray-800 rounded-lg shadow p-3 border-2 transition-all text-left ${
+          className={`bg-white dark:bg-gray-800 rounded-md shadow p-3 border-2 transition-all text-left ${
             filterStatus === 'all' ? 'border-blue-500 dark:border-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
           }`}
         >
@@ -1934,7 +1934,7 @@ export default function Feedback360Dashboard({
           <Tooltip content="Surveys not yet sent to reviewers">
             <button
               onClick={() => setFilterStatus('draft')}
-              className={`bg-white dark:bg-gray-800 rounded-lg shadow p-3 border-2 transition-all text-left ${
+              className={`bg-white dark:bg-gray-800 rounded-md shadow p-3 border-2 transition-all text-left ${
                 filterStatus === 'draft' ? 'border-gray-500 dark:border-gray-400' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
             >
@@ -1952,7 +1952,7 @@ export default function Feedback360Dashboard({
         <Tooltip content="Surveys awaiting responses from reviewers">
           <button
             onClick={() => setFilterStatus('in_progress')}
-            className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
+            className={`rounded-md shadow p-3 border-2 transition-all text-left ${
               filterStatus === 'in_progress'
                 ? 'border-yellow-500 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
                 : 'bg-white dark:bg-gray-800 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
@@ -1972,7 +1972,7 @@ export default function Feedback360Dashboard({
         <Tooltip content="Surveys with all responses received and analyzed">
           <button
             onClick={() => setFilterStatus('completed')}
-            className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
+            className={`rounded-md shadow p-3 border-2 transition-all text-left ${
               filterStatus === 'completed'
                 ? 'border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
                 : 'bg-white dark:bg-gray-800 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20'
@@ -1992,7 +1992,7 @@ export default function Feedback360Dashboard({
         <Tooltip content="Surveys marked as final and archived">
           <button
             onClick={() => setFilterStatus('finalized')}
-            className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
+            className={`rounded-md shadow p-3 border-2 transition-all text-left ${
               filterStatus === 'finalized'
                 ? 'border-purple-500 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20'
                 : 'bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/20'
@@ -2019,7 +2019,7 @@ export default function Feedback360Dashboard({
                 setPreselectedEmployee(undefined);
                 setIsWizardOpen(true);
               }}
-              className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors font-medium whitespace-nowrap"
+              className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors font-medium whitespace-nowrap"
             >
               Launch 360° Review
             </button>
@@ -2032,7 +2032,7 @@ export default function Feedback360Dashboard({
                 placeholder="Search by employee name..."
                 value={sponsorSearchQuery}
                 onChange={(e) => setSponsorSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
               />
             </div>
             {/* AI-assisted review wizard button - disabled and hidden */}
@@ -2041,7 +2041,7 @@ export default function Feedback360Dashboard({
                 onClick={() => {
                   setIsAIModalOpen(true);
                 }}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center gap-2"
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-md hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center gap-2"
                 title="Create survey with AI assistance"
                 disabled
               >
@@ -2055,11 +2055,11 @@ export default function Feedback360Dashboard({
 
       {/* Reviewer Filter Boxes - Only show for SLT and Admin on Reviewer tab */}
       {filterRole === 'reviewer' && (currentUser?.app_role === 'slt' || currentUser?.app_role === 'admin') && (
-      <div className="grid gap-4 mt-6 grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 mt-6 grid-cols-2 lg:grid-cols-5">
         {/* Total */}
         <button
           onClick={() => setReviewerFilterStatus('all')}
-          className={`bg-white dark:bg-gray-800 rounded-lg shadow p-3 border-2 transition-all text-left ${
+          className={`bg-white dark:bg-gray-800 rounded-md shadow p-3 border-2 transition-all text-left ${
             reviewerFilterStatus === 'all' ? 'border-cyan-500 dark:border-cyan-400' : 'border-cyan-200 dark:border-cyan-800 hover:border-cyan-300 dark:hover:border-cyan-700'
           }`}
         >
@@ -2075,7 +2075,7 @@ export default function Feedback360Dashboard({
         <Tooltip content="360 feedback sessions where you are an assigned reviewer">
           <button
             onClick={() => setReviewerFilterStatus('required')}
-            className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
+            className={`rounded-md shadow p-3 border-2 transition-all text-left ${
               reviewerFilterStatus === 'required'
                 ? 'border-green-700 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
                 : 'bg-white dark:bg-gray-800 border-green-400 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20'
@@ -2095,7 +2095,7 @@ export default function Feedback360Dashboard({
         <Tooltip content="360 feedback sessions you can opt into as an SLT or Admin member">
           <button
             onClick={() => setReviewerFilterStatus('optional')}
-            className={`rounded-lg shadow p-3 border-2 transition-all text-left ${
+            className={`rounded-md shadow p-3 border-2 transition-all text-left ${
               reviewerFilterStatus === 'optional'
                 ? 'border-lime-500 dark:border-lime-600 bg-lime-50 dark:bg-lime-900/20'
                 : 'bg-white dark:bg-gray-800 border-lime-200 dark:border-lime-800 hover:bg-lime-50 dark:hover:bg-lime-900/20'
@@ -2123,7 +2123,7 @@ export default function Feedback360Dashboard({
               placeholder="Search by employee name..."
               value={reviewerSearchQuery}
               onChange={(e) => setReviewerSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
             />
           </div>
         </div>
@@ -2139,7 +2139,7 @@ export default function Feedback360Dashboard({
               placeholder="Search by employee name..."
               value={sponsorSearchQuery}
               onChange={(e) => setSponsorSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
             />
           </div>
         </div>
@@ -2155,7 +2155,7 @@ export default function Feedback360Dashboard({
               placeholder="Search by employee name..."
               value={allSurveysSearchQuery}
               onChange={(e) => setAllSurveysSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
             />
           </div>
         </div>
@@ -2168,7 +2168,7 @@ export default function Feedback360Dashboard({
           <p className="mt-2 text-gray-600 dark:text-gray-400">Loading reviews...</p>
         </div>
       ) : filteredSurveys.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-12 mt-6">
+        <div className="bg-white dark:bg-gray-800 rounded-md shadow border border-gray-200 dark:border-gray-700 p-12 mt-6">
           <div className="text-center mb-8">
             <MessageSquare className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
             <h3 className="text-lg font-normal text-gray-500 dark:text-gray-400 mb-2">
@@ -2198,7 +2198,7 @@ export default function Feedback360Dashboard({
                 {false && (
                   <button
                     onClick={() => setIsWizardOpen(true)}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold inline-flex items-center gap-2"
+                    className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-semibold inline-flex items-center gap-2"
                     disabled
                   >
                     <Sparkles className="w-5 h-5" />
@@ -2235,7 +2235,7 @@ export default function Feedback360Dashboard({
             return (
               <div
                 key={survey.id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow cursor-pointer relative"
+                className="bg-white dark:bg-gray-800 rounded-md shadow border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow cursor-pointer relative"
                 onClick={() => {
                   // If it's a draft and user is the sponsor, open wizard to edit/launch
                   if (survey.status === 'draft' && isSponsor) {
@@ -2389,7 +2389,7 @@ export default function Feedback360Dashboard({
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg"
+                              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-md hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg"
                             >
                               <MessageSquare className="w-4 h-4 mr-2" />
                               Provide Feedback
@@ -2404,7 +2404,7 @@ export default function Feedback360Dashboard({
                                   e.stopPropagation();
                                   await handleSLTOptOut(survey.id);
                                 }}
-                                className="inline-flex items-center px-4 py-2 bg-red-800 dark:bg-red-900 text-white rounded-lg hover:bg-red-900 dark:hover:bg-red-950 transition-all font-medium shadow-md hover:shadow-lg"
+                                className="inline-flex items-center px-4 py-2 bg-red-800 dark:bg-red-900 text-white rounded-md hover:bg-red-900 dark:hover:bg-red-950 transition-all font-medium shadow-md hover:shadow-lg"
                               >
                                 <UserMinus className="w-4 h-4 mr-2" />
                                 Opt Out
@@ -2425,7 +2425,7 @@ export default function Feedback360Dashboard({
                               e.stopPropagation();
                               await handleSLTOptIn(survey.id);
                             }}
-                            className="inline-flex items-center px-4 py-2 bg-lime-500 dark:bg-lime-600 text-white rounded-lg hover:bg-lime-600 dark:hover:bg-lime-700 transition-all font-medium shadow-md hover:shadow-lg mt-4"
+                            className="inline-flex items-center px-4 py-2 bg-lime-500 dark:bg-lime-600 text-white rounded-md hover:bg-lime-600 dark:hover:bg-lime-700 transition-all font-medium shadow-md hover:shadow-lg mt-4"
                           >
                             <UserPlus className="w-4 h-4 mr-2" />
                             Opt In?
@@ -2477,8 +2477,8 @@ export default function Feedback360Dashboard({
 
                 {/* Right side: Status badge and actions */}
                 <div className="ml-4 flex flex-col items-end gap-2">
-                  {/* Status badge - Only show on Sponsor tab */}
-                  {filterRole === 'sponsor' && getStatusBadge(survey.status || 'unknown', survey.flagged_for_admin ?? undefined, survey.flagged_for_reanalysis ?? undefined, survey.resolved_by_admin ?? undefined)}
+                  {/* Status badge - Show on Sponsor and All 360°s tabs */}
+                  {(filterRole === 'sponsor' || filterRole === 'all') && getStatusBadge(survey.status || 'unknown', survey.flagged_for_admin ?? undefined, survey.flagged_for_reanalysis ?? undefined, survey.resolved_by_admin ?? undefined)}
 
                   {/* Remind button */}
                   {survey.status === 'active' && (survey.completed_count ?? 0) !== (survey.reviewers_count ?? 0) && (
@@ -2572,7 +2572,7 @@ export default function Feedback360Dashboard({
           const canSeeResults = isSubject && selectedSurvey.status === 'finalized';
           return (
             <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="bg-white dark:bg-gray-800 rounded-md max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center">
@@ -2622,7 +2622,7 @@ export default function Feedback360Dashboard({
                 {canSeeResults && (
                   <button
                     onClick={() => loadAndShowResults(selectedSurvey)}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 dark:hover:from-blue-800 dark:hover:to-blue-900 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white rounded-md hover:from-blue-700 hover:to-blue-800 dark:hover:from-blue-800 dark:hover:to-blue-900 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                   >
                     <Eye className="w-4 h-4" />
                     View Complete Review
@@ -2644,7 +2644,7 @@ export default function Feedback360Dashboard({
                     })()}
                     {/* Only show reviewers list to admin, sponsor, or SLT (for in-progress surveys) */}
                     {(isAdmin || isSponsor || (isSLT && selectedSurvey.status === 'in_progress')) && (
-                      <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4 space-y-2 max-h-[240px] overflow-y-auto">
+                      <div className="bg-gray-50 dark:bg-gray-900/30 rounded-md p-4 space-y-2 max-h-[240px] overflow-y-auto">
                         {surveyReviewers.length === 0 ? (
                           <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No reviewers added yet</p>
                         ) : (
@@ -2686,7 +2686,7 @@ export default function Feedback360Dashboard({
                 {/* Completion Message or Button - Only for reviewers, not for subject */}
                 {isReviewer && !isSubject && (
                   userCompletedReview ? (
-                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4 mt-4">
+                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-md p-4 mt-4">
                       <div className="flex items-start gap-3">
                         <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                         <p className="text-sm font-medium text-green-900 dark:text-green-200">
@@ -2697,7 +2697,7 @@ export default function Feedback360Dashboard({
                   ) : (
                     <button
                       onClick={() => window.open(`/survey/complete/${selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.access_token}`, '_blank')}
-                      className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg mt-4"
+                      className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-md hover:from-green-700 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg mt-4"
                     >
                       <MessageSquare className="w-4 h-4" />
                       Provide Feedback
@@ -2713,7 +2713,7 @@ export default function Feedback360Dashboard({
         // Sponsor view - full management interface
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-md max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 leading-tight">
@@ -2779,7 +2779,7 @@ export default function Feedback360Dashboard({
 
                 {isAddingReviewer && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
                   <div className="mb-3 relative">
-                    <div className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+                    <div className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-md">
                       <select
                         value={newReviewerRelationship}
                         onChange={async (e) => {
@@ -2798,7 +2798,7 @@ export default function Feedback360Dashboard({
                             addReviewer();
                           }
                         }}
-                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       >
                         <option value="">Select relationship...</option>
                         <option value="manager">Manager</option>
@@ -2855,7 +2855,7 @@ export default function Feedback360Dashboard({
                                 }
                               }}
                               placeholder="Search employees..."
-                              className="w-full pl-9 pr-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
+                              className="w-full pl-9 pr-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
                             />
                           </div>
                         </div>
@@ -2863,7 +2863,7 @@ export default function Feedback360Dashboard({
                         <div className="flex-1 flex items-center gap-2">
                           <div
                             ref={selectedReviewerDisplayRef}
-                            className="flex-1 flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 outline-none cursor-pointer"
+                            className="flex-1 flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 outline-none cursor-pointer"
                             tabIndex={0}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
@@ -2928,7 +2928,7 @@ export default function Feedback360Dashboard({
                             setReviewerSearch('');
                           }}
                         />
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 max-h-80 overflow-y-auto">
                           <div className="p-2">
                             {isLoadingRelationships ? (
                               <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
@@ -2956,7 +2956,7 @@ export default function Feedback360Dashboard({
                                       setReviewerSearch('');
                                       setShowReviewerPicker(false);
                                     }}
-                                    className={`w-full text-left p-2 rounded-lg transition-colors flex items-center gap-2 ${
+                                    className={`w-full text-left p-2 rounded-md transition-colors flex items-center gap-2 ${
                                       isAlreadyAdded
                                         ? 'opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-700'
                                         : 'hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer'
@@ -2996,7 +2996,7 @@ export default function Feedback360Dashboard({
                                 );
                               })
                             ) : newReviewerRelationship && employeesWithRelationships.length === 0 && !isLoadingRelationships ? (
-                              <div className="p-4 text-center text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg m-2">
+                              <div className="p-4 text-center text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-md m-2">
                                 {selectedSurvey?.employee?.name} has no{' '}
                                 {newReviewerRelationship === 'manager' ? 'manager' :
                                  newReviewerRelationship === 'slt' ? 'SLT' :
@@ -3011,7 +3011,7 @@ export default function Feedback360Dashboard({
                                 setShowReviewerPicker(false);
                                 setReviewerSearch('');
                               }}
-                              className="w-full mt-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                              className="w-full mt-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
                             >
                               Enter manually instead
                             </button>
@@ -3024,7 +3024,7 @@ export default function Feedback360Dashboard({
 
                 {/* Only show reviewers list to admin, sponsor, or SLT (for in-progress surveys) */}
                 {(isAdmin || isSponsor || (isSLT && selectedSurvey.status === 'in_progress')) ? (
-                  <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4 space-y-2 max-h-[240px] overflow-y-auto">
+                  <div className="bg-gray-50 dark:bg-gray-900/30 rounded-md p-4 space-y-2 max-h-[240px] overflow-y-auto">
                     {surveyReviewers.length === 0 ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No reviewers added yet</p>
                     ) : (
@@ -3136,7 +3136,7 @@ export default function Feedback360Dashboard({
                           completeSurveyWithAI();
                         }}
                         disabled={isGeneratingAnalysis || !canComplete}
-                        className={`px-4 py-2 bg-gradient-to-r rounded-lg font-medium flex items-center ${
+                        className={`px-4 py-2 bg-gradient-to-r rounded-md font-medium flex items-center ${
                           canComplete
                             ? 'from-purple-600 to-indigo-700 text-white hover:from-purple-700 hover:to-indigo-800'
                             : 'from-gray-400 to-gray-500 text-gray-200 cursor-not-allowed'
@@ -3165,7 +3165,7 @@ export default function Feedback360Dashboard({
                         setIsDetailsModalOpen(false);
                         loadAndShowResults(selectedSurvey);
                       }}
-                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-medium flex items-center"
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-md hover:from-purple-700 hover:to-blue-700 transition-colors font-medium flex items-center"
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
                       View Review Results
@@ -3212,7 +3212,7 @@ export default function Feedback360Dashboard({
 
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-md max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden">
               <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -3362,7 +3362,7 @@ export default function Feedback360Dashboard({
                             e.stopPropagation();
                             canAdjustThemes && setSelectedThemeIndex(idx === selectedThemeIndex ? null : idx);
                           }}
-                          className={`border rounded-lg p-4 transition-colors ${
+                          className={`border rounded-md p-4 transition-colors ${
                             canAdjustThemes ? 'cursor-pointer hover:border-blue-500' : ''
                           } ${
                             selectedThemeIndex === idx
@@ -3595,7 +3595,7 @@ export default function Feedback360Dashboard({
                             e.stopPropagation();
                             canAdjustItems && setSelectedStrengthIndex(idx === selectedStrengthIndex ? null : idx);
                           }}
-                          className={`flex items-start gap-2 rounded-lg p-2 transition-colors border ${
+                          className={`flex items-start gap-2 rounded-md p-2 transition-colors border ${
                             canAdjustItems ? 'cursor-pointer hover:border-blue-500' : ''
                           } ${
                             selectedStrengthIndex === idx
@@ -3675,7 +3675,7 @@ export default function Feedback360Dashboard({
                             e.stopPropagation();
                             canAdjustItems && setSelectedDevelopmentIndex(idx === selectedDevelopmentIndex ? null : idx);
                           }}
-                          className={`flex items-start gap-2 rounded-lg p-2 transition-colors border ${
+                          className={`flex items-start gap-2 rounded-md p-2 transition-colors border ${
                             canAdjustItems ? 'cursor-pointer hover:border-blue-500' : ''
                           } ${
                             selectedDevelopmentIndex === idx
@@ -3756,7 +3756,7 @@ export default function Feedback360Dashboard({
                             e.stopPropagation();
                             canAdjustItems && setSelectedInsightIndex(idx === selectedInsightIndex ? null : idx);
                           }}
-                          className={`flex items-start gap-2 rounded-lg p-2 transition-colors border ${
+                          className={`flex items-start gap-2 rounded-md p-2 transition-colors border ${
                             canAdjustItems ? 'cursor-pointer hover:border-blue-500' : ''
                           } ${
                             selectedInsightIndex === idx
@@ -3970,7 +3970,7 @@ export default function Feedback360Dashboard({
                     </div>
                   </div>
 
-                  <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-6 border border-blue-200 dark:border-blue-700">
+                  <div className="bg-blue-50 dark:bg-blue-900/30 rounded-md p-6 border border-blue-200 dark:border-blue-700">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4">
                     Sentiment by Relationship Type
                   </h4>
@@ -4068,7 +4068,7 @@ export default function Feedback360Dashboard({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {surveyResults.consensus_areas && surveyResults.consensus_areas.length > 0 && (
-                      <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                      <div className="bg-green-50 dark:bg-green-900/30 rounded-md p-4 border border-green-200 dark:border-green-700">
                         <h4 className="text-lg font-semibold text-gray-900 mb-2">
                           Strong Consensus
                         </h4>
@@ -4081,7 +4081,7 @@ export default function Feedback360Dashboard({
                     )}
 
                     {surveyResults.outlier_opinions && surveyResults.outlier_opinions.length > 0 && (
-                      <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-700">
+                      <div className="bg-amber-50 dark:bg-amber-900/20 rounded-md p-4 border border-amber-200 dark:border-amber-700">
                         <h4 className="text-lg font-semibold text-gray-900 mb-2">
                           Unique Perspectives
                         </h4>
@@ -4118,7 +4118,7 @@ export default function Feedback360Dashboard({
                   {/* Narrative content or empty state */}
                   {finalNarrative ? (
                     <>
-                      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-8">
+                      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-md p-8">
                         <div className="mb-6">
                           <h4 className="text-xl font-semibold text-gray-900">Final Narrative</h4>
                           <p className="text-sm text-gray-600 mt-1">
@@ -4140,7 +4140,7 @@ export default function Feedback360Dashboard({
                             id="regenerate-narrative-btn"
                             onClick={generateNarrative}
                             disabled={isGeneratingNarrative}
-                            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-md hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isGeneratingNarrative ? (
                               <>
@@ -4159,7 +4159,7 @@ export default function Feedback360Dashboard({
                     </>
                   ) : (
                     /* Empty state - no narrative generated yet */
-                    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+                    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-md p-12 text-center">
                       <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                       <h4 className="text-lg font-semibold text-gray-900 mb-2">No Narrative Generated Yet</h4>
                       <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
@@ -4172,7 +4172,7 @@ export default function Feedback360Dashboard({
                         <button
                           onClick={generateNarrative}
                           disabled={isGeneratingNarrative}
-                          className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-md hover:from-purple-700 hover:to-indigo-700 transition-colors font-medium flex items-center mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isGeneratingNarrative ? (
                             <>
@@ -4209,7 +4209,7 @@ export default function Feedback360Dashboard({
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => loadRawSurveyData(selectedSurvey.id)}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center"
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors font-medium flex items-center"
                       >
                         <AlertTriangle className="w-4 h-4 mr-2" />
                         View Raw Data
@@ -4218,7 +4218,7 @@ export default function Feedback360Dashboard({
                         <button
                           onClick={() => reanalyzeSurvey(selectedSurvey.id, 'standard')}
                           disabled={isGeneratingAnalysis}
-                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center disabled:opacity-50"
+                          className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium flex items-center disabled:opacity-50"
                         >
                           <Sparkles className="w-4 h-4 mr-2" />
                           {isGeneratingAnalysis ? 'Analyzing...' : 'Reanalyze'}
@@ -4226,13 +4226,13 @@ export default function Feedback360Dashboard({
                         <button
                           onClick={() => reanalyzeSurvey(selectedSurvey.id, 'softer')}
                           disabled={isGeneratingAnalysis}
-                          className="px-4 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-200 transition-colors font-medium flex items-center disabled:opacity-50"
+                          className="px-4 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors font-medium flex items-center disabled:opacity-50"
                         >
                           Reanalyze (Softer Tone)
                         </button>
                         <button
                           onClick={() => resolveNeedsReview(selectedSurvey.id)}
-                          className="px-4 py-2 bg-green-100 text-green-700 border border-green-300 rounded-lg hover:bg-green-200 transition-colors font-medium flex items-center"
+                          className="px-4 py-2 bg-green-100 text-green-700 border border-green-300 rounded-md hover:bg-green-200 transition-colors font-medium flex items-center"
                         >
                           <CheckCircle className="w-4 h-4 mr-2" />
                           Resolve Review
@@ -4277,7 +4277,7 @@ export default function Feedback360Dashboard({
                       )}
                       <button
                         onClick={() => setIsResultsModalOpen(false)}
-                        className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                        className="px-6 py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium"
                       >
                         Close
                       </button>
@@ -4286,7 +4286,7 @@ export default function Feedback360Dashboard({
                           <button
                             onClick={() => finalizeSurvey(selectedSurvey.id)}
                             disabled={!!selectedSurvey.flagged_for_reanalysis}
-                            className={`px-6 py-3 bg-blue-600 text-white rounded-lg font-medium flex items-center ${
+                            className={`px-6 py-3 bg-blue-600 text-white rounded-md font-medium flex items-center ${
                               selectedSurvey.flagged_for_reanalysis
                                 ? 'opacity-50 cursor-not-allowed'
                                 : 'hover:bg-blue-700 transition-colors'
@@ -4341,7 +4341,7 @@ export default function Feedback360Dashboard({
                           <button
                             onClick={() => finalizeSurvey(selectedSurvey.id)}
                             disabled={!!selectedSurvey.flagged_for_reanalysis}
-                            className={`px-6 py-3 bg-blue-600 text-white rounded-lg font-medium flex items-center ${
+                            className={`px-6 py-3 bg-blue-600 text-white rounded-md font-medium flex items-center ${
                               selectedSurvey.flagged_for_reanalysis
                                 ? 'opacity-50 cursor-not-allowed'
                                 : 'hover:bg-blue-700 transition-colors'
@@ -4365,7 +4365,7 @@ export default function Feedback360Dashboard({
       {/* Raw Data Modal */}
       {showRawData && rawSurveyData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-md max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             {/* Header */}
             <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
               <div className="flex items-center justify-between">
@@ -4390,7 +4390,7 @@ export default function Feedback360Dashboard({
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Survey Info */}
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-gray-50 rounded-md p-4">
                 <h3 className="font-semibold text-gray-900 mb-3">Survey Information</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -4421,7 +4421,7 @@ export default function Feedback360Dashboard({
                 <h3 className="font-semibold text-gray-900 mb-3">Reviewers</h3>
                 <div className="space-y-2">
                   {rawSurveyData.reviewers?.map((reviewer: any) => (
-                    <div key={reviewer.id} className="bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                    <div key={reviewer.id} className="bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-md p-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-gray-900">{reviewer.reviewer_name}</p>
@@ -4463,7 +4463,7 @@ export default function Feedback360Dashboard({
                     return Object.entries(groupedByReviewer).map(([email, reviewerResponses]: [string, any[]]) => {
                       const reviewer = reviewerResponses[0]?.reviewer;
                       return (
-                        <div key={email} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <div key={email} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
                           {/* Reviewer Header */}
                           <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
                             <div className="flex items-center justify-between">
@@ -4522,7 +4522,7 @@ export default function Feedback360Dashboard({
                   setShowRawData(false);
                   setRawSurveyData(null);
                 }}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium"
               >
                 Close
               </button>
@@ -4534,7 +4534,7 @@ export default function Feedback360Dashboard({
       {/* Incomplete Reviewers Warning Dialog */}
       {showIncompleteWarning && selectedSurvey && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full">
+          <div className="bg-white dark:bg-gray-800 rounded-md max-w-md w-full">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -4553,7 +4553,7 @@ export default function Feedback360Dashboard({
             </div>
 
             <div className="p-6 space-y-4">
-              <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+              <div className="bg-amber-50 rounded-md p-4 border border-amber-200">
                 <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-2">70% completion required</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   A minimum of 70% of reviewers must complete their feedback before the review can be closed. You currently have {(() => {
@@ -4568,14 +4568,14 @@ export default function Feedback360Dashboard({
             <div className="flex items-center justify-between p-6 border-t border-gray-200">
               <button
                 onClick={() => setShowIncompleteWarning(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={() => completeSurveyWithAI(true)}
                 disabled={isGeneratingAnalysis}
-                className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
                 {isGeneratingAnalysis ? 'Generating...' : 'Proceed & Generate Analysis'}

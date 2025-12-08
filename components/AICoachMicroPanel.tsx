@@ -86,7 +86,7 @@ export function AICoachMicroPanel({
           return (
             <div
               key={suggestion.id}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${colorClass} text-sm animate-slide-in`}
+              className={`flex items-center gap-2 px-3 py-2 rounded-md border ${colorClass} text-sm animate-slide-in`}
             >
               <Icon className="w-4 h-4 flex-shrink-0 text-purple-600" />
               <span className="flex-1 font-medium text-gray-800">{suggestion.title}</span>
@@ -133,7 +133,7 @@ export function AICoachMicroPanel({
           return (
             <div
               key={suggestion.id}
-              className={`rounded-lg border p-3 ${colorClass} animate-slide-in shadow-sm hover:shadow-md transition-all`}
+              className={`rounded-md border p-3 ${colorClass} animate-slide-in shadow-sm hover:shadow-md transition-all`}
             >
               <div className="flex items-start gap-3">
                 <Icon className="w-5 h-5 flex-shrink-0 mt-0.5 text-purple-600" />
@@ -147,7 +147,7 @@ export function AICoachMicroPanel({
                   {suggestion.action && (
                     <button
                       onClick={() => handleAction(suggestion)}
-                      className="mt-2 px-3 py-1.5 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 transition-colors shadow-sm hover:shadow inline-flex items-center gap-1"
+                      className="mt-2 px-3 py-1.5 bg-white hover:bg-gray-50 border border-gray-300 rounded-md text-xs font-medium text-gray-700 transition-colors shadow-sm hover:shadow inline-flex items-center gap-1"
                     >
                       {suggestion.actionLabel || 'Take action'}
                       <CheckCircle className="w-3 h-3" />

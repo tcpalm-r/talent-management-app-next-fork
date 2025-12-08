@@ -219,7 +219,7 @@ export default function CreateWithAIModal({
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="text-white hover:bg-white/20 rounded-lg p-1 transition"
+            className="text-white hover:bg-white/20 rounded-md p-1 transition"
           >
             <X className="w-6 h-6" />
           </button>
@@ -234,7 +234,7 @@ export default function CreateWithAIModal({
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Describe your 360° feedback
                 </label>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
                   <p className="text-sm text-blue-900">
                     <strong>Example:</strong> "Create a 360 feedback for Sarah Chen to assess her leadership and communication skills. Get feedback from her manager John, 2 cross-functional colleagues Mike and Anna, and 2 direct reports. Focus on leadership, collaboration, and communication. Due next Friday."
                   </p>
@@ -250,7 +250,7 @@ export default function CreateWithAIModal({
                     }}
                     disabled={isLoading || isListening}
                     placeholder="Type your survey description here... or click the mic to speak"
-                    className="w-full h-48 px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 disabled:bg-gray-100 resize-none"
+                    className="w-full h-48 px-4 py-3 pr-12 border-2 border-gray-300 rounded-md focus:outline-none focus:border-blue-500 disabled:bg-gray-100 resize-none"
                   />
 
                   {/* Microphone Button */}
@@ -260,7 +260,7 @@ export default function CreateWithAIModal({
                         toggleListening();
                       }}
                       disabled={isLoading}
-                      className={`absolute bottom-3 right-3 p-2 rounded-lg transition-all ${
+                      className={`absolute bottom-3 right-3 p-2 rounded-md transition-all ${
                         isListening
                           ? 'bg-red-500 text-white animate-pulse'
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -278,7 +278,7 @@ export default function CreateWithAIModal({
 
                 {/* Speech Recognition Status */}
                 {isListening && (
-                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center gap-2">
                     <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
                     <p className="text-sm text-blue-700 font-medium">🎤 Listening... Speak now</p>
                   </div>
@@ -286,7 +286,7 @@ export default function CreateWithAIModal({
 
                 {/* Speech Error */}
                 {speechError && (
-                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex gap-2">
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md flex gap-2">
                     <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-yellow-700">{speechError}</p>
                   </div>
@@ -294,7 +294,7 @@ export default function CreateWithAIModal({
               </div>
 
               {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3">
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md flex gap-3">
                   <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                   <p className="text-red-800 text-sm">{error}</p>
                 </div>
@@ -305,14 +305,14 @@ export default function CreateWithAIModal({
                 <button
                   onClick={onClose}
                   disabled={isLoading}
-                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-md hover:bg-gray-50 transition disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDone}
                   disabled={isLoading}
-                  className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50"
                 >
                   {isLoading ? (
                     <>
@@ -332,7 +332,7 @@ export default function CreateWithAIModal({
             <>
               {/* Clarification Form */}
               <div className="mb-6">
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex gap-3">
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-6 flex gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-amber-900 font-semibold text-sm mb-2">
@@ -364,7 +364,7 @@ export default function CreateWithAIModal({
                             [clarification.field]: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
                       />
                     ) : clarification.options && clarification.options.length > 0 ? (
                       <select
@@ -375,7 +375,7 @@ export default function CreateWithAIModal({
                             [clarification.field]: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
                       >
                         <option value="">Select an option...</option>
                         {clarification.options.map((option) => (
@@ -395,7 +395,7 @@ export default function CreateWithAIModal({
                           })
                         }
                         placeholder={`Enter ${clarification.field}...`}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
                       />
                     )}
                   </div>
@@ -406,13 +406,13 @@ export default function CreateWithAIModal({
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={handleBackToInput}
-                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition"
+                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-md hover:bg-gray-50 transition"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleClarificationSubmit}
-                  className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+                  className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition flex items-center gap-2"
                 >
                   <Sparkles className="w-4 h-4" />
                   Confirm & Create

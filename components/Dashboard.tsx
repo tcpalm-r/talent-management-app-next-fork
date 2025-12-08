@@ -236,8 +236,8 @@ export default function Dashboard({
         userProfile={userProfile}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-auto">
+      {/* Main Content Area - overflow-y-scroll ensures consistent width with/without scrollbar */}
+      <main className="flex-1 overflow-y-scroll overflow-x-hidden">
           {loading && (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">

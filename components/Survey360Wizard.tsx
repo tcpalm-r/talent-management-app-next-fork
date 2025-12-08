@@ -1378,7 +1378,7 @@ export default function Survey360Wizard({
                 Create with AI
               </button>
             )}
-            <button onClick={handleClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+            <button onClick={handleClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -1420,7 +1420,7 @@ export default function Survey360Wizard({
               </div>
 
               {/* Templates - Disabled for now */}
-              {/* <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+              {/* <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-md p-4">
                 <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
                   Start with a Template
@@ -1430,7 +1430,7 @@ export default function Survey360Wizard({
                     <button
                       key={template.id}
                       onClick={() => applyTemplate(template.id)}
-                      className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                      className={`w-full text-left p-3 rounded-md border-2 transition-all ${
                         selectedTemplate === template.id
                           ? 'border-purple-500 bg-white shadow-md'
                           : 'border-purple-200 bg-white/50 hover:border-purple-300 hover:bg-white'
@@ -1501,7 +1501,7 @@ export default function Survey360Wizard({
                     }
                   }}
                   placeholder="Search by name, title, or email..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                 />
               </div>
 
@@ -1519,7 +1519,7 @@ export default function Survey360Wizard({
                         setSelectedEmployee(emp);
                         setCurrentStep('competencies');
                       }}
-                      className={`text-left p-2.5 rounded-lg border-2 transition-all flex items-center gap-2 cursor-pointer ${
+                      className={`text-left p-2.5 rounded-md border-2 transition-all flex items-center gap-2 cursor-pointer ${
                         selectedEmployee?.id === emp.id
                           ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/30 shadow-md'
                           : highlightedEmployeeListIndex === index
@@ -1558,7 +1558,7 @@ export default function Survey360Wizard({
 
                 <div className="space-y-3">
                   {requiredQuestions.map((question, index) => (
-                    <div key={index} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300">
+                    <div key={index} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300">
                       {replaceNamePlaceholder(question.text, displayName)}
                     </div>
                   ))}
@@ -1573,7 +1573,7 @@ export default function Survey360Wizard({
                   <div className="space-y-3">
                     {customQuestions.map((question, index) => (
                       <div key={index} className="flex items-start gap-2">
-                        <div className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300">
+                        <div className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300">
                           {replaceNamePlaceholder(question, displayName)}
                         </div>
                         <button
@@ -1605,7 +1605,7 @@ export default function Survey360Wizard({
                         }
                       }
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
                     rows={2}
                     placeholder="Add a custom question... (Press Enter to add)"
                   />
@@ -1631,7 +1631,7 @@ export default function Survey360Wizard({
                     }}
                     className="relative"
                   >
-                    <div className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700/50">
+                    <div className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700/50">
                       <select
                         value={rater.relationship}
                         onChange={async (e) => {
@@ -1648,7 +1648,7 @@ export default function Survey360Wizard({
                             await fetchEmployeesWithRelationships(index, raterSearch, newRelationship);
                           }
                         }}
-                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
                       >
                         <option value="">Select relationship...</option>
                         <option value="manager">Manager</option>
@@ -1730,7 +1730,7 @@ export default function Survey360Wizard({
                                 }
                               }}
                               placeholder="Search employees..."
-                              className="w-full pl-9 pr-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
+                              className="w-full pl-9 pr-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
                             />
                           </div>
                         </div>
@@ -1746,7 +1746,7 @@ export default function Survey360Wizard({
                                 setRaters(updated);
                               }}
                               placeholder="Name"
-                              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm"
+                              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm"
                             />
                             <input
                               type="email"
@@ -1757,7 +1757,7 @@ export default function Survey360Wizard({
                                 setRaters(updated);
                               }}
                               placeholder="Email"
-                              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm"
+                              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm"
                             />
                           </div>
                         </div>
@@ -1784,7 +1784,7 @@ export default function Survey360Wizard({
                             setHighlightedEmployeeIndex(-1);
                           }}
                         />
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 max-h-80 overflow-y-auto">
                           <div className="p-2">
                             {isLoadingRelationships ? (
                               <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
@@ -1802,7 +1802,7 @@ export default function Survey360Wizard({
                                   }}
                                   onClick={() => selectEmployeeAsRater(emp, index)}
                                   onMouseEnter={() => setHighlightedEmployeeIndex(empIndex)}
-                                  className={`w-full text-left p-2 rounded-lg transition-colors flex items-center gap-2 ${
+                                  className={`w-full text-left p-2 rounded-md transition-colors flex items-center gap-2 ${
                                     highlightedEmployeeIndex === empIndex
                                       ? 'bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-500'
                                       : 'hover:bg-blue-50 dark:hover:bg-blue-900/20'
@@ -1835,7 +1835,7 @@ export default function Survey360Wizard({
                                 </button>
                               ))
                             ) : rater.relationship && employeesWithRelationships.length === 0 && !isLoadingRelationships ? (
-                              <div className="p-4 text-center text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg m-2">
+                              <div className="p-4 text-center text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-md m-2">
                                 {selectedEmployee?.name} has no{' '}
                                 {rater.relationship === 'manager' ? 'manager' :
                                  rater.relationship === 'slt' ? 'SLT' :
@@ -1853,7 +1853,7 @@ export default function Survey360Wizard({
                                 setRaterSearch('');
                                 setHighlightedEmployeeIndex(-1);
                               }}
-                              className="w-full mt-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                              className="w-full mt-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
                             >
                               Enter manually instead
                             </button>
@@ -1874,7 +1874,7 @@ export default function Survey360Wizard({
                   // Don't auto-open picker - wait for relationship selection
                   setShowRaterPicker(null);
                 }}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2"
               >
                 <Users className="w-4 h-4" />
                 Add Reviewer
@@ -1882,7 +1882,7 @@ export default function Survey360Wizard({
 
               {/* Reviewer count validation message */}
               {raters.length < 4 && (
-                <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700">
+                <div className="p-4 rounded-md bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700">
                   <div className="text-sm font-medium text-blue-700 dark:text-blue-300">
                     Add at least 4 reviewers.
                   </div>
@@ -1901,7 +1901,7 @@ export default function Survey360Wizard({
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
 
@@ -1915,7 +1915,7 @@ export default function Survey360Wizard({
                     const value = e.target.value;
                     setAutoReminderDaysBefore(value === '' ? null : parseInt(value));
                   }}
-                  className="pl-4 pr-12 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%239ca3af%22%20d%3D%22M10.293%203.293L6%207.586%201.707%203.293A1%201%200%2000.293%204.707l5%205a1%201%200%20001.414%200l5-5a1%201%200%2010-1.414-1.414z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_1rem_center] bg-no-repeat"
+                  className="pl-4 pr-12 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%239ca3af%22%20d%3D%22M10.293%203.293L6%207.586%201.707%203.293A1%201%200%2000.293%204.707l5%205a1%201%200%20001.414%200l5-5a1%201%200%2010-1.414-1.414z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_1rem_center] bg-no-repeat"
                 >
                   <option value="">No automatic reminders</option>
                   <option value="1">1 day before due date</option>
@@ -1923,7 +1923,7 @@ export default function Survey360Wizard({
                 </select>
               </div>
 
-              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md p-4">
                 <p className="text-sm text-blue-900 dark:text-blue-200">
                   <strong>Recommended:</strong> Allow 7-14 days for raters to complete thoughtful feedback.
                 </p>
@@ -1939,7 +1939,7 @@ export default function Survey360Wizard({
               </div>
 
               <div className="space-y-4">
-                <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-md p-4">
                   <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">Employee</div>
                   <div className="flex items-center gap-3">
                     <Avatar
@@ -1954,7 +1954,7 @@ export default function Survey360Wizard({
                   </div>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-md p-4">
                   <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                     Questions ({requiredQuestions.length + customQuestions.length})
                   </div>
@@ -1968,7 +1968,7 @@ export default function Survey360Wizard({
                   </ul>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-md p-4">
                   <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">Reviewers ({raters.length})</div>
                   <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                     {raters.map((r, i) => (
@@ -1984,7 +1984,7 @@ export default function Survey360Wizard({
                   </ul>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-md p-4">
                   <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Due Date</div>
                   <div className="font-semibold text-gray-900 dark:text-gray-100">
                     {new Date(dueDate).toLocaleDateString()}
@@ -1999,7 +1999,7 @@ export default function Survey360Wizard({
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
           <button
             onClick={currentStepIndex === 0 ? handleClose : handleBack}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2"
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors flex items-center gap-2"
           >
             <ChevronLeft className="w-4 h-4" />
             {currentStepIndex === 0 ? 'Cancel' : 'Back'}
@@ -2009,7 +2009,7 @@ export default function Survey360Wizard({
             <button
               onClick={handleNext}
               disabled={!canProceed()}
-              className="px-6 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
               <ChevronRight className="w-4 h-4" />
@@ -2019,7 +2019,7 @@ export default function Survey360Wizard({
               data-launch-button
               onClick={handleCreate}
               disabled={isCreating || !canProceed()}
-              className="px-6 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-800 transition-colors flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-2 bg-green-600 dark:bg-green-700 text-white rounded-md hover:bg-green-700 dark:hover:bg-green-800 transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               {isCreating ? (
                 <>Creating...</>

@@ -224,7 +224,7 @@ export default function Quick360Modal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-md shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
           <div className="flex items-center justify-between">
@@ -247,7 +247,7 @@ export default function Quick360Modal({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
             <h3 className="font-semibold text-blue-900 mb-2">📝 Select & Customize Questions</h3>
             <p className="text-sm text-blue-700 mb-2">
               Choose from our library of hard-hitting questions below, or edit them to match your needs.
@@ -276,7 +276,7 @@ export default function Quick360Modal({
             {/* Selected Questions */}
             <div className="space-y-3 mb-6">
               {selectedQuestions.map((question, index) => (
-                <div key={question.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div key={question.id} className="border border-gray-200 rounded-md p-4 bg-gray-50">
                   <div className="flex items-start gap-3">
                     <span className="text-sm font-semibold text-blue-600 mt-1">{index + 1}.</span>
                     <div className="flex-1">
@@ -284,7 +284,7 @@ export default function Quick360Modal({
                         <textarea
                           value={question.text}
                           onChange={(e) => updateQuestion(question.id, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           rows={2}
                           placeholder="Enter your question..."
                           autoFocus
@@ -316,7 +316,7 @@ export default function Quick360Modal({
 
             {/* Suggested Questions */}
             {showSuggestions && (
-              <div className="border-2 border-purple-300 rounded-lg p-5 bg-gradient-to-br from-purple-50 to-blue-50">
+              <div className="border-2 border-purple-300 rounded-md p-5 bg-gradient-to-br from-purple-50 to-blue-50">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h4 className="font-bold text-purple-900 flex items-center gap-2 text-lg">
@@ -345,7 +345,7 @@ export default function Quick360Modal({
                         key={q.id}
                         onClick={() => addLibraryQuestion(q.id)}
                         disabled={isAdded}
-                        className={`w-full text-left p-3 rounded-lg text-sm transition-all border-2 ${
+                        className={`w-full text-left p-3 rounded-md text-sm transition-all border-2 ${
                           isAdded
                                 ? 'bg-green-100 text-green-900 border-green-400 cursor-default font-medium'
                                 : 'bg-white hover:bg-blue-100 hover:border-blue-400 text-gray-800 border-gray-200 hover:shadow-md'
@@ -385,28 +385,28 @@ export default function Quick360Modal({
 
             <div className="space-y-3">
               {reviewers.map((reviewer, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div key={index} className="border border-gray-200 rounded-md p-4 bg-gray-50">
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <input
                       type="text"
                       placeholder="Name"
                       value={reviewer.name}
                       onChange={(e) => updateReviewer(index, 'name', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <input
                       type="email"
                       placeholder="Email"
                       value={reviewer.email}
                       onChange={(e) => updateReviewer(index, 'email', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div className="flex gap-3">
                     <select
                       value={reviewer.relationship}
                       onChange={(e) => updateReviewer(index, 'relationship', e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="manager">Manager</option>
                       <option value="peer">Peer</option>
@@ -425,7 +425,7 @@ export default function Quick360Modal({
             </div>
 
             {reviewers.length === 0 && (
-              <div className="text-center py-8 text-gray-500 border border-dashed border-gray-300 rounded-lg">
+              <div className="text-center py-8 text-gray-500 border border-dashed border-gray-300 rounded-md">
                 <Mail className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                 <p>No reviewers added yet</p>
                 <p className="text-sm mt-1">Add people who will provide feedback</p>
@@ -442,7 +442,7 @@ export default function Quick360Modal({
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
         </div>
@@ -455,7 +455,7 @@ export default function Quick360Modal({
           <button
             onClick={handleSendSurvey}
             disabled={loading || selectedQuestions.length === 0 || reviewers.length < 3}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {loading ? (
               <>

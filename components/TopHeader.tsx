@@ -111,7 +111,7 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
           <div className="relative" ref={avatarRef}>
             <button
               onClick={() => setAvatarOpen(!avatarOpen)}
-              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1 hover:bg-gray-100 rounded-md transition-colors"
               title={userProfile?.full_name}
             >
               <Avatar
@@ -122,7 +122,7 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
             </button>
 
             {avatarOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg py-3 px-3">
+              <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-3 px-3">
                 {/* User Info Section */}
                 <div className="mb-3">
                   <div className="flex items-center gap-3">

@@ -62,7 +62,7 @@ function SortableQuestionItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg"
+      className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md"
     >
       <div className="flex items-start gap-3">
         <button
@@ -80,7 +80,7 @@ function SortableQuestionItem({
             value={text}
             onChange={(e) => onTextChange(e.target.value)}
             rows={2}
-            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg mb-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 resize-y"
+            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md mb-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 resize-y"
             placeholder="Enter question text..."
           />
           <div className="flex items-center gap-2">
@@ -213,7 +213,7 @@ function Default360QuestionsManager() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-800 rounded-md shadow border border-gray-200 dark:border-gray-700">
       <div className="p-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between">
           <div>
@@ -228,7 +228,7 @@ function Default360QuestionsManager() {
           {!isEditing ? (
             <button
               onClick={() => setIsEditing(true)}
-              className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 text-sm"
+              className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 text-sm"
             >
               Manage Questions
             </button>
@@ -237,7 +237,7 @@ function Default360QuestionsManager() {
               <button
                 onClick={saveDefaultQuestions}
                 disabled={saving}
-                className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-800 text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-md hover:bg-green-700 dark:hover:bg-green-800 text-sm disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
@@ -247,7 +247,7 @@ function Default360QuestionsManager() {
                   loadDefaultQuestions();
                 }}
                 disabled={saving}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-sm disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -263,7 +263,7 @@ function Default360QuestionsManager() {
               Current Required Questions ({questions.length}):
             </p>
             {questions.map((question, index) => (
-              <div key={question.id} className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
+              <div key={question.id} className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md">
                 <div className="flex items-start gap-3">
                   <span className="flex-shrink-0 w-6 h-6 bg-blue-600 dark:bg-blue-700 text-white rounded-full flex items-center justify-center text-xs font-bold">
                     {index + 1}
@@ -278,7 +278,7 @@ function Default360QuestionsManager() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="border rounded-lg p-3 mb-4 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700">
+            <div className="border rounded-md p-3 mb-4 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700">
               <p className="text-sm text-blue-800 dark:text-blue-300">
                 <strong>Total Questions: {questions.length}</strong>
               </p>
@@ -323,12 +323,12 @@ function Default360QuestionsManager() {
             {!showCustomInput ? (
               <button
                 onClick={() => setShowCustomInput(true)}
-                className="w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-blue-500 dark:hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm font-medium"
+                className="w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md text-gray-600 dark:text-gray-400 hover:border-blue-500 dark:hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm font-medium"
               >
                 + Add Question
               </button>
             ) : (
-              <div className="p-4 border-2 border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50 dark:bg-blue-900/30">
+              <div className="p-4 border-2 border-blue-300 dark:border-blue-600 rounded-md bg-blue-50 dark:bg-blue-900/30">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Enter your question:
                 </label>
@@ -337,7 +337,7 @@ function Default360QuestionsManager() {
                   onChange={(e) => setCustomQuestionText(e.target.value)}
                   placeholder="What question should reviewers answer?"
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mb-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md mb-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                 />
                 <div className="mb-3">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -349,7 +349,7 @@ function Default360QuestionsManager() {
                     max="500"
                     value={customMinWords}
                     onChange={(e) => setCustomMinWords(parseInt(e.target.value) || 50)}
-                    className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Reviewers must write at least this many words
@@ -358,7 +358,7 @@ function Default360QuestionsManager() {
                 <div className="flex space-x-2">
                   <button
                     onClick={addCustomQuestion}
-                    className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 text-sm"
+                    className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 text-sm"
                   >
                     Add Question
                   </button>
@@ -368,7 +368,7 @@ function Default360QuestionsManager() {
                       setCustomQuestionText('');
                       setCustomMinWords(50);
                     }}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 text-sm"
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-sm"
                   >
                     Cancel
                   </button>
@@ -549,7 +549,7 @@ export default function AdminSettings() {
       <Default360QuestionsManager />
 
       {/* Employee Management */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-md shadow border border-gray-200 dark:border-gray-700">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center mb-4">
             <User className="w-5 h-5 mr-2" />
@@ -565,7 +565,7 @@ export default function AdminSettings() {
               placeholder="Search by name, email, title, or department..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
             />
           </div>
           {searchQuery && (

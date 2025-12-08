@@ -128,7 +128,7 @@ export default function MyReportDashboard({
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-md max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -205,7 +205,7 @@ export default function MyReportDashboard({
             {activeReportTab === 'themes' && surveyResults.themes && surveyResults.themes.length > 0 && (
               <div className="space-y-3">
                 {surveyResults.themes.map((theme: any, idx: number) => (
-                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
                     <div className="flex items-start justify-between mb-2">
                       <h5 className="font-medium text-gray-900 dark:text-gray-100">{theme.theme}</h5>
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -245,7 +245,7 @@ export default function MyReportDashboard({
             {activeReportTab === 'strengths' && surveyResults.strengths && surveyResults.strengths.length > 0 && (
               <div className="space-y-3">
                 {surveyResults.strengths.map((strength: any, idx: number) => (
-                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
                     <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-2">{strength.strength}</h5>
                     <p className="text-sm text-gray-600 dark:text-gray-400">{strength.description}</p>
                     {strength.supporting_evidence && strength.supporting_evidence.length > 0 && (
@@ -266,7 +266,7 @@ export default function MyReportDashboard({
             {activeReportTab === 'development' && surveyResults.development_areas && surveyResults.development_areas.length > 0 && (
               <div className="space-y-3">
                 {surveyResults.development_areas.map((area: any, idx: number) => (
-                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
                     <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-2">{area.area}</h5>
                     <p className="text-sm text-gray-600 dark:text-gray-400">{area.description}</p>
                     {area.supporting_evidence && area.supporting_evidence.length > 0 && (
@@ -287,7 +287,7 @@ export default function MyReportDashboard({
             {activeReportTab === 'insights' && surveyResults.key_insights && surveyResults.key_insights.length > 0 && (
               <div className="space-y-3">
                 {surveyResults.key_insights.map((insight: any, idx: number) => (
-                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
                     <p className="text-sm text-gray-700 dark:text-gray-300">{insight.insight || insight}</p>
                   </div>
                 ))}
@@ -298,7 +298,7 @@ export default function MyReportDashboard({
             {activeReportTab === 'recommendations' && surveyResults.recommendations && surveyResults.recommendations.length > 0 && (
               <div className="space-y-3">
                 {surveyResults.recommendations.map((rec: string, idx: number) => (
-                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
                     <p className="text-sm text-gray-700 dark:text-gray-300">{rec}</p>
                   </div>
                 ))}
@@ -307,7 +307,7 @@ export default function MyReportDashboard({
 
             {/* Narrative Tab */}
             {activeReportTab === 'narrative' && (
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-md p-6">
                 {finalNarrative ? (
                   <div className="prose dark:prose-invert max-w-none">
                     <div className="whitespace-pre-wrap text-gray-700 dark:text-gray-300">{finalNarrative}</div>
@@ -337,7 +337,7 @@ export default function MyReportDashboard({
       <div>
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">My 360° Feedback</h2>
         {finalizedSurveys.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-md border-2 border-dashed border-gray-300 dark:border-gray-600">
             <FileText className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
             <p className="text-sm text-gray-500 dark:text-gray-400">No reports yet</p>
             </div>
@@ -346,7 +346,7 @@ export default function MyReportDashboard({
             {finalizedSurveys.map((survey) => (
             <div
               key={survey.id}
-              className="border border-gray-200 dark:border-gray-700 rounded-lg p-5 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
+              className="border border-gray-200 dark:border-gray-700 rounded-md p-5 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
@@ -367,7 +367,7 @@ export default function MyReportDashboard({
 
               <button
                 onClick={() => viewReport(survey)}
-                className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors text-sm font-medium"
               >
                 <Eye className="w-4 h-4" />
                 View Report

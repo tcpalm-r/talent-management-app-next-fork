@@ -40,7 +40,7 @@ export default function StatCard({
       <Component
         onClick={onClick}
         className={`
-          flex flex-col items-center justify-center gap-1 rounded-lg p-3 text-center transition-all
+          flex flex-col items-center justify-center gap-1 rounded-md p-3 text-center transition-all
           ${onClick ? 'cursor-pointer bg-white border border-gray-200 hover:shadow-md' : 'bg-transparent'}
           ${className}
         `}
@@ -71,7 +71,7 @@ export default function StatCard({
       `}
     >
       <div className="flex items-start justify-between mb-4">
-        <div className={`p-3 rounded-lg ${color}`}>
+        <div className={`p-3 rounded-md ${color}`}>
           <Icon className="w-6 h-6 text-white" />
         </div>
         {trend !== undefined && (

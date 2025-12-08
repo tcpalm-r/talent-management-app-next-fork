@@ -225,7 +225,7 @@ ${isThemeBullets ? '10. DO NOT change or mention the theme title - only adjust t
 Return ONLY the adjusted ${sectionLabel} text. ${isThemeBullets ? 'Return each bullet point on a new line without numbering or bullet symbols.' : 'Do not include any preamble, explanation, quotes, or additional formatting. Just the adjusted text itself.'}`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 512,
       temperature: 0.2, // Lower temperature for more deterministic, less creative outputs
       messages: [

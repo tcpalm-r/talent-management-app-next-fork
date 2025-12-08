@@ -351,7 +351,7 @@ export default function SurveyCompletionPage() {
                       onChange={(e) => setNavigationRating(Number(e.target.value))}
                       onMouseUp={(e) => setNavigationRating(Math.round(Number((e.target as HTMLInputElement).value)))}
                       onTouchEnd={(e) => setNavigationRating(Math.round(Number((e.target as HTMLInputElement).value)))}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:accent-blue-400"
+                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-md appearance-none cursor-pointer accent-blue-600 dark:accent-blue-400"
                       style={{
                         WebkitAppearance: 'none',
                         appearance: 'none',
@@ -406,7 +406,7 @@ export default function SurveyCompletionPage() {
                       onMouseUp={(e) => setAiHelperRating(Math.round(Number((e.target as HTMLInputElement).value)))}
                       onTouchEnd={(e) => setAiHelperRating(Math.round(Number((e.target as HTMLInputElement).value)))}
                       disabled={didNotUseAI}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:accent-blue-400 disabled:cursor-not-allowed"
+                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-md appearance-none cursor-pointer accent-blue-600 dark:accent-blue-400 disabled:cursor-not-allowed"
                       style={{
                         WebkitAppearance: 'none',
                         appearance: 'none',
@@ -433,7 +433,7 @@ export default function SurveyCompletionPage() {
                   value={additionalComments}
                   onChange={(e) => setAdditionalComments(e.target.value)}
                   rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   placeholder="Optional - share any feedback about your experience..."
                 />
               </div>
@@ -441,7 +441,7 @@ export default function SurveyCompletionPage() {
               {/* Submit Button */}
               <button
                 onClick={handleMetaFeedbackSubmit}
-                className="w-full bg-blue-600 dark:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
+                className="w-full bg-blue-600 dark:bg-blue-700 text-white py-3 px-6 rounded-md font-semibold hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
               >
                 Submit Feedback
               </button>
@@ -508,7 +508,7 @@ export default function SurveyCompletionPage() {
           <form onSubmit={handleSubmit} className="p-8">
             {/* Validation Error Message */}
             {validationError && (
-              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg flex gap-3">
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-md flex gap-3">
                 <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                 <p className="text-red-800 dark:text-red-300 text-sm">{validationError}</p>
               </div>
@@ -540,7 +540,7 @@ export default function SurveyCompletionPage() {
                           setActiveQuestionForAI(question.id);
                         }}
                         disabled={submitting}
-                        className="flex items-center gap-2 bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white text-sm font-semibold py-2 px-4 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Sparkles className="w-4 h-4" />
                         AI Response Assistant
@@ -554,7 +554,7 @@ export default function SurveyCompletionPage() {
                       value={responses[question.id] || ''}
                       onChange={(e) => updateResponse(question.id, e.target.value)}
                       rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent resize-y bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent resize-y bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                       placeholder="Can't think of what to say? Mention a specific example or tell a story!"
                       required
                     />
@@ -582,7 +582,7 @@ export default function SurveyCompletionPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 text-white py-4 px-6 rounded-lg font-semibold text-lg flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-800 dark:hover:to-indigo-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 text-white py-4 px-6 rounded-md font-semibold text-lg flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-800 dark:hover:to-indigo-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? (
                     <>

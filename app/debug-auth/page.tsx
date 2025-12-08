@@ -46,7 +46,7 @@ export default function DebugAuthPage() {
       <div className="max-w-4xl mx-auto space-y-6">
         <h1 className="text-3xl font-bold text-gray-900">Auth Debug Page</h1>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-md shadow p-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
             Browser Cookies
           </h2>
@@ -55,7 +55,7 @@ export default function DebugAuthPage() {
           </pre>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-md shadow p-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
             /api/auth/me Response
           </h2>
@@ -64,7 +64,7 @@ export default function DebugAuthPage() {
           </pre>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-md shadow p-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
             /api/dashboard/data Response (Thomas Palmer)
           </h2>
@@ -73,7 +73,7 @@ export default function DebugAuthPage() {
           </pre>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-6">
           <h2 className="text-xl font-semibold text-blue-900 mb-2">
             Expected ID
           </h2>
@@ -88,7 +88,7 @@ export default function DebugAuthPage() {
           </p>
         </div>
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-6">
           <h3 className="font-semibold text-yellow-900 mb-2">
             To clear all auth state:
           </h3>

@@ -123,7 +123,7 @@ export default function AppWrapper() {
                 <div className="skeleton-text w-48 h-6" aria-hidden></div>
                 <div className="skeleton-text w-24 h-5" aria-hidden></div>
               </div>
-              <div className="skeleton-text w-32 h-10 rounded-lg" aria-hidden></div>
+              <div className="skeleton-text w-32 h-10 rounded-md" aria-hidden></div>
             </div>
           </div>
         </header>
@@ -143,7 +143,7 @@ export default function AppWrapper() {
         <main className="max-w-[1800px] mx-auto px-6 py-8">
           <div className="grid grid-cols-3 gap-4 mb-6">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
-              <div key={i} className="skeleton-box h-48 rounded-lg"></div>
+              <div key={i} className="skeleton-box h-48 rounded-md"></div>
             ))}
           </div>
         </main>
@@ -155,7 +155,7 @@ export default function AppWrapper() {
   if (authError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 max-w-lg w-full">
+        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-8 max-w-lg w-full">
           <div className="text-red-500 text-center mb-6">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -179,7 +179,7 @@ export default function AppWrapper() {
     console.error('[AppWrapper] No authenticated user found - authentication required');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
+        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
           <h2 className="text-lg font-semibold mb-2 text-gray-900">Authentication Required</h2>
           <p className="text-sm text-gray-600 mb-6">Please sign in to access Sonance Talent Management.</p>
           <a href="/api/auth/login" className="btn-primary">
@@ -193,7 +193,7 @@ export default function AppWrapper() {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 max-w-lg w-full">
+        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-8 max-w-lg w-full">
           <div className="text-red-500 text-center mb-6">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -211,7 +211,7 @@ export default function AppWrapper() {
             </button>
           </div>
 
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
             <p className="text-sm font-medium text-amber-900 mb-2">
               First time setting up Sonance?
             </p>
@@ -228,7 +228,7 @@ export default function AppWrapper() {
   if (!organization) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
+        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
           <h2 className="text-lg font-semibold mb-2 text-gray-900">Sonance workspace not found</h2>
           <p className="text-sm text-gray-600 mb-6">We couldn’t load the sample organization for Sonance Talent Management.</p>
           <button

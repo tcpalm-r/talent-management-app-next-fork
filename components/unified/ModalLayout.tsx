@@ -96,7 +96,7 @@ export default function ModalLayout({
               {headerActions}
               <button
                 onClick={onClose}
-                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-2 hover:bg-white dark:hover:bg-gray-700 rounded-lg"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-2 hover:bg-white dark:hover:bg-gray-700 rounded-md"
                 title="Close (ESC)"
               >
                 <X className="w-5 h-5" />

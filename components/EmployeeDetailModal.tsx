@@ -627,7 +627,7 @@ export default function EmployeeDetailModal({
 
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-white rounded-lg"
+              className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-white rounded-md"
             >
               <X className="w-5 h-5" />
             </button>
@@ -771,7 +771,7 @@ export default function EmployeeDetailModal({
                   const tabToShow = item.key === 'ingest' ? 'review' : item.key;
                   setActiveTab(tabToShow as any);
                 }}
-                className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all whitespace-nowrap flex items-center gap-2 ${
+                className={`relative px-4 py-2 text-sm font-semibold rounded-md transition-all whitespace-nowrap flex items-center gap-2 ${
                   isActive ? item.activeClass : item.inactiveClass
                 } ${!item.hasContent && !isActive ? 'opacity-60' : ''} ${item.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
               >
@@ -845,7 +845,7 @@ export default function EmployeeDetailModal({
           {activeTab === 'review' && (
             <div className="space-y-6">
               {/* Quick Actions Bar */}
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg border border-purple-200">
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-md border border-purple-200">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-purple-600" />
                   <div>
@@ -859,7 +859,7 @@ export default function EmployeeDetailModal({
                       setActiveTab('perf-review');
                       setActiveSubPanel('perf-review');
                     }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
                   >
                     <PenSquare className="w-4 h-4" />
                     View Reviews
@@ -869,7 +869,7 @@ export default function EmployeeDetailModal({
 
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
                 <div className="flex items-start space-x-3 mb-4">
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-purple-100 rounded-md flex items-center justify-center flex-shrink-0">
                     <Upload className="w-5 h-5 text-purple-600" />
                   </div>
                   <div>
@@ -884,11 +884,11 @@ export default function EmployeeDetailModal({
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
                   placeholder="Paste the employee's performance review here..."
-                  className="w-full h-64 px-4 py-3 border-2 border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                  className="w-full h-64 px-4 py-3 border-2 border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 />
 
                 {analysisError && (
-                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md flex items-start space-x-3">
                     <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-red-900">Analysis Error</p>
@@ -900,7 +900,7 @@ export default function EmployeeDetailModal({
                 <button
                   onClick={handleAnalyzeReview}
                   disabled={isAnalyzing || !reviewText.trim()}
-                  className="mt-4 w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
+                  className="mt-4 w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-md hover:from-purple-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
                 >
                   {isAnalyzing ? (
                     <>
@@ -927,17 +927,17 @@ export default function EmployeeDetailModal({
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       {analysisResult.performance && (
-                        <div className="bg-white rounded-lg p-4 border border-green-200">
+                        <div className="bg-white rounded-md p-4 border border-green-200">
                           <p className="text-sm text-gray-600 font-medium mb-2">Performance Rating</p>
-                          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold bg-blue-100 text-blue-800">
+                          <span className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-blue-100 text-blue-800">
                             📊 {analysisResult.performance.charAt(0).toUpperCase() + analysisResult.performance.slice(1)}
                           </span>
                         </div>
                       )}
                       {analysisResult.potential && (
-                        <div className="bg-white rounded-lg p-4 border border-green-200">
+                        <div className="bg-white rounded-md p-4 border border-green-200">
                           <p className="text-sm text-gray-600 font-medium mb-2">Potential Rating</p>
-                          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold bg-green-100 text-green-800">
+                          <span className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-green-100 text-green-800">
                             🚀 {analysisResult.potential.charAt(0).toUpperCase() + analysisResult.potential.slice(1)}
                           </span>
                         </div>
@@ -945,14 +945,14 @@ export default function EmployeeDetailModal({
                     </div>
 
                     {analysisResult?.reasoning && (
-                      <div className="bg-white rounded-lg p-4 border border-green-200">
+                      <div className="bg-white rounded-md p-4 border border-green-200">
                         <p className="text-sm text-gray-600 font-medium mb-2">Reasoning</p>
                         <p className="text-sm text-gray-700">{analysisResult.reasoning}</p>
                       </div>
                     )}
 
                     {analysisResult?.strengths && analysisResult.strengths.length > 0 && (
-                      <div className="bg-white rounded-lg p-4 border border-green-200">
+                      <div className="bg-white rounded-md p-4 border border-green-200">
                         <p className="text-sm text-gray-600 font-medium mb-2">Key strengths spotted</p>
                         <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
                           {analysisResult.strengths.map((item, index) => (
@@ -963,7 +963,7 @@ export default function EmployeeDetailModal({
                     )}
 
                     {analysisResult?.developmentAreas && analysisResult.developmentAreas.length > 0 && (
-                      <div className="bg-white rounded-lg p-4 border border-amber-200">
+                      <div className="bg-white rounded-md p-4 border border-amber-200">
                         <p className="text-sm text-gray-600 font-medium mb-2">Growth focus areas</p>
                         <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
                           {analysisResult.developmentAreas.map((item, index) => (
@@ -974,9 +974,9 @@ export default function EmployeeDetailModal({
                     )}
 
                     {analysisResult?.planType && (
-                      <div className="bg-white rounded-lg p-4 border border-green-200">
+                      <div className="bg-white rounded-md p-4 border border-green-200">
                         <p className="text-sm text-gray-600 font-medium mb-2">Recommended Plan Type</p>
-                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold ${getPlanTypeMeta(analysisResult.planType).badgeClass}`}>
+                        <span className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold ${getPlanTypeMeta(analysisResult.planType).badgeClass}`}>
                           {getPlanTypeMeta(analysisResult.planType).label}
                         </span>
                         {analysisResult.timeline && (
@@ -1000,13 +1000,13 @@ export default function EmployeeDetailModal({
                       </div>
                     )}
 
-                    <div className="bg-white rounded-lg p-4 border border-green-200">
+                    <div className="bg-white rounded-md p-4 border border-green-200">
                       <p className="text-sm text-gray-600 font-medium mb-2">✅ Development plan created with {analysisResult?.actionItems?.length || 0} action items</p>
                       <p className="text-xs text-gray-500">Switch to the &quot;Development Plan&quot; tab to view and manage the plan.</p>
                     </div>
 
                   {analysisResult?.recommendations && analysisResult.recommendations.length > 0 && (
-                    <div className="bg-white rounded-lg p-4 border border-blue-200">
+                    <div className="bg-white rounded-md p-4 border border-blue-200">
                       <p className="text-sm text-gray-600 font-medium mb-3">Suggested next moves</p>
                       <div className="space-y-3">
                         {analysisResult.recommendations.map((step) => {
@@ -1014,7 +1014,7 @@ export default function EmployeeDetailModal({
                           return (
                             <div
                               key={step.id}
-                              className={`rounded-lg border p-3 transition ${
+                              className={`rounded-md border p-3 transition ${
                                 isComplete ? 'border-green-200 bg-green-50/70' : 'border-blue-100 bg-blue-50/70'
                               }`}
                             >
@@ -1076,7 +1076,7 @@ export default function EmployeeDetailModal({
                 return (
                   <>
                     {/* Most Recent Review - Highlighted */}
-                    <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-lg hover:shadow-md transition-shadow">
+                    <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-md hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-blue-700 mb-1">Most Recent Review</p>
@@ -1088,13 +1088,13 @@ export default function EmployeeDetailModal({
                         {canViewSurveyResults(mostRecent) ? (
                           <button
                             onClick={() => loadSurveyResults(mostRecent)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2 whitespace-nowrap ml-4"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2 whitespace-nowrap ml-4"
                           >
                             <Eye className="w-4 h-4" />
                             View Results
                           </button>
                         ) : (
-                          <div className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap ml-4">
+                          <div className="px-4 py-2 bg-gray-100 text-gray-500 rounded-md text-sm font-medium flex items-center gap-2 whitespace-nowrap ml-4">
                             <Eye className="w-4 h-4" />
                             Restricted
                           </div>
@@ -1103,10 +1103,10 @@ export default function EmployeeDetailModal({
                     </div>
 
                     {/* Create New Survey Section */}
-                    <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                    <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-pink-50 rounded-md border border-purple-200">
                       <button
                         onClick={() => setIs360ModalOpen(true)}
-                        className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
+                        className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-md hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
                       >
                         <UsersIcon className="w-5 h-5 inline mr-2" />
                         Launch 360° Review
@@ -1124,7 +1124,7 @@ export default function EmployeeDetailModal({
                           {archived.map((survey) => (
                             <div
                               key={survey.id}
-                              className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                              className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-md hover:shadow-md transition-shadow"
                             >
                               <div>
                                 <p className="font-medium text-gray-900">{survey.survey_name || '360° Feedback'}</p>
@@ -1135,13 +1135,13 @@ export default function EmployeeDetailModal({
                               {canViewSurveyResults(survey) ? (
                                 <button
                                   onClick={() => loadSurveyResults(survey)}
-                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+                                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
                                 >
                                   <Eye className="w-4 h-4" />
                                   View Results
                                 </button>
                               ) : (
-                                <div className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm font-medium flex items-center gap-2">
+                                <div className="px-4 py-2 bg-gray-100 text-gray-500 rounded-md text-sm font-medium flex items-center gap-2">
                                   <Eye className="w-4 h-4" />
                                   Restricted
                                 </div>
@@ -1157,10 +1157,10 @@ export default function EmployeeDetailModal({
 
               {/* Create New Survey Section (when no completed reviews) */}
               {!loadingCompleted360 && completed360Surveys.length === 0 && (
-                <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-pink-50 rounded-md border border-purple-200">
                   <button
                     onClick={() => setIs360ModalOpen(true)}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
+                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-md hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
                   >
                     <UsersIcon className="w-5 h-5 inline mr-2" />
                     Launch 360° Review
@@ -1220,7 +1220,7 @@ export default function EmployeeDetailModal({
         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors"
+            className="px-6 py-2 bg-gray-600 text-white font-semibold rounded-md hover:bg-gray-700 transition-colors"
           >
             Close
           </button>
@@ -1262,7 +1262,7 @@ export default function EmployeeDetailModal({
       {/* Completed Survey Results Modal */}
       {selectedCompletedSurvey && completedSurveyResults && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto my-8">
+          <div className="bg-white rounded-md w-full max-w-3xl max-h-[90vh] overflow-y-auto my-8">
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
               <div>
@@ -1307,7 +1307,7 @@ export default function EmployeeDetailModal({
                       const colorClass = sentiment ? sentimentColors[sentiment] : 'bg-blue-50 border-blue-200';
 
                       return (
-                        <div key={idx} className={`p-4 rounded-lg border ${colorClass}`}>
+                        <div key={idx} className={`p-4 rounded-md border ${colorClass}`}>
                           <p className="text-sm font-medium text-gray-900 mb-2">{themeName}</p>
                           {Array.isArray(evidence) && evidence.length > 0 && (
                             <ul className="text-xs text-gray-600 space-y-1 ml-3">
@@ -1359,7 +1359,7 @@ export default function EmployeeDetailModal({
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Recommendations</h3>
                   <div className="space-y-3">
                     {completedSurveyResults.recommendations.map((rec: string, idx: number) => (
-                      <div key={idx} className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                      <div key={idx} className="p-4 bg-purple-50 rounded-md border border-purple-200">
                         <p className="text-sm text-gray-700">{rec}</p>
                       </div>
                     ))}
@@ -1375,7 +1375,7 @@ export default function EmployeeDetailModal({
                   setSelectedCompletedSurvey(null);
                   setCompletedSurveyResults(null);
                 }}
-                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors font-medium"
               >
                 Close
               </button>

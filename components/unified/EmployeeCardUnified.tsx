@@ -122,7 +122,7 @@ export default function EmployeeCardUnified({
         {...(enableDrag ? attributes : {})}
         onClick={handleCardClick}
         className={`
-          relative group bg-white border-2 border-gray-200 rounded-lg p-4 transition-all cursor-pointer
+          relative group bg-white border-2 border-gray-200 rounded-md p-4 transition-all cursor-pointer
           hover:border-blue-200 hover:shadow-md
           ${isDragActive ? 'opacity-50 scale-105 z-50 shadow-lg' : ''}
           ${isDragging ? 'opacity-50' : ''}
@@ -222,7 +222,7 @@ export default function EmployeeCardUnified({
 
         {/* Retention Plan Indicator */}
         {employeePlan?.plan_type === 'retention' && (
-          <div className="mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-md">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-amber-600 flex-shrink-0" />
               <span className="text-xs font-semibold text-amber-900">Retention Plan</span>
@@ -285,7 +285,7 @@ export default function EmployeeCardUnified({
         {...(enableDrag ? attributes : {})}
         onClick={handleCardClick}
         className={`
-          group relative bg-white border border-gray-200 rounded-lg p-3 transition-all duration-200 cursor-pointer
+          group relative bg-white border border-gray-200 rounded-md p-3 transition-all duration-200 cursor-pointer
           hover:border-blue-300 hover:shadow-md
           ${isDragActive ? 'opacity-50 scale-105 z-50 shadow-lg' : ''}
           ${isDragging ? 'opacity-50' : ''}
@@ -353,7 +353,7 @@ export default function EmployeeCardUnified({
       {...(enableDrag ? attributes : {})}
       onClick={handleCardClick}
       className={`
-        group relative bg-white border border-gray-200 rounded-lg p-3 transition-all duration-200 cursor-pointer
+        group relative bg-white border border-gray-200 rounded-md p-3 transition-all duration-200 cursor-pointer
         hover:border-gray-300 hover:shadow-md hover:border-blue-300
         ${isDragActive ? 'opacity-50 scale-105 z-50 shadow-lg' : ''}
         ${isDragging ? 'opacity-50' : ''}
@@ -372,7 +372,7 @@ export default function EmployeeCardUnified({
               pinEmployee(employee, 'grid-card');
             }
           }}
-          className={`p-1.5 rounded-lg transition-colors shadow-sm ${
+          className={`p-1.5 rounded-md transition-colors shadow-sm ${
             pinned
               ? 'bg-blue-100 text-blue-600 hover:bg-blue-200 opacity-100'
               : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -587,7 +587,7 @@ export default function EmployeeCardUnified({
                 e.stopPropagation();
                 // Handle menu options
               }}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
               title="More options"
             >
               <MoreVertical className="w-4 h-4" />
@@ -598,7 +598,7 @@ export default function EmployeeCardUnified({
 
       {/* Dragging indicator */}
       {isDragActive && (
-        <div className="absolute inset-0 bg-blue-50/80 border border-dashed border-blue-400 rounded-lg flex items-center justify-center">
+        <div className="absolute inset-0 bg-blue-50/80 border border-dashed border-blue-400 rounded-md flex items-center justify-center">
           <div className="text-blue-600 text-xs font-medium bg-white px-2 py-1 rounded shadow-sm">
             Dragging...
           </div>

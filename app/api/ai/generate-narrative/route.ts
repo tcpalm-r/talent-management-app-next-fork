@@ -143,7 +143,7 @@ INSTRUCTIONS:
 Write the narrative now (plain text only, no formatting):`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
       temperature: 0.7,
       messages: [

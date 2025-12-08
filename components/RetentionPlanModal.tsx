@@ -272,7 +272,7 @@ export default function RetentionPlanModal({
               </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-md transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -330,14 +330,14 @@ export default function RetentionPlanModal({
                       onClick={() => setNextStayInterview(
                         new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
                       )}
-                      className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                      className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
                     >
                       Schedule Next Interview
                     </button>
                   </div>
 
                   {nextStayInterview && (
-                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-sm">
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center gap-2 text-sm">
                       <Calendar className="w-4 h-4 text-blue-600" />
                       <span className="text-blue-900">
                         Next stay interview scheduled: {new Date(nextStayInterview).toLocaleDateString()}
@@ -355,7 +355,7 @@ export default function RetentionPlanModal({
                     <button
                       key={question}
                       onClick={() => addStayInterviewNote(question)}
-                      className="mb-2 w-full text-left px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm transition-colors flex items-center justify-between group"
+                      className="mb-2 w-full text-left px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md text-sm transition-colors flex items-center justify-between group"
                     >
                       <span className="text-gray-700">{question}</span>
                       <Plus className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
@@ -371,7 +371,7 @@ export default function RetentionPlanModal({
                     </p>
                   ) : (
                     stayInterviewNotes.map((note) => (
-                      <div key={note.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                      <div key={note.id} className="border border-gray-200 rounded-md p-4 space-y-3">
                         <div className="flex items-start justify-between">
                           <p className="font-medium text-gray-900 text-sm flex-1">{note.question}</p>
                           <button
@@ -385,7 +385,7 @@ export default function RetentionPlanModal({
                           value={note.answer}
                           onChange={(e) => updateStayInterviewNote(note.id, { answer: e.target.value })}
                           placeholder="Employee's response..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                           rows={3}
                         />
                         <div className="flex items-center gap-4">
@@ -427,7 +427,7 @@ export default function RetentionPlanModal({
             {/* Risk Assessment Tab */}
             {activeTab === 'risk-assessment' && (
               <div className="space-y-6">
-                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-6">
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-md p-6">
                   <div className="flex items-center gap-4 mb-4">
                     <div className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold ${
                       riskLevel === 'high' ? 'bg-red-100 text-red-700' :
@@ -464,7 +464,7 @@ export default function RetentionPlanModal({
                     <h4 className="font-semibold text-gray-900">Documented Concerns</h4>
                     <button
                       onClick={addConcern}
-                      className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 flex items-center gap-1"
+                      className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-md hover:bg-orange-200 flex items-center gap-1"
                     >
                       <Plus className="w-4 h-4" />
                       Add Concern
@@ -478,7 +478,7 @@ export default function RetentionPlanModal({
                           value={concern}
                           onChange={(e) => updateConcern(index, e.target.value)}
                           placeholder="Describe the concern..."
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
                         />
                         <button
                           onClick={() => deleteConcern(index)}
@@ -502,7 +502,7 @@ export default function RetentionPlanModal({
                     type="date"
                     value={compensationReviewDate}
                     onChange={(e) => setCompensationReviewDate(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg"
+                    className="px-3 py-2 border border-gray-300 rounded-md"
                   />
                 </div>
               </div>
@@ -518,7 +518,7 @@ export default function RetentionPlanModal({
                   </div>
                   <button
                     onClick={addRetentionStrategy}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center gap-2"
                   >
                     <Plus className="w-4 h-4" />
                     Add Strategy
@@ -526,14 +526,14 @@ export default function RetentionPlanModal({
                 </div>
 
                 {retentionStrategies.length === 0 ? (
-                  <div className="text-center py-12 bg-gray-50 rounded-lg">
+                  <div className="text-center py-12 bg-gray-50 rounded-md">
                     <Target className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                     <p className="text-sm text-gray-600">No retention strategies yet</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {retentionStrategies.map((strategy) => (
-                      <div key={strategy.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                      <div key={strategy.id} className="border border-gray-200 rounded-md p-4 space-y-3">
                         <div className="flex items-start gap-3">
                           <select
                             value={strategy.category}
@@ -542,7 +542,7 @@ export default function RetentionPlanModal({
                                 category: e.target.value as RetentionStrategy['category'],
                               })
                             }
-                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            className="px-3 py-2 border border-gray-300 rounded-md text-sm"
                           >
                             <option value="compensation">Compensation</option>
                             <option value="career_growth">Career Growth</option>
@@ -556,7 +556,7 @@ export default function RetentionPlanModal({
                             value={strategy.action}
                             onChange={(e) => updateRetentionStrategy(strategy.id, { action: e.target.value })}
                             placeholder="Describe the action..."
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
                           />
 
                           <button
@@ -616,7 +616,7 @@ export default function RetentionPlanModal({
                     Track phantom stock grants and vesting schedules for leadership retention
                   </p>
 
-                  <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-6 space-y-4">
+                  <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-md p-6 space-y-4">
                     <label className="flex items-center gap-3">
                       <input
                         type="checkbox"
@@ -646,7 +646,7 @@ export default function RetentionPlanModal({
                               type="date"
                               value={ltipDetails.grant_date || ''}
                               onChange={(e) => setLtipDetails({ ...ltipDetails, grant_date: e.target.value })}
-                              className="w-full px-3 py-2 border border-purple-300 rounded-lg"
+                              className="w-full px-3 py-2 border border-purple-300 rounded-md"
                             />
                           </div>
 
@@ -658,7 +658,7 @@ export default function RetentionPlanModal({
                               onChange={(e) =>
                                 setLtipDetails({ ...ltipDetails, phantom_shares: parseInt(e.target.value) || 0 })
                               }
-                              className="w-full px-3 py-2 border border-purple-300 rounded-lg"
+                              className="w-full px-3 py-2 border border-purple-300 rounded-md"
                               placeholder="0"
                             />
                           </div>
@@ -670,7 +670,7 @@ export default function RetentionPlanModal({
                             type="text"
                             value={ltipDetails.vesting_schedule || ''}
                             onChange={(e) => setLtipDetails({ ...ltipDetails, vesting_schedule: e.target.value })}
-                            className="w-full px-3 py-2 border border-purple-300 rounded-lg"
+                            className="w-full px-3 py-2 border border-purple-300 rounded-md"
                             placeholder="e.g., 4 years with 1-year cliff"
                           />
                         </div>
@@ -680,7 +680,7 @@ export default function RetentionPlanModal({
                           <textarea
                             value={ltipDetails.notes || ''}
                             onChange={(e) => setLtipDetails({ ...ltipDetails, notes: e.target.value })}
-                            className="w-full px-3 py-2 border border-purple-300 rounded-lg"
+                            className="w-full px-3 py-2 border border-purple-300 rounded-md"
                             rows={3}
                             placeholder="Additional LTIP details..."
                           />
@@ -703,13 +703,13 @@ export default function RetentionPlanModal({
                   <textarea
                     value={careerAspirations}
                     onChange={(e) => setCareerAspirations(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md"
                     rows={6}
                     placeholder="Where does this employee want to be in 1-3 years? What roles are they interested in? What skills do they want to develop?"
                   />
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-6">
                   <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
                     <TrendingUp className="w-5 h-5" />
                     Career Development Actions
@@ -719,7 +719,7 @@ export default function RetentionPlanModal({
                   </p>
                   <button
                     onClick={() => setActiveTab('strategies')}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
                   >
                     Go to Strategies
                   </button>
@@ -732,14 +732,14 @@ export default function RetentionPlanModal({
           <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               {isSaving ? (
                 <>

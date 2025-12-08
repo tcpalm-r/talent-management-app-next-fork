@@ -137,7 +137,7 @@ ABSOLUTELY MAINTAIN STRICT ANONYMITY: Never reveal who said what, how many peopl
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 8192,
       temperature: 0.3, // Lower temperature for more consistent analysis
       messages: [
@@ -182,7 +182,7 @@ ABSOLUTELY MAINTAIN STRICT ANONYMITY: Never reveal who said what, how many peopl
       consensus_areas: analysis.consensus_areas || [],
       outlier_opinions: analysis.outlier_opinions || [],
       generated_at: new Date().toISOString(),
-      generated_by: 'claude-sonnet-4-20250514',
+      generated_by: 'claude-sonnet-4-5-20250929',
     };
   } catch (error) {
     console.error('Error analyzing 360 survey:', error);

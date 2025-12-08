@@ -152,14 +152,14 @@ export default function EmployeeList({
             placeholder="Search employees..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
           />
         </div>
 
         {/* Filter Toggle */}
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600"
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600"
         >
           <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
           Filters {selectedDepartments.length + selectedRoles.length + (status360 !== 'all' ? 1 : 0) > 0 && `(${selectedDepartments.length + selectedRoles.length + (status360 !== 'all' ? 1 : 0)})`}
@@ -167,7 +167,7 @@ export default function EmployeeList({
 
         {/* Filter Panel */}
         {showFilters && (
-          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-md border border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* 360 Status Filter */}
               <div>
@@ -266,7 +266,7 @@ export default function EmployeeList({
                   setSelectedRoles([]);
                   setStatus360('all');
                 }}
-                className="mt-4 flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                className="mt-4 flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
               >
                 <X className="w-4 h-4" />
                 Clear All Filters
@@ -300,7 +300,7 @@ export default function EmployeeList({
                 <div
                   key={employee.id}
                   onClick={() => handleEmployeeClick(employee)}
-                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5 hover:shadow-lg transition-shadow cursor-pointer"
+                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-5 hover:shadow-lg transition-shadow cursor-pointer"
                 >
                   {/* Header with name and avatar */}
                   <div className="flex items-start justify-between mb-4">

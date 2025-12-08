@@ -185,7 +185,7 @@ export default function InsightsPanel({
           {insights.map((insight, index) => (
             <div
               key={index}
-              className={`rounded-lg border p-6 ${getCategoryColor(insight.category)}`}
+              className={`rounded-md border p-6 ${getCategoryColor(insight.category)}`}
             >
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 mt-1">
@@ -207,7 +207,7 @@ export default function InsightsPanel({
       </div>
 
       {/* Empty State Info */}
-      <div className="mt-12 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="mt-12 p-6 bg-blue-50 border border-blue-200 rounded-md">
         <p className="text-sm text-blue-900">
           <strong>Note:</strong> AI-generated insights will be compiled from your team's 360 feedback.
           The more 360 feedback sessions completed, the more detailed and accurate these insights will become.

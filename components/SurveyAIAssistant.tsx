@@ -200,7 +200,7 @@ export default function SurveyAIAssistant({
           <button
             onClick={handleClose}
             disabled={isLoading}
-            className="text-white hover:bg-white/20 rounded-lg p-1 transition"
+            className="text-white hover:bg-white/20 rounded-md p-1 transition"
           >
             <X className="w-6 h-6" />
           </button>
@@ -210,7 +210,7 @@ export default function SurveyAIAssistant({
         <div className="p-8">
           {/* Question Display */}
           {question && (
-            <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+            <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-md">
               <label className="block text-sm font-semibold text-purple-900 mb-2">
                 Question:
               </label>
@@ -234,12 +234,12 @@ export default function SurveyAIAssistant({
               }}
               disabled={isLoading}
               placeholder="Type your thoughts here... (e.g., 'great communicator, needs to delegate more, very collaborative')"
-              className="w-full h-48 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 disabled:bg-gray-100 resize-none"
+              className="w-full h-48 px-4 py-3 border-2 border-gray-300 rounded-md focus:outline-none focus:border-purple-500 disabled:bg-gray-100 resize-none"
             />
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md flex gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <p className="text-red-800 text-sm">{error}</p>
             </div>
@@ -251,7 +251,7 @@ export default function SurveyAIAssistant({
             {hasGenerated && !isLoading && (
               <button
                 onClick={handleRevert}
-                className="px-6 py-3 bg-red-50 border-2 border-red-200 text-red-700 font-semibold rounded-lg hover:bg-red-100 transition"
+                className="px-6 py-3 bg-red-50 border-2 border-red-200 text-red-700 font-semibold rounded-md hover:bg-red-100 transition"
               >
                 Revert
               </button>
@@ -262,7 +262,7 @@ export default function SurveyAIAssistant({
               <button
                 onClick={handleProcess}
                 disabled={isLoading}
-                className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition flex items-center gap-2 disabled:opacity-50"
+                className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700 transition flex items-center gap-2 disabled:opacity-50"
               >
                 {isLoading ? (
                   <>
@@ -282,7 +282,7 @@ export default function SurveyAIAssistant({
             {hasGenerated && !isLoading && (
               <button
                 onClick={handleAccept}
-                className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+                className="px-6 py-3 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition flex items-center gap-2"
               >
                 Accept
               </button>

@@ -180,7 +180,7 @@ export default function ManagerNotes({
         {!isAddingNote && !isEmployeeView && (
           <button
             onClick={() => setIsAddingNote(true)}
-            className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors flex items-center text-sm"
+            className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700 transition-colors flex items-center text-sm"
           >
             <Plus className="w-4 h-4 mr-1" />
             Add Note
@@ -209,7 +209,7 @@ export default function ManagerNotes({
 
       {/* Add Note Form (Manager View Only) */}
       {isAddingNote && !isEmployeeView && (
-        <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-lg">
+        <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-md">
           <div className="mb-3">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Note for {employeeName}
@@ -218,7 +218,7 @@ export default function ManagerNotes({
               value={newNoteText}
               onChange={(e) => setNewNoteText(e.target.value)}
               placeholder="Enter your note here..."
-              className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none h-32"
+              className="w-full px-4 py-3 border-2 border-purple-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none h-32"
               maxLength={5000}
             />
             <div className="flex justify-between items-center mt-1">
@@ -256,7 +256,7 @@ export default function ManagerNotes({
           </div>
 
           {/* Formal Concern Toggle */}
-          <div className="mb-3 p-4 bg-white rounded-lg border-2 border-orange-300">
+          <div className="mb-3 p-4 bg-white rounded-md border-2 border-orange-300">
             <label className="flex items-center space-x-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -288,7 +288,7 @@ export default function ManagerNotes({
                     <button
                       key={sev}
                       onClick={() => setSeverity(sev)}
-                      className={`px-3 py-2 text-xs font-bold rounded-lg transition-all border-2 ${
+                      className={`px-3 py-2 text-xs font-bold rounded-md transition-all border-2 ${
                         severity === sev
                           ? getSeverityColor(sev) + ' ring-2 ring-offset-2 ring-orange-400'
                           : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200'
@@ -312,14 +312,14 @@ export default function ManagerNotes({
                 setRequiresAcknowledgment(false);
                 setSeverity('medium');
               }}
-              className="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors text-sm"
+              className="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-md hover:bg-gray-300 transition-colors text-sm"
             >
               Cancel
             </button>
             <button
               onClick={handleAddNote}
               disabled={!newNoteText.trim()}
-              className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
             >
               {requiresAcknowledgment ? 'Send Formal Feedback' : 'Save Note'}
             </button>
@@ -329,7 +329,7 @@ export default function ManagerNotes({
 
       {/* Notes List */}
       {sortedNotes.length === 0 ? (
-        <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+        <div className="text-center py-8 bg-gray-50 rounded-md border-2 border-dashed border-gray-300">
           {isEmployeeView ? (
             <>
               <Bell className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -429,7 +429,7 @@ export default function ManagerNotes({
                   {onDeleteNote && !isEmployeeView && (
                     <button
                       onClick={() => onDeleteNote(note.id)}
-                      className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                      className="p-1.5 text-red-600 hover:bg-red-100 rounded-md transition-colors"
                       title="Delete note"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -438,7 +438,7 @@ export default function ManagerNotes({
                 </div>
 
                 {/* Note Content */}
-                <div className={`p-4 rounded-lg mb-3 ${
+                <div className={`p-4 rounded-md mb-3 ${
                   needsAck ? 'bg-white border-2 border-orange-200' : 'bg-gray-50'
                 }`}>
                   <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed font-medium">
@@ -448,7 +448,7 @@ export default function ManagerNotes({
 
                 {/* Acknowledgment Section */}
                 {note.requires_acknowledgment && (
-                  <div className={`p-4 rounded-lg border-2 ${
+                  <div className={`p-4 rounded-md border-2 ${
                     needsAck ? 'bg-orange-50 border-orange-300' : 'bg-green-50 border-green-300'
                   }`}>
                     {needsAck ? (
@@ -467,7 +467,7 @@ export default function ManagerNotes({
                           </div>
                           <button
                             onClick={() => onAcknowledgeNote && onAcknowledgeNote(note.id)}
-                            className="ml-4 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-lg hover:from-orange-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all"
+                            className="ml-4 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-md hover:from-orange-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all"
                           >
                             Acknowledge
                           </button>
@@ -503,7 +503,7 @@ export default function ManagerNotes({
 
       {/* Helper Text */}
       {sortedNotes.length > 0 && !isEmployeeView && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start space-x-2">
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md flex items-start space-x-2">
           <Sparkles className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-semibold text-blue-900">Pro Tip</p>

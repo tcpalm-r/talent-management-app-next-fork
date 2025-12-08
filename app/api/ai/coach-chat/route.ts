@@ -72,7 +72,7 @@ Be conversational, helpful, and remember the context of the conversation. Answer
     console.log('[coach-chat API] Calling Claude API...');
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 600,
       temperature: 0.5,
       system: systemPrompt,

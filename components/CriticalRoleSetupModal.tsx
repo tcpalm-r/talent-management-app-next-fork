@@ -102,7 +102,7 @@ export default function CriticalRoleSetupModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+              className="p-2 rounded-md text-white/80 hover:text-white hover:bg-white/20 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -158,7 +158,7 @@ export default function CriticalRoleSetupModal({
                     <select
                       value={emergencyBackupId}
                       onChange={(e) => setEmergencyBackupId(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     >
                       <option value="">Choose someone...</option>
                       {filteredEmployees.map(emp => (
@@ -171,7 +171,7 @@ export default function CriticalRoleSetupModal({
                 )}
 
                 {!hasEmergencyBackup && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
                     <p className="text-sm text-gray-600">
                       You can skip this step and add an emergency backup later. However, it&apos;s recommended to identify one as soon as possible.
                     </p>
@@ -200,7 +200,7 @@ export default function CriticalRoleSetupModal({
                 <label className="block text-sm font-medium text-gray-700">
                   Select Successor Candidates (at least 1)
                 </label>
-                <div className="space-y-2 max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                <div className="space-y-2 max-h-80 overflow-y-auto border border-gray-200 rounded-md p-3">
                   {filteredEmployees.length === 0 ? (
                     <p className="text-sm text-gray-500 text-center py-4">
                       No other employees in {department?.name || 'this department'} to select as successors.
@@ -209,7 +209,7 @@ export default function CriticalRoleSetupModal({
                     filteredEmployees.map(emp => (
                       <label
                         key={emp.id}
-                        className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                        className="flex items-start gap-3 p-3 rounded-md hover:bg-gray-50 cursor-pointer transition-colors"
                       >
                         <input
                           type="checkbox"
@@ -243,7 +243,7 @@ export default function CriticalRoleSetupModal({
                 </div>
 
                 {successorIds.length > 0 && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3">
                     <p className="text-sm font-medium text-green-900">
                       ✓ {successorIds.length} successor candidate{successorIds.length > 1 ? 's' : ''} selected
                     </p>
@@ -279,7 +279,7 @@ export default function CriticalRoleSetupModal({
                     max="36"
                     value={timelineMonths}
                     onChange={(e) => setTimelineMonths(parseInt(e.target.value) || 12)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                   <p className="text-xs text-gray-500 mt-1">How long to develop successors (3-36 months)</p>
                 </div>
@@ -293,7 +293,7 @@ export default function CriticalRoleSetupModal({
                     onChange={(e) => setDevelopmentPlan(e.target.value)}
                     placeholder="Describe the overall approach to developing successors (training, mentoring, stretch assignments, etc.)"
                     rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                   />
                 </div>
 
@@ -318,7 +318,7 @@ export default function CriticalRoleSetupModal({
                           value={resp}
                           onChange={(e) => handleResponsibilityChange(index, e.target.value)}
                           placeholder={`Responsibility ${index + 1}`}
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                         {keyResponsibilities.length > 1 && (
                           <button
@@ -349,14 +349,14 @@ export default function CriticalRoleSetupModal({
                   if (currentStep === 'successors') setCurrentStep('backup');
                   if (currentStep === 'plan') setCurrentStep('successors');
                 }}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 font-medium transition-colors"
               >
                 Back
               </button>
             )}
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 font-medium transition-colors"
             >
               Cancel
             </button>
@@ -367,7 +367,7 @@ export default function CriticalRoleSetupModal({
                   if (currentStep === 'successors') setCurrentStep('plan');
                 }}
                 disabled={!canProceed()}
-                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-md hover:from-amber-600 hover:to-orange-700 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 Next
                 <ArrowRight className="w-4 h-4" />
@@ -375,7 +375,7 @@ export default function CriticalRoleSetupModal({
             ) : (
               <button
                 onClick={handleSave}
-                className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 font-medium transition-all flex items-center gap-2"
+                className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-md hover:from-green-600 hover:to-emerald-700 font-medium transition-all flex items-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 Complete Setup

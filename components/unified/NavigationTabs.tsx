@@ -40,7 +40,7 @@ export default function NavigationTabs({
               id={tab.domId}
               onClick={() => onTabChange(tab.id)}
               className={`
-                flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all
+                flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all
                 ${isActive
                   ? 'bg-blue-600 dark:bg-blue-700 text-white shadow-md'
                   : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'

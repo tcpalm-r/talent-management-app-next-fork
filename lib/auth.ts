@@ -194,6 +194,26 @@ export const TEST_USERS: SessionUser[] = [
     department: null,
     title: 'Product Manager',
   },
+  {
+    id: 'df135c41-0905-4ecb-8d65-e1b3ab447828',
+    auth0_id: 'jorgen@sonance.com',
+    email: 'jorgen@sonance.com',
+    full_name: 'Jorge Notni',
+    given_name: 'Jorge',
+    family_name: 'Notni',
+    picture: null,
+    app_role: 'slt',
+    app_permissions: {
+      read: true,
+      admin: true,
+      write: true,
+    },
+    global_role: 'user',
+    capabilities: [],
+    app_access: true,
+    department: 'Operations',
+    title: 'Vice President of Operations',
+  },
 ];
 
 /**
