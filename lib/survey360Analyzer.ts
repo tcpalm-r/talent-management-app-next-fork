@@ -8,6 +8,7 @@ import type {
   ParticipantRelationship,
   SurveyQuestion,
 } from '../types';
+import { surveyAnalyzerConfig, buildSurveyAnalyzerPrompt } from './prompts';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -22,7 +23,7 @@ interface AnalysisInput {
 }
 
 /**
- * Analyzes 360 survey responses using Claude Sonnet 4 to identify themes,
+ * Analyzes 360 survey responses using Claude Sonnet 4.5 to identify themes,
  * extract insights, and generate actionable recommendations
  */
 export async function analyzeSurvey360Responses(
@@ -33,113 +34,22 @@ export async function analyzeSurvey360Responses(
   // Prepare structured data for AI analysis
   const structuredResponses = prepareResponsesForAnalysis(responses, participants, questions);
 
-  const toneGuidance = tone === 'softer'
-    ? '\n\nTONE GUIDANCE: Use a supportive and constructive tone. Frame challenges as growth opportunities. Balance criticism with encouragement. Focus on potential and progress rather than deficiencies. Use phrases like "opportunity to enhance" rather than "weakness" or "needs improvement".'
-    : '';
+  const questionsFormatted = questions.map((q, i) => `${i + 1}. ${q.question} (${q.type})`).join('\n');
 
-  const prompt = `You are an expert organizational psychologist specializing in 360-degree feedback analysis. Analyze these survey responses to identify themes, patterns, and actionable insights.${toneGuidance}
-
-EMPLOYEE BEING REVIEWED: ${survey.employee_name}
-SURVEY TITLE: ${survey.survey_title}
-TOTAL RESPONSES: ${responses.length}
-
-SURVEY QUESTIONS:
-${questions.map((q, i) => `${i + 1}. ${q.question} (${q.type})`).join('\n')}
-
-RESPONSES BY RELATIONSHIP TYPE:
-${structuredResponses}
-
-IMPORTANT: Respond ONLY with valid JSON. Do not include any explanatory text before or after the JSON object. Return exactly this structure:
-
-{
-  "executive_summary": "A concise 2-3 sentence overview using the employee's actual name (${survey.employee_name}) describing their overall performance, key strengths, and primary development opportunities based on the 360 feedback. This should provide a high-level snapshot of the entire review.",
-  "themes": [
-    {
-      "theme": "Concise theme name (e.g., 'Strong Communication Skills')",
-      "sentiment": "very_positive" | "positive" | "mixed" | "needs_work" | "critical",
-      "supporting_evidence": ["Synthesized summary of feedback (NO direct quotes)", "Another paraphrased observation"]
-    }
-  ],
-  "overall_strengths": [
-    "Specific strength mentioned by multiple participants",
-    "Another key strength with consensus"
-  ],
-  "development_areas": [
-    "Area for improvement with supporting evidence",
-    "Another development opportunity"
-  ],
-  "recommendations": [
-    "Actionable recommendation based on feedback",
-    "Another specific action to take"
-  ],
-  "sentiment_by_relationship": {
-    "overall": 0.84,
-    "manager": 0.85,
-    "peer": 0.78,
-    "direct_report": 0.92,
-    "cross_functional": 0.80
-  },
-  "key_insights": [
-    "Important pattern or insight from the data",
-    "Another significant observation"
-  ],
-  "consensus_areas": [
-    "Area where most participants strongly agree",
-    "Another point of consensus"
-  ],
-  "outlier_opinions": [
-    "Unique or contrasting perspective worth noting",
-    "Another divergent viewpoint"
-  ]
-}
-
-CRITICAL - ANONYMITY & AGGREGATION REQUIREMENTS:
-- NEVER include direct quotes or verbatim text from responses
-- ALWAYS paraphrase and synthesize feedback across ALL sources (never separated by relationship type)
-- NEVER mention specific relationship types like "manager specifically noted" or "direct reports said"
-- NEVER provide counts or breakdowns by relationship type (e.g., "mentioned by 6 managers and 4 peers")
-- Use only general, aggregated attributions:
-  * "Feedback consistently indicated..."
-  * "Multiple reviewers noted..."
-  * "A common theme across feedback..."
-  * "Many shared perspective..."
-  * "Several mentioned..."
-  * "A unique perspective was..."
-- Combine ALL feedback into unified, anonymized observations regardless of reviewer relationship
-- The sentiment_by_relationship field should contain BOTH:
-  * An "overall" score (0-1) representing aggregate sentiment across all reviewers
-  * Individual scores for each relationship type that provided feedback: "manager", "peer", "direct_report", "cross_functional"
-  * Calculate each relationship score based on the tone, positivity, and constructiveness of that group's responses
-  * If a relationship type had no responses, omit that key from the object
-
-ANALYSIS GUIDELINES:
-1. **Executive Summary**: Write a concise 2-3 sentence overview that uses the employee's actual name (${survey.employee_name}) and captures their overall performance trajectory, highlighting their top 1-2 strengths and 1-2 key development areas. This should give a reader an immediate understanding of the review's key takeaways.
-2. **Themes**: Identify 5-8 major themes. Look for patterns across all responses combined.
-3. **Supporting Evidence**: Paraphrase and synthesize feedback (NO direct quotes). Combine observations from all reviewers into unified statements.
-4. **Sentiment Classification**: Use constructive language:
-   - "very_positive": Exceptional strengths with strong consensus
-   - "positive": Clear strengths recognized widely
-   - "mixed": Balance of positive and constructive feedback
-   - "needs_work": Areas requiring attention and development
-   - "critical": Serious concerns requiring immediate action
-5. **Sentiment Scores**: Calculate sentiment scores (0-1 scale) based on overall tone and constructiveness:
-   - Overall: Aggregate sentiment across all reviewers
-   - Per-relationship: Calculate separate scores for manager, peer, direct_report, and cross_functional groups
-   - Base scores on positivity, constructiveness, and supportiveness of feedback from each group
-6. **Strengths**: List 3-5 clear strengths. Synthesize feedback from all sources into unified statements.
-7. **Development Areas**: Identify 3-5 areas for growth. Use paraphrased, aggregated summaries.
-8. **Recommendations**: Provide 4-6 specific, actionable steps based on synthesized feedback.
-9. **Key Insights**: Surface 3-5 important patterns or observations from all feedback combined.
-10. **Consensus**: Highlight areas where there is broad agreement.
-11. **Outliers**: Note any unique or contrasting perspectives, but do NOT attribute to specific relationship types.
-
-ABSOLUTELY MAINTAIN STRICT ANONYMITY: Never reveal who said what, how many people in each role responded, or any breakdown by relationship type.`;
+  const prompt = buildSurveyAnalyzerPrompt({
+    employeeName: survey.employee_name,
+    surveyTitle: survey.survey_title,
+    responseCount: responses.length,
+    questionsFormatted,
+    structuredResponses,
+    tone,
+  });
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 8192,
-      temperature: 0.3, // Lower temperature for more consistent analysis
+      model: surveyAnalyzerConfig.model,
+      max_tokens: surveyAnalyzerConfig.maxTokens,
+      temperature: surveyAnalyzerConfig.temperature,
       messages: [
         {
           role: 'user',
@@ -182,7 +92,7 @@ ABSOLUTELY MAINTAIN STRICT ANONYMITY: Never reveal who said what, how many peopl
       consensus_areas: analysis.consensus_areas || [],
       outlier_opinions: analysis.outlier_opinions || [],
       generated_at: new Date().toISOString(),
-      generated_by: 'claude-sonnet-4-5-20250929',
+      generated_by: surveyAnalyzerConfig.model,
     };
   } catch (error) {
     console.error('Error analyzing 360 survey:', error);
@@ -200,12 +110,12 @@ function prepareResponsesForAnalysis(
   participants: Survey360Participant[],
   questions: SurveyQuestion[]
 ): string {
-  const participantMap = new Map(participants.map(p => [p.id, p]));
+  const participantMap = new Map(participants.map((p) => [p.id, p]));
 
   // Group responses by relationship type
   const byRelationship: Record<string, Array<{ participant: Survey360Participant; response: Survey360Response }>> = {};
 
-  responses.forEach(response => {
+  responses.forEach((response) => {
     const participant = participantMap.get(response.participant_id);
     if (!participant) return;
 
@@ -224,7 +134,7 @@ function prepareResponsesForAnalysis(
     items.forEach((item, index) => {
       output += `**${relationship.charAt(0).toUpperCase() + relationship.slice(1)} #${index + 1}:**\n`;
 
-      questions.forEach(question => {
+      questions.forEach((question) => {
         const answer = item.response.responses[question.id];
         if (answer !== undefined && answer !== null && answer !== '') {
           output += `Q: ${question.question}\n`;
@@ -259,18 +169,18 @@ function generateFallbackAnalysis(input: AnalysisInput): Omit<Survey360Report, '
     cross_functional: 0,
   };
 
-  const participantMap = new Map(participants.map(p => [p.id, p]));
+  const participantMap = new Map(participants.map((p) => [p.id, p]));
   const relationshipCounts: Record<string, number> = {};
 
-  responses.forEach(response => {
+  responses.forEach((response) => {
     const participant = participantMap.get(response.participant_id);
     if (!participant) return;
 
-    const ratingQuestions = questions.filter(q => q.type === 'rating');
+    const ratingQuestions = questions.filter((q) => q.type === 'rating');
     let totalRating = 0;
     let ratingCount = 0;
 
-    ratingQuestions.forEach(q => {
+    ratingQuestions.forEach((q) => {
       const rating = response.responses[q.id];
       if (typeof rating === 'number') {
         totalRating += rating / (q.scale_max || 5);
@@ -281,7 +191,8 @@ function generateFallbackAnalysis(input: AnalysisInput): Omit<Survey360Report, '
     if (ratingCount > 0) {
       const avgRating = totalRating / ratingCount;
       sentimentByRelationship[participant.relationship] =
-        (sentimentByRelationship[participant.relationship] * (relationshipCounts[participant.relationship] || 0) + avgRating) /
+        (sentimentByRelationship[participant.relationship] * (relationshipCounts[participant.relationship] || 0) +
+          avgRating) /
         ((relationshipCounts[participant.relationship] || 0) + 1);
       relationshipCounts[participant.relationship] = (relationshipCounts[participant.relationship] || 0) + 1;
     }
@@ -317,7 +228,7 @@ export function getDefault360Questions(): SurveyQuestion[] {
   return [
     {
       id: 'q1',
-      question: 'How would you rate this person\'s communication effectiveness?',
+      question: "How would you rate this person's communication effectiveness?",
       type: 'rating',
       required: true,
       scale_min: 1,
@@ -389,7 +300,7 @@ export function getDefault360Questions(): SurveyQuestion[] {
     },
     {
       id: 'q9',
-      question: 'What are this person\'s greatest strengths?',
+      question: "What are this person's greatest strengths?",
       type: 'text',
       required: true,
     },

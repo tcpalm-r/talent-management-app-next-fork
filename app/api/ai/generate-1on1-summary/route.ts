@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { generate1on1SummaryConfig, buildGenerate1on1SummaryPrompt } from '@/lib/prompts';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,56 +58,25 @@ export async function POST(request: NextRequest) {
     console.log('[generate-1on1-summary API] Agenda items:', agenda?.length || 0);
 
     if (!managerName || !employeeName) {
-      return NextResponse.json(
-        { error: 'Manager name and employee name are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Manager name and employee name are required' }, { status: 400 });
     }
 
-    const prompt = `You are assisting a manager after a 1:1 with ${employeeName}. Use the meeting context to produce a clear summary and identify action items.
-
-MEETING CONTEXT
-- Manager: ${managerName}
-- Employee: ${employeeName}
-- Agenda Items & Comments:
-${agenda.map((item, index) => {
-    const comments = item.comments.length > 0 ? item.comments.map(comment => `      - ${comment}`).join('\n') : '      - (no comments logged)';
-    return `  ${index + 1}. ${item.title}${item.description ? ` — ${item.description}` : ''}\n${comments}`;
-  }).join('\n')}
-
-- Shared Notes:
-${sharedNotes.length > 0 ? sharedNotes.map(note => `  - ${note}`).join('\n') : '  (none logged)'}
-
-- Live Meeting Comments:
-${meetingComments.length > 0 ? meetingComments.map(comment => `  - ${comment}`).join('\n') : '  (none logged)'}
-
-- Existing Action Items:
-${existingActionItems.length > 0 ? existingActionItems.map(item => `  - ${item.title} (owner: ${item.owner})`).join('\n') : '  (none yet)'}
-
-${highlights?.trim() ? `Manager Highlights:\n${highlights.trim()}` : ''}
-
-Return JSON with:
-{
-  "summary": "2 short paragraphs synthesizing discussion",
-  "highlights": ["3 key themes"],
-  "suggestedActionItems": [
-    {
-      "title": "Action title",
-      "owner": "Manager" | "Employee",
-      "rationale": "1 sentence"
-    }
-  ],
-  "tone": "positive" | "neutral" | "caution"
-}
-
-Do not include markdown fences.`;
+    const prompt = buildGenerate1on1SummaryPrompt({
+      managerName,
+      employeeName,
+      agenda,
+      sharedNotes,
+      meetingComments,
+      existingActionItems,
+      highlights,
+    });
 
     console.log('[generate-1on1-summary API] Calling Claude API...');
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 1200,
-      temperature: 0.5,
+      model: generate1on1SummaryConfig.model,
+      max_tokens: generate1on1SummaryConfig.maxTokens,
+      temperature: generate1on1SummaryConfig.temperature,
       messages: [
         {
           role: 'user',
@@ -144,4 +114,3 @@ Do not include markdown fences.`;
     );
   }
 }
-

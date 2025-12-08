@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { parseSurveyDescriptionConfig, buildParseSurveyDescriptionPrompt } from '@/lib/prompts';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,127 +72,17 @@ export async function POST(request: NextRequest) {
 
     if (!description || description.trim().length === 0) {
       console.log('[parse-survey-description API] Error: Empty description');
-      return NextResponse.json(
-        { error: 'Survey description is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Survey description is required' }, { status: 400 });
     }
 
     console.log('[parse-survey-description API] Calling Claude API...');
 
-    // Build context about wizard state
-    const contextNotes = wizardContext?.selectedEmployee
-      ? `IMPORTANT: The user is already on step 3 of the 360 review wizard and has already selected "${wizardContext.selectedEmployee.name}" as the person being reviewed.
-Use this as the employeeName and do NOT ask for clarification about who the review is for. The user is now describing what feedback to collect.`
-      : '';
-
-    // Build employee directory for name recognition
-    const employeeDirectory = wizardContext?.availableEmployees
-      ? `AVAILABLE EMPLOYEES IN SYSTEM:
-${wizardContext.availableEmployees.map(emp => `- ${emp.name}`).join('\n')}
-
-When extracting employee names, ALWAYS try to match against this list first. Use fuzzy matching for variations (e.g., "Bob" → "Robert", "Sarah" → "Sarah Chen").
-For reviewers, if a name is mentioned, try to find the closest match in this list.
-`
-      : '';
-
-    const prompt = `You are an expert HR assistant helping to parse 360-degree review survey requests.
-
-Parse the following survey description and extract the structured information. Return ONLY valid JSON, no additional text.
-
-TODAY'S DATE: ${today || 'Unknown - use best guess'}
-
-${employeeDirectory}
-
-${contextNotes}
-
-USER DESCRIPTION:
-"${description}"
-
-IMPORTANT EXTRACTION RULES:
-1. Employee Name: ${wizardContext?.selectedEmployee ? `Use "${wizardContext.selectedEmployee.name}" (already selected in wizard)` : 'Extract the name of the person being reviewed. Must be unambiguous. Match against available employees when possible.'}.
-2. Questions: Extract specific questions or assessment areas mentioned. If NOT explicitly mentioned, return empty array (system will use default admin questions).
-3. REVIEWERS (CRITICAL - EXTRACT COMPREHENSIVELY):
-   - Extract ALL mentioned reviewers (names, titles, departments, roles)
-   - For each mentioned person, MUST include in raters array
-   - Match names against available employees - use fuzzy matching if not exact match
-   - For emails: extract from text or infer from available employees if name matches
-   - ALWAYS infer relationship type from context clues (manager/slt/direct_report/cross_functional)
-   - If relationship unclear, default to "cross_functional"
-   - Examples:
-     * "Get feedback from John" → search for John in employees, add as cross_functional
-     * "2 team members" → look for team context to classify as cross_functional/direct_report
-     * "Her manager and 3 colleagues" → extract manager (set relationship="manager"), colleagues (relationship="cross_functional")
-   - NEVER skip a mentioned person
-4. Due Date: Extract due date if mentioned. Convert to ISO format (YYYY-MM-DD) using TODAY'S DATE as reference:
-   - "next Friday" → calculate Friday after today
-   - "2 weeks" → add 14 days to today
-   - "next month" → same date next month
-   - If ambiguous, leave as null
-5. Survey Title: Extract or infer a good title for the survey.
-
-RELATIONSHIP TYPE CLASSIFICATION:
-- manager: Their manager/supervisor (keywords: "manager", "boss", "supervisor", "lead")
-- peer: Colleagues at same level (keywords: "colleague", "peer", "coworker", "team member")
-- direct_report: People who report to this person (keywords: "direct report", "report", "team member under")
-- cross_functional: People from other departments/functions (keywords: "from", "in the", "across")
-Use context clues from the text to infer relationships when not explicitly stated.
-
-CONFIDENCE LEVELS:
-- high: Clearly stated in the description
-- medium: Inferred from context but not explicitly stated
-- low: Ambiguous or unclear
-
-RETURN THIS EXACT JSON STRUCTURE:
-{
-  "employeeName": "string or null",
-  "employeeName_confidence": "high|medium|low",
-  "questions": ["question 1", "question 2", ...],
-  "questions_confidence": "high|medium|low",
-  "raters": [
-    {
-      "name": "string",
-      "email": "string or null",
-      "relationship": "manager|slt|direct_report|cross_functional",
-      "clarification_needed": false,
-      "clarification_reason": null
-    }
-  ],
-  "raters_confidence": "high|medium|low",
-  "dueDate": "YYYY-MM-DD or null",
-  "dueDate_confidence": "high|medium|low",
-  "surveyTitle": "string or null",
-  "clarifications_needed": boolean,
-  "clarifications": [
-    {
-      "field": "employeeName|questions|raters|dueDate",
-      "reason": "Explanation of what needs clarification",
-      "options": ["option1", "option2"]
-    }
-  ]
-}
-
-CRITICAL:
-- Return ONLY the JSON object, no markdown, no explanation
-- If a field cannot be extracted, use null
-- If confidence is low or critical info is missing, add to clarifications_needed
-- IMPORTANT: If no specific questions are mentioned, return empty questions array - DO NOT ask for clarification (system uses default admin questions)
-- IMPORTANT FOR REVIEWERS:
-  * AGGRESSIVE EXTRACTION: Always try to extract reviewers even from vague mentions
-  * Match names against available employees using fuzzy matching
-  * Email can be null - system will infer from matched employee or ask later
-  * ONLY mark raters as needing clarification if name is EXTREMELY ambiguous (e.g., "someone from accounting" with multiple matches)
-  * If ANY name/title/role is mentioned, MUST extract to raters array - DO NOT return empty array if people are mentioned
-  * Use context to infer relationships when not explicit
-- Only flag employee name as clarifications_needed if truly unclear
-- Always include the full JSON structure even if some fields are null
-- When name clarification is needed, provide up to 3 similar employee names as "options" in the clarifications
-- Prioritize exact and fuzzy matches from the available employees list`;
+    const prompt = buildParseSurveyDescriptionPrompt({ description, today, wizardContext });
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2048,
-      temperature: 0.3,
+      model: parseSurveyDescriptionConfig.model,
+      max_tokens: parseSurveyDescriptionConfig.maxTokens,
+      temperature: parseSurveyDescriptionConfig.temperature,
       messages: [
         {
           role: 'user',
@@ -283,7 +174,10 @@ CRITICAL:
       const oneWeekLater = new Date(todayDate);
       oneWeekLater.setDate(oneWeekLater.getDate() + 7);
       defaultedDueDate = oneWeekLater.toISOString().split('T')[0];
-      console.log('[parse-survey-description API] No due date specified, defaulting to 1 week from today:', defaultedDueDate);
+      console.log(
+        '[parse-survey-description API] No due date specified, defaulting to 1 week from today:',
+        defaultedDueDate
+      );
     }
 
     const parsedData = {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { parseSurveyResponsesConfig, buildParseSurveyResponsesPrompt } from '@/lib/prompts';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,56 +47,22 @@ export async function POST(request: NextRequest) {
 
     if (!feedbackText || feedbackText.trim().length === 0) {
       console.log('[parse-survey-responses API] Error: Empty feedback');
-      return NextResponse.json(
-        { error: 'Feedback text is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Feedback text is required' }, { status: 400 });
     }
 
     if (!questions || questions.length === 0) {
       console.log('[parse-survey-responses API] Error: No questions provided');
-      return NextResponse.json(
-        { error: 'Questions are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Questions are required' }, { status: 400 });
     }
 
     console.log('[parse-survey-responses API] Calling Claude API...');
 
-    const questionsText = questions
-      .map((q, i) => `${i + 1}. (ID: ${q.id}) ${q.text}`)
-      .join('\n');
-
-    const prompt = `You are an expert HR analyst specializing in 360-degree feedback analysis. Your task is to intelligently parse free-form feedback comments and map them to specific survey questions.
-
-USER'S FREE-FORM FEEDBACK:
-"${feedbackText}"
-
-SURVEY QUESTIONS TO ANSWER:
-${questionsText}
-
-INSTRUCTIONS:
-1. Read the free-form feedback carefully
-2. Identify comments, observations, and feedback related to each question
-3. For each question ID, extract or synthesize a concise, well-formed response based on the relevant feedback
-4. If the feedback doesn't contain information relevant to a question, use an empty string
-5. Keep responses professional and constructive
-6. Preserve the original sentiment (positive, constructive, etc.)
-7. Combine related comments into cohesive responses
-
-RETURN ONLY VALID JSON in this exact format (no other text):
-{
-  "questionId1": "synthesized response for question 1",
-  "questionId2": "synthesized response for question 2",
-  "questionId3": ""
-}
-
-Make sure to include ALL question IDs, even if the response is empty.`;
+    const prompt = buildParseSurveyResponsesPrompt({ feedbackText, questions });
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2048,
-      temperature: 0.3,
+      model: parseSurveyResponsesConfig.model,
+      max_tokens: parseSurveyResponsesConfig.maxTokens,
+      temperature: parseSurveyResponsesConfig.temperature,
       messages: [
         {
           role: 'user',
