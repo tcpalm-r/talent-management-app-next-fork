@@ -362,6 +362,10 @@ export default function EmployeeDetailModal({
   };
 
   const handleAnalyzeReview = async () => {
+    // Feature temporarily disabled
+    setAnalysisError('AI review analysis is temporarily disabled.');
+    return;
+
     if (!reviewText.trim()) {
       setAnalysisError('Please enter a performance review to analyze.');
       return;

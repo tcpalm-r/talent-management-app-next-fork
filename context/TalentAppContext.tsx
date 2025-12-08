@@ -532,32 +532,8 @@ export function TalentAppProvider({
           timestamp: Date.now(),
         };
 
-        try {
-          // Call the server-side API route
-          const response = await fetch('/api/ai/coach-chat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              question: trimmed,
-              conversationHistory: conversationHistory.map(msg => ({
-                role: msg.role,
-                content: msg.content,
-              })),
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`API request failed: ${response.status}`);
-          }
-
-          const data = await response.json();
-          answer = data.answer;
-        } catch (error) {
-          console.warn('[TalentApp] AI Coach API failed, using fallback', error);
-          answer = generateFallbackAnswer(trimmed);
-        }
+        // AI Coach API disabled - using fallback responses
+        answer = generateFallbackAnswer(trimmed);
 
         if (!answer) {
           answer = generateFallbackAnswer(trimmed);

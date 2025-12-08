@@ -743,41 +743,8 @@ export default function OneOnOneModal({
     setIsGeneratingSummary(true);
     setSummaryError('');
     try {
-      const agendaContext = agendaItems.map(item => ({
-        title: item.title,
-        description: item.description,
-        comments: (agendaComments[item.id] || []).map(comment => `${comment.author_name}: ${comment.comment}`),
-      }));
-
-      // Call the server-side API route
-      const apiResponse = await fetch('/api/ai/generate-1on1-summary', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          managerName: currentUserName,
-          employeeName: employee.name,
-          agenda: agendaContext,
-          sharedNotes: sharedNotes.map(note => `${note.created_by}: ${note.note}`),
-          meetingComments: meetingComments.map(comment => `${comment.author_name}: ${comment.comment}`),
-          existingActionItems: actionItems.map(action => ({
-            title: action.title,
-            owner: action.assigned_to,
-          })),
-          highlights: summaryNotes.trim(),
-        }),
-      });
-
-      if (!apiResponse.ok) {
-        throw new Error(`API request failed: ${apiResponse.status}`);
-      }
-
-      const response = await apiResponse.json();
-
-      setGeneratedSummary(response.summary);
-      setGeneratedHighlights(response.highlights || []);
-      setSuggestedActions(response.suggestedActionItems || []);
+      // Feature temporarily disabled
+      throw new Error('AI summary generation is temporarily disabled.');
     } catch (error: any) {
       setSummaryError(error?.message || 'Unable to generate summary.');
     } finally {

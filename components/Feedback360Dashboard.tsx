@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus, Check, User, Search } from 'lucide-react';
 import type { Employee, Department, ParticipantRelationship } from '../types';
 import Survey360Wizard from './Survey360Wizard';
@@ -63,10 +63,17 @@ const formatRelationship = (relationship: string): string => {
 };
 
 // Helper function to check if current user is the sponsor/creator of a survey
-// Checks created_by (ID), created_by_email, and created_by (email) for backwards compatibility
-const isUserSponsor = (survey: Survey | null | undefined, user: Employee | null | undefined): boolean => {
+// Checks created_by against user's database ID (from employees list) and email
+// The userDbId parameter is needed because user.id from cookies may be AI Intranet ID,
+// which differs from the Supabase user_profiles ID stored in survey.created_by
+const isUserSponsor = (
+  survey: Survey | null | undefined,
+  user: Employee | null | undefined,
+  userDbId?: string | null
+): boolean => {
   if (!survey || !user) return false;
   return survey.created_by === user.id ||
+         survey.created_by === userDbId ||
          survey.created_by_email === user.email ||
          survey.created_by === user.email;
 };
@@ -84,6 +91,16 @@ export default function Feedback360Dashboard({
   currentUser
 }: Feedback360DashboardProps) {
   const { notify } = useToast();
+  
+  // IMPORTANT: Get the current user's database ID from the employees list
+  // This is needed because currentUser.id (from AI Intranet cookie) may differ from
+  // the Supabase user_profiles ID that's stored in survey.created_by
+  const currentUserDbId = useMemo(() => {
+    if (!currentUser?.email || !employees) return null;
+    const userRecord = employees.find(e => e.email === currentUser.email);
+    return userRecord?.id || null;
+  }, [currentUser?.email, employees]);
+  
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -405,7 +422,7 @@ export default function Feedback360Dashboard({
     // - Admin sponsors can delete their surveys in any status
     // - SLT sponsors can only delete their draft or in_progress surveys
     const survey = surveys.find(s => s.id === surveyId);
-    const isSponsor = isUserSponsor(survey, currentUser);
+    const isSponsor = isUserSponsor(survey, currentUser, currentUserDbId);
     const isAdmin = currentUser?.app_role === 'admin';
     const isSLT = currentUser?.app_role === 'slt';
     const isDraftOrInProgress = survey?.status === 'draft' || survey?.status === 'in_progress';
@@ -1531,7 +1548,7 @@ export default function Feedback360Dashboard({
   // Filter by role first (always applied since we removed "all" option)
   // For Reviewer and Subject tabs, automatically apply status filters
   const roleFilteredSurveys = surveys.filter(survey => {
-    const isSponsor = isUserSponsor(survey, currentUser);
+    const isSponsor = isUserSponsor(survey, currentUser, currentUserDbId);
     const isSubject = survey.employee_id === currentUser?.id;
     const isReviewer = survey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
     const isSLT = currentUser?.app_role === 'slt';
@@ -1576,7 +1593,7 @@ export default function Feedback360Dashboard({
   // Calculate counts for tab badges - must match the roleFilteredSurveys logic exactly
   const sponsorCount = surveys.filter(s => {
     // All users (including admins) count only surveys they personally created
-    const isCreator = isUserSponsor(s, currentUser);
+    const isCreator = isUserSponsor(s, currentUser, currentUserDbId);
     return isCreator;
   }).length;
 
@@ -1720,7 +1737,7 @@ export default function Feedback360Dashboard({
     }
 
     // Show "Needs Reanalysis" for sponsors when flagged for reanalysis
-    if (flaggedForReanalysis && (isUserSponsor(selectedSurvey, currentUser))) {
+    if (flaggedForReanalysis && (isUserSponsor(selectedSurvey, currentUser, currentUserDbId))) {
       return (
         <Tooltip content="This survey has been flagged and requires admin review">
           <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300 cursor-help">
@@ -2214,7 +2231,7 @@ export default function Feedback360Dashboard({
         <div className="space-y-4 mt-6">
           {filteredSurveys.map((survey) => {
             // Determine user's relationship to this survey
-            const isSponsor = isUserSponsor(survey, currentUser);
+            const isSponsor = isUserSponsor(survey, currentUser, currentUserDbId);
 
             // DEBUG: Sponsor check (commented out to reduce console noise)
             // if (survey.survey_name?.includes('Elliott') || survey.survey_name?.includes('Leader')) {
@@ -2249,7 +2266,7 @@ export default function Feedback360Dashboard({
                   } else if (survey.status === 'finalized' && hasSurveyBeenViewed(survey.id)) {
                     // If it's a finalized survey that has been viewed before, go straight to results
                     // But only if user is sponsor, admin, or subject - leaders who are reviewers should not see results
-                    const isSurveySponsor = isUserSponsor(survey, currentUser);
+                    const isSurveySponsor = isUserSponsor(survey, currentUser, currentUserDbId);
                     const isSurveySubject = survey.employee_id === currentUser?.id;
                     const isSurveyAdmin = currentUser?.app_role === 'admin';
                     const isSurveyReviewer = survey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
@@ -2542,7 +2559,7 @@ export default function Feedback360Dashboard({
 
       {/* Review Details Modal */}
       {isDetailsModalOpen && selectedSurvey && (() => {
-        const isSponsor = isUserSponsor(selectedSurvey, currentUser);
+        const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
         const isAdmin = currentUser?.app_role === 'admin';
         const isSLT = currentUser?.app_role === 'slt';
         const isLeader = currentUser?.app_role === 'leader';
@@ -3184,7 +3201,7 @@ export default function Feedback360Dashboard({
       {isResultsModalOpen && surveyResults && selectedSurvey && (() => {
         // Check permissions for advanced insights tabs
         const isSubject = currentUser?.id === selectedSurvey?.employee_id;
-        const isSponsor = isUserSponsor(selectedSurvey, currentUser);
+        const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
         const isAdmin = currentUser?.app_role === 'admin';
         const isSLT = currentUser?.app_role === 'slt';
         const canSeeAdvanced = !isSubject || isAdmin || isSponsor;
@@ -3239,7 +3256,7 @@ export default function Feedback360Dashboard({
                       try {
                         // Determine if current user is subject viewing their own report
                         const isSubject = currentUser?.id === selectedSurvey?.employee_id;
-                        const isSponsor = isUserSponsor(selectedSurvey, currentUser);
+                        const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
                         const isAdmin = currentUser?.app_role === 'admin';
                         const isPureSubject = isSubject && !isAdmin && !isSponsor;
 
@@ -3296,8 +3313,8 @@ export default function Feedback360Dashboard({
                     Export PDF
                   </button>
                   {/* Delete button: Admin sponsors can delete any status; SLT sponsors can only delete draft/in_progress */}
-                  {((currentUser?.app_role === 'admin' && (isUserSponsor(selectedSurvey, currentUser))) || 
-                    (currentUser?.app_role === 'slt' && (isUserSponsor(selectedSurvey, currentUser)) && (selectedSurvey.status === 'draft' || selectedSurvey.status === 'in_progress'))) && (
+                  {((currentUser?.app_role === 'admin' && (isUserSponsor(selectedSurvey, currentUser, currentUserDbId))) || 
+                    (currentUser?.app_role === 'slt' && (isUserSponsor(selectedSurvey, currentUser, currentUserDbId)) && (selectedSurvey.status === 'draft' || selectedSurvey.status === 'in_progress'))) && (
                     <button
                       onClick={() => {
                         deleteInProgressSurvey(selectedSurvey.id);
@@ -3343,7 +3360,7 @@ export default function Feedback360Dashboard({
             >
               {/* Key Themes Tab */}
               {activeReportTab === 'themes' && surveyResults.themes && surveyResults.themes.length > 0 && (() => {
-                const isSponsor = isUserSponsor(selectedSurvey, currentUser);
+                const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
                 const isAdmin = currentUser?.app_role === 'admin';
                 const canAdjustThemes = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
 
@@ -3576,7 +3593,7 @@ export default function Feedback360Dashboard({
 
               {/* Strengths Tab */}
               {activeReportTab === 'strengths' && surveyResults.overall_strengths && surveyResults.overall_strengths.length > 0 && (() => {
-                const isSponsor = isUserSponsor(selectedSurvey, currentUser);
+                const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
                 const isAdmin = currentUser?.app_role === 'admin';
                 const canAdjustItems = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
 
@@ -3656,7 +3673,7 @@ export default function Feedback360Dashboard({
 
               {/* Development Areas Tab */}
               {activeReportTab === 'development' && surveyResults.development_areas && surveyResults.development_areas.length > 0 && (() => {
-                const isSponsor = isUserSponsor(selectedSurvey, currentUser);
+                const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
                 const isAdmin = currentUser?.app_role === 'admin';
                 const canAdjustItems = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
 
@@ -3737,7 +3754,7 @@ export default function Feedback360Dashboard({
               {/* Key Insights Tab - Visible to All */}
               {activeReportTab === 'insights' && surveyResults.key_insights && surveyResults.key_insights.length > 0 && (() => {
                 // Check if user is sponsor or admin for adjustment capabilities
-                const isSponsor = isUserSponsor(selectedSurvey, currentUser);
+                const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
                 const isAdmin = currentUser?.app_role === 'admin';
                 const canAdjustItems = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
 
@@ -3817,7 +3834,7 @@ export default function Feedback360Dashboard({
 
               {/* Recommendations Tab */}
               {activeReportTab === 'recommendations' && (() => {
-                const isSponsor = isUserSponsor(selectedSurvey, currentUser);
+                const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
                 const isAdmin = currentUser?.app_role === 'admin';
                 const canEdit = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
 
@@ -3940,7 +3957,7 @@ export default function Feedback360Dashboard({
                 // Check if current user is the subject (employee being reviewed)
                 const isSubject = currentUser?.id === selectedSurvey?.employee_id;
                 // Check if user is sponsor or admin
-                const isSponsor = isUserSponsor(selectedSurvey, currentUser);
+                const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
                 const isAdmin = currentUser?.app_role === 'admin';
                 // Only show relationship breakdown if NOT a pure subject (subjects who are also sponsors/admins can see it)
                 const canSeeRelationshipBreakdown = !isSubject || isAdmin || isSponsor;
@@ -4304,7 +4321,7 @@ export default function Feedback360Dashboard({
                 /* Normal footer for non-admin or non-flagged surveys */
                 <div className="flex items-center justify-between">
                   {/* Send Backward - Only visible to sponsor or admin */}
-                  {(currentUser?.app_role === 'admin' || isUserSponsor(selectedSurvey, currentUser)) && (() => {
+                  {(currentUser?.app_role === 'admin' || isUserSponsor(selectedSurvey, currentUser, currentUserDbId)) && (() => {
                     const targetStatus = selectedSurvey.status === 'finalized' ? 'Completed' :
                                         selectedSurvey.status === 'completed' ? 'In Progress' : 'Draft';
                     return (
@@ -4320,9 +4337,9 @@ export default function Feedback360Dashboard({
                     );
                   })()}
 
-                  <div className={`flex items-center gap-6 ${!(currentUser?.app_role === 'admin' || isUserSponsor(selectedSurvey, currentUser)) ? 'ml-auto' : ''}`}>
+                  <div className={`flex items-center gap-6 ${!(currentUser?.app_role === 'admin' || isUserSponsor(selectedSurvey, currentUser, currentUserDbId)) ? 'ml-auto' : ''}`}>
                     {/* Workflow controls - Only visible to sponsor or admin */}
-                    {(currentUser?.app_role === 'admin' || isUserSponsor(selectedSurvey, currentUser)) && (
+                    {(currentUser?.app_role === 'admin' || isUserSponsor(selectedSurvey, currentUser, currentUserDbId)) && (
                       <>
                         {selectedSurvey.status === 'completed' && (
                           <button

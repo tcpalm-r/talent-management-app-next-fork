@@ -8,7 +8,7 @@
 export const generateNarrativeConfig = {
   model: 'claude-sonnet-4-5-20250929',
   maxTokens: 4096,
-  temperature: 0.7,
+  temperature: 0.4,
 };
 
 interface Theme {

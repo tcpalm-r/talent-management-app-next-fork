@@ -100,60 +100,8 @@ export default function CreateWithAIModal({
     setError(null);
 
     try {
-      // Call the Claude API to parse the survey description
-      console.log('[CreateWithAIModal.handleDone] Making fetch request to /api/ai/parse-survey-description');
-
-      // Get today's date for Claude to interpret relative dates
-      const today = new Date();
-      const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD
-      console.log('[CreateWithAIModal.handleDone] Today\'s date:', todayString);
-
-      const requestPayload = {
-        description: description.trim(),
-        today: todayString,
-        wizardContext: {
-          selectedEmployee: selectedEmployee ? { id: selectedEmployee.id, name: selectedEmployee.name || selectedEmployee.full_name } : undefined,
-          currentStep,
-          availableEmployees: employees ? employees.map((e: any) => ({ id: e.id, name: e.name || e.full_name })) : undefined,
-        },
-      };
-      console.log('[CreateWithAIModal.handleDone] Request payload:', JSON.stringify(requestPayload));
-
-      const response = await fetch('/api/ai/parse-survey-description', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload),
-      });
-
-      console.log('[CreateWithAIModal.handleDone] Response status:', response.status);
-
-      if (!response.ok) {
-        const data = await response.json();
-        console.log('[CreateWithAIModal.handleDone] API error response:', data);
-        throw new Error(data.error || 'Failed to parse survey description');
-      }
-
-      const data = await response.json();
-      console.log('[CreateWithAIModal.handleDone] API success response:', data);
-      console.log('[CreateWithAIModal.handleDone] Parsed data:', data.parsedData || data.partialData);
-      console.log('[CreateWithAIModal.handleDone] Reviewers extracted:', data.parsedData?.raters?.length || data.partialData?.raters?.length || 0);
-
-      if (data.requiresClarification) {
-        console.log('[CreateWithAIModal.handleDone] Clarifications needed:', data.clarifications);
-        // Show clarification form
-        setClarifications(data.clarifications);
-        setPartialData(data.partialData);
-        setClarificationResponses({});
-      } else {
-        console.log('[CreateWithAIModal.handleDone] No clarifications needed, proceeding with data:', data.parsedData);
-        console.log('[CreateWithAIModal.handleDone] Reviewers to be added:', data.parsedData?.raters);
-        // Proceed with the parsed data
-        onComplete(data.parsedData);
-        setDescription('');
-        setClarifications(null);
-        setPartialData(null);
-        onClose();
-      }
+      // Feature temporarily disabled
+      throw new Error('Create with AI feature is temporarily disabled. Please use the standard survey creation wizard.');
     } catch (err: any) {
       console.error('[CreateWithAIModal.handleDone] Error:', err);
       setError(err.message || 'Failed to process your survey description');
