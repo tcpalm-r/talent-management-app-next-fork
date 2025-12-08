@@ -50,7 +50,7 @@ export function Tooltip({
           align={align}
           sideOffset={4}
           className="
-            z-50
+            z-[100]
             px-2 py-1
             text-xs
             text-white

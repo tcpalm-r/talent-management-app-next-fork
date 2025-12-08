@@ -9,9 +9,14 @@
  * @returns Question text with [NAME] replaced by first name
  */
 export function replaceNamePlaceholder(
-  questionText: string,
+  questionText: string | undefined | null,
   subjectName: string | undefined
 ): string {
+  // Guard against undefined/null questionText
+  if (!questionText) {
+    return '';
+  }
+
   if (!subjectName) {
     // If no name provided, keep the placeholder
     return questionText;

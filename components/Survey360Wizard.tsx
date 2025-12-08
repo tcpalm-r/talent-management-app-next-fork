@@ -361,7 +361,8 @@ export default function Survey360Wizard({
             const custom = allQuestions.slice(defaultQuestionsCount);
 
             if (required.length > 0) {
-              setRequiredQuestions(required);
+              // Convert strings to objects with text property to match state type
+              setRequiredQuestions(required.map(text => ({ text })));
             }
             if (custom.length > 0) {
               setCustomQuestions(custom);
