@@ -67,18 +67,34 @@ const formatRelationship = (relationship: string): string => {
 const isUserSponsor = (
   survey: Survey | null | undefined,
   user: Employee | null | undefined,
-  userDbId?: string | null
+  userDbId?: string | null,
+  logSurveyName?: boolean // Optional: only log for first few surveys to avoid spam
 ): boolean => {
   if (!survey || !user) return false;
 
   // Primary: Supabase UUID match (created_by is always Supabase user_profiles.id)
-  if (userDbId && survey.created_by === userDbId) return true;
-
+  const uuidMatch = userDbId && survey.created_by === userDbId;
+  
   // Fallback: Email match (case-insensitive) for older surveys or edge cases
   const userEmailLower = user.email?.toLowerCase();
-  if (userEmailLower && survey.created_by_email?.toLowerCase() === userEmailLower) return true;
+  const emailMatch = userEmailLower && survey.created_by_email?.toLowerCase() === userEmailLower;
+  
+  const isSponsor = uuidMatch || emailMatch;
+  
+  // DEBUG: Log sponsor check results (only for surveys where user might be sponsor)
+  if (logSurveyName || isSponsor) {
+    console.log(`[Sponsor Check] Survey: "${survey.survey_name}"`, {
+      'survey.created_by': survey.created_by,
+      'userDbId': userDbId,
+      'UUID match': uuidMatch,
+      'survey.created_by_email': survey.created_by_email,
+      'user.email': user.email,
+      'Email match': emailMatch,
+      'IS SPONSOR': isSponsor
+    });
+  }
 
-  return false;
+  return isSponsor;
 };
 
 // Extended employee type with detected relationship for search results
@@ -103,6 +119,14 @@ export default function Feedback360Dashboard({
     if (!currentUser?.email || !employees) return null;
     const emailLower = currentUser.email.toLowerCase();
     const userRecord = employees.find(e => e.email?.toLowerCase() === emailLower);
+    
+    // DEBUG: Log sponsor detection data
+    console.log('[Sponsor Debug] currentUser.id (AI Intranet):', currentUser.id);
+    console.log('[Sponsor Debug] currentUser.email:', currentUser.email);
+    console.log('[Sponsor Debug] employees count:', employees?.length);
+    console.log('[Sponsor Debug] Found user in employees:', !!userRecord);
+    console.log('[Sponsor Debug] currentUserDbId (Supabase UUID):', userRecord?.id || 'NOT FOUND');
+    
     return userRecord?.id || null;
   }, [currentUser?.email, employees]);
   
