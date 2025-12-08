@@ -63,19 +63,22 @@ const formatRelationship = (relationship: string): string => {
 };
 
 // Helper function to check if current user is the sponsor/creator of a survey
-// Checks created_by against user's database ID (from employees list) and email
-// The userDbId parameter is needed because user.id from cookies may be AI Intranet ID,
-// which differs from the Supabase user_profiles ID stored in survey.created_by
+// Only checks against Supabase UUID and email - no AI Intranet ID (they never match)
 const isUserSponsor = (
   survey: Survey | null | undefined,
   user: Employee | null | undefined,
   userDbId?: string | null
 ): boolean => {
   if (!survey || !user) return false;
-  return survey.created_by === user.id ||
-         survey.created_by === userDbId ||
-         survey.created_by_email === user.email ||
-         survey.created_by === user.email;
+
+  // Primary: Supabase UUID match (created_by is always Supabase user_profiles.id)
+  if (userDbId && survey.created_by === userDbId) return true;
+
+  // Fallback: Email match (case-insensitive) for older surveys or edge cases
+  const userEmailLower = user.email?.toLowerCase();
+  if (userEmailLower && survey.created_by_email?.toLowerCase() === userEmailLower) return true;
+
+  return false;
 };
 
 // Extended employee type with detected relationship for search results
@@ -95,9 +98,11 @@ export default function Feedback360Dashboard({
   // IMPORTANT: Get the current user's database ID from the employees list
   // This is needed because currentUser.id (from AI Intranet cookie) may differ from
   // the Supabase user_profiles ID that's stored in survey.created_by
+  // Uses case-insensitive email comparison to handle email case mismatches between systems
   const currentUserDbId = useMemo(() => {
     if (!currentUser?.email || !employees) return null;
-    const userRecord = employees.find(e => e.email === currentUser.email);
+    const emailLower = currentUser.email.toLowerCase();
+    const userRecord = employees.find(e => e.email?.toLowerCase() === emailLower);
     return userRecord?.id || null;
   }, [currentUser?.email, employees]);
   

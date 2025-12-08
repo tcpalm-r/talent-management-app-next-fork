@@ -93,13 +93,13 @@ export async function GET(request: NextRequest) {
       // 2. Surveys they created (all statuses)
       // 3. Surveys where they're the subject (finalized only, unless creator)
       // 4. Surveys where they're a reviewer (all statuses except draft)
+      const profileEmailLower = profile.email?.toLowerCase();
       filteredSurveys = (allSurveys || []).filter((survey: any) => {
         // Show surveys created by this SLT member (all statuses)
-        // Check both ID and email for reliable matching (handles DB lookup failures)
+        // Only check UUID and email - created_by is always Supabase UUID, never AI Intranet ID
         const isCreator =
           survey.created_by === profile.id ||
-          survey.created_by_email === profile.email ||
-          survey.created_by === profile.email; // Backward compatibility
+          survey.created_by_email?.toLowerCase() === profileEmailLower;
         if (isCreator) return true;
 
         // Show surveys where SLT is the subject (finalized only)
@@ -130,13 +130,13 @@ export async function GET(request: NextRequest) {
         .eq('manager_id', profile.id);
 
       const directReportIds = directReports?.map(dr => dr.id) || [];
+      const leaderEmailLower = profile.email?.toLowerCase();
 
       filteredSurveys = (allSurveys || []).filter((survey: any) => {
-        // Created by this leader (check both ID and email for reliable matching)
+        // Created by this leader - only check UUID and email (created_by is always Supabase UUID)
         const isCreator =
           survey.created_by === profile.id ||
-          survey.created_by_email === profile.email ||
-          survey.created_by === profile.email; // Backward compatibility
+          survey.created_by_email?.toLowerCase() === leaderEmailLower;
         const isSubject = survey.employee_id === profile.id;
         const isDirectReport = directReportIds.includes(survey.employee_id);
         const isReviewer = survey.reviewers?.some(
@@ -198,13 +198,13 @@ export async function GET(request: NextRequest) {
       // 1. Surveys they created
       // 2. Surveys where they're the subject (finalized only)
       // 3. Surveys where they're a reviewer
+      const userEmailLower = profile.email?.toLowerCase();
 
       filteredSurveys = (allSurveys || []).filter((survey: any) => {
-        // Check if user is creator, subject, or reviewer (check both ID and email for reliable matching)
+        // Check if user is creator - only check UUID and email (created_by is always Supabase UUID)
         const isCreator =
           survey.created_by === profile.id ||
-          survey.created_by_email === profile.email ||
-          survey.created_by === profile.email; // Backward compatibility
+          survey.created_by_email?.toLowerCase() === userEmailLower;
         const isSubject = survey.employee_id === profile.id;
         const isReviewer = survey.reviewers?.some(
           (r: any) => r.reviewer_email === profile.email
