@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { analyzeSurvey360Responses } from '@/lib/survey360Analyzer';
+import { analyzeSurveyWithFallback } from '@/lib/services/surveyAnalyzerService';
 import { filterReportForSubject } from '@/lib/filterReport';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 import type { Database } from '@/types/supabase';
@@ -294,7 +294,7 @@ export async function POST(req: NextRequest) {
     console.log('   - Responses:', transformedResponses.length);
     console.log('   - Questions:', questions.length);
 
-    const analysisResult = await analyzeSurvey360Responses({
+    const { report: analysisResult, meta: analysisMeta } = await analyzeSurveyWithFallback({
       survey: surveyData,
       responses: transformedResponses,
       participants: participants,
@@ -303,6 +303,11 @@ export async function POST(req: NextRequest) {
     });
 
     console.log('✅ AI analysis complete');
+    console.log(`   - API version: ${analysisMeta.version}`);
+    console.log(`   - Elapsed: ${analysisMeta.elapsedMs}ms`);
+    if (analysisMeta.fallbackUsed) {
+      console.log(`   - Fallback used: ${analysisMeta.fallbackReason}`);
+    }
 
     // ========================================================================
     // STEP 8: Save report to database
@@ -372,7 +377,8 @@ export async function POST(req: NextRequest) {
       success: true,
       report: filteredReport,
       viewerRole: generatorRole, // Include viewer role for debugging/frontend awareness
-      message: 'AI analysis completed successfully'
+      message: 'AI analysis completed successfully',
+      meta: analysisMeta, // Include API version info for frontend notification
     });
 
   } catch (error: any) {

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Sparkles, Loader, AlertCircle } from 'lucide-react';
+import { X, Sparkles, Loader, AlertCircle, Info } from 'lucide-react';
 import { replaceNamePlaceholder } from '../lib/questionUtils';
+import { generateSurveyResponse } from '../lib/services/surveyResponseService';
 
 interface Question {
   id: string;
@@ -34,6 +35,10 @@ export default function SurveyAIAssistant({
   const [error, setError] = useState<string | null>(null);
   const [hasGenerated, setHasGenerated] = useState(false);
   const [originalInput, setOriginalInput] = useState<string>('');
+  const [apiNotice, setApiNotice] = useState<{ type: 'success' | 'fallback'; message: string } | null>(null);
+
+  // Only show API notices in local testing mode
+  const isLocalTesting = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
 
   // Update feedback when currentText changes (e.g., when modal reopens)
   useEffect(() => {
@@ -41,6 +46,7 @@ export default function SurveyAIAssistant({
       setFeedback(currentText);
       setHasGenerated(false); // Reset generated state when modal opens
       setOriginalInput(''); // Reset original input when modal opens
+      setApiNotice(null); // Clear API notice when modal opens
     }
   }, [isOpen, currentText]);
 
@@ -114,13 +120,14 @@ export default function SurveyAIAssistant({
     setError(null);
 
     try {
-      console.log('[SurveyAIAssistant.handleProcess] Making fetch request to /api/ai/generate-survey-response');
+      console.log('[SurveyAIAssistant.handleProcess] Calling survey response service');
 
-      // Prepare request body
-      const requestBody: any = {
+      // Prepare request
+      const request = {
         questionText: question.question_text,
         userThoughts: feedback.trim(),
         subjectName: subjectName,
+        originalInput: undefined as string | undefined,
       };
 
       // If regenerating, check similarity to determine if we should include original input
@@ -129,36 +136,48 @@ export default function SurveyAIAssistant({
         console.log('[SurveyAIAssistant.handleProcess] Text similarity:', similarity.toFixed(1) + '%');
 
         // Only include original input if text is still similar (≥30% overlap)
-        // If <30% similar, treat as fresh generation (user went a different direction)
         if (similarity >= 30) {
-          requestBody.originalInput = originalInput;
+          request.originalInput = originalInput;
           console.log('[SurveyAIAssistant.handleProcess] Including original input (similar enough)');
         } else {
           console.log('[SurveyAIAssistant.handleProcess] Skipping original input (too different, treating as fresh)');
         }
       }
 
-      const response = await fetch('/api/ai/generate-survey-response', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+      // Clear any previous notice
+      setApiNotice(null);
+
+      // Call service with fallback notification callback
+      const result = await generateSurveyResponse(request, (reason, originalError) => {
+        console.warn('[SurveyAIAssistant] Fallback triggered:', reason, originalError);
+        // Only set fallback notice in local testing mode
+        if (isLocalTesting) {
+          setApiNotice({ type: 'fallback', message: `Fallback to v1: ${reason}` });
+        }
       });
 
-      console.log('[SurveyAIAssistant.handleProcess] Response status:', response.status);
+      console.log('[SurveyAIAssistant.handleProcess] Service response:', result);
 
-      if (!response.ok) {
-        const data = await response.json();
-        console.log('[SurveyAIAssistant.handleProcess] API error response:', data);
-        throw new Error(data.error || 'Failed to generate response');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to generate response');
       }
 
-      const data = await response.json();
-      console.log('[SurveyAIAssistant.handleProcess] API success response:', data);
-
-      if (data.response) {
-        console.log('[SurveyAIAssistant.handleProcess] Setting AI-generated response in modal textarea');
-        setFeedback(data.response);
+      if (result.response) {
+        console.log('[SurveyAIAssistant.handleProcess] Setting AI-generated response');
+        console.log('[SurveyAIAssistant.handleProcess] API version used:', result.meta?.version);
+        setFeedback(result.response);
         setHasGenerated(true);
+
+        // Show API version notice (only in local testing mode)
+        if (isLocalTesting) {
+          if (result.meta?.fallbackUsed) {
+            setApiNotice({ type: 'fallback', message: `Used v1 (fallback): ${result.meta.fallbackReason}` });
+          } else if (result.meta?.version === 'v2-skill') {
+            setApiNotice({ type: 'success', message: `Used v2 skill API (${result.meta.elapsedMs}ms)` });
+          } else {
+            setApiNotice({ type: 'success', message: `Used v1 prompt API (${result.meta?.elapsedMs}ms)` });
+          }
+        }
       } else {
         throw new Error('No response returned');
       }
@@ -242,6 +261,17 @@ export default function SurveyAIAssistant({
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md flex gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
+
+          {apiNotice && !error && isLocalTesting && (
+            <div className={`mb-6 p-3 rounded-md flex gap-2 items-center text-xs ${
+              apiNotice.type === 'success'
+                ? 'bg-green-50 border border-green-200 text-green-700'
+                : 'bg-amber-50 border border-amber-200 text-amber-700'
+            }`}>
+              <Info className="w-4 h-4 flex-shrink-0" />
+              <span className="font-mono">{apiNotice.message}</span>
             </div>
           )}
 

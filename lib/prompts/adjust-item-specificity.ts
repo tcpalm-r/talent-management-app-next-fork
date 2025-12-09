@@ -197,3 +197,5 @@ ${isThemeBullets ? '10. DO NOT change or mention the theme title - only adjust t
 Return ONLY the adjusted ${sectionLabel} text. ${isThemeBullets ? 'Return each bullet point on a new line without numbering or bullet symbols.' : 'Do not include any preamble, explanation, quotes, or additional formatting. Just the adjusted text itself.'}`;
 }
 
+
+

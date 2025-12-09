@@ -22,17 +22,6 @@ const sharedInstructions = `--- INSTRUCTIONS ---
 8. Keep a professional but warm tone appropriate for 360 feedback
 9. If the thoughts are already well-formed, you can make minor improvements but don't over-edit
 
---- FORBIDDEN CONTENT (HALLUCINATION TRIGGERS) ---
-NEVER include unless explicitly stated in user input:
-- Project names, initiative names, or program names
-- Percentages, metrics, statistics, or numerical claims
-- Quarter references (Q1, Q2, Q3, Q4) or fiscal periods
-- Stakeholder, client, or executive names
-- Specific meeting types (all-hands, standup, board meeting)
-- Time frames not mentioned by user (recently, quarterly, last month)
-- Awards, recognition, or achievements not mentioned
-- Other team members or departments not mentioned
-
 --- WHAT NOT TO DO (EXAMPLE) ---
 USER INPUT: "good communicator"
 ❌ WRONG: "Elliott excels at communication, regularly presenting to stakeholders and crafting detailed reports..."
@@ -46,8 +35,6 @@ Before responding, verify:
 - Word count between 50-100
 - Professional but warm tone
 - All details trace back to user input
-- Every sentence can be traced to a specific phrase in user input
-- If you cannot identify the source phrase for a sentence, DELETE that sentence
 
 --- FINAL CONSTRAINT ---
 Response MUST be 50-100 words. If you cannot express the feedback meaningfully within this range, stop and output: [CONTENT_TOO_VAGUE]
@@ -113,4 +100,6 @@ ${inputSection}
 
 ${sharedInstructions}`;
 }
+
+
 

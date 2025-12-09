@@ -1,0 +1,106 @@
+{
+  "description": "Test cases for validating survey response generation against hallucination",
+  "testCases": [
+    {
+      "id": "TC001",
+      "name": "Vague positive - should NOT embellish",
+      "description": "When user provides vague positive feedback, output should be equally abstract without inventing specifics",
+      "input": {
+        "subjectName": "Alex",
+        "questionText": "Describe their strengths",
+        "userThoughts": "Alex is a great team player and always helps out when needed. Very reliable and good at their job. People like working with them."
+      },
+      "mustNotInclude": [
+        "project",
+        "deadline",
+        "stakeholder",
+        "metric",
+        "percent",
+        "quarter",
+        "Q1",
+        "Q2",
+        "Q3",
+        "Q4",
+        "initiative",
+        "client",
+        "presentation"
+      ],
+      "notes": "This input is intentionally vague. The output should remain at the same level of abstraction."
+    },
+    {
+      "id": "TC002",
+      "name": "Specific example provided - preserve only that",
+      "description": "When user provides a specific example, preserve it but don't add additional examples",
+      "input": {
+        "subjectName": "Jordan",
+        "questionText": "Give an example of their leadership",
+        "userThoughts": "Jordan led the website redesign last month and kept the team motivated even when we hit delays. Jordan also does weekly check-ins with everyone."
+      },
+      "mustInclude": [
+        "website redesign",
+        "last month",
+        "delays",
+        "weekly check-ins"
+      ],
+      "mustNotInclude": [
+        "stakeholder",
+        "budget",
+        "cross-functional",
+        "improved metrics",
+        "other projects",
+        "quarterly",
+        "executive"
+      ],
+      "notes": "The user gave specific examples. Output should use these but not invent additional ones."
+    },
+    {
+      "id": "TC003",
+      "name": "Constructive criticism - don't catastrophize",
+      "description": "When user provides mild criticism, don't escalate it into serious concerns",
+      "input": {
+        "subjectName": "Morgan",
+        "questionText": "What could they improve?",
+        "userThoughts": "Morgan sometimes takes on too much and then gets stressed. Could delegate more. Also doesn't ask for help when stuck."
+      },
+      "mustInclude": [
+        "takes on too much",
+        "delegate",
+        "ask for help"
+      ],
+      "mustNotInclude": [
+        "burnout",
+        "risk",
+        "management training",
+        "performance issues",
+        "concerning",
+        "critical",
+        "urgent"
+      ],
+      "notes": "Mild constructive feedback should not be escalated into serious performance concerns."
+    },
+    {
+      "id": "TC004",
+      "name": "Single trait mentioned - don't expand",
+      "description": "When user mentions one trait, don't invent related traits",
+      "input": {
+        "subjectName": "Casey",
+        "questionText": "How would you describe their communication?",
+        "userThoughts": "Casey is good at listening and makes people feel heard during conversations"
+      },
+      "mustInclude": [
+        "listening",
+        "feel heard"
+      ],
+      "mustNotInclude": [
+        "presentation",
+        "writing",
+        "email",
+        "stakeholder",
+        "meeting",
+        "report",
+        "documentation"
+      ],
+      "notes": "User only mentioned listening. Don't expand to other communication skills not mentioned."
+    }
+  ]
+}
