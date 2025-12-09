@@ -1,6 +1,13 @@
+/**
+ * DEAD CODE: This API route is not used by any frontend component.
+ * Kept for potential future use or reference.
+ * Last verified: 2024-12 - no calls from components/
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { parseSurveyResponsesConfig, buildParseSurveyResponsesPrompt } from '@/lib/prompts';
+// Import directly from file since export is commented out in index.ts
+import { parseSurveyResponsesConfig, buildParseSurveyResponsesPrompt } from '@/lib/prompts/parse-survey-responses';
 
 export const dynamic = 'force-dynamic';
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus, Check, User, Search } from 'lucide-react';
+import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus, Check, User, Search, ChevronDown } from 'lucide-react';
 import type { Employee, Department, ParticipantRelationship } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
@@ -170,7 +170,7 @@ export default function Feedback360Dashboard({
   const [selectedDevelopmentIndex, setSelectedDevelopmentIndex] = useState<number | null>(null);
   const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
   const [isAdjustingItem, setIsAdjustingItem] = useState(false);
-  const [activeReportTab, setActiveReportTab] = useState<string>('themes');
+  const [activeReportTab, setActiveReportTab] = useState<string>('narrative');
 
   // Ref for selected reviewer display to enable auto-focus
   const selectedReviewerDisplayRef = useRef<HTMLDivElement>(null);
@@ -195,6 +195,7 @@ export default function Feedback360Dashboard({
   const [sliderPositions, setSliderPositions] = useState<Record<string, { specificity: string; tone: string; length: string }>>({});
   // Store original text before any modifications: { [itemIndex]: originalText }
   const [originalItemText, setOriginalItemText] = useState<Record<string, any>>({});
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
 
   useEffect(() => {
     loadSurveys();
@@ -216,6 +217,90 @@ export default function Feedback360Dashboard({
 
   const hasSurveyBeenViewed = (surveyId: string): boolean => {
     return getViewedSurveys().has(surveyId);
+  };
+
+  // Helper function to generate export report data
+  const generateReportData = (filterForSubject: boolean) => {
+    let sentimentData = surveyResults.sentiment_by_relationship;
+    let consensusData = surveyResults.consensus_areas;
+    let outlierData = surveyResults.outlier_opinions;
+
+    if (filterForSubject) {
+      sentimentData = { overall: surveyResults.sentiment_by_relationship?.overall || 0 };
+      consensusData = [];
+      outlierData = [];
+    }
+
+    return {
+      survey_name: selectedSurvey.survey_name || 'Untitled Survey',
+      employee_name: selectedSurvey.employee?.full_name || selectedSurvey.employee?.name || selectedSurvey.employee_name || '',
+      generated_by: surveyResults.generated_by,
+      generated_at: surveyResults.generated_at,
+      executive_summary: surveyResults.executive_summary,
+      final_narrative: finalNarrative,
+      themes: surveyResults.themes,
+      overall_strengths: surveyResults.overall_strengths,
+      development_areas: surveyResults.development_areas,
+      recommendations: surveyResults.recommendations,
+      key_insights: surveyResults.key_insights,
+      sentiment_by_relationship: sentimentData,
+      consensus_areas: consensusData,
+      outlier_opinions: outlierData
+    };
+  };
+
+  // Handle full export with confirmation
+  const handleFullExport = async () => {
+    const confirmMessage =
+      '⚠️ SENSITIVE DATA WARNING\n\n' +
+      'This export includes relationship-specific sentiment analysis, consensus areas, ' +
+      'and outlier opinions that reveal individual reviewer patterns.\n\n' +
+      'This data is NOT visible to the employee being reviewed.\n\n' +
+      'Are you sure you want to export the full report?';
+
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      const reportData = generateReportData(false);
+      const filename = await exportReportAsPDF(reportData, 'FULL');
+      notify({ title: 'Success', description: `Full report exported as ${filename}`, variant: 'success' });
+    } catch (error) {
+      console.error('Error exporting full PDF:', error);
+      notify({ title: 'Error', description: 'Failed to export PDF', variant: 'error' });
+    } finally {
+      setIsExportDropdownOpen(false);
+    }
+  };
+
+  // Handle subject-filtered export
+  const handleSubjectExport = async () => {
+    try {
+      const reportData = generateReportData(true);
+      const filename = await exportReportAsPDF(reportData, 'SUBJECT');
+      notify({ title: 'Success', description: `Subject report exported as ${filename}`, variant: 'success' });
+    } catch (error) {
+      console.error('Error exporting subject PDF:', error);
+      notify({ title: 'Error', description: 'Failed to export PDF', variant: 'error' });
+    } finally {
+      setIsExportDropdownOpen(false);
+    }
+  };
+
+  // Handle simple export (for non-sponsors/non-admins)
+  const handleSimpleExport = async () => {
+    try {
+      const isSubject = currentUser?.id === selectedSurvey?.employee_id;
+      const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
+      const isAdmin = currentUser?.app_role === 'admin';
+      const isPureSubject = isSubject && !isAdmin && !isSponsor;
+
+      const reportData = generateReportData(isPureSubject);
+      const filename = await exportReportAsPDF(reportData);
+      notify({ title: 'Success', description: `Report exported as ${filename}`, variant: 'success' });
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      notify({ title: 'Error', description: 'Failed to export PDF', variant: 'error' });
+    }
   };
 
   // Function to load and display survey results
@@ -3246,14 +3331,14 @@ export default function Feedback360Dashboard({
 
         // Define tabs
         const reportTabs = [
+          { id: 'narrative', label: 'Narrative' },
           { id: 'themes', label: 'Themes' },
           { id: 'strengths', label: 'Strengths' },
           { id: 'development', label: 'Development Areas' },
           ...(surveyResults.key_insights && surveyResults.key_insights.length > 0 ? [{ id: 'insights', label: 'Insights' }] : []),
           { id: 'recommendations', label: 'Recommended Actions' },
           ...(canSeeAdvanced && hasSentimentData ? [{ id: 'sentiment', label: 'Sentiment Analysis' }] : []),
-          ...(canSeeAdvanced && hasConsensusData ? [{ id: 'consensus', label: 'Consensus & Outliers' }] : []),
-          { id: 'narrative', label: 'Narrative' }
+          ...(canSeeAdvanced && hasConsensusData ? [{ id: 'consensus', label: 'Consensus & Outliers' }] : [])
         ];
 
         return (
@@ -3280,67 +3365,85 @@ export default function Feedback360Dashboard({
                     </p>
                   </div>
                   <div className="flex items-center gap-6">
-                  <button
-                    onClick={async () => {
-                      try {
-                        // Determine if current user is subject viewing their own report
-                        const isSubject = currentUser?.id === selectedSurvey?.employee_id;
-                        const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
-                        const isAdmin = currentUser?.app_role === 'admin';
-                        const isPureSubject = isSubject && !isAdmin && !isSponsor;
+                  {/* Export Button - Conditional: Dropdown for sponsors/admins, simple button for others */}
+                  {(() => {
+                    const isSubject = currentUser?.id === selectedSurvey?.employee_id;
+                    const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
+                    const isAdmin = currentUser?.app_role === 'admin';
+                    const canSeeDropdown = (isSponsor || isAdmin) && !isSubject;
+                    const employeeName = selectedSurvey.employee?.full_name ||
+                                         selectedSurvey.employee?.name ||
+                                         selectedSurvey.employee_name ||
+                                         'Employee';
 
-                        // Filter data for subjects (they should not see relationship-specific details)
-                        let sentimentData = surveyResults.sentiment_by_relationship;
-                        let consensusData = surveyResults.consensus_areas;
-                        let outlierData = surveyResults.outlier_opinions;
+                    if (canSeeDropdown) {
+                      return (
+                        <div className="relative">
+                          <button
+                            onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+                            className="text-blue-600 hover:text-blue-800 transition-colors font-medium flex items-center gap-1"
+                          >
+                            <Download className="w-4 h-4" />
+                            Export PDF
+                            <ChevronDown className={`w-4 h-4 transition-transform ${isExportDropdownOpen ? 'rotate-180' : ''}`} />
+                          </button>
 
-                        if (isPureSubject) {
-                          // Subject viewing their own report - filter sensitive data
-                          sentimentData = {
-                            overall: surveyResults.sentiment_by_relationship?.overall || 0
-                          };
-                          // Remove consensus and outlier sections as they may reveal relationship patterns
-                          consensusData = [];
-                          outlierData = [];
-                        }
+                          {isExportDropdownOpen && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setIsExportDropdownOpen(false)}
+                              />
 
-                        const reportData = {
-                          survey_name: selectedSurvey.survey_name || 'Untitled Survey',
-                          employee_name: selectedSurvey.employee?.full_name || selectedSurvey.employee?.name || selectedSurvey.employee_name || '',
-                          generated_by: surveyResults.generated_by,
-                          generated_at: surveyResults.generated_at,
-                          executive_summary: surveyResults.executive_summary,
-                          final_narrative: finalNarrative,
-                          themes: surveyResults.themes,
-                          overall_strengths: surveyResults.overall_strengths,
-                          development_areas: surveyResults.development_areas,
-                          recommendations: surveyResults.recommendations,
-                          key_insights: surveyResults.key_insights,
-                          sentiment_by_relationship: sentimentData,
-                          consensus_areas: consensusData,
-                          outlier_opinions: outlierData
-                        };
+                              <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                                <button
+                                  onClick={handleFullExport}
+                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-start gap-3"
+                                >
+                                  <Download className="w-4 h-4 mt-0.5 text-amber-600 flex-shrink-0" />
+                                  <div>
+                                    <div className="font-medium text-gray-900 mb-0.5">
+                                      Full Export (SPONSOR/ADMIN ONLY!)
+                                    </div>
+                                    <div className="text-xs text-gray-600">
+                                      Includes all sensitive relationship data
+                                    </div>
+                                  </div>
+                                </button>
 
-                        const filename = await exportReportAsPDF(reportData);
-                        notify({
-                          title: 'Success',
-                          description: `Report exported as ${filename}`,
-                          variant: 'success',
-                        });
-                      } catch (error) {
-                        console.error('Error exporting PDF:', error);
-                        notify({
-                          title: 'Error',
-                          description: 'Failed to export PDF',
-                          variant: 'error',
-                        });
-                      }
-                    }}
-                    className="text-blue-600 hover:text-blue-800 transition-colors font-medium flex items-center"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Export PDF
-                  </button>
+                                <div className="border-t border-gray-100 my-1" />
+
+                                <button
+                                  onClick={handleSubjectExport}
+                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-start gap-3"
+                                >
+                                  <Download className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                                  <div>
+                                    <div className="font-medium text-gray-900 mb-0.5">
+                                      Export for {employeeName}
+                                    </div>
+                                    <div className="text-xs text-gray-600">
+                                      Filtered version (same as subject sees)
+                                    </div>
+                                  </div>
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <button
+                          onClick={handleSimpleExport}
+                          className="text-blue-600 hover:text-blue-800 transition-colors font-medium flex items-center"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Export PDF
+                        </button>
+                      );
+                    }
+                  })()}
                   {/* Delete button: Admin sponsors can delete any status; SLT sponsors can only delete draft/in_progress */}
                   {((currentUser?.app_role === 'admin' && (isUserSponsor(selectedSurvey, currentUser, currentUserDbId))) || 
                     (currentUser?.app_role === 'slt' && (isUserSponsor(selectedSurvey, currentUser, currentUserDbId)) && (selectedSurvey.status === 'draft' || selectedSurvey.status === 'in_progress'))) && (
@@ -3358,7 +3461,8 @@ export default function Feedback360Dashboard({
                   <button
                     onClick={() => {
                       setIsResultsModalOpen(false);
-                      setActiveReportTab('themes'); // Reset to first tab when closing
+                      setActiveReportTab('narrative'); // Reset to first tab when closing
+                      setIsExportDropdownOpen(false); // Reset dropdown state
                     }}
                     className="text-gray-400 hover:text-gray-600"
                   >
@@ -3456,11 +3560,11 @@ export default function Feedback360Dashboard({
                             const positions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
 
                             return (
-                              <div className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-6">
+                              <div className="mt-2 pt-2 border-t border-blue-200 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-6 xl:gap-8 pr-2 lg:pr-4">
                                 {/* Specificity Control */}
-                                <div className="flex items-center gap-2 flex-1">
-                                  <span className="text-xs text-gray-500">Less Specific</span>
-                                  <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
+                                <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
+                                  <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Less Specific</span>
+                                  <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -3504,15 +3608,15 @@ export default function Feedback360Dashboard({
                                       ▶
                                     </button>
                                   </div>
-                                  <span className="text-xs text-gray-500">More Specific</span>
+                                  <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">More Specific</span>
                                 </div>
 
-                                <div className="h-4 w-px bg-gray-300"></div>
+                                <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
 
                                 {/* Tone Control */}
-                                <div className="flex items-center gap-2 flex-1">
-                                  <span className="text-xs text-gray-500">Softer</span>
-                                  <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
+                                <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
+                                  <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Softer</span>
+                                  <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -3556,15 +3660,15 @@ export default function Feedback360Dashboard({
                                       ▶
                                     </button>
                                   </div>
-                                  <span className="text-xs text-gray-500">Harsher</span>
+                                  <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Harsher</span>
                                 </div>
 
-                                <div className="h-4 w-px bg-gray-300"></div>
+                                <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
 
                                 {/* Length Control */}
-                                <div className="flex items-center gap-2 flex-1">
-                                  <span className="text-xs text-gray-500">Shorter</span>
-                                  <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
+                                <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
+                                  <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Shorter</span>
+                                  <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -3608,7 +3712,7 @@ export default function Feedback360Dashboard({
                                       ▶
                                     </button>
                                   </div>
-                                  <span className="text-xs text-gray-500">Longer</span>
+                                  <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Longer</span>
                                 </div>
                               </div>
                             );
@@ -3659,35 +3763,35 @@ export default function Feedback360Dashboard({
                               const positions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
 
                               return (
-                                <div className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-6">
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <span className="text-xs text-gray-500">Less Specific</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
+                                <div className="mt-2 pt-2 border-t border-blue-200 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-6 xl:gap-8 pr-2 lg:pr-4">
+                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Less Specific</span>
+                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'left'); }} disabled={isAdjustingItem || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'center'); }} disabled={isAdjustingItem || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'right'); }} disabled={isAdjustingItem || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
-                                    <span className="text-xs text-gray-500">More Specific</span>
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">More Specific</span>
                                   </div>
-                                  <div className="h-4 w-px bg-gray-300"></div>
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <span className="text-xs text-gray-500">Softer</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
+                                  <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Softer</span>
+                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'left'); }} disabled={isAdjustingItem || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'center'); }} disabled={isAdjustingItem || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'right'); }} disabled={isAdjustingItem || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
-                                    <span className="text-xs text-gray-500">Harsher</span>
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Harsher</span>
                                   </div>
-                                  <div className="h-4 w-px bg-gray-300"></div>
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <span className="text-xs text-gray-500">Shorter</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
+                                  <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Shorter</span>
+                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'left'); }} disabled={isAdjustingItem || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'center'); }} disabled={isAdjustingItem || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'right'); }} disabled={isAdjustingItem || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
-                                    <span className="text-xs text-gray-500">Longer</span>
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Longer</span>
                                   </div>
                                 </div>
                               );
@@ -3739,35 +3843,35 @@ export default function Feedback360Dashboard({
                               const positions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
 
                               return (
-                                <div className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-6">
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <span className="text-xs text-gray-500">Less Specific</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
+                                <div className="mt-2 pt-2 border-t border-blue-200 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-6 xl:gap-8 pr-2 lg:pr-4">
+                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Less Specific</span>
+                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'left'); }} disabled={isAdjustingItem || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'center'); }} disabled={isAdjustingItem || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'right'); }} disabled={isAdjustingItem || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
-                                    <span className="text-xs text-gray-500">More Specific</span>
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">More Specific</span>
                                   </div>
-                                  <div className="h-4 w-px bg-gray-300"></div>
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <span className="text-xs text-gray-500">Softer</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
+                                  <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Softer</span>
+                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'left'); }} disabled={isAdjustingItem || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'center'); }} disabled={isAdjustingItem || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'right'); }} disabled={isAdjustingItem || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
-                                    <span className="text-xs text-gray-500">Harsher</span>
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Harsher</span>
                                   </div>
-                                  <div className="h-4 w-px bg-gray-300"></div>
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <span className="text-xs text-gray-500">Shorter</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
+                                  <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Shorter</span>
+                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'left'); }} disabled={isAdjustingItem || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'center'); }} disabled={isAdjustingItem || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'right'); }} disabled={isAdjustingItem || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
-                                    <span className="text-xs text-gray-500">Longer</span>
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Longer</span>
                                   </div>
                                 </div>
                               );
@@ -3820,35 +3924,35 @@ export default function Feedback360Dashboard({
                               const positions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
 
                               return (
-                                <div className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-6">
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <span className="text-xs text-gray-500">Less Specific</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
+                                <div className="mt-2 pt-2 border-t border-blue-200 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-6 xl:gap-8 pr-2 lg:pr-4">
+                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Less Specific</span>
+                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'specificity', 'left'); }} disabled={isAdjustingItem || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'specificity', 'center'); }} disabled={isAdjustingItem || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'specificity', 'right'); }} disabled={isAdjustingItem || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
-                                    <span className="text-xs text-gray-500">More Specific</span>
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">More Specific</span>
                                   </div>
-                                  <div className="h-4 w-px bg-gray-300"></div>
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <span className="text-xs text-gray-500">Softer</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
+                                  <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Softer</span>
+                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'tone', 'left'); }} disabled={isAdjustingItem || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'tone', 'center'); }} disabled={isAdjustingItem || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'tone', 'right'); }} disabled={isAdjustingItem || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
-                                    <span className="text-xs text-gray-500">Harsher</span>
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Harsher</span>
                                   </div>
-                                  <div className="h-4 w-px bg-gray-300"></div>
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <span className="text-xs text-gray-500">Shorter</span>
-                                    <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 overflow-hidden flex-1">
+                                  <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Shorter</span>
+                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'length', 'left'); }} disabled={isAdjustingItem || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'length', 'center'); }} disabled={isAdjustingItem || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'length', 'right'); }} disabled={isAdjustingItem || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
-                                    <span className="text-xs text-gray-500">Longer</span>
+                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Longer</span>
                                   </div>
                                 </div>
                               );

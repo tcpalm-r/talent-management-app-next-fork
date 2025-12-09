@@ -4,5 +4,7 @@
 // NOTE: Active AI API routes:
 // - Survey AI Assistant: POST /api/ai/generate-survey-response
 // - Survey Narrative: POST /api/ai/generate-narrative
-// - Parse Survey Responses: POST /api/ai/parse-survey-responses
 // - Action Item Adjustment: POST /api/ai/adjust-item-specificity
+//
+// DEAD CODE (not used by any frontend):
+// - Parse Survey Responses: POST /api/ai/parse-survey-responses

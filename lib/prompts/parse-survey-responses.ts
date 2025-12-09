@@ -1,7 +1,11 @@
 /**
  * Parse Survey Responses Prompt
  *
- * Used by: /api/ai/parse-survey-responses
+ * DEAD CODE: This prompt is not used by any frontend component.
+ * The API route exists but is never called.
+ * Kept for potential future use or reference.
+ *
+ * Used by: /api/ai/parse-survey-responses (unused)
  * Purpose: Parse free-form feedback and map to specific survey questions
  */
 

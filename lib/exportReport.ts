@@ -32,7 +32,7 @@ interface Report360Data {
 /**
  * Export 360 feedback report as PDF
  */
-export async function exportReportAsPDF(report: Report360Data) {
+export async function exportReportAsPDF(report: Report360Data, suffix?: string) {
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -46,7 +46,7 @@ export async function exportReportAsPDF(report: Report360Data) {
   let yPosition = margin;
 
   // Helper to add new page if needed
-  const checkPageBreak = (neededSpace: number = 20) => {
+  const checkPageBreak = (neededSpace: number = 25) => {
     if (yPosition + neededSpace > pageHeight - margin) {
       pdf.addPage();
       yPosition = margin;
@@ -56,11 +56,15 @@ export async function exportReportAsPDF(report: Report360Data) {
   };
 
   // Helper to add text with wrapping
-  const addWrappedText = (text: string, x: number, y: number, maxWidth: number, fontSize: number = 10) => {
+  const addWrappedText = (text: string, x: number, y: number, maxWidth: number, fontSize: number = 10, lineSpacing: number = 1.5) => {
     pdf.setFontSize(fontSize);
     const lines = pdf.splitTextToSize(text, maxWidth);
-    pdf.text(lines, x, y);
-    return lines.length * (fontSize * 0.35); // Return height used
+
+    lines.forEach((line: string, index: number) => {
+      pdf.text(line, x, y + (index * fontSize * 0.35 * lineSpacing));
+    });
+
+    return lines.length * (fontSize * 0.35 * lineSpacing); // Return height used
   };
 
   // ==========================================================================
@@ -109,30 +113,47 @@ export async function exportReportAsPDF(report: Report360Data) {
   // NARRATIVE - First content after cover page, no header, just the text
   // ==========================================================================
   if (report.final_narrative) {
-    // Clean up narrative text (in case it wasn't cleaned during generation)
-    let narrativeText = report.final_narrative
-      .replace(/^\*\*360-Degree Feedback Report:?\s*Executive Summary\*\*\s*/i, '')
-      .replace(/^\*\*Executive Summary\*\*\s*/i, '')
-      .replace(/^#+ .*\n/gm, '') // Remove any markdown headers
+    checkPageBreak(30);
+
+    // Clean narrative
+    let narrative = report.final_narrative
+      .replace(/^#+\s+/gm, '')
+      .replace(/^Executive Summary:?\s*/i, '')
+      .replace(/\*\*/g, '')
       .trim();
+
+    // Split into paragraphs
+    const paragraphs = narrative.split(/\n\n+/).filter(p => p.trim());
 
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(0, 0, 0);
 
-    // Split narrative into lines and handle page breaks
-    const lines = pdf.splitTextToSize(narrativeText, contentWidth);
-    const lineHeight = 10 * 0.35; // fontSize * 0.35
+    paragraphs.forEach((paragraph, index) => {
+      const cleanParagraph = paragraph.replace(/\n/g, ' ').trim();
+      const lines = pdf.splitTextToSize(cleanParagraph, contentWidth);
+      const paragraphHeight = lines.length * (10 * 0.35 * 1.5); // 1.5x line spacing
 
-    for (let i = 0; i < lines.length; i++) {
-      if (checkPageBreak(10)) {
-        // Page break occurred, reset to top of new page
+      // Check if entire paragraph fits on page
+      if (yPosition + paragraphHeight > pageHeight - margin - 10) {
+        pdf.addPage();
+        yPosition = margin;
       }
-      pdf.text(lines[i], margin, yPosition);
-      yPosition += lineHeight;
-    }
 
-    yPosition += 10; // Add space after narrative
+      // Render paragraph with 1.5x line spacing
+      lines.forEach((line: string, lineIndex: number) => {
+        pdf.text(line, margin, yPosition + (lineIndex * 10 * 0.35 * 1.5));
+      });
+
+      yPosition += paragraphHeight;
+
+      // Add spacing between paragraphs (not after last)
+      if (index < paragraphs.length - 1) {
+        yPosition += 5; // 5mm between paragraphs
+      }
+    });
+
+    yPosition += 10; // Space after narrative section
   }
 
   // ==========================================================================
@@ -143,7 +164,7 @@ export async function exportReportAsPDF(report: Report360Data) {
 
     pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(0, 0, 0);
+    pdf.setTextColor(59, 130, 246); // Blue
     pdf.text('Themes', margin, yPosition);
     yPosition += 10;
 
@@ -184,7 +205,10 @@ export async function exportReportAsPDF(report: Report360Data) {
       pdf.setFont('helvetica', 'italic');
       pdf.setFontSize(9);
       pdf.setTextColor(100, 100, 100);
-      pdf.text(`Mentioned by ${theme.frequency} reviewer(s)`, margin + 5, yPosition);
+      const frequencyText = theme.frequency !== undefined && theme.frequency > 0
+        ? `Mentioned by ${theme.frequency} reviewer(s)`
+        : 'Mentioned by reviewers';
+      pdf.text(frequencyText, margin + 5, yPosition);
       yPosition += 5;
 
       // Supporting evidence (first 2)
@@ -211,7 +235,7 @@ export async function exportReportAsPDF(report: Report360Data) {
 
     pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(34, 197, 94); // Green
+    pdf.setTextColor(59, 130, 246); // Blue
     pdf.text('Strengths', margin, yPosition);
     yPosition += 10;
 
@@ -236,7 +260,7 @@ export async function exportReportAsPDF(report: Report360Data) {
 
     pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(245, 158, 11); // Amber
+    pdf.setTextColor(59, 130, 246); // Blue
     pdf.text('Development Areas', margin, yPosition);
     yPosition += 10;
 
@@ -261,7 +285,7 @@ export async function exportReportAsPDF(report: Report360Data) {
 
     pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(147, 51, 234); // Purple
+    pdf.setTextColor(59, 130, 246); // Blue
     pdf.text('Insights', margin, yPosition);
     yPosition += 10;
 
@@ -406,7 +430,7 @@ export async function exportReportAsPDF(report: Report360Data) {
 
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(34, 197, 94);
+    pdf.setTextColor(59, 130, 246); // Blue
     pdf.text('Strong Consensus', margin, yPosition);
     yPosition += 8;
 
@@ -428,7 +452,7 @@ export async function exportReportAsPDF(report: Report360Data) {
 
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(245, 158, 11);
+    pdf.setTextColor(59, 130, 246); // Blue
     pdf.text('Unique Perspectives', margin, yPosition);
     yPosition += 8;
 
@@ -458,7 +482,10 @@ export async function exportReportAsPDF(report: Report360Data) {
   }
 
   // Generate filename
-  const filename = `360-Review-${report.employee_name?.replace(/\s+/g, '-') || 'Report'}-${new Date().toISOString().split('T')[0]}.pdf`;
+  const baseName = report.employee_name?.replace(/\s+/g, '-') || 'Report';
+  const date = new Date().toISOString().split('T')[0];
+  const suffixPart = suffix ? `-${suffix}` : '';
+  const filename = `360-Review-${baseName}-${date}${suffixPart}.pdf`;
 
   // Save PDF
   pdf.save(filename);

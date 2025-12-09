@@ -34,22 +34,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Insert all responses
-    const responsesToInsert = responses.map((response: { questionId: string; responseText: string }) => ({
+    // Upsert all responses (insert or update if already exists)
+    // Uses the unique constraint on (survey_id, question_id, reviewer_email)
+    const responsesToUpsert = responses.map((response: { questionId: string; responseText: string }) => ({
       survey_id: reviewerData.survey_id,
       question_id: response.questionId,
       reviewer_email: reviewerData.reviewer_email,
       response_text: response.responseText,
     }));
 
-    const { error: insertError } = await supabaseAdmin
+    const { error: upsertError } = await supabaseAdmin
       .from('feedback_360_responses')
-      .insert(responsesToInsert);
+      .upsert(responsesToUpsert, {
+        onConflict: 'survey_id,question_id,reviewer_email',
+        ignoreDuplicates: false, // Update existing rows instead of ignoring
+      });
 
-    if (insertError) {
-      console.error('Error inserting responses:', insertError);
+    if (upsertError) {
+      console.error('Error upserting responses:', JSON.stringify(upsertError, null, 2));
+      console.error('Attempted to upsert:', JSON.stringify(responsesToUpsert, null, 2));
       return NextResponse.json(
-        { success: false, error: 'Failed to save responses' },
+        { success: false, error: 'Failed to save responses', details: upsertError.message, code: upsertError.code },
         { status: 500 }
       );
     }

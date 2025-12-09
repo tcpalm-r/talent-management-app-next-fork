@@ -101,7 +101,7 @@ export type {
  * Re-export type guard helpers
  * Usage: import { isAdmin, isLeader } from '@/lib/supabase'
  */
-export { isAdmin, isLeader, hasPermission } from './schema';
+export { isAdmin, isLeader } from './schema';
 
 /**
  * Re-export all query helper functions from database.ts
