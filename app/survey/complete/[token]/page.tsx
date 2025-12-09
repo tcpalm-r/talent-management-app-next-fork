@@ -306,10 +306,10 @@ export default function SurveyCompletionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <div className="text-center">
-          <Loader className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-300">Loading survey...</p>
+          <Loader className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading survey...</p>
         </div>
       </div>
     );
@@ -317,27 +317,27 @@ export default function SurveyCompletionPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
           {/* Thank You Header */}
           <div className="text-center mb-10">
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Thank You!</h1>
-            <p className="text-gray-600 dark:text-gray-300">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h1>
+            <p className="text-gray-600">
               Your feedback has been submitted successfully. Your input is valuable and will help {survey?.employee_name || 'the employee'} grow professionally.
             </p>
           </div>
 
           {/* Meta Feedback Form */}
           {!feedbackSubmitted ? (
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-8">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Help us improve this experience</h3>
+            <div className="border-t border-gray-200 pt-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-6">Help us improve this experience</h3>
 
               {/* Question 1: Navigation Rating */}
               <div className="mb-8">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-4">
                   1. How easy was it to navigate to the survey email and access this form?
                 </label>
                 <div className="relative">
@@ -351,7 +351,7 @@ export default function SurveyCompletionPage() {
                       onChange={(e) => setNavigationRating(Number(e.target.value))}
                       onMouseUp={(e) => setNavigationRating(Math.round(Number((e.target as HTMLInputElement).value)))}
                       onTouchEnd={(e) => setNavigationRating(Math.round(Number((e.target as HTMLInputElement).value)))}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-md appearance-none cursor-pointer accent-blue-600 dark:accent-blue-400"
+                      className="w-full h-2 bg-gray-200 rounded-md appearance-none cursor-pointer accent-blue-600"
                       style={{
                         WebkitAppearance: 'none',
                         appearance: 'none',
@@ -359,7 +359,7 @@ export default function SurveyCompletionPage() {
                       }}
                     />
                   </div>
-                  <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mt-2">
+                  <div className="flex justify-between text-xs text-gray-600 mt-2">
                     <span className="text-center" style={{width: '20%'}}>Very Difficult</span>
                     <span className="text-center" style={{width: '20%'}}>Difficult</span>
                     <span className="text-center" style={{width: '20%'}}>Neutral</span>
@@ -371,7 +371,7 @@ export default function SurveyCompletionPage() {
 
               {/* Question 2: AI Helper Rating */}
               <div className="mb-8">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-4">
                   2. How was your experience with the AI Response Helper?
                 </label>
 
@@ -387,9 +387,9 @@ export default function SurveyCompletionPage() {
                           setAiHelperRating(3);
                         }
                       }}
-                      className="w-4 h-4 text-blue-600 dark:text-blue-400 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 dark:bg-gray-700"
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">I didn't use the AI helper</span>
+                    <span className="text-sm text-gray-700">I didn't use the AI helper</span>
                   </label>
                 </div>
 
@@ -406,7 +406,7 @@ export default function SurveyCompletionPage() {
                       onMouseUp={(e) => setAiHelperRating(Math.round(Number((e.target as HTMLInputElement).value)))}
                       onTouchEnd={(e) => setAiHelperRating(Math.round(Number((e.target as HTMLInputElement).value)))}
                       disabled={didNotUseAI}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-md appearance-none cursor-pointer accent-blue-600 dark:accent-blue-400 disabled:cursor-not-allowed"
+                      className="w-full h-2 bg-gray-200 rounded-md appearance-none cursor-pointer accent-blue-600 disabled:cursor-not-allowed"
                       style={{
                         WebkitAppearance: 'none',
                         appearance: 'none',
@@ -414,7 +414,7 @@ export default function SurveyCompletionPage() {
                       }}
                     />
                   </div>
-                  <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mt-2">
+                  <div className="flex justify-between text-xs text-gray-600 mt-2">
                     <span className="text-center" style={{width: '20%'}}>Poor</span>
                     <span className="text-center" style={{width: '20%'}}>Fair</span>
                     <span className="text-center" style={{width: '20%'}}>Good</span>
@@ -426,14 +426,14 @@ export default function SurveyCompletionPage() {
 
               {/* Question 3: Additional Comments */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-4">
                   3. Any other thoughts, suggestions, or issues you'd like to share?
                 </label>
                 <textarea
                   value={additionalComments}
                   onChange={(e) => setAdditionalComments(e.target.value)}
                   rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white text-gray-900 placeholder-gray-400"
                   placeholder="Optional - share any feedback about your experience..."
                 />
               </div>
@@ -441,18 +441,18 @@ export default function SurveyCompletionPage() {
               {/* Submit Button */}
               <button
                 onClick={handleMetaFeedbackSubmit}
-                className="w-full bg-blue-600 dark:bg-blue-700 text-white py-3 px-6 rounded-md font-semibold hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
+                className="w-full bg-blue-600 text-white py-3 px-6 rounded-md font-semibold hover:bg-blue-700 transition-colors"
               >
                 Submit Feedback
               </button>
             </div>
           ) : (
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6 text-center">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
-                <CheckCircle className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <div className="border-t border-gray-200 pt-6 text-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <CheckCircle className="w-8 h-8 text-blue-600" />
               </div>
-              <p className="text-gray-700 dark:text-gray-300 font-medium mb-2">Thank you for your feedback!</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-gray-700 font-medium mb-2">Thank you for your feedback!</p>
+              <p className="text-sm text-gray-500">
                 You can safely close this window.
               </p>
             </div>
@@ -464,13 +464,13 @@ export default function SurveyCompletionPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-10 h-10 text-red-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Oops!</h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Oops!</h1>
+          <p className="text-gray-600 mb-6">{error}</p>
         </div>
       </div>
     );
@@ -478,28 +478,28 @@ export default function SurveyCompletionPage() {
 
   return (
     <TooltipProvider>
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
       <div className="max-w-3xl mx-auto">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 px-8 py-6 text-white">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-white">
             <h1 className="text-3xl font-bold mb-2">360° Feedback Survey</h1>
-            <p className="text-blue-100 dark:text-blue-200">
+            <p className="text-blue-100">
               Subject: <strong>{survey?.employee_name}</strong>
             </p>
-            <p className="text-blue-100 dark:text-blue-200 mt-1">
+            <p className="text-blue-100 mt-1">
               Responding as: <strong>{reviewer?.reviewer_name}</strong>
             </p>
             {survey?.due_date && (
-              <p className="text-sm text-blue-200 dark:text-blue-300 mt-2">
+              <p className="text-sm text-blue-200 mt-2">
                 Due: {new Date(survey.due_date).toLocaleDateString()}
               </p>
             )}
           </div>
 
           {/* Instructions */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-gray-700 px-8 py-5">
-            <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">
+          <div className="bg-blue-50 border-b border-blue-200 px-8 py-5">
+            <p className="text-sm font-semibold text-blue-900">
               🔒 Your feedback is confidential and will be aggregated with other responses for anonymity.
             </p>
           </div>
@@ -508,23 +508,23 @@ export default function SurveyCompletionPage() {
           <form onSubmit={handleSubmit} className="p-8">
             {/* Validation Error Message */}
             {validationError && (
-              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-md flex gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-red-800 dark:text-red-300 text-sm">{validationError}</p>
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md flex gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-red-800 text-sm">{validationError}</p>
               </div>
             )}
 
             <div className="space-y-8">
               {questions.map((question, index) => (
-                <div key={question.id} className="border-b border-gray-200 dark:border-gray-700 pb-6 last:border-0">
+                <div key={question.id} className="border-b border-gray-200 pb-6 last:border-0">
                   <div className="mb-4">
                     <div className="flex items-start gap-3">
-                      <span className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center font-semibold text-sm">
+                      <span className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-sm">
                         {index + 1}
                       </span>
                       <div className="flex-1">
-                        <p className="text-gray-900 dark:text-gray-100 font-medium">
-                          {replaceNamePlaceholder(question.question_text, survey?.employee_name)} <span className="text-red-500 dark:text-red-400">*</span>
+                        <p className="text-gray-900 font-medium">
+                          {replaceNamePlaceholder(question.question_text, survey?.employee_name)} <span className="text-red-500">*</span>
                         </p>
                       </div>
                     </div>
@@ -554,7 +554,7 @@ export default function SurveyCompletionPage() {
                       value={responses[question.id] || ''}
                       onChange={(e) => updateResponse(question.id, e.target.value)}
                       rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent resize-y bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y bg-white text-gray-900 placeholder-gray-400"
                       placeholder="Can't think of what to say? Mention a specific example or tell a story!"
                       required
                     />
@@ -565,7 +565,7 @@ export default function SurveyCompletionPage() {
                         const minWords = question.min_words || 50;
                         const meetsMinimum = wordCount >= minWords;
                         return (
-                          <span className={`font-medium ${meetsMinimum ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                          <span className={`font-medium ${meetsMinimum ? 'text-green-600' : 'text-orange-600'}`}>
                             {wordCount} / {minWords} word minimum {meetsMinimum ? '✓' : ''}
                           </span>
                         );
@@ -577,12 +577,12 @@ export default function SurveyCompletionPage() {
             </div>
 
             {/* Submit Button */}
-            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="mt-8 pt-6 border-t border-gray-200">
               <Tooltip content="Submit your responses. This action cannot be undone">
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 text-white py-4 px-6 rounded-md font-semibold text-lg flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-800 dark:hover:to-indigo-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-md font-semibold text-lg flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? (
                     <>
