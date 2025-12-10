@@ -1,8 +1,7 @@
 /**
  * Survey Analyzer Service
  *
- * Handles 360 survey analysis using v1 prompt-based approach.
- * Supports optional citation tracking for admin audit trail.
+ * Handles 360 survey analysis with citation tracking for admin audit trail.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -10,14 +9,12 @@ import type {
   Survey360,
   Survey360Response,
   Survey360Participant,
-  Survey360Report,
   Survey360ReportWithCitations,
   SurveyQuestion,
 } from '../../types';
 import {
   surveyAnalyzerConfig,
   buildSurveyAnalyzerPrompt,
-  buildSurveyAnalyzerPromptWithCitations,
 } from '../prompts';
 
 export interface AnalysisInput {
@@ -26,16 +23,6 @@ export interface AnalysisInput {
   participants: Survey360Participant[];
   questions: SurveyQuestion[];
   tone?: 'standard' | 'softer';
-  /** Enable citation tracking for audit trail */
-  enableCitations?: boolean;
-}
-
-export interface AnalysisResult {
-  report: Omit<Survey360Report, 'id' | 'created_at' | 'updated_at'>;
-  meta: {
-    version: 'v1-prompt' | 'v1-citations' | 'fallback';
-    elapsedMs: number;
-  };
 }
 
 export interface AnalysisResultWithCitations {
@@ -58,35 +45,14 @@ export interface AnalysisResultWithCitations {
 }
 
 /**
- * Analyze survey responses using v1 prompt-based approach
+ * Analyze survey responses with citation tracking.
+ * This generates a report where each statement is linked to source response IDs.
  */
-export async function analyzeSurvey(input: AnalysisInput): Promise<AnalysisResult> {
+export async function analyzeWithCitations(input: AnalysisInput): Promise<AnalysisResultWithCitations> {
   const startTime = Date.now();
-
-  try {
-    console.log('[surveyAnalyzerService] Starting v1 prompt-based analysis');
-    return await analyzeWithPrompt(input, startTime);
-  } catch (error) {
-    console.error('[surveyAnalyzerService] v1 analysis failed:', error);
-    // Return fallback analysis
-    return {
-      report: generateFallbackAnalysis(input),
-      meta: {
-        version: 'fallback',
-        elapsedMs: Date.now() - startTime,
-      },
-    };
-  }
-}
-
-// Keep the old name as an alias for backwards compatibility
-export const analyzeSurveyWithFallback = analyzeSurvey;
-
-/**
- * Analyze using v1 prompt-based approach
- */
-async function analyzeWithPrompt(input: AnalysisInput, startTime: number): Promise<AnalysisResult> {
   const { survey, responses, participants, questions, tone = 'standard' } = input;
+
+  console.log('[surveyAnalyzerService] Starting citation-enabled analysis');
 
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
@@ -118,69 +84,6 @@ async function analyzeWithPrompt(input: AnalysisInput, startTime: number): Promi
 
   const analysis = extractJsonFromResponse(content.text);
 
-  return {
-    report: {
-      survey_id: survey.id,
-      executive_summary: analysis.executive_summary as string || null,
-      themes: analysis.themes as Survey360Report['themes'] || [],
-      overall_strengths: analysis.overall_strengths as string[] || [],
-      development_areas: analysis.development_areas as string[] || [],
-      recommendations: analysis.recommendations as string[] || [],
-      sentiment_by_relationship: analysis.sentiment_by_relationship as Record<string, number> || {},
-      key_insights: analysis.key_insights as string[] || [],
-      consensus_areas: analysis.consensus_areas as string[] || [],
-      outlier_opinions: analysis.outlier_opinions as string[] || [],
-      generated_at: new Date().toISOString(),
-      generated_by: surveyAnalyzerConfig.model,
-    },
-    meta: {
-      version: 'v1-prompt',
-      elapsedMs: Date.now() - startTime,
-    },
-  };
-}
-
-/**
- * Analyze using v1 prompt-based approach WITH citation tracking.
- * This generates a report where each statement is linked to source response IDs.
- */
-export async function analyzeWithCitations(input: AnalysisInput): Promise<AnalysisResultWithCitations> {
-  const startTime = Date.now();
-  const { survey, responses, participants, questions, tone = 'standard' } = input;
-
-  console.log('[surveyAnalyzerService] Starting citation-enabled analysis');
-
-  const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  });
-
-  // Use the response ID-enabled formatter
-  const structuredResponses = prepareResponsesForAnalysisWithIds(responses, participants, questions);
-  const questionsFormatted = questions.map((q, i) => `${i + 1}. ${q.question} (${q.type})`).join('\n');
-
-  const prompt = buildSurveyAnalyzerPromptWithCitations({
-    employeeName: survey.employee_name,
-    surveyTitle: survey.survey_title,
-    responseCount: responses.length,
-    questionsFormatted,
-    structuredResponses,
-    tone,
-  });
-
-  const response = await anthropic.messages.create({
-    model: surveyAnalyzerConfig.model,
-    max_tokens: surveyAnalyzerConfig.maxTokens,
-    temperature: surveyAnalyzerConfig.temperature,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type from Claude');
-  }
-
-  const analysis = extractJsonFromResponse(content.text);
-
   // Extract and flatten all citations for database storage
   const flattenedCitations = extractCitationsFromAnalysis(analysis);
 
@@ -189,13 +92,16 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   const statementsWithCitations = countStatementsWithCitations(analysis);
   const citationCoverage = totalStatements > 0 ? Math.round((statementsWithCitations / totalStatements) * 100) : 0;
 
+  // Compute frequency for themes from citations (not AI-estimated)
+  const themesWithFrequency = computeThemeFrequencies(analysis.themes);
+
   console.log(`[surveyAnalyzerService] Citation analysis complete: ${flattenedCitations.length} citations, ${citationCoverage}% coverage`);
 
   return {
     report: {
       survey_id: survey.id,
       executive_summary: analysis.executive_summary as string || null,
-      themes: analysis.themes as Survey360ReportWithCitations['themes'] || [],
+      themes: themesWithFrequency as Survey360ReportWithCitations['themes'] || [],
       overall_strengths: analysis.overall_strengths as Survey360ReportWithCitations['overall_strengths'] || [],
       development_areas: analysis.development_areas as Survey360ReportWithCitations['development_areas'] || [],
       recommendations: analysis.recommendations as Survey360ReportWithCitations['recommendations'] || [],
@@ -218,6 +124,45 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
       citationCoverage,
     },
   };
+}
+
+/**
+ * Compute frequency for each theme based on unique response_ids in citations.
+ * This replaces AI-estimated frequency with actual citation-backed counts.
+ */
+function computeThemeFrequencies(themes: unknown): unknown[] {
+  if (!Array.isArray(themes)) return [];
+
+  return themes.map((theme) => {
+    if (typeof theme !== 'object' || theme === null) return theme;
+
+    const themeObj = theme as Record<string, unknown>;
+    const supportingEvidence = themeObj.supporting_evidence;
+
+    if (!Array.isArray(supportingEvidence)) {
+      // No supporting evidence, frequency is 0
+      return { ...themeObj, frequency: 0 };
+    }
+
+    // Collect all unique response_ids from citations across all supporting evidence
+    const uniqueResponseIds = new Set<string>();
+
+    supportingEvidence.forEach((evidence) => {
+      if (typeof evidence === 'object' && evidence !== null && 'citations' in evidence) {
+        const evidenceObj = evidence as { citations?: Array<{ response_id?: string }> };
+        if (Array.isArray(evidenceObj.citations)) {
+          evidenceObj.citations.forEach((citation) => {
+            if (citation.response_id) {
+              uniqueResponseIds.add(citation.response_id);
+            }
+          });
+        }
+      }
+    });
+
+    // Frequency = number of unique responses cited (each response = 1 reviewer)
+    return { ...themeObj, frequency: uniqueResponseIds.size };
+  });
 }
 
 /**
@@ -447,62 +392,11 @@ function extractJsonFromResponse(text: string): Record<string, unknown> {
 }
 
 /**
- * Prepare responses for analysis (original format without response IDs)
- */
-function prepareResponsesForAnalysis(
-  responses: Survey360Response[],
-  participants: Survey360Participant[],
-  questions: SurveyQuestion[]
-): string {
-  const participantMap = new Map(participants.map((p) => [p.id, p]));
-
-  const byRelationship: Record<string, Array<{ participant: Survey360Participant; response: Survey360Response }>> = {};
-
-  responses.forEach((response) => {
-    const participant = participantMap.get(response.participant_id);
-    if (!participant) return;
-
-    if (!byRelationship[participant.relationship]) {
-      byRelationship[participant.relationship] = [];
-    }
-    byRelationship[participant.relationship].push({ participant, response });
-  });
-
-  let output = '';
-
-  Object.entries(byRelationship).forEach(([relationship, items]) => {
-    output += `\n### ${relationship.toUpperCase()} (${items.length} response${items.length !== 1 ? 's' : ''})\n\n`;
-
-    items.forEach((item, index) => {
-      output += `**${relationship.charAt(0).toUpperCase() + relationship.slice(1)} #${index + 1}:**\n`;
-
-      questions.forEach((question) => {
-        const answer = item.response.responses[question.id];
-        if (answer !== undefined && answer !== null && answer !== '') {
-          output += `Q: ${question.question}\n`;
-
-          if (question.type === 'rating') {
-            output += `A: ${answer}/${question.scale_max || 5}\n`;
-          } else if (question.type === 'text') {
-            output += `A: "${answer}"\n`;
-          } else if (question.type === 'multiple_choice') {
-            output += `A: ${answer}\n`;
-          }
-          output += '\n';
-        }
-      });
-    });
-  });
-
-  return output;
-}
-
-/**
- * Prepare responses for analysis WITH response IDs for citation tracking.
+ * Prepare responses for analysis with response IDs for citation tracking.
  * Each answer includes a [response_id: uuid] marker that Claude can reference.
  * The response_id maps to a specific question-answer row in feedback_360_responses.
  */
-function prepareResponsesForAnalysisWithIds(
+function prepareResponsesForAnalysis(
   responses: Survey360Response[],
   participants: Survey360Participant[],
   questions: SurveyQuestion[]
