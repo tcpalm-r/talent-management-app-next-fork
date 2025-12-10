@@ -300,6 +300,7 @@ export interface Survey360Response {
   survey_id: string;
   participant_id: string;
   responses: Record<string, any>; // question_id -> answer
+  response_ids?: Record<string, string>; // question_id -> response row ID (for citation tracking)
   submitted_at: string;
   created_at: string;
   updated_at: string;

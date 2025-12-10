@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import {
-  analyzeSurveyWithFallback,
   analyzeWithCitations,
   AnalysisResultWithCitations,
 } from '@/lib/services/surveyAnalyzerService';
@@ -73,7 +72,8 @@ function determineViewerRole(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { survey_id, tone = 'standard', enable_citations = false } = body;
+    const { survey_id, tone = 'standard' } = body;
+    // Citations are always enabled for accuracy - they're just hidden from non-admins
 
     if (!survey_id) {
       return NextResponse.json({ error: 'survey_id is required' }, { status: 400 });
@@ -241,6 +241,7 @@ export async function POST(req: NextRequest) {
 
     // Group responses by reviewer for the analyzer
     // The DB stores individual question-answer pairs, but analyzer expects grouped responses
+    // For citation tracking, we also store the response_id for each question
     const groupedResponses = responses.reduce((acc, response) => {
       const reviewerEmail = response.reviewer_email;
       const reviewerId = emailToIdMap.get(reviewerEmail);
@@ -252,19 +253,21 @@ export async function POST(req: NextRequest) {
 
       if (!acc[reviewerEmail]) {
         acc[reviewerEmail] = {
-          id: response.id,
+          id: response.id, // First response ID (for backwards compat)
           survey_id: response.survey_id,
           participant_id: reviewerId, // Use reviewer ID (UUID) to match participants array
           responses: {},
+          response_ids: {}, // Map of question_id -> response row ID for citation tracking
           submitted_at: response.created_at || new Date().toISOString(),
           created_at: response.created_at || new Date().toISOString(),
           updated_at: response.updated_at || new Date().toISOString(),
         };
       }
 
-      // Add this question's response
+      // Add this question's response and its ID for citation tracking
       acc[reviewerEmail].responses[response.question_id] =
         response.response_text || response.rating;
+      acc[reviewerEmail].response_ids[response.question_id] = response.id;
 
       return acc;
     }, {} as Record<string, any>);
@@ -290,56 +293,33 @@ export async function POST(req: NextRequest) {
     };
 
     // ========================================================================
-    // STEP 7: Call AI analyzer (with or without citations)
+    // STEP 7: Call AI analyzer (ALWAYS with citations for accuracy)
     // ========================================================================
 
     console.log('🤖 Calling AI analyzer for survey:', survey_id);
     console.log('   - Participants:', participants.length);
     console.log('   - Responses:', transformedResponses.length);
     console.log('   - Questions:', questions.length);
-    console.log('   - Citations enabled:', enable_citations);
+    console.log('   - Citations: always enabled for accuracy');
 
-    let analysisResult: any;
-    let analysisMeta: any;
-    let citations: AnalysisResultWithCitations['citations'] | null = null;
+    // Always use citation-enabled analyzer to improve accuracy and reduce hallucinations
+    // Citations are stored but only shown to admins in audit mode
+    const citationResult = await analyzeWithCitations({
+      survey: surveyData,
+      responses: transformedResponses,
+      participants: participants,
+      questions: questions,
+      tone: tone,
+    });
+    const analysisResult = citationResult.report;
+    const analysisMeta = citationResult.meta;
+    const citations = citationResult.citations;
 
-    if (enable_citations) {
-      // Use citation-enabled analyzer
-      const citationResult = await analyzeWithCitations({
-        survey: surveyData,
-        responses: transformedResponses,
-        participants: participants,
-        questions: questions,
-        tone: tone,
-      });
-      analysisResult = citationResult.report;
-      analysisMeta = citationResult.meta;
-      citations = citationResult.citations;
-
-      console.log('✅ AI analysis complete (with citations)');
-      console.log(`   - API version: ${analysisMeta.version}`);
-      console.log(`   - Elapsed: ${analysisMeta.elapsedMs}ms`);
-      console.log(`   - Total citations: ${analysisMeta.totalCitations}`);
-      console.log(`   - Citation coverage: ${analysisMeta.citationCoverage}%`);
-    } else {
-      // Use standard analyzer with fallback
-      const standardResult = await analyzeSurveyWithFallback({
-        survey: surveyData,
-        responses: transformedResponses,
-        participants: participants,
-        questions: questions,
-        tone: tone,
-      });
-      analysisResult = standardResult.report;
-      analysisMeta = standardResult.meta;
-
-      console.log('✅ AI analysis complete');
-      console.log(`   - API version: ${analysisMeta.version}`);
-      console.log(`   - Elapsed: ${analysisMeta.elapsedMs}ms`);
-      if (analysisMeta.fallbackUsed) {
-        console.log(`   - Fallback used: ${analysisMeta.fallbackReason}`);
-      }
-    }
+    console.log('✅ AI analysis complete (with citations)');
+    console.log(`   - API version: ${analysisMeta.version}`);
+    console.log(`   - Elapsed: ${analysisMeta.elapsedMs}ms`);
+    console.log(`   - Total citations: ${analysisMeta.totalCitations}`);
+    console.log(`   - Citation coverage: ${analysisMeta.citationCoverage}%`);
 
     // ========================================================================
     // STEP 8: Save report to database
@@ -347,7 +327,7 @@ export async function POST(req: NextRequest) {
 
     console.log('💾 Saving report to database...');
 
-    // Build report data with optional citation metadata
+    // Build report data with citation metadata (always included now)
     const reportData: any = {
       survey_id: survey_id,
       executive_summary: analysisResult.executive_summary || null,
@@ -362,15 +342,12 @@ export async function POST(req: NextRequest) {
       generated_by: analysisResult.generated_by || 'claude-sonnet-4',
       generated_at: analysisResult.generated_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      // Citation metadata (always present now)
+      has_citations: true,
+      citation_version: '1.0',
+      total_citations: citations.length,
+      citation_coverage: analysisMeta.citationCoverage || 0,
     };
-
-    // Add citation metadata if citations are enabled
-    if (enable_citations && citations) {
-      reportData.has_citations = true;
-      reportData.citation_version = '1.0';
-      reportData.total_citations = citations.length;
-      reportData.citation_coverage = analysisMeta.citationCoverage || 0;
-    }
 
     const { data: savedReport, error: upsertError } = await supabaseAdmin
       .from('feedback_360_reports')
@@ -447,8 +424,8 @@ export async function POST(req: NextRequest) {
     }
     // Sponsors and admins see full report (no filtering needed)
 
-    // Include citation info in response for sponsors/admins
-    const hasCitations = enable_citations && citations && citations.length > 0;
+    // Include citation info in response (only for admins, hidden from sponsors/subjects)
+    const hasCitations = citations && citations.length > 0;
 
     return NextResponse.json({
       success: true,
@@ -456,7 +433,8 @@ export async function POST(req: NextRequest) {
       viewerRole: generatorRole, // Include viewer role for debugging/frontend awareness
       message: 'AI analysis completed successfully',
       meta: analysisMeta, // Include API version info for frontend notification
-      citationInfo: hasCitations && generatorRole !== 'subject' ? {
+      // Only include citation info for admins (sponsors/subjects never see it)
+      citationInfo: hasCitations && generatorRole === 'admin' ? {
         hasCitations: true,
         totalCitations: citations?.length || 0,
         citationCoverage: analysisMeta.citationCoverage || 0,

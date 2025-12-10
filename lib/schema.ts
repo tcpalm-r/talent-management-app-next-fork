@@ -271,6 +271,17 @@ export interface Feedback360Report {
   generated_at: string;
   created_at: string;
   updated_at: string;
+  // Optional executive summary (may not exist on older reports)
+  executive_summary?: string | null;
+  // Citation tracking (admin-only QA feature)
+  has_citations?: boolean;
+  citation_version?: string;
+  total_citations?: number;
+  citation_coverage?: number; // 0-100, percentage of statements with citations
+  // Citation validation status (admin-only)
+  citation_validation_status?: 'pending' | 'validating' | 'validated' | 'failed' | null;
+  citation_validated_at?: string | null;
+  validation_errors?: unknown[] | null;
 }
 
 // ============================================================================

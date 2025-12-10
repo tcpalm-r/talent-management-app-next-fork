@@ -6,26 +6,31 @@ interface AuditModeToggleProps {
   enabled: boolean;
   onToggle: (enabled: boolean) => void;
   disabled?: boolean;
-  hasCitations?: boolean;
+  /** Is the current user an admin? */
+  isAdmin?: boolean;
 }
 
 /**
  * Toggle button for enabling/disabling audit mode in 360 reports.
- * When enabled, report statements become clickable to reveal source citations.
+ * When enabled, report statements show inline citation badges.
  *
- * Only shown to sponsors and admins (never to subjects).
+ * ADMIN-ONLY FEATURE:
+ * - Only admins see this component
+ * - Sponsors and subjects never see citations
+ * - Citations are now always generated with reports (no validation step needed)
  */
 export function AuditModeToggle({
   enabled,
   onToggle,
   disabled = false,
-  hasCitations = true,
+  isAdmin = false,
 }: AuditModeToggleProps) {
-  if (!hasCitations) {
-    // Don't show toggle if report has no citations
+  // Only show to admins
+  if (!isAdmin) {
     return null;
   }
 
+  // Show audit mode toggle
   return (
     <button
       onClick={() => onToggle(!enabled)}

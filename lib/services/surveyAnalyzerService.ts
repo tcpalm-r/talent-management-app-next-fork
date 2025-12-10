@@ -500,6 +500,7 @@ function prepareResponsesForAnalysis(
 /**
  * Prepare responses for analysis WITH response IDs for citation tracking.
  * Each answer includes a [response_id: uuid] marker that Claude can reference.
+ * The response_id maps to a specific question-answer row in feedback_360_responses.
  */
 function prepareResponsesForAnalysisWithIds(
   responses: Survey360Response[],
@@ -526,13 +527,16 @@ function prepareResponsesForAnalysisWithIds(
     output += `\n### ${relationship.toUpperCase()} (${items.length} response${items.length !== 1 ? 's' : ''})\n\n`;
 
     items.forEach((item, index) => {
-      // Include the response ID for citation tracking
       output += `**${relationship.charAt(0).toUpperCase() + relationship.slice(1)} #${index + 1}:**\n`;
-      output += `[response_id: ${item.response.id}]\n`;
 
       questions.forEach((question) => {
         const answer = item.response.responses[question.id];
         if (answer !== undefined && answer !== null && answer !== '') {
+          // Get the specific response ID for this question-answer pair
+          // This is the actual row ID in feedback_360_responses table
+          const responseId = item.response.response_ids?.[question.id] || item.response.id;
+
+          output += `[response_id: ${responseId}]\n`;
           output += `Q: ${question.question}\n`;
 
           if (question.type === 'rating') {

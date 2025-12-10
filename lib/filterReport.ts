@@ -139,3 +139,54 @@ export function hasRelationshipBreakdown(sentimentData: {
     sentimentData.cross_functional !== undefined
   );
 }
+
+/**
+ * Filter report data for sponsor view (non-admin)
+ *
+ * Sponsors can see the full report with relationship breakdowns,
+ * but NEVER see citations. Only admins can use the audit mode.
+ *
+ * @param fullReport - The complete report with all data
+ * @returns Report with citations stripped but relationship data intact
+ */
+export function filterReportForSponsor(
+  fullReport: Feedback360Report
+): Feedback360Report {
+  console.log('[filterReport] Filtering report for sponsor view (citations removed)');
+
+  const filtered = {
+    ...fullReport,
+    // Keep relationship breakdowns - sponsors can see these
+    sentiment_by_relationship: fullReport.sentiment_by_relationship,
+    // Strip citations from all statement arrays
+    themes: stripCitationsFromThemes(fullReport.themes || []),
+    overall_strengths: stripCitationsFromStatements(fullReport.overall_strengths || []),
+    development_areas: stripCitationsFromStatements(fullReport.development_areas || []),
+    recommendations: stripCitationsFromStatements(fullReport.recommendations || []),
+    key_insights: stripCitationsFromStatements(fullReport.key_insights || []),
+    consensus_areas: stripCitationsFromStatements(fullReport.consensus_areas || []),
+    outlier_opinions: stripCitationsFromStatements(fullReport.outlier_opinions || []),
+    // Remove citation metadata - sponsors should not know citations exist
+    has_citations: false,
+    citation_version: undefined,
+    total_citations: undefined,
+    citation_coverage: undefined,
+    citation_validation_status: undefined,
+    citation_validated_at: undefined,
+    validation_errors: undefined,
+  };
+
+  return filtered;
+}
+
+/**
+ * Determine if citations should be visible to the current user
+ *
+ * Citations are ONLY visible to admins. Sponsors and subjects never see them.
+ *
+ * @param userRole - The user's application role
+ * @returns true if user can see citations (admin only)
+ */
+export function canViewCitations(userRole: string): boolean {
+  return userRole === 'admin';
+}

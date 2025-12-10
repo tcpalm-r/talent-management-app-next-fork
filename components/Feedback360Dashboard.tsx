@@ -264,6 +264,10 @@ export default function Feedback360Dashboard({
   const [originalItemText, setOriginalItemText] = useState<Record<string, any>>({});
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
 
+  // Computed: Audit mode is only effective for admins
+  // This ensures citations are never visible to sponsors or subjects
+  const effectiveAuditMode = auditModeEnabled && currentUser?.app_role === 'admin';
+
   // API version notice for survey analyzer (local testing only)
   const [analyzerApiNotice, setAnalyzerApiNotice] = useState<{ type: 'success' | 'fallback'; message: string } | null>(null);
 
@@ -3468,23 +3472,12 @@ export default function Feedback360Dashboard({
                   </div>
                   <div className="flex items-center gap-6">
                   {/* Audit Mode Toggle - Admin only (sponsors see normal report view) */}
-                  {(() => {
-                    const isAdmin = currentUser?.app_role === 'admin';
-                    // Audit mode is admin-only - sponsors see the report without audit capabilities
-                    const canUseAuditMode = isAdmin;
-                    const hasCitations = surveyResults?.has_citations === true;
-
-                    if (canUseAuditMode) {
-                      return (
-                        <AuditModeToggle
-                          enabled={auditModeEnabled}
-                          onToggle={setAuditModeEnabled}
-                          hasCitations={hasCitations}
-                        />
-                      );
-                    }
-                    return null;
-                  })()}
+                  {/* Citations are now always generated with reports - no validation needed */}
+                  <AuditModeToggle
+                    enabled={auditModeEnabled}
+                    onToggle={setAuditModeEnabled}
+                    isAdmin={currentUser?.app_role === 'admin'}
+                  />
                   {/* Export Button - Conditional: Dropdown for sponsors/admins, simple button for others */}
                   {(() => {
                     const isSubject = currentUser?.id === selectedSurvey?.employee_id;
@@ -3675,7 +3668,7 @@ export default function Feedback360Dashboard({
                                     sectionType="themes"
                                     sectionIndex={idx}
                                     statementIndex={qIdx}
-                                    auditModeEnabled={auditModeEnabled}
+                                    auditModeEnabled={effectiveAuditMode}
                                   />
                                 </p>
                               ))}
@@ -3890,7 +3883,7 @@ export default function Feedback360Dashboard({
                                 reportId={selectedSurvey.id}
                                 sectionType="strengths"
                                 sectionIndex={idx}
-                                auditModeEnabled={auditModeEnabled}
+                                auditModeEnabled={effectiveAuditMode}
                               />
                             </span>
 
@@ -3979,7 +3972,7 @@ export default function Feedback360Dashboard({
                                 reportId={selectedSurvey.id}
                                 sectionType="development_areas"
                                 sectionIndex={idx}
-                                auditModeEnabled={auditModeEnabled}
+                                auditModeEnabled={effectiveAuditMode}
                               />
                             </span>
 
@@ -4069,7 +4062,7 @@ export default function Feedback360Dashboard({
                                 reportId={selectedSurvey.id}
                                 sectionType="key_insights"
                                 sectionIndex={idx}
-                                auditModeEnabled={auditModeEnabled}
+                                auditModeEnabled={effectiveAuditMode}
                               />
                             </span>
 
@@ -4172,7 +4165,7 @@ export default function Feedback360Dashboard({
                                   reportId={selectedSurvey.id}
                                   sectionType="recommendations"
                                   sectionIndex={idx}
-                                  auditModeEnabled={auditModeEnabled}
+                                  auditModeEnabled={effectiveAuditMode}
                                 />
                               </span>
                               {canEdit && (
@@ -4396,7 +4389,7 @@ export default function Feedback360Dashboard({
                                 reportId={selectedSurvey.id}
                                 sectionType="consensus_areas"
                                 sectionIndex={idx}
-                                auditModeEnabled={auditModeEnabled}
+                                auditModeEnabled={effectiveAuditMode}
                               />
                             </li>
                           ))}
@@ -4418,7 +4411,7 @@ export default function Feedback360Dashboard({
                                 reportId={selectedSurvey.id}
                                 sectionType="outlier_opinions"
                                 sectionIndex={idx}
-                                auditModeEnabled={auditModeEnabled}
+                                auditModeEnabled={effectiveAuditMode}
                               />
                             </li>
                           ))}
@@ -4537,8 +4530,32 @@ export default function Feedback360Dashboard({
               {/* Admin viewing flagged survey - special controls */}
               {currentUser?.app_role === 'admin' && (selectedSurvey.flagged_for_admin || selectedSurvey.flagged_for_reanalysis) ? (
                 <div className="space-y-4">
-                  {/* Top row: Admin tools */}
-                  <div className="flex items-center justify-between">
+                  {/* Top row: Reanalyze tools */}
+                  <div className="flex items-center justify-start">
+                    <div className="flex items-center gap-2">
+                      {!selectedSurvey.flagged_for_reanalysis && (
+                        <>
+                          <button
+                            onClick={() => reanalyzeSurvey(selectedSurvey.id, 'standard')}
+                            disabled={isGeneratingAnalysis}
+                            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium flex items-center disabled:opacity-50"
+                          >
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            {isGeneratingAnalysis ? 'Analyzing...' : 'Reanalyze'}
+                          </button>
+                          <button
+                            onClick={() => reanalyzeSurvey(selectedSurvey.id, 'softer')}
+                            disabled={isGeneratingAnalysis}
+                            className="px-4 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors font-medium flex items-center disabled:opacity-50"
+                          >
+                            Reanalyze (Softer Tone)
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {/* Bottom row: View Raw Data and Resolve Review */}
+                  <div className="flex items-center justify-end pt-4 border-t border-gray-200">
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => loadRawSurveyData(selectedSurvey.id)}
@@ -4547,93 +4564,13 @@ export default function Feedback360Dashboard({
                         <AlertTriangle className="w-4 h-4 mr-2" />
                         View Raw Data
                       </button>
-                      <div className="flex items-center gap-2">
-                        {!selectedSurvey.flagged_for_reanalysis && (
-                          <>
-                            <button
-                              onClick={() => reanalyzeSurvey(selectedSurvey.id, 'standard')}
-                              disabled={isGeneratingAnalysis}
-                              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium flex items-center disabled:opacity-50"
-                            >
-                              <Sparkles className="w-4 h-4 mr-2" />
-                              {isGeneratingAnalysis ? 'Analyzing...' : 'Reanalyze'}
-                            </button>
-                            <button
-                              onClick={() => reanalyzeSurvey(selectedSurvey.id, 'softer')}
-                              disabled={isGeneratingAnalysis}
-                              className="px-4 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors font-medium flex items-center disabled:opacity-50"
-                            >
-                              Reanalyze (Softer Tone)
-                            </button>
-                          </>
-                        )}
-                        <button
-                          onClick={() => resolveNeedsReview(selectedSurvey.id)}
-                          className="px-4 py-2 bg-green-100 text-green-700 border border-green-300 rounded-md hover:bg-green-200 transition-colors font-medium flex items-center"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Resolve Review
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Bottom row: Standard actions */}
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    {(() => {
-                      const targetStatus = selectedSurvey.status === 'finalized' ? 'Completed' :
-                                          selectedSurvey.status === 'completed' ? 'In Progress' : 'Draft';
-                      return (
-                        <Tooltip content={`Move 360° to ${targetStatus} status`}>
-                          <button
-                            onClick={() => sendBackward(selectedSurvey.id)}
-                            className="text-gray-600 hover:text-gray-800 transition-colors font-medium flex items-center"
-                          >
-                            <ChevronLeft className="w-4 h-4 mr-2" />
-                            Send Backward
-                          </button>
-                        </Tooltip>
-                      );
-                    })()}
-                    <div className="flex items-center gap-6">
-                      {selectedSurvey.status === 'completed' && (currentUser?.app_role === 'admin' || isSponsor) && (
-                        <Tooltip content={selectedSurvey.flagged_for_reanalysis
-                          ? "This survey has already been flagged for HR review"
-                          : "Flag this survey for HR to review and regenerate the analysis before finalizing"}>
-                          <button
-                            onClick={() => sendToHRForReanalysis(selectedSurvey.id)}
-                            disabled={!!selectedSurvey.flagged_for_reanalysis}
-                            className={`font-medium transition-colors ${
-                              selectedSurvey.flagged_for_reanalysis
-                                ? 'text-green-600 cursor-not-allowed opacity-75'
-                                : 'text-red-600 hover:text-red-800'
-                            }`}
-                          >
-                            {selectedSurvey.flagged_for_reanalysis ? 'Sent to HR' : 'Send to HR for Reanalysis'}
-                          </button>
-                        </Tooltip>
-                      )}
                       <button
-                        onClick={() => setIsResultsModalOpen(false)}
-                        className="px-6 py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium"
+                        onClick={() => resolveNeedsReview(selectedSurvey.id)}
+                        className="px-4 py-2 bg-green-100 text-green-700 border border-green-300 rounded-md hover:bg-green-200 transition-colors font-medium flex items-center"
                       >
-                        Close
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Resolve Review
                       </button>
-                      {selectedSurvey.status !== 'finalized' && (
-                        <Tooltip content="Finalize this survey and lock all results">
-                          <button
-                            onClick={() => finalizeSurvey(selectedSurvey.id)}
-                            disabled={!!selectedSurvey.flagged_for_reanalysis}
-                            className={`px-6 py-3 bg-blue-600 text-white rounded-md font-medium flex items-center ${
-                              selectedSurvey.flagged_for_reanalysis
-                                ? 'opacity-50 cursor-not-allowed'
-                                : 'hover:bg-blue-700 transition-colors'
-                            }`}
-                          >
-                            <ArrowDownCircle className="w-4 h-4 mr-2" />
-                            Finalize
-                          </button>
-                        </Tooltip>
-                      )}
                     </div>
                   </div>
                 </div>
