@@ -1,8 +1,8 @@
 /**
  * Survey Analyzer Service
  *
- * Handles 360 survey analysis with automatic fallback from v2 (skill-based) to v1 (prompt-based).
- * Provides notification callbacks for monitoring which API version was used.
+ * Handles 360 survey analysis using v1 prompt-based approach.
+ * Supports optional citation tracking for admin audit trail.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -11,9 +11,14 @@ import type {
   Survey360Response,
   Survey360Participant,
   Survey360Report,
+  Survey360ReportWithCitations,
   SurveyQuestion,
 } from '../../types';
-import { surveyAnalyzerConfig, buildSurveyAnalyzerPrompt } from '../prompts';
+import {
+  surveyAnalyzerConfig,
+  buildSurveyAnalyzerPrompt,
+  buildSurveyAnalyzerPromptWithCitations,
+} from '../prompts';
 
 export interface AnalysisInput {
   survey: Survey360;
@@ -21,80 +26,61 @@ export interface AnalysisInput {
   participants: Survey360Participant[];
   questions: SurveyQuestion[];
   tone?: 'standard' | 'softer';
+  /** Enable citation tracking for audit trail */
+  enableCitations?: boolean;
 }
 
 export interface AnalysisResult {
   report: Omit<Survey360Report, 'id' | 'created_at' | 'updated_at'>;
   meta: {
-    version: 'v1-prompt' | 'v2-skill' | 'fallback';
+    version: 'v1-prompt' | 'v1-citations' | 'fallback';
     elapsedMs: number;
-    fallbackUsed?: boolean;
-    fallbackReason?: string;
   };
 }
 
-export type FallbackNotifyFn = (reason: string, originalError: string) => void;
-
-// Default no-op notification
-const defaultNotify: FallbackNotifyFn = () => {};
-
-// Environment flag to enable/disable v2 skill-based analysis
-const USE_SKILL_API = process.env.NEXT_PUBLIC_USE_SURVEY_ANALYZER_SKILL === 'true';
-const SKILL_ID = process.env.SURVEY_ANALYZER_SKILL_ID;
+export interface AnalysisResultWithCitations {
+  report: Omit<Survey360ReportWithCitations, 'id' | 'created_at' | 'updated_at'>;
+  /** Flattened list of all citations for database storage */
+  citations: Array<{
+    response_id: string;
+    section_type: 'theme' | 'strength' | 'development' | 'insight' | 'recommendation' | 'consensus' | 'outlier';
+    section_index: number;
+    statement_index: number;
+    snippet: string;
+    relevance_score?: number;
+  }>;
+  meta: {
+    version: 'v1-citations';
+    elapsedMs: number;
+    totalCitations: number;
+    citationCoverage: number; // 0-100, percentage of statements with citations
+  };
+}
 
 /**
- * Analyze survey responses with automatic fallback
+ * Analyze survey responses using v1 prompt-based approach
  */
-export async function analyzeSurveyWithFallback(
-  input: AnalysisInput,
-  onFallback: FallbackNotifyFn = defaultNotify
-): Promise<AnalysisResult> {
+export async function analyzeSurvey(input: AnalysisInput): Promise<AnalysisResult> {
   const startTime = Date.now();
 
-  // If skill API is disabled or no skill ID, go straight to v1
-  if (!USE_SKILL_API || !SKILL_ID) {
-    console.log('[surveyAnalyzerService] Skill API disabled, using v1 prompt');
-    return analyzeWithPrompt(input, startTime);
-  }
-
-  // Try v2 (skill-based) first
   try {
-    console.log('[surveyAnalyzerService] Attempting v2 skill-based analysis');
-    const v2Result = await analyzeWithSkill(input, startTime);
-    console.log('[surveyAnalyzerService] v2 skill analysis succeeded');
-    return v2Result;
+    console.log('[surveyAnalyzerService] Starting v1 prompt-based analysis');
+    return await analyzeWithPrompt(input, startTime);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const reason = 'v2 skill API failed';
-
-    console.warn('[surveyAnalyzerService] v2 failed, falling back to v1:', errorMessage);
-    onFallback(reason, errorMessage);
-
-    try {
-      const v1Result = await analyzeWithPrompt(input, startTime);
-      return {
-        ...v1Result,
-        meta: {
-          ...v1Result.meta,
-          fallbackUsed: true,
-          fallbackReason: reason,
-        },
-      };
-    } catch (v1Error) {
-      // Both failed - return fallback analysis
-      console.error('[surveyAnalyzerService] Both v2 and v1 failed');
-      return {
-        report: generateFallbackAnalysis(input),
-        meta: {
-          version: 'fallback',
-          elapsedMs: Date.now() - startTime,
-          fallbackUsed: true,
-          fallbackReason: 'Both v2 and v1 API calls failed',
-        },
-      };
-    }
+    console.error('[surveyAnalyzerService] v1 analysis failed:', error);
+    // Return fallback analysis
+    return {
+      report: generateFallbackAnalysis(input),
+      meta: {
+        version: 'fallback',
+        elapsedMs: Date.now() - startTime,
+      },
+    };
   }
 }
+
+// Keep the old name as an alias for backwards compatibility
+export const analyzeSurveyWithFallback = analyzeSurvey;
 
 /**
  * Analyze using v1 prompt-based approach
@@ -135,15 +121,15 @@ async function analyzeWithPrompt(input: AnalysisInput, startTime: number): Promi
   return {
     report: {
       survey_id: survey.id,
-      executive_summary: analysis.executive_summary || null,
-      themes: analysis.themes || [],
-      overall_strengths: analysis.overall_strengths || [],
-      development_areas: analysis.development_areas || [],
-      recommendations: analysis.recommendations || [],
-      sentiment_by_relationship: analysis.sentiment_by_relationship || {},
-      key_insights: analysis.key_insights || [],
-      consensus_areas: analysis.consensus_areas || [],
-      outlier_opinions: analysis.outlier_opinions || [],
+      executive_summary: analysis.executive_summary as string || null,
+      themes: analysis.themes as Survey360Report['themes'] || [],
+      overall_strengths: analysis.overall_strengths as string[] || [],
+      development_areas: analysis.development_areas as string[] || [],
+      recommendations: analysis.recommendations as string[] || [],
+      sentiment_by_relationship: analysis.sentiment_by_relationship as Record<string, number> || {},
+      key_insights: analysis.key_insights as string[] || [],
+      consensus_areas: analysis.consensus_areas as string[] || [],
+      outlier_opinions: analysis.outlier_opinions as string[] || [],
       generated_at: new Date().toISOString(),
       generated_by: surveyAnalyzerConfig.model,
     },
@@ -155,24 +141,24 @@ async function analyzeWithPrompt(input: AnalysisInput, startTime: number): Promi
 }
 
 /**
- * Analyze using v2 skill-based approach
+ * Analyze using v1 prompt-based approach WITH citation tracking.
+ * This generates a report where each statement is linked to source response IDs.
  */
-async function analyzeWithSkill(input: AnalysisInput, startTime: number): Promise<AnalysisResult> {
+export async function analyzeWithCitations(input: AnalysisInput): Promise<AnalysisResultWithCitations> {
+  const startTime = Date.now();
   const { survey, responses, participants, questions, tone = 'standard' } = input;
 
-  if (!SKILL_ID) {
-    throw new Error('SURVEY_ANALYZER_SKILL_ID not configured');
-  }
+  console.log('[surveyAnalyzerService] Starting citation-enabled analysis');
 
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
   });
 
-  const structuredResponses = prepareResponsesForAnalysis(responses, participants, questions);
+  // Use the response ID-enabled formatter
+  const structuredResponses = prepareResponsesForAnalysisWithIds(responses, participants, questions);
   const questionsFormatted = questions.map((q, i) => `${i + 1}. ${q.question} (${q.type})`).join('\n');
 
-  // Prepare skill input as JSON
-  const skillInput = JSON.stringify({
+  const prompt = buildSurveyAnalyzerPromptWithCitations({
     employeeName: survey.employee_name,
     surveyTitle: survey.survey_title,
     responseCount: responses.length,
@@ -181,74 +167,233 @@ async function analyzeWithSkill(input: AnalysisInput, startTime: number): Promis
     tone,
   });
 
-  // Call Claude with the custom skill
-  const response = await (anthropic.beta.messages.create as Function)({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 8192,
-    betas: ['code-execution-2025-08-25', 'skills-2025-10-02'],
-    container: {
-      skills: [
-        {
-          type: 'custom',
-          skill_id: SKILL_ID,
-          version: 'latest',
-        },
-      ],
-    },
-    messages: [
-      {
-        role: 'user',
-        content: `Analyze this 360 survey using the 360 Survey Analyzer skill.
-
-Input:
-${skillInput}
-
-Generate the analysis now. Return ONLY the JSON response.`,
-      },
-    ],
-    tools: [
-      {
-        type: 'code_execution_20250825',
-        name: 'code_execution',
-      },
-    ],
+  const response = await anthropic.messages.create({
+    model: surveyAnalyzerConfig.model,
+    max_tokens: surveyAnalyzerConfig.maxTokens,
+    temperature: surveyAnalyzerConfig.temperature,
+    messages: [{ role: 'user', content: prompt }],
   });
 
-  // Extract text from response
-  let fullText = '';
-  for (const block of response.content) {
-    if (block.type === 'text') {
-      fullText += block.text;
-    }
+  const content = response.content[0];
+  if (content.type !== 'text') {
+    throw new Error('Unexpected response type from Claude');
   }
 
-  // Extract JSON from skill response (may include reasoning)
-  const analysis = extractJsonFromSkillResponse(fullText);
+  const analysis = extractJsonFromResponse(content.text);
+
+  // Extract and flatten all citations for database storage
+  const flattenedCitations = extractCitationsFromAnalysis(analysis);
+
+  // Calculate citation coverage
+  const totalStatements = countStatements(analysis);
+  const statementsWithCitations = countStatementsWithCitations(analysis);
+  const citationCoverage = totalStatements > 0 ? Math.round((statementsWithCitations / totalStatements) * 100) : 0;
+
+  console.log(`[surveyAnalyzerService] Citation analysis complete: ${flattenedCitations.length} citations, ${citationCoverage}% coverage`);
 
   return {
     report: {
       survey_id: survey.id,
-      executive_summary: analysis.executive_summary || null,
-      themes: analysis.themes || [],
-      overall_strengths: analysis.overall_strengths || [],
-      development_areas: analysis.development_areas || [],
-      recommendations: analysis.recommendations || [],
-      sentiment_by_relationship: analysis.sentiment_by_relationship || {},
-      key_insights: analysis.key_insights || [],
-      consensus_areas: analysis.consensus_areas || [],
-      outlier_opinions: analysis.outlier_opinions || [],
+      executive_summary: analysis.executive_summary as string || null,
+      themes: analysis.themes as Survey360ReportWithCitations['themes'] || [],
+      overall_strengths: analysis.overall_strengths as Survey360ReportWithCitations['overall_strengths'] || [],
+      development_areas: analysis.development_areas as Survey360ReportWithCitations['development_areas'] || [],
+      recommendations: analysis.recommendations as Survey360ReportWithCitations['recommendations'] || [],
+      sentiment_by_relationship: analysis.sentiment_by_relationship as Record<string, number> || {},
+      key_insights: analysis.key_insights as Survey360ReportWithCitations['key_insights'] || [],
+      consensus_areas: analysis.consensus_areas as Survey360ReportWithCitations['consensus_areas'] || [],
+      outlier_opinions: analysis.outlier_opinions as Survey360ReportWithCitations['outlier_opinions'] || [],
       generated_at: new Date().toISOString(),
-      generated_by: 'claude-sonnet-4-5-20250929-skill',
+      generated_by: surveyAnalyzerConfig.model,
+      has_citations: true,
+      citation_version: '1.0',
+      total_citations: flattenedCitations.length,
+      citation_coverage: citationCoverage,
     },
+    citations: flattenedCitations,
     meta: {
-      version: 'v2-skill',
+      version: 'v1-citations',
       elapsedMs: Date.now() - startTime,
+      totalCitations: flattenedCitations.length,
+      citationCoverage,
     },
   };
 }
 
 /**
- * Extract JSON from v1 prompt response
+ * Extract citations from analysis result and flatten for database storage
+ */
+function extractCitationsFromAnalysis(analysis: Record<string, unknown>): AnalysisResultWithCitations['citations'] {
+  const citations: AnalysisResultWithCitations['citations'] = [];
+
+  // Helper to extract citations from CitedStatement arrays
+  const extractFromStatements = (
+    statements: unknown[],
+    sectionType: AnalysisResultWithCitations['citations'][0]['section_type']
+  ) => {
+    if (!Array.isArray(statements)) return;
+
+    statements.forEach((stmt, sectionIndex) => {
+      if (typeof stmt === 'object' && stmt !== null && 'citations' in stmt) {
+        const citedStmt = stmt as { text: string; citations?: Array<{ response_id: string; snippet: string; relevance_score?: number }> };
+        if (Array.isArray(citedStmt.citations)) {
+          citedStmt.citations.forEach((citation, statementIndex) => {
+            citations.push({
+              response_id: citation.response_id,
+              section_type: sectionType,
+              section_index: sectionIndex,
+              statement_index: statementIndex,
+              snippet: citation.snippet,
+              relevance_score: citation.relevance_score,
+            });
+          });
+        }
+      }
+    });
+  };
+
+  // Extract from themes (supporting_evidence may have citations)
+  if (Array.isArray(analysis.themes)) {
+    analysis.themes.forEach((theme: unknown, themeIndex: number) => {
+      if (typeof theme === 'object' && theme !== null && 'supporting_evidence' in theme) {
+        const themeObj = theme as { supporting_evidence?: unknown[] };
+        if (Array.isArray(themeObj.supporting_evidence)) {
+          themeObj.supporting_evidence.forEach((evidence, evidenceIndex) => {
+            if (typeof evidence === 'object' && evidence !== null && 'citations' in evidence) {
+              const citedEvidence = evidence as { text: string; citations?: Array<{ response_id: string; snippet: string; relevance_score?: number }> };
+              if (Array.isArray(citedEvidence.citations)) {
+                citedEvidence.citations.forEach((citation, citationIndex) => {
+                  citations.push({
+                    response_id: citation.response_id,
+                    section_type: 'theme',
+                    section_index: themeIndex,
+                    statement_index: evidenceIndex * 100 + citationIndex, // Composite index for theme evidence
+                    snippet: citation.snippet,
+                    relevance_score: citation.relevance_score,
+                  });
+                });
+              }
+            }
+          });
+        }
+      }
+    });
+  }
+
+  // Extract from other sections
+  extractFromStatements(analysis.overall_strengths as unknown[], 'strength');
+  extractFromStatements(analysis.development_areas as unknown[], 'development');
+  extractFromStatements(analysis.key_insights as unknown[], 'insight');
+  extractFromStatements(analysis.recommendations as unknown[], 'recommendation');
+  extractFromStatements(analysis.consensus_areas as unknown[], 'consensus');
+  extractFromStatements(analysis.outlier_opinions as unknown[], 'outlier');
+
+  return citations;
+}
+
+/**
+ * Count total statements in analysis
+ */
+function countStatements(analysis: Record<string, unknown>): number {
+  let count = 0;
+
+  const countArray = (arr: unknown) => {
+    if (Array.isArray(arr)) count += arr.length;
+  };
+
+  countArray(analysis.overall_strengths);
+  countArray(analysis.development_areas);
+  countArray(analysis.key_insights);
+  countArray(analysis.recommendations);
+  countArray(analysis.consensus_areas);
+  countArray(analysis.outlier_opinions);
+
+  // Count theme supporting evidence
+  if (Array.isArray(analysis.themes)) {
+    analysis.themes.forEach((theme: unknown) => {
+      if (typeof theme === 'object' && theme !== null && 'supporting_evidence' in theme) {
+        const themeObj = theme as { supporting_evidence?: unknown[] };
+        if (Array.isArray(themeObj.supporting_evidence)) {
+          count += themeObj.supporting_evidence.length;
+        }
+      }
+    });
+  }
+
+  return count;
+}
+
+/**
+ * Count statements that have citations
+ */
+function countStatementsWithCitations(analysis: Record<string, unknown>): number {
+  let count = 0;
+
+  const countCitedArray = (arr: unknown) => {
+    if (!Array.isArray(arr)) return;
+    arr.forEach((item) => {
+      if (typeof item === 'object' && item !== null && 'citations' in item) {
+        const cited = item as { citations?: unknown[] };
+        if (Array.isArray(cited.citations) && cited.citations.length > 0) {
+          count++;
+        }
+      }
+    });
+  };
+
+  countCitedArray(analysis.overall_strengths);
+  countCitedArray(analysis.development_areas);
+  countCitedArray(analysis.key_insights);
+  countCitedArray(analysis.recommendations);
+  countCitedArray(analysis.consensus_areas);
+  countCitedArray(analysis.outlier_opinions);
+
+  // Count theme supporting evidence with citations
+  if (Array.isArray(analysis.themes)) {
+    analysis.themes.forEach((theme: unknown) => {
+      if (typeof theme === 'object' && theme !== null && 'supporting_evidence' in theme) {
+        const themeObj = theme as { supporting_evidence?: unknown[] };
+        countCitedArray(themeObj.supporting_evidence);
+      }
+    });
+  }
+
+  return count;
+}
+
+/**
+ * Attempt to repair common JSON issues from AI responses
+ */
+function repairJson(text: string): string {
+  let repaired = text;
+
+  // Remove trailing commas before ] or }
+  repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
+  // Fix unescaped newlines in strings (common AI issue)
+  // This is tricky - we need to find strings and escape newlines within them
+  // For now, just replace literal newlines that aren't already escaped
+  repaired = repaired.replace(/([^\\])\\n/g, '$1\\\\n');
+
+  // Try to close unclosed arrays/objects at the end
+  const openBraces = (repaired.match(/\{/g) || []).length;
+  const closeBraces = (repaired.match(/\}/g) || []).length;
+  const openBrackets = (repaired.match(/\[/g) || []).length;
+  const closeBrackets = (repaired.match(/\]/g) || []).length;
+
+  // Add missing closing brackets/braces
+  for (let i = 0; i < openBrackets - closeBrackets; i++) {
+    repaired += ']';
+  }
+  for (let i = 0; i < openBraces - closeBraces; i++) {
+    repaired += '}';
+  }
+
+  return repaired;
+}
+
+/**
+ * Extract JSON from v1 prompt response with error recovery
  */
 function extractJsonFromResponse(text: string): Record<string, unknown> {
   let jsonText = text.trim();
@@ -265,70 +410,44 @@ function extractJsonFromResponse(text: string): Record<string, unknown> {
     }
   }
 
-  return JSON.parse(jsonText);
-}
+  // First attempt: parse as-is
+  try {
+    return JSON.parse(jsonText);
+  } catch (firstError) {
+    console.log('[extractJsonFromResponse] First parse attempt failed, trying repair...');
 
-/**
- * Extract JSON from v2 skill response (may include Claude's reasoning)
- */
-function extractJsonFromSkillResponse(fullText: string): Record<string, unknown> {
-  // Try code blocks first
-  const jsonBlockMatch = fullText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-  if (jsonBlockMatch) {
+    // Second attempt: try to repair common issues
     try {
-      return JSON.parse(jsonBlockMatch[1]);
-    } catch {
-      // Continue to other methods
-    }
-  }
+      const repaired = repairJson(jsonText);
+      return JSON.parse(repaired);
+    } catch (secondError) {
+      console.log('[extractJsonFromResponse] Repair attempt failed, trying truncation recovery...');
 
-  // Try to find JSON after common markers
-  const markers = [
-    /(?:here(?:'s| is) the (?:analysis|report|json)[:\s]*)\s*(\{[\s\S]*\})/i,
-    /(?:final (?:analysis|report|output)[:\s]*)\s*(\{[\s\S]*\})/i,
-    /(?:## (?:analysis|report|output)[:\s]*)\s*(\{[\s\S]*\})/i,
-  ];
-
-  for (const marker of markers) {
-    const match = fullText.match(marker);
-    if (match) {
-      try {
-        return JSON.parse(match[1]);
-      } catch {
-        // Continue to next marker
-      }
-    }
-  }
-
-  // Find the largest JSON object in the text
-  const jsonMatches = fullText.match(/\{[\s\S]*?\}/g);
-  if (jsonMatches) {
-    // Sort by length (largest first) and try to parse
-    const sorted = jsonMatches.sort((a, b) => b.length - a.length);
-    for (const jsonStr of sorted) {
-      try {
-        const parsed = JSON.parse(jsonStr);
-        // Verify it looks like our expected structure
-        if (parsed.executive_summary || parsed.themes || parsed.recommendations) {
-          return parsed;
+      // Third attempt: find the last complete object/array
+      // Look for the last valid closing brace that makes valid JSON
+      for (let i = jsonText.length - 1; i > jsonText.length / 2; i--) {
+        if (jsonText[i] === '}') {
+          const truncated = jsonText.substring(0, i + 1);
+          const repaired = repairJson(truncated);
+          try {
+            const result = JSON.parse(repaired);
+            console.log('[extractJsonFromResponse] Recovered JSON by truncating at position', i);
+            return result;
+          } catch {
+            // Continue searching
+          }
         }
-      } catch {
-        // Continue to next match
       }
+
+      // If all else fails, throw the original error
+      console.error('[extractJsonFromResponse] All recovery attempts failed');
+      throw firstError;
     }
   }
-
-  // Last resort: try to parse the whole thing
-  const cleanedText = fullText.match(/\{[\s\S]*\}/);
-  if (cleanedText) {
-    return JSON.parse(cleanedText[0]);
-  }
-
-  throw new Error('Could not extract JSON from skill response');
 }
 
 /**
- * Prepare responses for analysis (same as original)
+ * Prepare responses for analysis (original format without response IDs)
  */
 function prepareResponsesForAnalysis(
   responses: Survey360Response[],
@@ -379,10 +498,64 @@ function prepareResponsesForAnalysis(
 }
 
 /**
- * Generate fallback analysis if both APIs fail
+ * Prepare responses for analysis WITH response IDs for citation tracking.
+ * Each answer includes a [response_id: uuid] marker that Claude can reference.
+ */
+function prepareResponsesForAnalysisWithIds(
+  responses: Survey360Response[],
+  participants: Survey360Participant[],
+  questions: SurveyQuestion[]
+): string {
+  const participantMap = new Map(participants.map((p) => [p.id, p]));
+
+  const byRelationship: Record<string, Array<{ participant: Survey360Participant; response: Survey360Response }>> = {};
+
+  responses.forEach((response) => {
+    const participant = participantMap.get(response.participant_id);
+    if (!participant) return;
+
+    if (!byRelationship[participant.relationship]) {
+      byRelationship[participant.relationship] = [];
+    }
+    byRelationship[participant.relationship].push({ participant, response });
+  });
+
+  let output = '';
+
+  Object.entries(byRelationship).forEach(([relationship, items]) => {
+    output += `\n### ${relationship.toUpperCase()} (${items.length} response${items.length !== 1 ? 's' : ''})\n\n`;
+
+    items.forEach((item, index) => {
+      // Include the response ID for citation tracking
+      output += `**${relationship.charAt(0).toUpperCase() + relationship.slice(1)} #${index + 1}:**\n`;
+      output += `[response_id: ${item.response.id}]\n`;
+
+      questions.forEach((question) => {
+        const answer = item.response.responses[question.id];
+        if (answer !== undefined && answer !== null && answer !== '') {
+          output += `Q: ${question.question}\n`;
+
+          if (question.type === 'rating') {
+            output += `A: ${answer}/${question.scale_max || 5}\n`;
+          } else if (question.type === 'text') {
+            output += `A: "${answer}"\n`;
+          } else if (question.type === 'multiple_choice') {
+            output += `A: ${answer}\n`;
+          }
+          output += '\n';
+        }
+      });
+    });
+  });
+
+  return output;
+}
+
+/**
+ * Generate fallback analysis if API fails
  */
 function generateFallbackAnalysis(input: AnalysisInput): Omit<Survey360Report, 'id' | 'created_at' | 'updated_at'> {
-  const { survey, responses, participants } = input;
+  const { survey, responses } = input;
 
   return {
     survey_id: survey.id,
@@ -395,21 +568,17 @@ function generateFallbackAnalysis(input: AnalysisInput): Omit<Survey360Report, '
         relationships_mentioned: [],
       },
     ],
-    overall_strengths: ['Received feedback from multiple perspectives'],
-    development_areas: ['Detailed analysis requires AI processing'],
-    recommendations: ['Review individual responses for detailed insights', 'Consider re-running AI analysis'],
-    sentiment_by_relationship: { overall: 0.5 },
-    key_insights: [`Collected ${responses.length} responses from ${participants.length} participants`],
+    overall_strengths: ['Analysis temporarily unavailable - please regenerate report'],
+    development_areas: ['Analysis temporarily unavailable - please regenerate report'],
+    recommendations: ['Please regenerate the report to receive AI-powered analysis'],
+    sentiment_by_relationship: {
+      overall: 3,
+    },
+    key_insights: ['Survey data collected from ' + responses.length + ' reviewers'],
     consensus_areas: [],
     outlier_opinions: [],
+    executive_summary: 'Report generation encountered an issue. Please try regenerating the report.',
     generated_at: new Date().toISOString(),
-    generated_by: 'fallback-analyzer',
+    generated_by: 'fallback',
   };
-}
-
-/**
- * Check if skill API is enabled
- */
-export function isSkillApiEnabled(): boolean {
-  return USE_SKILL_API && !!SKILL_ID;
 }

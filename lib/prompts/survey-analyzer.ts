@@ -1,8 +1,12 @@
 /**
  * 360 Survey Analyzer Prompt
  *
- * Used by: lib/survey360Analyzer.ts
+ * Used by: lib/survey360Analyzer.ts, lib/services/surveyAnalyzerService.ts
  * Purpose: Analyze 360 survey responses to identify themes, insights, and recommendations
+ *
+ * Version History:
+ * - v1: Original prompt without citations (buildSurveyAnalyzerPrompt)
+ * - v2: With citation support for audit trail (buildSurveyAnalyzerPromptWithCitations)
  */
 
 export const surveyAnalyzerConfig = {
@@ -18,6 +22,12 @@ interface SurveyAnalyzerPromptParams {
   questionsFormatted: string;
   structuredResponses: string;
   tone?: 'standard' | 'softer';
+}
+
+/** Extended params for citation-enabled prompt */
+interface SurveyAnalyzerPromptWithCitationsParams extends SurveyAnalyzerPromptParams {
+  /** Structured responses must include [response_id: uuid] markers for each answer */
+  structuredResponses: string;
 }
 
 export function buildSurveyAnalyzerPrompt({
@@ -132,5 +142,139 @@ ANALYSIS GUIDELINES:
 ABSOLUTELY MAINTAIN STRICT ANONYMITY: Never reveal who said what, how many people in each role responded, or any breakdown by relationship type.`;
 }
 
+/**
+ * Build survey analyzer prompt WITH citation support.
+ * Each statement in the output will include citations linking back to source response IDs.
+ * This enables the audit trail feature for HR admins.
+ *
+ * IMPORTANT: The structuredResponses input MUST include [response_id: uuid] markers
+ * for each answer so Claude can reference them in citations.
+ */
+export function buildSurveyAnalyzerPromptWithCitations({
+  employeeName,
+  surveyTitle,
+  responseCount,
+  questionsFormatted,
+  structuredResponses,
+  tone = 'standard',
+}: SurveyAnalyzerPromptWithCitationsParams): string {
+  const toneGuidance =
+    tone === 'softer'
+      ? '\n\nTONE GUIDANCE: Use a supportive and constructive tone. Frame challenges as growth opportunities. Balance criticism with encouragement. Focus on potential and progress rather than deficiencies. Use phrases like "opportunity to enhance" rather than "weakness" or "needs improvement".'
+      : '';
 
+  return `You are an expert organizational psychologist specializing in 360-degree feedback analysis. Analyze these survey responses to identify themes, patterns, and actionable insights.${toneGuidance}
+
+EMPLOYEE BEING REVIEWED: ${employeeName}
+SURVEY TITLE: ${surveyTitle}
+TOTAL RESPONSES: ${responseCount}
+
+SURVEY QUESTIONS:
+${questionsFormatted}
+
+RESPONSES BY RELATIONSHIP TYPE (each answer includes a response_id for citation tracking):
+${structuredResponses}
+
+IMPORTANT: Respond ONLY with valid JSON. For EVERY statement you generate, you MUST include citations that reference the specific response_ids from the input data.
+
+Return exactly this structure:
+
+{
+  "executive_summary": "A concise 2-3 sentence overview using ${employeeName}'s name...",
+  "themes": [
+    {
+      "theme": "Concise theme name",
+      "sentiment": "positive",
+      "frequency": 5,
+      "supporting_evidence": [
+        {
+          "text": "Synthesized observation (paraphrased, NOT a direct quote)",
+          "citations": [
+            {
+              "response_id": "uuid-from-input-data",
+              "snippet": "20-50 word relevant excerpt from the original response"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "overall_strengths": [
+    {
+      "text": "Synthesized strength statement",
+      "citations": [
+        { "response_id": "uuid", "snippet": "relevant excerpt" }
+      ]
+    }
+  ],
+  "development_areas": [
+    {
+      "text": "Area for improvement",
+      "citations": [{ "response_id": "uuid", "snippet": "relevant excerpt" }]
+    }
+  ],
+  "recommendations": [
+    {
+      "text": "Actionable recommendation",
+      "citations": [{ "response_id": "uuid", "snippet": "relevant excerpt" }]
+    }
+  ],
+  "sentiment_by_relationship": {
+    "overall": 0.84,
+    "manager": 0.85,
+    "peer": 0.78,
+    "direct_report": 0.92,
+    "cross_functional": 0.80
+  },
+  "key_insights": [
+    {
+      "text": "Important pattern or insight",
+      "citations": [{ "response_id": "uuid", "snippet": "relevant excerpt" }]
+    }
+  ],
+  "consensus_areas": [
+    {
+      "text": "Area of broad agreement",
+      "citations": [{ "response_id": "uuid", "snippet": "relevant excerpt" }]
+    }
+  ],
+  "outlier_opinions": [
+    {
+      "text": "Unique perspective worth noting",
+      "citations": [{ "response_id": "uuid", "snippet": "relevant excerpt" }]
+    }
+  ]
+}
+
+CITATION REQUIREMENTS:
+1. Every statement MUST have at least one citation
+2. The "response_id" MUST exactly match a response_id from the input data
+3. The "snippet" should be a 20-50 word excerpt that is relevant to the statement
+4. Extract the most relevant portion of the response, not the entire text
+5. Multiple citations are encouraged when a statement synthesizes multiple responses
+
+CRITICAL - ANONYMITY & AGGREGATION REQUIREMENTS:
+- NEVER include direct quotes verbatim in the "text" field - always paraphrase
+- The "snippet" field CAN contain direct excerpts (this is for audit purposes only)
+- NEVER mention specific relationship types like "manager said" in the "text" field
+- NEVER provide counts by relationship type in the "text" field
+- Combine ALL feedback into unified, anonymized observations
+- Use general attributions: "Feedback indicated...", "Multiple reviewers noted...", "A common theme..."
+
+ANALYSIS GUIDELINES:
+1. **Executive Summary**: 2-3 sentences using ${employeeName}'s name, highlighting top strengths and development areas
+2. **Themes**: Identify 5-8 major themes with sentiment and supporting evidence
+3. **Strengths**: 3-5 clear strengths synthesized from feedback
+4. **Development Areas**: 3-5 growth opportunities
+5. **Recommendations**: 4-6 specific, actionable steps
+6. **Key Insights**: 3-5 important patterns
+7. **Consensus**: Areas of broad agreement
+8. **Outliers**: Unique perspectives (without relationship attribution)
+
+SENTIMENT SCORES (0-1 scale):
+- Calculate overall and per-relationship scores based on tone and constructiveness
+- Only include relationship keys that have responses
+
+ABSOLUTELY MAINTAIN STRICT ANONYMITY in the "text" fields. The "snippet" citations are for HR audit only.`;
+}
 

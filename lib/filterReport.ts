@@ -2,11 +2,48 @@
  * Report Filtering Utilities
  *
  * Provides role-based data filtering for 360 feedback reports:
- * - Sponsors/Admins: See full report with relationship breakdowns
- * - Subjects: See anonymized report with only aggregated data
+ * - Sponsors/Admins: See full report with relationship breakdowns and citations
+ * - Subjects: See anonymized report with only aggregated data (no citations)
  */
 
 import type { Feedback360Report } from './schema';
+
+/**
+ * Strip citation data from a CitedStatement array, leaving only the text
+ */
+function stripCitationsFromStatements(statements: any[]): string[] {
+  if (!Array.isArray(statements)) return [];
+
+  return statements.map((item) => {
+    // If it's a CitedStatement object with text property, extract just the text
+    if (typeof item === 'object' && item !== null && 'text' in item) {
+      return item.text;
+    }
+    // If it's already a string, return as-is
+    return item;
+  });
+}
+
+/**
+ * Strip citation data from themes
+ */
+function stripCitationsFromThemes(themes: any[]): any[] {
+  if (!Array.isArray(themes)) return [];
+
+  return themes.map((theme) => ({
+    ...theme,
+    relationships_mentioned: undefined,
+    // Convert supporting_evidence from CitedStatement[] to string[]
+    supporting_evidence: Array.isArray(theme.supporting_evidence)
+      ? theme.supporting_evidence.map((evidence: any) => {
+          if (typeof evidence === 'object' && evidence !== null && 'text' in evidence) {
+            return evidence.text;
+          }
+          return evidence;
+        })
+      : theme.supporting_evidence || [],
+  }));
+}
 
 /**
  * Filter report data for subject view
@@ -15,6 +52,7 @@ import type { Feedback360Report } from './schema';
  * to sponsors and admins:
  * - Per-relationship sentiment scores (manager, peer, direct_report, cross_functional)
  * - Relationship attributions in themes
+ * - All citation data (subjects should not have access to audit mode)
  *
  * @param fullReport - The complete report with all data
  * @returns Filtered report suitable for subject viewing
@@ -31,15 +69,24 @@ export function filterReportForSubject(
     sentiment_by_relationship: {
       overall: fullReport.sentiment_by_relationship?.overall || 0,
     },
-    // Remove relationship attributions from themes
-    themes: fullReport.themes?.map((theme) => ({
-      ...theme,
-      relationships_mentioned: undefined,
-    })) || [],
+    // Remove relationship attributions and citations from themes
+    themes: stripCitationsFromThemes(fullReport.themes || []),
+    // Strip citations from all statement arrays (convert CitedStatement[] to string[])
+    overall_strengths: stripCitationsFromStatements(fullReport.overall_strengths || []),
+    development_areas: stripCitationsFromStatements(fullReport.development_areas || []),
+    recommendations: stripCitationsFromStatements(fullReport.recommendations || []),
+    key_insights: stripCitationsFromStatements(fullReport.key_insights || []),
+    consensus_areas: stripCitationsFromStatements(fullReport.consensus_areas || []),
+    outlier_opinions: stripCitationsFromStatements(fullReport.outlier_opinions || []),
+    // Remove citation metadata
+    has_citations: false,
+    citation_version: undefined,
+    total_citations: undefined,
+    citation_coverage: undefined,
   };
 
   console.log('[filterReport] After - sentiment_by_relationship keys:', Object.keys(filtered.sentiment_by_relationship || {}));
-  console.log('[filterReport] After - sentiment_by_relationship:', JSON.stringify(filtered.sentiment_by_relationship));
+  console.log('[filterReport] After - citations stripped for subject view');
 
   return filtered;
 }

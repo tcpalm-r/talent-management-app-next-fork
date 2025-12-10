@@ -339,6 +339,61 @@ export interface Survey360WithDetails extends Survey360 {
   completion_percentage?: number;
 }
 
+// ==================== Citation Types for AI Audit Trail ====================
+
+/**
+ * A citation reference linking a report statement back to source response data.
+ * Designed to be anonymous - contains only the text snippet, no attribution.
+ */
+export interface Citation {
+  response_id: string;        // UUID for internal tracking (not shown to users)
+  snippet: string;            // 20-50 word relevant excerpt from the original response
+  relevance_score?: number;   // 0-1, how relevant this citation is to the statement
+}
+
+/**
+ * A synthesized statement with citations to source responses.
+ * Used throughout the report to enable audit trail functionality.
+ */
+export interface CitedStatement {
+  text: string;               // The AI-synthesized/paraphrased statement
+  citations: Citation[];      // Source response snippets that informed this statement
+}
+
+/**
+ * Extended theme analysis with citation support.
+ * Each supporting_evidence item now includes citations.
+ */
+export interface CitedThemeAnalysis {
+  theme: string;
+  sentiment: SentimentType;
+  frequency: number;
+  supporting_evidence: CitedStatement[];  // Now CitedStatement[] instead of string[]
+  relationships_mentioned: ParticipantRelationship[];
+}
+
+/**
+ * Extended Survey360Report with full citation support.
+ * All text arrays are now CitedStatement arrays for auditability.
+ */
+export interface Survey360ReportWithCitations extends Omit<Survey360Report,
+  'themes' | 'overall_strengths' | 'development_areas' | 'recommendations' |
+  'key_insights' | 'consensus_areas' | 'outlier_opinions'> {
+  themes: CitedThemeAnalysis[];
+  overall_strengths: CitedStatement[];
+  development_areas: CitedStatement[];
+  recommendations: CitedStatement[];
+  key_insights: CitedStatement[];
+  consensus_areas: CitedStatement[];
+  outlier_opinions: CitedStatement[];
+
+  // Citation metadata
+  has_citations: boolean;
+  citation_version?: string;        // Schema version for future compatibility
+  total_citations?: number;         // Total citations in report
+  citation_coverage?: number;       // Percentage of statements with citations (0-100)
+}
+
 // One-on-One Meeting Types
 export type OneOnOneMeetingStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
 export type OneOnOneMeetingType = 'regular' | 'performance' | 'development' | 'check_in' | 'other';

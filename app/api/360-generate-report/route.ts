@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { analyzeSurveyWithFallback } from '@/lib/services/surveyAnalyzerService';
+import {
+  analyzeSurveyWithFallback,
+  analyzeWithCitations,
+  AnalysisResultWithCitations,
+} from '@/lib/services/surveyAnalyzerService';
 import { filterReportForSubject } from '@/lib/filterReport';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 import type { Database } from '@/types/supabase';
@@ -69,7 +73,7 @@ function determineViewerRole(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { survey_id, tone = 'standard' } = body;
+    const { survey_id, tone = 'standard', enable_citations = false } = body;
 
     if (!survey_id) {
       return NextResponse.json({ error: 'survey_id is required' }, { status: 400 });
@@ -286,27 +290,55 @@ export async function POST(req: NextRequest) {
     };
 
     // ========================================================================
-    // STEP 7: Call AI analyzer
+    // STEP 7: Call AI analyzer (with or without citations)
     // ========================================================================
 
     console.log('🤖 Calling AI analyzer for survey:', survey_id);
     console.log('   - Participants:', participants.length);
     console.log('   - Responses:', transformedResponses.length);
     console.log('   - Questions:', questions.length);
+    console.log('   - Citations enabled:', enable_citations);
 
-    const { report: analysisResult, meta: analysisMeta } = await analyzeSurveyWithFallback({
-      survey: surveyData,
-      responses: transformedResponses,
-      participants: participants,
-      questions: questions,
-      tone: tone,
-    });
+    let analysisResult: any;
+    let analysisMeta: any;
+    let citations: AnalysisResultWithCitations['citations'] | null = null;
 
-    console.log('✅ AI analysis complete');
-    console.log(`   - API version: ${analysisMeta.version}`);
-    console.log(`   - Elapsed: ${analysisMeta.elapsedMs}ms`);
-    if (analysisMeta.fallbackUsed) {
-      console.log(`   - Fallback used: ${analysisMeta.fallbackReason}`);
+    if (enable_citations) {
+      // Use citation-enabled analyzer
+      const citationResult = await analyzeWithCitations({
+        survey: surveyData,
+        responses: transformedResponses,
+        participants: participants,
+        questions: questions,
+        tone: tone,
+      });
+      analysisResult = citationResult.report;
+      analysisMeta = citationResult.meta;
+      citations = citationResult.citations;
+
+      console.log('✅ AI analysis complete (with citations)');
+      console.log(`   - API version: ${analysisMeta.version}`);
+      console.log(`   - Elapsed: ${analysisMeta.elapsedMs}ms`);
+      console.log(`   - Total citations: ${analysisMeta.totalCitations}`);
+      console.log(`   - Citation coverage: ${analysisMeta.citationCoverage}%`);
+    } else {
+      // Use standard analyzer with fallback
+      const standardResult = await analyzeSurveyWithFallback({
+        survey: surveyData,
+        responses: transformedResponses,
+        participants: participants,
+        questions: questions,
+        tone: tone,
+      });
+      analysisResult = standardResult.report;
+      analysisMeta = standardResult.meta;
+
+      console.log('✅ AI analysis complete');
+      console.log(`   - API version: ${analysisMeta.version}`);
+      console.log(`   - Elapsed: ${analysisMeta.elapsedMs}ms`);
+      if (analysisMeta.fallbackUsed) {
+        console.log(`   - Fallback used: ${analysisMeta.fallbackReason}`);
+      }
     }
 
     // ========================================================================
@@ -315,34 +347,76 @@ export async function POST(req: NextRequest) {
 
     console.log('💾 Saving report to database...');
 
-    const { error: upsertError } = await supabaseAdmin
+    // Build report data with optional citation metadata
+    const reportData: any = {
+      survey_id: survey_id,
+      executive_summary: analysisResult.executive_summary || null,
+      themes: analysisResult.themes as any || [],
+      overall_strengths: analysisResult.overall_strengths || [],
+      development_areas: analysisResult.development_areas || [],
+      recommendations: analysisResult.recommendations || [],
+      sentiment_by_relationship: analysisResult.sentiment_by_relationship as any || {},
+      key_insights: analysisResult.key_insights || [],
+      consensus_areas: analysisResult.consensus_areas || [],
+      outlier_opinions: analysisResult.outlier_opinions || [],
+      generated_by: analysisResult.generated_by || 'claude-sonnet-4',
+      generated_at: analysisResult.generated_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Add citation metadata if citations are enabled
+    if (enable_citations && citations) {
+      reportData.has_citations = true;
+      reportData.citation_version = '1.0';
+      reportData.total_citations = citations.length;
+      reportData.citation_coverage = analysisMeta.citationCoverage || 0;
+    }
+
+    const { data: savedReport, error: upsertError } = await supabaseAdmin
       .from('feedback_360_reports')
-      .upsert(
-        {
-          survey_id: survey_id,
-          executive_summary: analysisResult.executive_summary || null,
-          themes: analysisResult.themes as any || [],
-          overall_strengths: analysisResult.overall_strengths || [],
-          development_areas: analysisResult.development_areas || [],
-          recommendations: analysisResult.recommendations || [],
-          sentiment_by_relationship: analysisResult.sentiment_by_relationship as any || {},
-          key_insights: analysisResult.key_insights || [],
-          consensus_areas: analysisResult.consensus_areas || [],
-          outlier_opinions: analysisResult.outlier_opinions || [],
-          generated_by: analysisResult.generated_by || 'claude-sonnet-4',
-          generated_at: analysisResult.generated_at || new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        } as any,
-        {
-          onConflict: 'survey_id',
-        }
-      );
+      .upsert(reportData, { onConflict: 'survey_id' })
+      .select('id')
+      .single();
 
     if (upsertError) {
       console.error('Error saving report to database:', upsertError);
       // Don't fail the entire request - return the report anyway
     } else {
       console.log('✅ Report saved to database successfully');
+
+      // ========================================================================
+      // STEP 8b: Save citations to junction table
+      // ========================================================================
+      if (citations && citations.length > 0 && savedReport?.id) {
+        console.log(`💾 Saving ${citations.length} citations...`);
+
+        // First, delete any existing citations for this report
+        await supabaseAdmin
+          .from('feedback_360_report_citations')
+          .delete()
+          .eq('report_id', savedReport.id);
+
+        // Insert new citations
+        const citationRecords = citations.map(citation => ({
+          report_id: savedReport.id,
+          response_id: citation.response_id,
+          section_type: citation.section_type,
+          section_index: citation.section_index,
+          statement_index: citation.statement_index,
+          snippet: citation.snippet,
+          relevance_score: citation.relevance_score || null,
+        }));
+
+        const { error: citationsError } = await supabaseAdmin
+          .from('feedback_360_report_citations')
+          .insert(citationRecords);
+
+        if (citationsError) {
+          console.error('Error saving citations:', citationsError);
+        } else {
+          console.log(`✅ ${citations.length} citations saved successfully`);
+        }
+      }
     }
 
     // ========================================================================
@@ -373,12 +447,20 @@ export async function POST(req: NextRequest) {
     }
     // Sponsors and admins see full report (no filtering needed)
 
+    // Include citation info in response for sponsors/admins
+    const hasCitations = enable_citations && citations && citations.length > 0;
+
     return NextResponse.json({
       success: true,
       report: filteredReport,
       viewerRole: generatorRole, // Include viewer role for debugging/frontend awareness
       message: 'AI analysis completed successfully',
       meta: analysisMeta, // Include API version info for frontend notification
+      citationInfo: hasCitations && generatorRole !== 'subject' ? {
+        hasCitations: true,
+        totalCitations: citations?.length || 0,
+        citationCoverage: analysisMeta.citationCoverage || 0,
+      } : undefined,
     });
 
   } catch (error: any) {

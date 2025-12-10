@@ -6,6 +6,20 @@
 
 import jsPDF from 'jspdf';
 
+// Type for statements that may be strings or CitedStatement objects
+type StatementOrCited = string | { text: string; citations?: any[] };
+
+// Helper function to extract text from either a plain string or CitedStatement object
+const getStatementText = (item: StatementOrCited): string => {
+  if (typeof item === 'string') {
+    return item;
+  }
+  if (item && typeof item === 'object' && 'text' in item) {
+    return item.text;
+  }
+  return String(item);
+};
+
 interface Report360Data {
   survey_name: string;
   employee_name: string;
@@ -17,16 +31,16 @@ interface Report360Data {
     theme: string;
     sentiment: string;
     frequency: number;
-    supporting_evidence?: string[];
+    supporting_evidence?: StatementOrCited[];
     relationships_mentioned?: string[];
   }>;
-  overall_strengths?: string[];
-  development_areas?: string[];
-  recommendations?: string[];
-  key_insights?: string[];
+  overall_strengths?: StatementOrCited[];
+  development_areas?: StatementOrCited[];
+  recommendations?: StatementOrCited[];
+  key_insights?: StatementOrCited[];
   sentiment_by_relationship?: Record<string, number>;
-  consensus_areas?: string[];
-  outlier_opinions?: string[];
+  consensus_areas?: StatementOrCited[];
+  outlier_opinions?: StatementOrCited[];
 }
 
 /**
@@ -217,7 +231,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
         pdf.setFontSize(9);
         theme.supporting_evidence.slice(0, 2).forEach(evidence => {
           checkPageBreak(15);
-          const height = addWrappedText(evidence, margin + 8, yPosition, contentWidth - 8, 9);
+          const height = addWrappedText(getStatementText(evidence), margin + 8, yPosition, contentWidth - 8, 9);
           yPosition += height + 3;
         });
       }
@@ -245,7 +259,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
 
     report.overall_strengths.forEach((strength, idx) => {
       checkPageBreak(15);
-      const height = addWrappedText(`• ${strength}`, margin + 5, yPosition, contentWidth - 5, 10);
+      const height = addWrappedText(`• ${getStatementText(strength)}`, margin + 5, yPosition, contentWidth - 5, 10);
       yPosition += height + 3;
     });
 
@@ -270,7 +284,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
 
     report.development_areas.forEach((area, idx) => {
       checkPageBreak(15);
-      const height = addWrappedText(`• ${area}`, margin + 5, yPosition, contentWidth - 5, 10);
+      const height = addWrappedText(`• ${getStatementText(area)}`, margin + 5, yPosition, contentWidth - 5, 10);
       yPosition += height + 3;
     });
 
@@ -295,7 +309,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
 
     report.key_insights.forEach((insight, idx) => {
       checkPageBreak(15);
-      const height = addWrappedText(`• ${insight}`, margin + 5, yPosition, contentWidth - 5, 10);
+      const height = addWrappedText(`• ${getStatementText(insight)}`, margin + 5, yPosition, contentWidth - 5, 10);
       yPosition += height + 3;
     });
 
@@ -320,7 +334,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
 
     report.recommendations.forEach((rec, idx) => {
       checkPageBreak(15);
-      const height = addWrappedText(`${idx + 1}. ${rec}`, margin + 5, yPosition, contentWidth - 5, 10);
+      const height = addWrappedText(`${idx + 1}. ${getStatementText(rec)}`, margin + 5, yPosition, contentWidth - 5, 10);
       yPosition += height + 3;
     });
 
@@ -440,7 +454,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
 
     report.consensus_areas.forEach(area => {
       checkPageBreak(10);
-      const height = addWrappedText(`• ${area}`, margin + 5, yPosition, contentWidth - 5, 9);
+      const height = addWrappedText(`• ${getStatementText(area)}`, margin + 5, yPosition, contentWidth - 5, 9);
       yPosition += height + 2;
     });
 
@@ -462,7 +476,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
 
     report.outlier_opinions.forEach(opinion => {
       checkPageBreak(10);
-      const height = addWrappedText(`• ${opinion}`, margin + 5, yPosition, contentWidth - 5, 9);
+      const height = addWrappedText(`• ${getStatementText(opinion)}`, margin + 5, yPosition, contentWidth - 5, 9);
       yPosition += height + 2;
     });
   }

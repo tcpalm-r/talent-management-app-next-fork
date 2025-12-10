@@ -7,6 +7,8 @@ import Avatar from './Avatar';
 import { useToast, Tooltip, TooltipProvider } from './unified';
 import NavigationTabs from './unified/NavigationTabs';
 import { exportReportAsPDF } from '../lib/exportReport';
+import { AuditModeToggle } from './AuditModeToggle';
+import { InlineCitation } from './InlineCitation';
 import { fetchWithFallback, fetchWithValidation } from '@/lib/api-client';
 import {
   SurveyListResponseSchema,
@@ -97,6 +99,69 @@ const isUserSponsor = (
   return isSponsor;
 };
 
+// Helper function to extract text from either a plain string or CitedStatement object
+// This handles backward compatibility with old reports (plain strings) and new reports (CitedStatement objects)
+// Type for citation data
+interface CitationData {
+  response_id?: string;
+  snippet: string;
+}
+
+// Type for items that may have citations
+type CitedItem = string | { text: string; citations?: CitationData[] };
+
+/**
+ * Extract text from a statement that may be:
+ * - A plain string
+ * - A CitedStatement object { text, citations }
+ * - A JSON string that needs parsing
+ */
+const getStatementText = (item: CitedItem): string => {
+  if (typeof item === 'string') {
+    // Check if it's a JSON string that needs parsing
+    if (item.startsWith('{') && item.includes('"text"')) {
+      try {
+        const parsed = JSON.parse(item);
+        if (parsed && typeof parsed === 'object' && 'text' in parsed) {
+          return parsed.text;
+        }
+      } catch {
+        // Not valid JSON, return as-is
+      }
+    }
+    return item;
+  }
+  if (item && typeof item === 'object' && 'text' in item) {
+    return item.text;
+  }
+  return String(item);
+};
+
+/**
+ * Extract citations from a statement item.
+ * Returns empty array if no citations exist.
+ */
+const getCitations = (item: CitedItem): CitationData[] => {
+  if (typeof item === 'string') {
+    // Check if it's a JSON string that needs parsing
+    if (item.startsWith('{') && item.includes('"citations"')) {
+      try {
+        const parsed = JSON.parse(item);
+        if (parsed && typeof parsed === 'object' && Array.isArray(parsed.citations)) {
+          return parsed.citations;
+        }
+      } catch {
+        // Not valid JSON
+      }
+    }
+    return [];
+  }
+  if (item && typeof item === 'object' && Array.isArray(item.citations)) {
+    return item.citations;
+  }
+  return [];
+};
+
 // Extended employee type with detected relationship for search results
 type EmployeeWithRelationship = Employee & {
   detected_relationship?: ParticipantRelationship;
@@ -171,6 +236,8 @@ export default function Feedback360Dashboard({
   const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
   const [isAdjustingItem, setIsAdjustingItem] = useState(false);
   const [activeReportTab, setActiveReportTab] = useState<string>('narrative');
+  const [auditModeEnabled, setAuditModeEnabled] = useState(false);
+  const [reportId, setReportId] = useState<string | null>(null);
 
   // Ref for selected reviewer display to enable auto-focus
   const selectedReviewerDisplayRef = useRef<HTMLDivElement>(null);
@@ -332,6 +399,8 @@ export default function Feedback360Dashboard({
 
       setSelectedSurvey(fullSurvey);
       setSurveyResults(data.report);
+      setReportId(data.report?.id || null);
+      setAuditModeEnabled(false); // Reset audit mode when loading a new report
 
       // Load narrative if it exists
       if ((fullSurvey as any).final_narrative) {
@@ -682,6 +751,8 @@ export default function Feedback360Dashboard({
 
       // Store the generated report and open results modal
       setSurveyResults(data.report);
+      setReportId(data.report?.id || null);
+      setAuditModeEnabled(false); // Reset audit mode for new report
 
       // Show API version notice (only in local testing mode)
       if (isLocalTesting && data.meta) {
@@ -1349,6 +1420,8 @@ export default function Feedback360Dashboard({
       }
 
       setSurveyResults(data.report);
+      setReportId(data.report?.id || null);
+      setAuditModeEnabled(false); // Reset audit mode for reanalyzed report
 
       notify({
         title: 'Analysis Complete',
@@ -3394,6 +3467,24 @@ export default function Feedback360Dashboard({
                     )}
                   </div>
                   <div className="flex items-center gap-6">
+                  {/* Audit Mode Toggle - Admin only (sponsors see normal report view) */}
+                  {(() => {
+                    const isAdmin = currentUser?.app_role === 'admin';
+                    // Audit mode is admin-only - sponsors see the report without audit capabilities
+                    const canUseAuditMode = isAdmin;
+                    const hasCitations = surveyResults?.has_citations === true;
+
+                    if (canUseAuditMode) {
+                      return (
+                        <AuditModeToggle
+                          enabled={auditModeEnabled}
+                          onToggle={setAuditModeEnabled}
+                          hasCitations={hasCitations}
+                        />
+                      );
+                    }
+                    return null;
+                  })()}
                   {/* Export Button - Conditional: Dropdown for sponsors/admins, simple button for others */}
                   {(() => {
                     const isSubject = currentUser?.id === selectedSurvey?.employee_id;
@@ -3575,9 +3666,17 @@ export default function Feedback360Dashboard({
                           </p>
                           {theme.supporting_evidence && theme.supporting_evidence.length > 0 && (
                             <div className="mt-2 space-y-1">
-                              {theme.supporting_evidence.map((evidence: string, qIdx: number) => (
+                              {theme.supporting_evidence.map((evidence: string | { text: string; citations?: any[] }, qIdx: number) => (
                                 <p key={qIdx} className="text-sm text-gray-600 pl-3 border-l-2 border-gray-300">
-                                  {evidence}
+                                  {getStatementText(evidence)}
+                                  <InlineCitation
+                                    citations={getCitations(evidence)}
+                                    reportId={selectedSurvey.id}
+                                    sectionType="themes"
+                                    sectionIndex={idx}
+                                    statementIndex={qIdx}
+                                    auditModeEnabled={auditModeEnabled}
+                                  />
                                 </p>
                               ))}
                             </div>
@@ -3767,7 +3866,7 @@ export default function Feedback360Dashboard({
                       </div>
                     )}
                     <ul className="space-y-1">
-                      {surveyResults.overall_strengths.map((strength: string, idx: number) => (
+                      {surveyResults.overall_strengths.map((strength: string | { text: string; citations?: any[] }, idx: number) => (
                         <li
                           key={idx}
                           onClick={(e) => {
@@ -3784,7 +3883,16 @@ export default function Feedback360Dashboard({
                         >
                           <span className="text-green-600 mt-1">•</span>
                           <div className="flex-1">
-                            <span className="text-gray-700">{strength}</span>
+                            <span className="text-gray-700">
+                              {getStatementText(strength)}
+                              <InlineCitation
+                                citations={getCitations(strength)}
+                                reportId={selectedSurvey.id}
+                                sectionType="strengths"
+                                sectionIndex={idx}
+                                auditModeEnabled={auditModeEnabled}
+                              />
+                            </span>
 
                             {/* Adjustment controls */}
                             {canAdjustItems && selectedStrengthIndex === idx && (() => {
@@ -3847,7 +3955,7 @@ export default function Feedback360Dashboard({
                       </div>
                     )}
                     <ul className="space-y-1">
-                      {surveyResults.development_areas.map((area: string, idx: number) => (
+                      {surveyResults.development_areas.map((area: string | { text: string; citations?: any[] }, idx: number) => (
                         <li
                           key={idx}
                           onClick={(e) => {
@@ -3864,7 +3972,16 @@ export default function Feedback360Dashboard({
                         >
                           <span className="text-amber-600 mt-1">•</span>
                           <div className="flex-1">
-                            <span className="text-gray-700">{area}</span>
+                            <span className="text-gray-700">
+                              {getStatementText(area)}
+                              <InlineCitation
+                                citations={getCitations(area)}
+                                reportId={selectedSurvey.id}
+                                sectionType="development_areas"
+                                sectionIndex={idx}
+                                auditModeEnabled={auditModeEnabled}
+                              />
+                            </span>
 
                             {/* Adjustment controls */}
                             {canAdjustItems && selectedDevelopmentIndex === idx && (() => {
@@ -3928,7 +4045,7 @@ export default function Feedback360Dashboard({
                       </div>
                     )}
                     <ul className="space-y-1">
-                      {surveyResults.key_insights.map((insight: string, idx: number) => (
+                      {surveyResults.key_insights.map((insight: string | { text: string; citations?: any[] }, idx: number) => (
                         <li
                           key={idx}
                           onClick={(e) => {
@@ -3945,7 +4062,16 @@ export default function Feedback360Dashboard({
                         >
                           <span className="text-purple-600 mt-1">•</span>
                           <div className="flex-1">
-                            <span className="text-gray-700">{insight}</span>
+                            <span className="text-gray-700">
+                              {getStatementText(insight)}
+                              <InlineCitation
+                                citations={getCitations(insight)}
+                                reportId={selectedSurvey.id}
+                                sectionType="key_insights"
+                                sectionIndex={idx}
+                                auditModeEnabled={auditModeEnabled}
+                              />
+                            </span>
 
                             {/* Adjustment controls */}
                             {canAdjustItems && selectedInsightIndex === idx && (() => {
@@ -4011,7 +4137,9 @@ export default function Feedback360Dashboard({
                       </h4>
                     </div>
                     <ul className="space-y-3">
-                      {surveyResults.recommendations && surveyResults.recommendations.length > 0 && surveyResults.recommendations.map((rec: string, idx: number) => (
+                      {surveyResults.recommendations && surveyResults.recommendations.length > 0 && surveyResults.recommendations.map((rec: string | { text: string; citations?: any[] }, idx: number) => {
+                        const recText = getStatementText(rec);
+                        return (
                         <li key={idx} className="flex items-start gap-3 group">
                           <span className="text-gray-400 font-medium text-sm flex-shrink-0 mt-0.5">{idx + 1}.</span>
                           {editingRecommendationIndex === idx ? (
@@ -4033,12 +4161,19 @@ export default function Feedback360Dashboard({
                           ) : (
                             <div className="flex-1 flex items-start justify-between group">
                               <span
-                                onClick={() => canEdit && startEditingRecommendation(idx, rec)}
+                                onClick={() => canEdit && startEditingRecommendation(idx, recText)}
                                 className={`text-gray-700 text-sm flex-1 ${
                                   canEdit ? 'cursor-pointer hover:text-gray-900' : ''
                                 }`}
                               >
-                                {rec}
+                                {recText}
+                                <InlineCitation
+                                  citations={getCitations(rec)}
+                                  reportId={selectedSurvey.id}
+                                  sectionType="recommendations"
+                                  sectionIndex={idx}
+                                  auditModeEnabled={auditModeEnabled}
+                                />
                               </span>
                               {canEdit && (
                                 <button
@@ -4052,7 +4187,8 @@ export default function Feedback360Dashboard({
                             </div>
                           )}
                         </li>
-                      ))}
+                      );
+                      })}
 
                       {/* Add new item inline */}
                       {canEdit && (
@@ -4252,8 +4388,17 @@ export default function Feedback360Dashboard({
                           Strong Consensus
                         </h4>
                         <ul className="space-y-1 text-sm">
-                          {surveyResults.consensus_areas.map((area: string, idx: number) => (
-                            <li key={idx} className="text-gray-700">• {area}</li>
+                          {surveyResults.consensus_areas.map((area: string | { text: string; citations?: any[] }, idx: number) => (
+                            <li key={idx} className="text-gray-700">
+                              • {getStatementText(area)}
+                              <InlineCitation
+                                citations={getCitations(area)}
+                                reportId={selectedSurvey.id}
+                                sectionType="consensus_areas"
+                                sectionIndex={idx}
+                                auditModeEnabled={auditModeEnabled}
+                              />
+                            </li>
                           ))}
                         </ul>
                       </div>
@@ -4265,8 +4410,17 @@ export default function Feedback360Dashboard({
                           Unique Perspectives
                         </h4>
                         <ul className="space-y-1 text-sm">
-                          {surveyResults.outlier_opinions.map((opinion: string, idx: number) => (
-                            <li key={idx} className="text-gray-700">• {opinion}</li>
+                          {surveyResults.outlier_opinions.map((opinion: string | { text: string; citations?: any[] }, idx: number) => (
+                            <li key={idx} className="text-gray-700">
+                              • {getStatementText(opinion)}
+                              <InlineCitation
+                                citations={getCitations(opinion)}
+                                reportId={selectedSurvey.id}
+                                sectionType="outlier_opinions"
+                                sectionIndex={idx}
+                                auditModeEnabled={auditModeEnabled}
+                              />
+                            </li>
                           ))}
                         </ul>
                       </div>
@@ -4394,21 +4548,25 @@ export default function Feedback360Dashboard({
                         View Raw Data
                       </button>
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => reanalyzeSurvey(selectedSurvey.id, 'standard')}
-                          disabled={isGeneratingAnalysis}
-                          className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium flex items-center disabled:opacity-50"
-                        >
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          {isGeneratingAnalysis ? 'Analyzing...' : 'Reanalyze'}
-                        </button>
-                        <button
-                          onClick={() => reanalyzeSurvey(selectedSurvey.id, 'softer')}
-                          disabled={isGeneratingAnalysis}
-                          className="px-4 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors font-medium flex items-center disabled:opacity-50"
-                        >
-                          Reanalyze (Softer Tone)
-                        </button>
+                        {!selectedSurvey.flagged_for_reanalysis && (
+                          <>
+                            <button
+                              onClick={() => reanalyzeSurvey(selectedSurvey.id, 'standard')}
+                              disabled={isGeneratingAnalysis}
+                              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium flex items-center disabled:opacity-50"
+                            >
+                              <Sparkles className="w-4 h-4 mr-2" />
+                              {isGeneratingAnalysis ? 'Analyzing...' : 'Reanalyze'}
+                            </button>
+                            <button
+                              onClick={() => reanalyzeSurvey(selectedSurvey.id, 'softer')}
+                              disabled={isGeneratingAnalysis}
+                              className="px-4 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors font-medium flex items-center disabled:opacity-50"
+                            >
+                              Reanalyze (Softer Tone)
+                            </button>
+                          </>
+                        )}
                         <button
                           onClick={() => resolveNeedsReview(selectedSurvey.id)}
                           className="px-4 py-2 bg-green-100 text-green-700 border border-green-300 rounded-md hover:bg-green-200 transition-colors font-medium flex items-center"
