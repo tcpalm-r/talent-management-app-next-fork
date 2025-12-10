@@ -127,6 +127,100 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
 }
 
 /**
+ * Streaming version of analyzeWithCitations.
+ * Yields text deltas as they arrive from Claude, then yields the final result.
+ */
+export async function* analyzeWithCitationsStreaming(
+  input: AnalysisInput
+): AsyncGenerator<{ type: 'delta'; text: string } | { type: 'done'; result: AnalysisResultWithCitations }> {
+  const startTime = Date.now();
+  const { survey, responses, participants, questions, tone = 'standard' } = input;
+
+  console.log('[surveyAnalyzerService] Starting streaming citation-enabled analysis');
+
+  const anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  });
+
+  const structuredResponses = prepareResponsesForAnalysis(responses, participants, questions);
+  const questionsFormatted = questions.map((q, i) => `${i + 1}. ${q.question} (${q.type})`).join('\n');
+
+  const prompt = buildSurveyAnalyzerPrompt({
+    employeeName: survey.employee_name,
+    surveyTitle: survey.survey_title,
+    responseCount: responses.length,
+    questionsFormatted,
+    structuredResponses,
+    tone,
+  });
+
+  // Use streaming API
+  const stream = anthropic.messages.stream({
+    model: surveyAnalyzerConfig.model,
+    max_tokens: surveyAnalyzerConfig.maxTokens,
+    temperature: surveyAnalyzerConfig.temperature,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  let fullText = '';
+
+  // Yield text deltas as they arrive
+  for await (const event of stream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      const text = event.delta.text;
+      fullText += text;
+      yield { type: 'delta', text };
+    }
+  }
+
+  // Parse the complete response
+  const analysis = extractJsonFromResponse(fullText);
+
+  // Extract and flatten all citations for database storage
+  const flattenedCitations = extractCitationsFromAnalysis(analysis);
+
+  // Calculate citation coverage
+  const totalStatements = countStatements(analysis);
+  const statementsWithCitations = countStatementsWithCitations(analysis);
+  const citationCoverage = totalStatements > 0 ? Math.round((statementsWithCitations / totalStatements) * 100) : 0;
+
+  // Compute frequency for themes from citations
+  const themesWithFrequency = computeThemeFrequencies(analysis.themes);
+
+  console.log(`[surveyAnalyzerService] Streaming analysis complete: ${flattenedCitations.length} citations, ${citationCoverage}% coverage`);
+
+  const result: AnalysisResultWithCitations = {
+    report: {
+      survey_id: survey.id,
+      executive_summary: analysis.executive_summary as string || null,
+      themes: themesWithFrequency as Survey360ReportWithCitations['themes'] || [],
+      overall_strengths: analysis.overall_strengths as Survey360ReportWithCitations['overall_strengths'] || [],
+      development_areas: analysis.development_areas as Survey360ReportWithCitations['development_areas'] || [],
+      recommendations: analysis.recommendations as Survey360ReportWithCitations['recommendations'] || [],
+      sentiment_by_relationship: analysis.sentiment_by_relationship as Record<string, number> || {},
+      key_insights: analysis.key_insights as Survey360ReportWithCitations['key_insights'] || [],
+      consensus_areas: analysis.consensus_areas as Survey360ReportWithCitations['consensus_areas'] || [],
+      outlier_opinions: analysis.outlier_opinions as Survey360ReportWithCitations['outlier_opinions'] || [],
+      generated_at: new Date().toISOString(),
+      generated_by: surveyAnalyzerConfig.model,
+      has_citations: true,
+      citation_version: '1.0',
+      total_citations: flattenedCitations.length,
+      citation_coverage: citationCoverage,
+    },
+    citations: flattenedCitations,
+    meta: {
+      version: 'v1-citations',
+      elapsedMs: Date.now() - startTime,
+      totalCitations: flattenedCitations.length,
+      citationCoverage,
+    },
+  };
+
+  yield { type: 'done', result };
+}
+
+/**
  * Compute frequency for each theme based on unique response_ids in citations.
  * This replaces AI-estimated frequency with actual citation-backed counts.
  */

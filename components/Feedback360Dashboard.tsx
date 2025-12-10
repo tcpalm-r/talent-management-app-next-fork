@@ -225,6 +225,8 @@ export default function Feedback360Dashboard({
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
   const [surveyResults, setSurveyResults] = useState<any>(null);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  const [streamingText, setStreamingText] = useState<string>('');
+  const [streamingCharCount, setStreamingCharCount] = useState(0);
   const [showRawData, setShowRawData] = useState(false);
   const [rawSurveyData, setRawSurveyData] = useState<any>(null);
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
@@ -734,9 +736,11 @@ export default function Feedback360Dashboard({
     }
 
     setIsGeneratingAnalysis(true);
+    setStreamingText('');
+    setStreamingCharCount(0);
     setAnalyzerApiNotice(null); // Clear previous API notice
     try {
-      // Call the API to generate AI analysis report
+      // Use streaming API for better UX
       const response = await fetch('/api/360-generate-report', {
         method: 'POST',
         headers: {
@@ -744,28 +748,68 @@ export default function Feedback360Dashboard({
         },
         body: JSON.stringify({
           survey_id: selectedSurvey.id,
+          stream: true, // Enable streaming
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate AI analysis');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate AI analysis');
+      }
+
+      // Process streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedText = '';
+      let finalData: any = null;
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const event = JSON.parse(line.substring(6));
+
+                if (event.type === 'delta') {
+                  accumulatedText += event.text;
+                  setStreamingText(accumulatedText);
+                  setStreamingCharCount(accumulatedText.length);
+                } else if (event.type === 'done') {
+                  finalData = event;
+                } else if (event.type === 'error') {
+                  throw new Error(event.message);
+                }
+              } catch (parseError) {
+                // Ignore JSON parse errors for incomplete chunks
+              }
+            }
+          }
+        }
+      }
+
+      if (!finalData) {
+        throw new Error('Stream ended without final result');
       }
 
       // Store the generated report and open results modal
-      setSurveyResults(data.report);
-      setReportId(data.report?.id || null);
+      setSurveyResults(finalData.report);
+      setReportId(finalData.report?.id || null);
       setAuditModeEnabled(false); // Reset audit mode for new report
 
       // Show API version notice (only in local testing mode)
-      if (isLocalTesting && data.meta) {
-        if (data.meta.fallbackUsed) {
-          setAnalyzerApiNotice({ type: 'fallback', message: `Used v1 (fallback): ${data.meta.fallbackReason}` });
-        } else if (data.meta.version === 'v2-skill') {
-          setAnalyzerApiNotice({ type: 'success', message: `Used v2 skill API (${data.meta.elapsedMs}ms)` });
+      if (isLocalTesting && finalData.meta) {
+        if (finalData.meta.fallbackUsed) {
+          setAnalyzerApiNotice({ type: 'fallback', message: `Used v1 (fallback): ${finalData.meta.fallbackReason}` });
+        } else if (finalData.meta.version === 'v2-skill') {
+          setAnalyzerApiNotice({ type: 'success', message: `Used v2 skill API (${finalData.meta.elapsedMs}ms)` });
         } else {
-          setAnalyzerApiNotice({ type: 'success', message: `Used v1 prompt API (${data.meta.elapsedMs}ms)` });
+          setAnalyzerApiNotice({ type: 'success', message: `Used v1 prompt API (${finalData.meta.elapsedMs}ms)` });
         }
       }
 
@@ -3372,7 +3416,7 @@ export default function Feedback360Dashboard({
                         {isGeneratingAnalysis ? (
                           <>
                             <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
-                            Generating Analysis...
+                            {streamingCharCount > 0 ? `Analyzing... ${Math.round(streamingCharCount / 330)}%` : 'Starting analysis...'}
                           </>
                         ) : (
                           <>
@@ -3399,6 +3443,26 @@ export default function Feedback360Dashboard({
                   )}
                 </div>
               </div>
+              )}
+
+              {/* Streaming Preview Panel */}
+              {isGeneratingAnalysis && streamingText && (
+                <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center">
+                      <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 mr-2 animate-pulse" />
+                      <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                        AI Analysis in Progress
+                      </span>
+                    </div>
+                    <span className="text-xs text-purple-600 dark:text-purple-400">
+                      {streamingCharCount.toLocaleString()} characters generated
+                    </span>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded p-3 max-h-40 overflow-y-auto font-mono text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                    {streamingText.slice(-2000)}
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -3430,7 +3494,6 @@ export default function Feedback360Dashboard({
           { id: 'themes', label: 'Themes' },
           { id: 'strengths', label: 'Strengths' },
           { id: 'development', label: 'Development Areas' },
-          ...(surveyResults.key_insights && surveyResults.key_insights.length > 0 ? [{ id: 'insights', label: 'Insights' }] : []),
           { id: 'recommendations', label: 'Recommended Actions' },
           ...(canSeeAdvanced && hasSentimentData ? [{ id: 'sentiment', label: 'Sentiment Analysis' }] : []),
           ...(canSeeAdvanced && hasConsensusData ? [{ id: 'consensus', label: 'Consensus & Outliers' }] : [])
@@ -4009,96 +4072,6 @@ export default function Feedback360Dashboard({
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'left'); }} disabled={isAdjustingItem || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'center'); }} disabled={isAdjustingItem || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
                                       <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'right'); }} disabled={isAdjustingItem || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
-                                    </div>
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Longer</span>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })()}
-
-              {/* Key Insights Tab - Visible to All */}
-              {activeReportTab === 'insights' && surveyResults.key_insights && surveyResults.key_insights.length > 0 && (() => {
-                // Check if user is sponsor or admin for adjustment capabilities
-                const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
-                const isAdmin = currentUser?.app_role === 'admin';
-                const canAdjustItems = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
-
-                return (
-                  <div>
-                    {canAdjustItems && (
-                      <div className="mb-3">
-                        <span className="text-sm text-gray-600 font-semibold italic">Click to adjust</span>
-                      </div>
-                    )}
-                    <ul className="space-y-1">
-                      {surveyResults.key_insights.map((insight: string | { text: string; citations?: any[] }, idx: number) => (
-                        <li
-                          key={idx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            canAdjustItems && setSelectedInsightIndex(idx === selectedInsightIndex ? null : idx);
-                          }}
-                          className={`flex items-start gap-2 rounded-md p-2 transition-colors border ${
-                            canAdjustItems ? 'cursor-pointer hover:border-blue-500' : ''
-                          } ${
-                            selectedInsightIndex === idx
-                              ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200'
-                              : 'border-transparent hover:border-blue-400'
-                          }`}
-                        >
-                          <span className="text-purple-600 mt-1">•</span>
-                          <div className="flex-1">
-                            <span className="text-gray-700">
-                              {getStatementText(insight)}
-                              <InlineCitation
-                                citations={getCitations(insight)}
-                                reportId={selectedSurvey.id}
-                                sectionType="key_insights"
-                                sectionIndex={idx}
-                                auditModeEnabled={effectiveAuditMode}
-                              />
-                            </span>
-
-                            {/* Adjustment controls */}
-                            {canAdjustItems && selectedInsightIndex === idx && (() => {
-                              const itemKey = `key_insights-${idx}`;
-                              const positions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
-
-                              return (
-                                <div className="mt-2 pt-2 border-t border-blue-200 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-6 xl:gap-8 pr-2 lg:pr-4">
-                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Less Specific</span>
-                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'specificity', 'left'); }} disabled={isAdjustingItem || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'specificity', 'center'); }} disabled={isAdjustingItem || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'specificity', 'right'); }} disabled={isAdjustingItem || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
-                                    </div>
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">More Specific</span>
-                                  </div>
-                                  <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
-                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Softer</span>
-                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'tone', 'left'); }} disabled={isAdjustingItem || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'tone', 'center'); }} disabled={isAdjustingItem || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'tone', 'right'); }} disabled={isAdjustingItem || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
-                                    </div>
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Harsher</span>
-                                  </div>
-                                  <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
-                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Shorter</span>
-                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'length', 'left'); }} disabled={isAdjustingItem || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'length', 'center'); }} disabled={isAdjustingItem || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'key_insights', 'length', 'right'); }} disabled={isAdjustingItem || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
                                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Longer</span>
                                   </div>
