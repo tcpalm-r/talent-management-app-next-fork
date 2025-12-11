@@ -322,7 +322,6 @@ export interface Survey360Report {
   development_areas: string[];
   recommendations: string[];
   sentiment_by_relationship: Record<ParticipantRelationship, number>;
-  key_insights: string[];
   consensus_areas: string[]; // Areas where most participants agree
   outlier_opinions: string[]; // Unique or contrasting views
   generated_at: string;
@@ -379,12 +378,11 @@ export interface CitedThemeAnalysis {
  */
 export interface Survey360ReportWithCitations extends Omit<Survey360Report,
   'themes' | 'overall_strengths' | 'development_areas' | 'recommendations' |
-  'key_insights' | 'consensus_areas' | 'outlier_opinions'> {
+  'consensus_areas' | 'outlier_opinions'> {
   themes: CitedThemeAnalysis[];
   overall_strengths: CitedStatement[];
   development_areas: CitedStatement[];
   recommendations: CitedStatement[];
-  key_insights: CitedStatement[];
   consensus_areas: CitedStatement[];
   outlier_opinions: CitedStatement[];
 

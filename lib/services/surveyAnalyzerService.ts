@@ -30,7 +30,7 @@ export interface AnalysisResultWithCitations {
   /** Flattened list of all citations for database storage */
   citations: Array<{
     response_id: string;
-    section_type: 'theme' | 'strength' | 'development' | 'insight' | 'recommendation' | 'consensus' | 'outlier';
+    section_type: 'theme' | 'strength' | 'development' | 'recommendation' | 'consensus' | 'outlier';
     section_index: number;
     statement_index: number;
     snippet: string;
@@ -100,13 +100,11 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   return {
     report: {
       survey_id: survey.id,
-      executive_summary: analysis.executive_summary as string || null,
       themes: themesWithFrequency as Survey360ReportWithCitations['themes'] || [],
       overall_strengths: analysis.overall_strengths as Survey360ReportWithCitations['overall_strengths'] || [],
       development_areas: analysis.development_areas as Survey360ReportWithCitations['development_areas'] || [],
       recommendations: analysis.recommendations as Survey360ReportWithCitations['recommendations'] || [],
       sentiment_by_relationship: analysis.sentiment_by_relationship as Record<string, number> || {},
-      key_insights: analysis.key_insights as Survey360ReportWithCitations['key_insights'] || [],
       consensus_areas: analysis.consensus_areas as Survey360ReportWithCitations['consensus_areas'] || [],
       outlier_opinions: analysis.outlier_opinions as Survey360ReportWithCitations['outlier_opinions'] || [],
       generated_at: new Date().toISOString(),
@@ -124,100 +122,6 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
       citationCoverage,
     },
   };
-}
-
-/**
- * Streaming version of analyzeWithCitations.
- * Yields text deltas as they arrive from Claude, then yields the final result.
- */
-export async function* analyzeWithCitationsStreaming(
-  input: AnalysisInput
-): AsyncGenerator<{ type: 'delta'; text: string } | { type: 'done'; result: AnalysisResultWithCitations }> {
-  const startTime = Date.now();
-  const { survey, responses, participants, questions, tone = 'standard' } = input;
-
-  console.log('[surveyAnalyzerService] Starting streaming citation-enabled analysis');
-
-  const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  });
-
-  const structuredResponses = prepareResponsesForAnalysis(responses, participants, questions);
-  const questionsFormatted = questions.map((q, i) => `${i + 1}. ${q.question} (${q.type})`).join('\n');
-
-  const prompt = buildSurveyAnalyzerPrompt({
-    employeeName: survey.employee_name,
-    surveyTitle: survey.survey_title,
-    responseCount: responses.length,
-    questionsFormatted,
-    structuredResponses,
-    tone,
-  });
-
-  // Use streaming API
-  const stream = anthropic.messages.stream({
-    model: surveyAnalyzerConfig.model,
-    max_tokens: surveyAnalyzerConfig.maxTokens,
-    temperature: surveyAnalyzerConfig.temperature,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  let fullText = '';
-
-  // Yield text deltas as they arrive
-  for await (const event of stream) {
-    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-      const text = event.delta.text;
-      fullText += text;
-      yield { type: 'delta', text };
-    }
-  }
-
-  // Parse the complete response
-  const analysis = extractJsonFromResponse(fullText);
-
-  // Extract and flatten all citations for database storage
-  const flattenedCitations = extractCitationsFromAnalysis(analysis);
-
-  // Calculate citation coverage
-  const totalStatements = countStatements(analysis);
-  const statementsWithCitations = countStatementsWithCitations(analysis);
-  const citationCoverage = totalStatements > 0 ? Math.round((statementsWithCitations / totalStatements) * 100) : 0;
-
-  // Compute frequency for themes from citations
-  const themesWithFrequency = computeThemeFrequencies(analysis.themes);
-
-  console.log(`[surveyAnalyzerService] Streaming analysis complete: ${flattenedCitations.length} citations, ${citationCoverage}% coverage`);
-
-  const result: AnalysisResultWithCitations = {
-    report: {
-      survey_id: survey.id,
-      executive_summary: analysis.executive_summary as string || null,
-      themes: themesWithFrequency as Survey360ReportWithCitations['themes'] || [],
-      overall_strengths: analysis.overall_strengths as Survey360ReportWithCitations['overall_strengths'] || [],
-      development_areas: analysis.development_areas as Survey360ReportWithCitations['development_areas'] || [],
-      recommendations: analysis.recommendations as Survey360ReportWithCitations['recommendations'] || [],
-      sentiment_by_relationship: analysis.sentiment_by_relationship as Record<string, number> || {},
-      key_insights: analysis.key_insights as Survey360ReportWithCitations['key_insights'] || [],
-      consensus_areas: analysis.consensus_areas as Survey360ReportWithCitations['consensus_areas'] || [],
-      outlier_opinions: analysis.outlier_opinions as Survey360ReportWithCitations['outlier_opinions'] || [],
-      generated_at: new Date().toISOString(),
-      generated_by: surveyAnalyzerConfig.model,
-      has_citations: true,
-      citation_version: '1.0',
-      total_citations: flattenedCitations.length,
-      citation_coverage: citationCoverage,
-    },
-    citations: flattenedCitations,
-    meta: {
-      version: 'v1-citations',
-      elapsedMs: Date.now() - startTime,
-      totalCitations: flattenedCitations.length,
-      citationCoverage,
-    },
-  };
-
-  yield { type: 'done', result };
 }
 
 /**
@@ -322,7 +226,6 @@ function extractCitationsFromAnalysis(analysis: Record<string, unknown>): Analys
   // Extract from other sections
   extractFromStatements(analysis.overall_strengths as unknown[], 'strength');
   extractFromStatements(analysis.development_areas as unknown[], 'development');
-  extractFromStatements(analysis.key_insights as unknown[], 'insight');
   extractFromStatements(analysis.recommendations as unknown[], 'recommendation');
   extractFromStatements(analysis.consensus_areas as unknown[], 'consensus');
   extractFromStatements(analysis.outlier_opinions as unknown[], 'outlier');
@@ -342,7 +245,6 @@ function countStatements(analysis: Record<string, unknown>): number {
 
   countArray(analysis.overall_strengths);
   countArray(analysis.development_areas);
-  countArray(analysis.key_insights);
   countArray(analysis.recommendations);
   countArray(analysis.consensus_areas);
   countArray(analysis.outlier_opinions);
@@ -382,7 +284,6 @@ function countStatementsWithCitations(analysis: Record<string, unknown>): number
 
   countCitedArray(analysis.overall_strengths);
   countCitedArray(analysis.development_areas);
-  countCitedArray(analysis.key_insights);
   countCitedArray(analysis.recommendations);
   countCitedArray(analysis.consensus_areas);
   countCitedArray(analysis.outlier_opinions);
@@ -543,34 +444,3 @@ function prepareResponsesForAnalysis(
   return output;
 }
 
-/**
- * Generate fallback analysis if API fails
- */
-function generateFallbackAnalysis(input: AnalysisInput): Omit<Survey360Report, 'id' | 'created_at' | 'updated_at'> {
-  const { survey, responses } = input;
-
-  return {
-    survey_id: survey.id,
-    themes: [
-      {
-        theme: 'Overall Performance',
-        sentiment: 'mixed',
-        frequency: responses.length,
-        supporting_evidence: ['Survey responses collected successfully - detailed AI analysis unavailable'],
-        relationships_mentioned: [],
-      },
-    ],
-    overall_strengths: ['Analysis temporarily unavailable - please regenerate report'],
-    development_areas: ['Analysis temporarily unavailable - please regenerate report'],
-    recommendations: ['Please regenerate the report to receive AI-powered analysis'],
-    sentiment_by_relationship: {
-      overall: 3,
-    },
-    key_insights: ['Survey data collected from ' + responses.length + ' reviewers'],
-    consensus_areas: [],
-    outlier_opinions: [],
-    executive_summary: 'Report generation encountered an issue. Please try regenerating the report.',
-    generated_at: new Date().toISOString(),
-    generated_by: 'fallback',
-  };
-}

@@ -185,7 +185,6 @@ export async function validateReportCitations(reportId: string): Promise<Validat
       overall_strengths: analysisResult.report.overall_strengths,
       development_areas: analysisResult.report.development_areas,
       recommendations: analysisResult.report.recommendations,
-      key_insights: analysisResult.report.key_insights,
       consensus_areas: analysisResult.report.consensus_areas,
       outlier_opinions: analysisResult.report.outlier_opinions,
       // Citation metadata

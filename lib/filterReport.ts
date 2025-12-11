@@ -75,7 +75,6 @@ export function filterReportForSubject(
     overall_strengths: stripCitationsFromStatements(fullReport.overall_strengths || []),
     development_areas: stripCitationsFromStatements(fullReport.development_areas || []),
     recommendations: stripCitationsFromStatements(fullReport.recommendations || []),
-    key_insights: stripCitationsFromStatements(fullReport.key_insights || []),
     consensus_areas: stripCitationsFromStatements(fullReport.consensus_areas || []),
     outlier_opinions: stripCitationsFromStatements(fullReport.outlier_opinions || []),
     // Remove citation metadata
@@ -163,7 +162,6 @@ export function filterReportForSponsor(
     overall_strengths: stripCitationsFromStatements(fullReport.overall_strengths || []),
     development_areas: stripCitationsFromStatements(fullReport.development_areas || []),
     recommendations: stripCitationsFromStatements(fullReport.recommendations || []),
-    key_insights: stripCitationsFromStatements(fullReport.key_insights || []),
     consensus_areas: stripCitationsFromStatements(fullReport.consensus_areas || []),
     outlier_opinions: stripCitationsFromStatements(fullReport.outlier_opinions || []),
     // Remove citation metadata - sponsors should not know citations exist

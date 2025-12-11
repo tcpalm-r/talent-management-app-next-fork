@@ -65,7 +65,6 @@ JSON STRING FORMATTING (CRITICAL - prevents parsing errors):
 Return exactly this structure:
 
 {
-  "executive_summary": "A concise 2-3 sentence overview using ${employeeName}'s name...",
   "themes": [
     {
       "theme": "Concise theme name",
@@ -138,7 +137,7 @@ EXHAUSTIVE CITATION RULE FOR THEMES:
 - Missing citations means UNDERCOUNTING - this is a data integrity issue
 - When in doubt, INCLUDE the citation rather than omit it
 
-For other sections (strengths, development areas, recommendations, insights):
+For other sections (strengths, development areas, recommendations, consensus, outliers):
 - Include citations from all relevant responses, prioritizing the most illustrative examples
 - Aim for comprehensive coverage while avoiding redundancy
 
@@ -179,13 +178,12 @@ CRITICAL - ANONYMITY & AGGREGATION REQUIREMENTS:
 - Use general attributions: "Feedback indicated...", "Multiple reviewers noted...", "A common theme..."
 
 ANALYSIS GUIDELINES:
-1. **Executive Summary**: 2-3 sentences using ${employeeName}'s name, highlighting top strengths and development areas
-2. **Themes**: Identify 5-8 major themes with sentiment and supporting evidence
-3. **Strengths**: 3-5 clear strengths synthesized from feedback
-4. **Development Areas**: 3-5 growth opportunities
-5. **Recommendations**: 4-6 specific, actionable steps
-6. **Consensus**: Areas of broad agreement
-7. **Outliers**: Unique perspectives (without relationship attribution)
+1. **Themes**: Identify 5-8 major themes with sentiment and supporting evidence
+2. **Strengths**: 3-5 clear strengths synthesized from feedback
+3. **Development Areas**: 3-5 growth opportunities
+4. **Recommendations**: 4-6 specific, actionable steps
+5. **Consensus**: Areas of broad agreement across reviewers
+6. **Outliers**: Unique perspectives worth noting (without relationship attribution)
 
 SENTIMENT SCORES (0-1 scale):
 - Calculate overall and per-relationship scores based on tone and constructiveness

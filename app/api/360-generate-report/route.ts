@@ -303,152 +303,6 @@ export async function POST(req: NextRequest) {
     console.log('   - Questions:', questions.length);
     console.log('   - Citations: always enabled for accuracy');
 
-    // Check if streaming is requested
-    const shouldStream = body.stream === true;
-
-    if (shouldStream) {
-      // ========================================================================
-      // STREAMING MODE: Return SSE stream with progressive text deltas
-      // ========================================================================
-      console.log('📡 Streaming mode enabled');
-
-      const encoder = new TextEncoder();
-
-      const stream = new ReadableStream({
-        async start(controller) {
-          try {
-            const generator = analyzeWithCitationsStreaming({
-              survey: surveyData,
-              responses: transformedResponses,
-              participants: participants,
-              questions: questions,
-              tone: tone,
-            });
-
-            let finalResult: AnalysisResultWithCitations | null = null;
-
-            for await (const event of generator) {
-              if (event.type === 'delta') {
-                // Send text delta as SSE event
-                const sseData = `data: ${JSON.stringify({ type: 'delta', text: event.text })}\n\n`;
-                controller.enqueue(encoder.encode(sseData));
-              } else if (event.type === 'done') {
-                finalResult = event.result;
-              }
-            }
-
-            if (finalResult) {
-              // Save report to database (same as non-streaming)
-              const reportData: any = {
-                survey_id: survey_id,
-                executive_summary: finalResult.report.executive_summary || null,
-                themes: finalResult.report.themes as any || [],
-                overall_strengths: finalResult.report.overall_strengths || [],
-                development_areas: finalResult.report.development_areas || [],
-                recommendations: finalResult.report.recommendations || [],
-                sentiment_by_relationship: finalResult.report.sentiment_by_relationship as any || {},
-                key_insights: finalResult.report.key_insights || [],
-                consensus_areas: finalResult.report.consensus_areas || [],
-                outlier_opinions: finalResult.report.outlier_opinions || [],
-                generated_by: finalResult.report.generated_by || 'claude-sonnet-4',
-                generated_at: finalResult.report.generated_at || new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                has_citations: true,
-                citation_version: '1.0',
-                total_citations: finalResult.citations.length,
-                citation_coverage: finalResult.meta.citationCoverage || 0,
-              };
-
-              const { data: savedReport, error: upsertError } = await supabaseAdmin
-                .from('feedback_360_reports')
-                .upsert(reportData, { onConflict: 'survey_id' })
-                .select('id')
-                .single();
-
-              if (!upsertError && savedReport?.id && finalResult.citations.length > 0) {
-                // Save citations
-                await supabaseAdmin
-                  .from('feedback_360_report_citations')
-                  .delete()
-                  .eq('report_id', savedReport.id);
-
-                const citationRecords = finalResult.citations.map(citation => ({
-                  report_id: savedReport.id,
-                  response_id: citation.response_id,
-                  section_type: citation.section_type,
-                  section_index: citation.section_index,
-                  statement_index: citation.statement_index,
-                  snippet: citation.snippet,
-                  relevance_score: citation.relevance_score || null,
-                }));
-
-                await supabaseAdmin
-                  .from('feedback_360_report_citations')
-                  .insert(citationRecords);
-              }
-
-              // Update survey status
-              await supabaseAdmin
-                .from('feedback_360_surveys')
-                .update({
-                  status: 'completed',
-                  completed_at: new Date().toISOString()
-                })
-                .eq('id', survey_id);
-
-              // Determine viewer role and filter report
-              const generatorRole = determineViewerRole(authData.profile, survey);
-              let filteredReport: any = finalResult.report;
-              if (generatorRole === 'subject') {
-                filteredReport = filterReportForSubject(finalResult.report as any);
-              }
-
-              // Send final result as SSE event
-              const hasCitations = finalResult.citations && finalResult.citations.length > 0;
-              const finalData = `data: ${JSON.stringify({
-                type: 'done',
-                success: true,
-                report: filteredReport,
-                viewerRole: generatorRole,
-                message: 'AI analysis completed successfully',
-                meta: finalResult.meta,
-                citationInfo: hasCitations && generatorRole === 'admin' ? {
-                  hasCitations: true,
-                  totalCitations: finalResult.citations?.length || 0,
-                  citationCoverage: finalResult.meta.citationCoverage || 0,
-                } : undefined,
-              })}\n\n`;
-              controller.enqueue(encoder.encode(finalData));
-            }
-
-            controller.close();
-          } catch (error: any) {
-            console.error('Streaming error:', error);
-            try {
-              const errorData = `data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`;
-              controller.enqueue(encoder.encode(errorData));
-              controller.close();
-            } catch (closeError) {
-              // Controller may already be closed, ignore
-              console.error('Failed to send error to stream:', closeError);
-            }
-          }
-        },
-      });
-
-      return new Response(stream, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        },
-      });
-    }
-
-    // ========================================================================
-    // NON-STREAMING MODE: Original behavior
-    // ========================================================================
-
     // Always use citation-enabled analyzer to improve accuracy and reduce hallucinations
     // Citations are stored but only shown to admins in audit mode
     const citationResult = await analyzeWithCitations({
@@ -477,13 +331,11 @@ export async function POST(req: NextRequest) {
     // Build report data with citation metadata (always included now)
     const reportData: any = {
       survey_id: survey_id,
-      executive_summary: analysisResult.executive_summary || null,
       themes: analysisResult.themes as any || [],
       overall_strengths: analysisResult.overall_strengths || [],
       development_areas: analysisResult.development_areas || [],
       recommendations: analysisResult.recommendations || [],
       sentiment_by_relationship: analysisResult.sentiment_by_relationship as any || {},
-      key_insights: analysisResult.key_insights || [],
       consensus_areas: analysisResult.consensus_areas || [],
       outlier_opinions: analysisResult.outlier_opinions || [],
       generated_by: analysisResult.generated_by || 'claude-sonnet-4',
