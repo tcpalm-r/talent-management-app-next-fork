@@ -68,7 +68,6 @@ Updated five existing API routes to remove `NEXT_PUBLIC_ANTHROPIC_API_KEY` fallb
 - `app/api/ai/generate-survey-response/route.ts`
 - `app/api/ai/parse-survey-description/route.ts`
 - `app/api/ai/generate-narrative/route.ts`
-- `app/api/ai/parse-survey-responses/route.ts`
 
 All now use only `process.env.ANTHROPIC_API_KEY` (server-side secure).
 
@@ -236,13 +235,14 @@ However, this refactor improves security significantly and should be kept.
 - `app/api/ai/generate-survey-response/route.ts`
 - `app/api/ai/parse-survey-description/route.ts`
 - `app/api/ai/generate-narrative/route.ts`
-- `app/api/ai/parse-survey-responses/route.ts`
 - `app/api/debug/env/route.ts`
 - `app/api/debug/env/__tests__/route.test.ts`
 - `CLAUDE.md`
 
-### Deleted (1 file)
+### Deleted (3 files)
 - `lib/reviewAnalyzer.ts`
+- `lib/prompts/parse-survey-responses.ts` (dead code - unused prompt)
+- `app/api/ai/parse-survey-responses/route.ts` (dead code - unused API route)
 
 ## Linter Status
 

@@ -37,7 +37,6 @@ interface Report360Data {
   overall_strengths?: StatementOrCited[];
   development_areas?: StatementOrCited[];
   recommendations?: StatementOrCited[];
-  key_insights?: StatementOrCited[];
   sentiment_by_relationship?: Record<string, number>;
   consensus_areas?: StatementOrCited[];
   outlier_opinions?: StatementOrCited[];
@@ -292,32 +291,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
   }
 
   // ==========================================================================
-  // INSIGHTS - matches tab order position 5 (conditional)
-  // ==========================================================================
-  if (report.key_insights && report.key_insights.length > 0) {
-    checkPageBreak(30);
-
-    pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(59, 130, 246); // Blue
-    pdf.text('Insights', margin, yPosition);
-    yPosition += 10;
-
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(0, 0, 0);
-
-    report.key_insights.forEach((insight, idx) => {
-      checkPageBreak(15);
-      const height = addWrappedText(`• ${getStatementText(insight)}`, margin + 5, yPosition, contentWidth - 5, 10);
-      yPosition += height + 3;
-    });
-
-    yPosition += 5;
-  }
-
-  // ==========================================================================
-  // RECOMMENDED ACTIONS - matches tab order position 6
+  // RECOMMENDED ACTIONS - matches tab order position 5
   // ==========================================================================
   if (report.recommendations && report.recommendations.length > 0) {
     checkPageBreak(30);

@@ -9,8 +9,6 @@
 
 export * from './generate-survey-response';
 export * from './survey-analyzer';
-// DEAD CODE: parse-survey-responses is not used by any frontend component
-// export * from './parse-survey-responses';
 export * from './generate-narrative';
 export * from './adjust-item-specificity';
 

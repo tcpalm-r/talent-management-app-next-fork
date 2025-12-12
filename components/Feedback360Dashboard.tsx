@@ -13,7 +13,6 @@ import { fetchWithFallback, fetchWithValidation } from '@/lib/api-client';
 import {
   SurveyListResponseSchema,
   Report360ResponseSchema,
-  SendRemindersResponseSchema,
   GenericSuccessResponseSchema,
   SurveyDetailResponseSchema,
   SurveyUpdateResponseSchema,
@@ -485,41 +484,6 @@ export default function Feedback360Dashboard({
     }
   };
 
-  const sendReminders = async (surveyId: string) => {
-    try {
-      const data = await fetchWithValidation(
-        SendRemindersResponseSchema,
-        `/api/surveys/${surveyId}/send-reminders`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' } }
-      );
-
-      if (!data || !data.results) {
-        throw new Error('Failed to send reminders - invalid response');
-      }
-
-      if (data.results.failed > 0) {
-        notify({
-          title: `Reminders sent with errors`,
-          description: `${data.results.sent} sent successfully, ${data.results.failed} failed.`,
-          variant: 'error',
-        });
-      } else {
-        notify({
-          title: 'Reminders sent',
-          description: `Reminder emails sent to ${data.results.sent} reviewers.`,
-          variant: 'success',
-        });
-      }
-    } catch (error: any) {
-      console.error('Error sending reminders:', error);
-      notify({
-        title: 'Error',
-        description: error.message || 'Failed to send reminders',
-        variant: 'error',
-      });
-    }
-  };
-
   const sendReminderToReviewer = async (reviewerId: string, reviewerEmail: string) => {
     if (!selectedSurvey) return;
 
@@ -736,11 +700,9 @@ export default function Feedback360Dashboard({
     }
 
     setIsGeneratingAnalysis(true);
-    setStreamingText('');
-    setStreamingCharCount(0);
     setAnalyzerApiNotice(null); // Clear previous API notice
     try {
-      // Use streaming API for better UX
+      // Call the API to generate AI analysis report
       const response = await fetch('/api/360-generate-report', {
         method: 'POST',
         headers: {
@@ -748,68 +710,28 @@ export default function Feedback360Dashboard({
         },
         body: JSON.stringify({
           survey_id: selectedSurvey.id,
-          stream: true, // Enable streaming
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate AI analysis');
-      }
-
-      // Process streaming response
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedText = '';
-      let finalData: any = null;
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const event = JSON.parse(line.substring(6));
-
-                if (event.type === 'delta') {
-                  accumulatedText += event.text;
-                  setStreamingText(accumulatedText);
-                  setStreamingCharCount(accumulatedText.length);
-                } else if (event.type === 'done') {
-                  finalData = event;
-                } else if (event.type === 'error') {
-                  throw new Error(event.message);
-                }
-              } catch (parseError) {
-                // Ignore JSON parse errors for incomplete chunks
-              }
-            }
-          }
-        }
-      }
-
-      if (!finalData) {
-        throw new Error('Stream ended without final result');
+        throw new Error(data.error || 'Failed to generate AI analysis');
       }
 
       // Store the generated report and open results modal
-      setSurveyResults(finalData.report);
-      setReportId(finalData.report?.id || null);
+      setSurveyResults(data.report);
+      setReportId(data.report?.id || null);
       setAuditModeEnabled(false); // Reset audit mode for new report
 
       // Show API version notice (only in local testing mode)
-      if (isLocalTesting && finalData.meta) {
-        if (finalData.meta.fallbackUsed) {
-          setAnalyzerApiNotice({ type: 'fallback', message: `Used v1 (fallback): ${finalData.meta.fallbackReason}` });
-        } else if (finalData.meta.version === 'v2-skill') {
-          setAnalyzerApiNotice({ type: 'success', message: `Used v2 skill API (${finalData.meta.elapsedMs}ms)` });
+      if (isLocalTesting && data.meta) {
+        if (data.meta.fallbackUsed) {
+          setAnalyzerApiNotice({ type: 'fallback', message: `Used v1 (fallback): ${data.meta.fallbackReason}` });
+        } else if (data.meta.version === 'v2-skill') {
+          setAnalyzerApiNotice({ type: 'success', message: `Used v2 skill API (${data.meta.elapsedMs}ms)` });
         } else {
-          setAnalyzerApiNotice({ type: 'success', message: `Used v1 prompt API (${finalData.meta.elapsedMs}ms)` });
+          setAnalyzerApiNotice({ type: 'success', message: `Used v1 prompt API (${data.meta.elapsedMs}ms)` });
         }
       }
 
@@ -2749,21 +2671,6 @@ export default function Feedback360Dashboard({
                 <div className="ml-4 flex flex-col items-end gap-2">
                   {/* Status badge - Show on Sponsor and All 360°s tabs */}
                   {(filterRole === 'sponsor' || filterRole === 'all') && getStatusBadge(survey.status || 'unknown', survey.flagged_for_admin ?? undefined, survey.flagged_for_reanalysis ?? undefined, survey.resolved_by_admin ?? undefined)}
-
-                  {/* Remind button */}
-                  {survey.status === 'active' && (survey.completed_count ?? 0) !== (survey.reviewers_count ?? 0) && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        sendReminders(survey.id);
-                      }}
-                      className="px-3 py-1.5 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors text-sm font-medium flex items-center whitespace-nowrap"
-                    >
-                      <Send className="w-4 h-4 mr-1" />
-                      Remind
-                    </button>
-                  )}
-
                 </div>
 
                 {/* Delete button - bottom right of card */}
@@ -3416,7 +3323,7 @@ export default function Feedback360Dashboard({
                         {isGeneratingAnalysis ? (
                           <>
                             <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
-                            {streamingCharCount > 0 ? `Analyzing... ${Math.round(streamingCharCount / 330)}%` : 'Starting analysis...'}
+                            Generating Analysis...
                           </>
                         ) : (
                           <>
@@ -3443,26 +3350,6 @@ export default function Feedback360Dashboard({
                   )}
                 </div>
               </div>
-              )}
-
-              {/* Streaming Preview Panel */}
-              {isGeneratingAnalysis && streamingText && (
-                <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center">
-                      <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 mr-2 animate-pulse" />
-                      <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                        AI Analysis in Progress
-                      </span>
-                    </div>
-                    <span className="text-xs text-purple-600 dark:text-purple-400">
-                      {streamingCharCount.toLocaleString()} characters generated
-                    </span>
-                  </div>
-                  <div className="bg-white dark:bg-gray-800 rounded p-3 max-h-40 overflow-y-auto font-mono text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                    {streamingText.slice(-2000)}
-                  </div>
-                </div>
               )}
             </div>
           </div>
