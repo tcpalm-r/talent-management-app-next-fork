@@ -169,20 +169,6 @@ export const Report360ResponseSchema = z.object({
 }).passthrough();
 
 /**
- * Send Reminders Response
- * From /api/surveys/[id]/send-reminders
- */
-export const SendRemindersResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string().optional(),
-  results: z.object({
-    sent: z.number(),
-    failed: z.number(),
-    details: z.array(z.any()).optional(),
-  }).optional(),
-}).passthrough();
-
-/**
  * Error Response Schema
  * Standard error response format
  */
@@ -207,7 +193,6 @@ export type SurveyDeleteResponse = z.infer<typeof SurveyDeleteResponseSchema>;
 export type ReviewersListResponse = z.infer<typeof ReviewersListResponseSchema>;
 export type GenericSuccessResponse = z.infer<typeof GenericSuccessResponseSchema>;
 export type Report360Response = z.infer<typeof Report360ResponseSchema>;
-export type SendRemindersResponse = z.infer<typeof SendRemindersResponseSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 
 // ============================================================================

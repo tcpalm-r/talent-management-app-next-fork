@@ -10,13 +10,29 @@ import jsPDF from 'jspdf';
 type StatementOrCited = string | { text: string; citations?: any[] };
 
 // Helper function to extract text from either a plain string or CitedStatement object
+// Also handles JSON-stringified objects (from database text[] columns storing objects)
 const getStatementText = (item: StatementOrCited): string => {
-  if (typeof item === 'string') {
-    return item;
-  }
+  // Already a proper object with text property
   if (item && typeof item === 'object' && 'text' in item) {
     return item.text;
   }
+
+  // String that might be JSON-encoded object
+  if (typeof item === 'string') {
+    // Check if it looks like a JSON object (starts with { and contains "text":)
+    if (item.startsWith('{') && item.includes('"text"')) {
+      try {
+        const parsed = JSON.parse(item);
+        if (parsed && typeof parsed === 'object' && 'text' in parsed) {
+          return parsed.text;
+        }
+      } catch {
+        // Not valid JSON, return as-is
+      }
+    }
+    return item;
+  }
+
   return String(item);
 };
 
@@ -166,7 +182,9 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
       }
     });
 
-    yPosition += 10; // Space after narrative section
+    // Force page break after narrative so Themes starts on a new page
+    pdf.addPage();
+    yPosition = margin;
   }
 
   // ==========================================================================

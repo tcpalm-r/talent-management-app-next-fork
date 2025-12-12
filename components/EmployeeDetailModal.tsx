@@ -22,6 +22,33 @@ import { useToast, EmployeeNameLink } from './unified';
 import { AICoachMicroPanel, getEmployeeModalSuggestions } from './AICoachMicroPanel';
 import { useUnifiedAICoach } from '../context/UnifiedAICoachContext';
 
+/**
+ * Extract text from a statement that may be:
+ * - A plain string
+ * - A CitedStatement object { text, citations }
+ * - A JSON string that needs parsing (from database text[] columns)
+ */
+const getStatementText = (item: string | { text: string }): string => {
+  if (typeof item === 'string') {
+    // Check if it's a JSON string that needs parsing
+    if (item.startsWith('{') && item.includes('"text"')) {
+      try {
+        const parsed = JSON.parse(item);
+        if (parsed && typeof parsed === 'object' && 'text' in parsed) {
+          return parsed.text;
+        }
+      } catch {
+        // Not valid JSON, return as-is
+      }
+    }
+    return item;
+  }
+  if (item && typeof item === 'object' && 'text' in item) {
+    return item.text;
+  }
+  return String(item);
+};
+
 // Simplified navigation structure
 type PanelKey = 'overview' | 'performance' | 'development' | 'notes' | 'advanced'
 type SubPanel = 'details' | 'job-description' | 'reviews' | '360' | 'plans' | 'one-on-one' | 'manager-notes' | 'pip' | 'succession' | 'ingest' | 'notes'
@@ -1332,10 +1359,10 @@ export default function EmployeeDetailModal({
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Strengths</h3>
                   <div className="space-y-2">
-                    {completedSurveyResults.overall_strengths.map((strength: string, idx: number) => (
+                    {completedSurveyResults.overall_strengths.map((strength: string | { text: string }, idx: number) => (
                       <div key={idx} className="flex items-start gap-3">
                         <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-gray-700">{strength}</p>
+                        <p className="text-sm text-gray-700">{getStatementText(strength)}</p>
                       </div>
                     ))}
                   </div>
@@ -1347,10 +1374,10 @@ export default function EmployeeDetailModal({
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Areas for Development</h3>
                   <div className="space-y-2">
-                    {completedSurveyResults.development_areas.map((area: string, idx: number) => (
+                    {completedSurveyResults.development_areas.map((area: string | { text: string }, idx: number) => (
                       <div key={idx} className="flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-gray-700">{area}</p>
+                        <p className="text-sm text-gray-700">{getStatementText(area)}</p>
                       </div>
                     ))}
                   </div>
@@ -1362,9 +1389,9 @@ export default function EmployeeDetailModal({
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Recommendations</h3>
                   <div className="space-y-3">
-                    {completedSurveyResults.recommendations.map((rec: string, idx: number) => (
+                    {completedSurveyResults.recommendations.map((rec: string | { text: string }, idx: number) => (
                       <div key={idx} className="p-4 bg-purple-50 rounded-md border border-purple-200">
-                        <p className="text-sm text-gray-700">{rec}</p>
+                        <p className="text-sm text-gray-700">{getStatementText(rec)}</p>
                       </div>
                     ))}
                   </div>
