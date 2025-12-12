@@ -11,7 +11,7 @@
 export const surveyAnalyzerConfig = {
   model: 'claude-sonnet-4-5-20250929',
   maxTokens: 16384,
-  temperature: 0.1,
+  temperature: 0.0,
 };
 
 interface SurveyAnalyzerPromptParams {
