@@ -10,8 +10,8 @@
 
 export const surveyAnalyzerConfig = {
   model: 'claude-sonnet-4-5-20250929',
-  maxTokens: 8192,
-  temperature: 0.3,
+  maxTokens: 16384,
+  temperature: 0.1,
 };
 
 interface SurveyAnalyzerPromptParams {
@@ -127,7 +127,7 @@ Return exactly this structure:
 CITATION REQUIREMENTS - THIS IS CRITICAL FOR ACCURACY:
 1. Every statement MUST have at least one citation with a valid response_id from the input data
 2. The "response_id" MUST exactly match a response_id from the input - do NOT invent or modify IDs
-3. The "snippet" must be a 20-50 word VERBATIM excerpt from the actual response text
+3. The "snippet" must be a 10-30 word VERBATIM excerpt from the actual response text
 4. DO NOT paraphrase or summarize in the snippet - copy the exact words from the source
 
 EXHAUSTIVE CITATION RULE FOR THEMES:
