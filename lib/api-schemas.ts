@@ -161,29 +161,45 @@ export const GenericSuccessResponseSchema = z.object({
 /**
  * 360 Report Schema
  * Validates the report structure to prevent render crashes
+ *
+ * Note: Uses permissive validation because the report structure varies:
+ * - Database reports have additional fields (has_citations, citation_version, etc.)
+ * - Reports from API joins include nested survey objects
+ * - Themes and other arrays can have complex nested structures
  */
 export const Report360Schema = z.object({
-  id: z.string().uuid().optional(),
-  survey_id: z.string().uuid().optional(),
-  themes: z.array(z.any()).optional().default([]),
-  overall_strengths: z.array(z.any()).optional().default([]),
-  development_areas: z.array(z.any()).optional().default([]),
-  recommendations: z.array(z.any()).optional().default([]),
-  sentiment_by_relationship: z.record(z.any()).optional().default({}),
-  consensus_areas: z.array(z.any()).optional().default([]),
-  outlier_opinions: z.array(z.any()).optional().default([]),
+  id: z.string().optional(),
+  survey_id: z.string().optional(),
+  themes: z.any().optional(),
+  overall_strengths: z.any().optional(),
+  development_areas: z.any().optional(),
+  recommendations: z.any().optional(),
+  sentiment_by_relationship: z.any().optional(),
+  consensus_areas: z.any().optional(),
+  outlier_opinions: z.any().optional(),
   generated_by: z.string().optional(),
   generated_at: z.string().optional(),
 }).passthrough();
 
 /**
  * 360 Report Response
- * From /api/360-generate-report
+ * From /api/360-generate-report (both GET and POST)
+ *
+ * Response includes:
+ * - success: boolean (always present)
+ * - report: The report data (nullable for error cases)
+ * - viewerRole: The viewer's role (sponsor/admin/subject)
+ * - message: Optional message
+ * - meta: Optional metadata (API version, timing)
+ * - citationInfo: Optional citation info (admin only)
  */
 export const Report360ResponseSchema = z.object({
-  report: Report360Schema.nullable(), // Report with validated structure
-  survey: SurveySchema.optional(),
+  success: z.boolean().optional(),
+  report: Report360Schema.nullable(),
+  viewerRole: z.string().optional(),
   message: z.string().optional(),
+  meta: z.any().optional(),
+  citationInfo: z.any().optional(),
 }).passthrough();
 
 /**
@@ -236,7 +252,7 @@ export function validateSchema<T>(
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error(`[Schema Validation] Failed${context ? ` (${context})` : ''}:`, {
-        errors: error.errors,
+        issues: error.issues, // Zod 4 uses 'issues' instead of 'errors'
         data: JSON.stringify(data, null, 2),
       });
       return { success: false, error };

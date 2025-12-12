@@ -137,6 +137,57 @@ export type Database = {
           },
         ]
       }
+      feedback_360_deleted_surveys: {
+        Row: {
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          employee_id: string | null
+          employee_name: string | null
+          id: string
+          original_created_at: string | null
+          original_status: string | null
+          original_survey_id: string | null
+          questions_data: Json | null
+          responses_data: Json | null
+          reviewers_data: Json | null
+          survey_data: Json | null
+          survey_name: string | null
+        }
+        Insert: {
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          original_created_at?: string | null
+          original_status?: string | null
+          original_survey_id?: string | null
+          questions_data?: Json | null
+          responses_data?: Json | null
+          reviewers_data?: Json | null
+          survey_data?: Json | null
+          survey_name?: string | null
+        }
+        Update: {
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          original_created_at?: string | null
+          original_status?: string | null
+          original_survey_id?: string | null
+          questions_data?: Json | null
+          responses_data?: Json | null
+          reviewers_data?: Json | null
+          survey_data?: Json | null
+          survey_name?: string | null
+        }
+        Relationships: []
+      }
       feedback_360_questions: {
         Row: {
           category: string | null
@@ -146,6 +197,8 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_default: boolean | null
+          min_words: number | null
+          organization_id: string | null
           question_text: string
           updated_at: string | null
           updated_by: string | null
@@ -158,6 +211,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          min_words?: number | null
+          organization_id?: string | null
           question_text: string
           updated_at?: string | null
           updated_by?: string | null
@@ -170,19 +225,78 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          min_words?: number | null
+          organization_id?: string | null
           question_text?: string
           updated_at?: string | null
           updated_by?: string | null
         }
         Relationships: []
       }
+      feedback_360_report_citations: {
+        Row: {
+          created_at: string | null
+          id: string
+          relevance_score: number | null
+          report_id: string
+          response_id: string
+          section_index: number
+          section_type: string
+          snippet: string
+          statement_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          relevance_score?: number | null
+          report_id: string
+          response_id: string
+          section_index: number
+          section_type: string
+          snippet: string
+          statement_index: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          relevance_score?: number | null
+          report_id?: string
+          response_id?: string
+          section_index?: number
+          section_type?: string
+          snippet?: string
+          statement_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_360_report_citations_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_360_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_360_report_citations_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_360_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedback_360_reports: {
         Row: {
+          citation_coverage: number | null
+          citation_validated_at: string | null
+          citation_validation_status: string | null
+          citation_version: number | null
           consensus_areas: string[]
           created_at: string | null
           development_areas: string[]
+          executive_summary: string | null
           generated_at: string
           generated_by: string
+          has_citations: boolean | null
           id: string
           key_insights: string[]
           manager_notes: string | null
@@ -192,14 +306,22 @@ export type Database = {
           sentiment_by_relationship: Json
           survey_id: string
           themes: Json
+          total_citations: number | null
           updated_at: string | null
+          validation_errors: Json | null
         }
         Insert: {
+          citation_coverage?: number | null
+          citation_validated_at?: string | null
+          citation_validation_status?: string | null
+          citation_version?: number | null
           consensus_areas?: string[]
           created_at?: string | null
           development_areas?: string[]
+          executive_summary?: string | null
           generated_at: string
           generated_by: string
+          has_citations?: boolean | null
           id?: string
           key_insights?: string[]
           manager_notes?: string | null
@@ -209,14 +331,22 @@ export type Database = {
           sentiment_by_relationship?: Json
           survey_id: string
           themes?: Json
+          total_citations?: number | null
           updated_at?: string | null
+          validation_errors?: Json | null
         }
         Update: {
+          citation_coverage?: number | null
+          citation_validated_at?: string | null
+          citation_validation_status?: string | null
+          citation_version?: number | null
           consensus_areas?: string[]
           created_at?: string | null
           development_areas?: string[]
+          executive_summary?: string | null
           generated_at?: string
           generated_by?: string
+          has_citations?: boolean | null
           id?: string
           key_insights?: string[]
           manager_notes?: string | null
@@ -226,7 +356,9 @@ export type Database = {
           sentiment_by_relationship?: Json
           survey_id?: string
           themes?: Json
+          total_citations?: number | null
           updated_at?: string | null
+          validation_errors?: Json | null
         }
         Relationships: [
           {
@@ -342,6 +474,7 @@ export type Database = {
       feedback_360_survey_reviewers: {
         Row: {
           access_token: string | null
+          assigned_by_sponsor: boolean | null
           completed_at: string | null
           created_at: string | null
           email_error: string | null
@@ -360,6 +493,7 @@ export type Database = {
         }
         Insert: {
           access_token?: string | null
+          assigned_by_sponsor?: boolean | null
           completed_at?: string | null
           created_at?: string | null
           email_error?: string | null
@@ -378,6 +512,7 @@ export type Database = {
         }
         Update: {
           access_token?: string | null
+          assigned_by_sponsor?: boolean | null
           completed_at?: string | null
           created_at?: string | null
           email_error?: string | null
@@ -406,53 +541,74 @@ export type Database = {
       }
       feedback_360_surveys: {
         Row: {
+          auto_reminder_days_before: number | null
           completed_at: string | null
           created_at: string | null
           created_by: string
+          created_by_email: string | null
+          current_step: number | null
+          draft_partial_reviewers: Json | null
           due_date: string | null
           employee_id: string
+          final_narrative: string | null
           flagged_for_admin: boolean | null
           flagged_for_reanalysis: boolean | null
           id: string
-          is_anonymous: boolean | null
-          reanalysis_requested_at: string | null
-          reanalysis_requested_by: string | null
+          narrative_generated_at: string | null
+          narrative_version: number | null
+          organization_id: string | null
+          resolved_by_admin: boolean | null
           sent_at: string | null
           status: string | null
+          subject_preferred_name: string | null
           survey_name: string | null
           updated_at: string | null
         }
         Insert: {
+          auto_reminder_days_before?: number | null
           completed_at?: string | null
           created_at?: string | null
           created_by: string
+          created_by_email?: string | null
+          current_step?: number | null
+          draft_partial_reviewers?: Json | null
           due_date?: string | null
           employee_id: string
+          final_narrative?: string | null
           flagged_for_admin?: boolean | null
           flagged_for_reanalysis?: boolean | null
           id?: string
-          is_anonymous?: boolean | null
-          reanalysis_requested_at?: string | null
-          reanalysis_requested_by?: string | null
+          narrative_generated_at?: string | null
+          narrative_version?: number | null
+          organization_id?: string | null
+          resolved_by_admin?: boolean | null
           sent_at?: string | null
           status?: string | null
+          subject_preferred_name?: string | null
           survey_name?: string | null
           updated_at?: string | null
         }
         Update: {
+          auto_reminder_days_before?: number | null
           completed_at?: string | null
           created_at?: string | null
           created_by?: string
+          created_by_email?: string | null
+          current_step?: number | null
+          draft_partial_reviewers?: Json | null
           due_date?: string | null
           employee_id?: string
+          final_narrative?: string | null
           flagged_for_admin?: boolean | null
           flagged_for_reanalysis?: boolean | null
           id?: string
-          is_anonymous?: boolean | null
-          reanalysis_requested_at?: string | null
-          reanalysis_requested_by?: string | null
+          narrative_generated_at?: string | null
+          narrative_version?: number | null
+          organization_id?: string | null
+          resolved_by_admin?: boolean | null
           sent_at?: string | null
           status?: string | null
+          subject_preferred_name?: string | null
           survey_name?: string | null
           updated_at?: string | null
         }
@@ -572,6 +728,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      organization_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          setting_key: string
+          setting_value: Json | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          setting_key: string
+          setting_value?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       performance_review_deadlines: {
         Row: {
@@ -707,6 +890,51 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      survey_meta_feedback: {
+        Row: {
+          additional_comments: string | null
+          ai_helper_rating: number | null
+          id: string
+          navigation_rating: number | null
+          reviewer_id: string | null
+          submitted_at: string | null
+          survey_id: string
+        }
+        Insert: {
+          additional_comments?: string | null
+          ai_helper_rating?: number | null
+          id?: string
+          navigation_rating?: number | null
+          reviewer_id?: string | null
+          submitted_at?: string | null
+          survey_id: string
+        }
+        Update: {
+          additional_comments?: string | null
+          ai_helper_rating?: number | null
+          id?: string
+          navigation_rating?: number | null
+          reviewer_id?: string | null
+          submitted_at?: string | null
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_meta_feedback_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_360_surveys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_meta_feedback_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_360_survey_reviewers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sync_history: {
         Row: {

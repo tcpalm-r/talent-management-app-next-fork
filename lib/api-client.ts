@@ -161,7 +161,7 @@ export async function fetchWithValidation<T>(
       // In development: throw error to catch issues immediately
       console.error('[API Client] VALIDATION FAILED (throwing in dev mode):', {
         url,
-        errors: validationResult.error.errors,
+        issues: validationResult.error.issues, // Zod 4 uses 'issues' instead of 'errors'
         data,
       });
       throw validationError;
@@ -169,7 +169,7 @@ export async function fetchWithValidation<T>(
       // In production: log error but don't crash
       console.error('[API Client] VALIDATION FAILED (graceful degradation):', {
         url,
-        errors: validationResult.error.errors.slice(0, 5), // Limit to first 5 errors
+        issues: validationResult.error.issues?.slice(0, 5), // Zod 4 uses 'issues', limit to first 5
         dataPreview: JSON.stringify(data).slice(0, 200), // Limit to 200 chars
       });
 

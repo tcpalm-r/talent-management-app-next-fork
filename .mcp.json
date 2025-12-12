@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "sonance-brand": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "sonance-brand-mcp"
+      ]
+    }
+  }
+}
