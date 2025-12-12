@@ -98,6 +98,26 @@ const isUserSponsor = (
   return isSponsor;
 };
 
+// Helper function to check if a user has permission to view survey results
+const canUserViewResults = (
+  survey: any,
+  user: any,
+  userDbId?: string | null
+): boolean => {
+  if (!survey || !user) return false;
+
+  const isSponsor = isUserSponsor(survey, user, userDbId);
+  const isAdmin = user.app_role === 'admin';
+  const isSubject = survey.employee_id === user.id;
+  const isLeader = user.app_role === 'leader';
+  const isReviewer = survey.reviewers?.some((r: any) => r.reviewer_email === user.email);
+
+  // Leader reviewers who are NOT sponsor and NOT subject cannot view results
+  const isLeaderReviewerOnly = isLeader && isReviewer && !isSponsor && !isSubject;
+
+  return (isSponsor || isAdmin || isSubject) && !isLeaderReviewerOnly;
+};
+
 // Helper function to extract text from either a plain string or CitedStatement object
 // This handles backward compatibility with old reports (plain strings) and new reports (CitedStatement objects)
 // Type for citation data
@@ -2429,7 +2449,9 @@ export default function Feedback360Dashboard({
                 key={survey.id}
                 className="bg-white dark:bg-gray-800 rounded-md shadow border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow cursor-pointer relative"
                 onClick={() => {
-                  // If it's a draft and user is the sponsor, open wizard to edit/launch
+                  // Draft surveys: Open wizard for editing/launching
+                  // Completed/Finalized surveys: Go directly to results for authorized users
+                  // Other statuses: Open details modal for management
                   if (survey.status === 'draft' && isSponsor) {
                     setEditingDraftSurvey(survey);
                     // Pre-select the employee being reviewed
@@ -2438,23 +2460,12 @@ export default function Feedback360Dashboard({
                       setPreselectedEmployee(employee);
                     }
                     setIsWizardOpen(true);
-                  } else if (survey.status === 'finalized' && hasSurveyBeenViewed(survey.id)) {
-                    // If it's a finalized survey that has been viewed before, go straight to results
-                    // But only if user is sponsor, admin, or subject - leaders who are reviewers should not see results
-                    const isSurveySponsor = isUserSponsor(survey, currentUser, currentUserDbId);
-                    const isSurveySubject = survey.employee_id === currentUser?.id;
-                    const isSurveyAdmin = currentUser?.app_role === 'admin';
-                    const isSurveyReviewer = survey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
-                    const isLeaderReviewer = currentUser?.app_role === 'leader' && isSurveyReviewer && !isSurveySponsor;
-                    
-                    // Only allow viewing results if user is sponsor, admin, or subject (not leader reviewers)
-                    if (isSurveySponsor || isSurveyAdmin || (isSurveySubject && !isLeaderReviewer)) {
-                      loadAndShowResults(survey);
-                    } else {
-                      // For leader reviewers, open details modal instead (which will show completion message)
-                      setSelectedSurvey(survey);
-                      setIsDetailsModalOpen(true);
-                    }
+                  } else if (
+                    (survey.status === 'completed' || survey.status === 'finalized') &&
+                    canUserViewResults(survey, currentUser, currentUserDbId)
+                  ) {
+                    // Go straight to results for completed/finalized surveys
+                    loadAndShowResults(survey);
                   } else {
                     // Open details modal for other statuses
                     // First fetch fresh data to ensure completed_count is accurate
@@ -3406,13 +3417,13 @@ export default function Feedback360Dashboard({
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <div className="flex items-center gap-3">
-                      <h2 className="text-xl font-bold text-gray-900">{selectedSurvey.survey_name}</h2>
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{selectedSurvey.survey_name}</h2>
                       {/* Only show reviewer count to Admin, SLT, and survey sponsor */}
                       {(isAdmin || isSLT || isSponsor) && (() => {
                         const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 0;
                         const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
                         return (
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
                             Reviewers: <span className="font-medium">{completedReviewers} of {totalReviewers} completed</span>
                           </span>
                         );
@@ -3558,7 +3569,7 @@ export default function Feedback360Dashboard({
             </div>
 
             <div
-              className="h-[500px] overflow-y-auto p-6 space-y-6"
+              className="h-[500px] overflow-y-auto p-6 space-y-6 bg-gray-50 dark:bg-gray-900"
               onClick={() => {
                 // Deselect all items when clicking blank space
                 setSelectedThemeIndex(null);
@@ -3577,7 +3588,7 @@ export default function Feedback360Dashboard({
                   <div>
                     {canAdjustThemes && (
                       <div className="mb-4">
-                        <span className="text-sm text-gray-600 font-semibold italic">Click to adjust</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 font-semibold italic">Click to adjust</span>
                       </div>
                     )}
                     <div className="space-y-3">
@@ -3592,19 +3603,19 @@ export default function Feedback360Dashboard({
                             canAdjustThemes ? 'cursor-pointer hover:border-blue-500' : ''
                           } ${
                             selectedThemeIndex === idx
-                              ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200'
-                              : 'border-gray-200 hover:border-blue-400'
+                              ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-200 dark:ring-blue-800'
+                              : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-400'
                           }`}
                         >
                           <div className="flex items-start justify-between mb-2">
-                            <h5 className="font-medium text-gray-900">{theme.theme}</h5>
+                            <h5 className="font-medium text-gray-900 dark:text-gray-100">{theme.theme}</h5>
                             <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              theme.sentiment === 'very_positive' ? 'bg-emerald-100 text-emerald-700' :
-                              theme.sentiment === 'positive' ? 'bg-green-100 text-green-700' :
-                              theme.sentiment === 'mixed' ? 'bg-yellow-100 text-yellow-700' :
-                              theme.sentiment === 'needs_work' ? 'bg-orange-100 text-orange-700' :
-                              theme.sentiment === 'critical' ? 'bg-red-100 text-red-700' :
-                              'bg-gray-100 text-gray-700'
+                              theme.sentiment === 'very_positive' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' :
+                              theme.sentiment === 'positive' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' :
+                              theme.sentiment === 'mixed' ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300' :
+                              theme.sentiment === 'needs_work' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300' :
+                              theme.sentiment === 'critical' ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' :
+                              'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                             }`}>
                               {theme.sentiment === 'very_positive' ? 'Very Positive' :
                                theme.sentiment === 'positive' ? 'Positive' :
@@ -3614,7 +3625,7 @@ export default function Feedback360Dashboard({
                                theme.sentiment}
                             </span>
                           </div>
-                          <p className="text-xs text-gray-500 mb-2">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                             Mentioned by {theme.frequency} reviewer{theme.frequency !== 1 ? 's' : ''}
                             {theme.relationships_mentioned && theme.relationships_mentioned.length > 0 && (
                               <span> ({theme.relationships_mentioned.join(', ')})</span>
@@ -3623,7 +3634,7 @@ export default function Feedback360Dashboard({
                           {theme.supporting_evidence && theme.supporting_evidence.length > 0 && (
                             <div className="mt-2 space-y-1">
                               {theme.supporting_evidence.map((evidence: string | { text: string; citations?: any[] }, qIdx: number) => (
-                                <p key={qIdx} className="text-sm text-gray-600 pl-3 border-l-2 border-gray-300">
+                                <p key={qIdx} className="text-sm text-gray-600 dark:text-gray-400 pl-3 border-l-2 border-gray-300 dark:border-gray-600">
                                   {getStatementText(evidence)}
                                   <InlineCitation
                                     citations={getCitations(evidence)}
@@ -3644,10 +3655,10 @@ export default function Feedback360Dashboard({
                             const positions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
 
                             return (
-                              <div className="mt-2 pt-2 border-t border-blue-200 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-6 xl:gap-8 pr-2 lg:pr-4">
+                              <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-6 xl:gap-8 pr-2 lg:pr-4">
                                 {/* Specificity Control */}
                                 <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
-                                  <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Less Specific</span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap shrink-0">Less Specific</span>
                                   <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
                                     <button
                                       onClick={(e) => {
@@ -3818,7 +3829,7 @@ export default function Feedback360Dashboard({
                   <div>
                     {canAdjustItems && (
                       <div className="mb-3">
-                        <span className="text-sm text-gray-600 font-semibold italic">Click to adjust</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 font-semibold italic">Click to adjust</span>
                       </div>
                     )}
                     <ul className="space-y-1">
@@ -3833,13 +3844,13 @@ export default function Feedback360Dashboard({
                             canAdjustItems ? 'cursor-pointer hover:border-blue-500' : ''
                           } ${
                             selectedStrengthIndex === idx
-                              ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200'
+                              ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-200 dark:ring-blue-800'
                               : 'border-transparent hover:border-blue-400'
                           }`}
                         >
-                          <span className="text-green-600 mt-1">•</span>
+                          <span className="text-green-600 dark:text-green-400 mt-1">•</span>
                           <div className="flex-1">
-                            <span className="text-gray-700">
+                            <span className="text-gray-700 dark:text-gray-300">
                               {getStatementText(strength)}
                               <InlineCitation
                                 citations={getCitations(strength)}
@@ -3907,7 +3918,7 @@ export default function Feedback360Dashboard({
                   <div>
                     {canAdjustItems && (
                       <div className="mb-3">
-                        <span className="text-sm text-gray-600 font-semibold italic">Click to adjust</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 font-semibold italic">Click to adjust</span>
                       </div>
                     )}
                     <ul className="space-y-1">
@@ -3922,13 +3933,13 @@ export default function Feedback360Dashboard({
                             canAdjustItems ? 'cursor-pointer hover:border-blue-500' : ''
                           } ${
                             selectedDevelopmentIndex === idx
-                              ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200'
+                              ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-200 dark:ring-blue-800'
                               : 'border-transparent hover:border-blue-400'
                           }`}
                         >
-                          <span className="text-amber-600 mt-1">•</span>
+                          <span className="text-amber-600 dark:text-amber-400 mt-1">•</span>
                           <div className="flex-1">
-                            <span className="text-gray-700">
+                            <span className="text-gray-700 dark:text-gray-300">
                               {getStatementText(area)}
                               <InlineCitation
                                 citations={getCitations(area)}
@@ -3995,10 +4006,10 @@ export default function Feedback360Dashboard({
                 return (
                   <div>
                     <div className="mb-4">
-                      <h4 className="text-lg font-semibold text-gray-900">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                         Recommended Actions
                         {canEdit && (
-                          <span className="text-xs text-gray-600 font-semibold ml-2">(Click to edit)</span>
+                          <span className="text-xs text-gray-600 dark:text-gray-400 font-semibold ml-2">(Click to edit)</span>
                         )}
                       </h4>
                     </div>
@@ -4007,7 +4018,7 @@ export default function Feedback360Dashboard({
                         const recText = getStatementText(rec);
                         return (
                         <li key={idx} className="flex items-start gap-3 group">
-                          <span className="text-gray-400 font-medium text-sm flex-shrink-0 mt-0.5">{idx + 1}.</span>
+                          <span className="text-gray-400 dark:text-gray-500 font-medium text-sm flex-shrink-0 mt-0.5">{idx + 1}.</span>
                           {editingRecommendationIndex === idx ? (
                             <input
                               type="text"
@@ -4021,15 +4032,15 @@ export default function Feedback360Dashboard({
                                   cancelEditingRecommendation();
                                 }
                               }}
-                              className="flex-1 px-2 py-1 border-b-2 border-blue-500 text-gray-700 text-sm focus:outline-none bg-transparent"
+                              className="flex-1 px-2 py-1 border-b-2 border-blue-500 text-gray-700 dark:text-gray-300 text-sm focus:outline-none bg-transparent"
                               autoFocus
                             />
                           ) : (
                             <div className="flex-1 flex items-start justify-between group">
                               <span
                                 onClick={() => canEdit && startEditingRecommendation(idx, recText)}
-                                className={`text-gray-700 text-sm flex-1 ${
-                                  canEdit ? 'cursor-pointer hover:text-gray-900' : ''
+                                className={`text-gray-700 dark:text-gray-300 text-sm flex-1 ${
+                                  canEdit ? 'cursor-pointer hover:text-gray-900 dark:hover:text-gray-100' : ''
                                 }`}
                               >
                                 {recText}
@@ -4081,14 +4092,14 @@ export default function Feedback360Dashboard({
                                   cancelEditingRecommendation();
                                 }
                               }}
-                              className="flex-1 px-2 py-1 border-b-2 border-blue-500 text-gray-700 text-sm focus:outline-none bg-transparent"
+                              className="flex-1 px-2 py-1 border-b-2 border-blue-500 text-gray-700 dark:text-gray-300 text-sm focus:outline-none bg-transparent"
                               placeholder="Type to add new action..."
                               autoFocus
                             />
                           ) : (
                             <span
                               onClick={() => startEditingRecommendation(-1, '')}
-                              className="flex-1 text-gray-400 text-sm cursor-pointer hover:text-gray-600 italic"
+                              className="flex-1 text-gray-400 dark:text-gray-500 text-sm cursor-pointer hover:text-gray-600 dark:hover:text-gray-400 italic"
                             >
                               Add new action...
                             </span>
@@ -4097,7 +4108,7 @@ export default function Feedback360Dashboard({
                       )}
 
                       {!canEdit && (!surveyResults.recommendations || surveyResults.recommendations.length === 0) && (
-                        <li className="text-gray-500 text-sm italic">No recommendations available.</li>
+                        <li className="text-gray-500 dark:text-gray-400 text-sm italic">No recommendations available.</li>
                       )}
                     </ul>
 
@@ -4307,16 +4318,16 @@ export default function Feedback360Dashboard({
                   {/* Narrative content or empty state */}
                   {finalNarrative ? (
                     <>
-                      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-md p-8">
+                      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 border border-purple-200 dark:border-purple-700 rounded-md p-8">
                         <div className="mb-6">
-                          <h4 className="text-xl font-semibold text-gray-900">Final Narrative</h4>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <h4 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Final Narrative</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                             This one-page narrative will be the first page of the final 360 report that{' '}
                             {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'} sees.
                           </p>
                         </div>
-                        <div className="prose prose-sm max-w-none">
-                          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                          <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                             {finalNarrative.replace(/^\*\*360-Degree Feedback Report:.*?\*\*\s*/i, '').trim()}
                           </p>
                         </div>
@@ -4348,10 +4359,10 @@ export default function Feedback360Dashboard({
                     </>
                   ) : (
                     /* Empty state - no narrative generated yet */
-                    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-md p-12 text-center">
-                      <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <h4 className="text-lg font-semibold text-gray-900 mb-2">No Narrative Generated Yet</h4>
-                      <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                    <div className="bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md p-12 text-center">
+                      <FileText className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No Narrative Generated Yet</h4>
+                      <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-2xl mx-auto">
                         Generate a comprehensive one-page narrative that synthesizes all the feedback and insights from this 360 feedback.
                         This narrative will be the first page of the final report that{' '}
                         {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'} sees.
