@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus, Check, User, Search, ChevronDown, Info } from 'lucide-react';
+import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus, Check, User, Search, ChevronDown, Info, Loader2 } from 'lucide-react';
 import type { Employee, Department, ParticipantRelationship } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
@@ -2890,7 +2890,19 @@ export default function Feedback360Dashboard({
         // Sponsor view - full management interface
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-md max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-md max-w-3xl w-full max-h-[90vh] overflow-y-auto relative">
+            {/* Loading overlay when generating AI analysis */}
+            {isGeneratingAnalysis && (
+              <div className="absolute inset-0 bg-white/90 dark:bg-gray-800/90 flex flex-col items-center justify-center z-50 rounded-md">
+                <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  Generating AI Analysis...
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4">
+                  Report may take up to 2 minutes to generate to ensure accuracy and precision
+                </p>
+              </div>
+            )}
             <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 leading-tight">
