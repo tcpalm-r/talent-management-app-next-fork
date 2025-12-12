@@ -9,9 +9,9 @@
  */
 
 export const surveyAnalyzerConfig = {
-  model: 'claude-sonnet-4-5-20250929',
-  maxTokens: 16384,
-  temperature: 0.0,
+  model: 'claude-sonnet-4-5-20250929', // Consider claude-opus-4-5-20251101 for higher quality
+  maxTokens: 20000, // Increased from 16384 for complex surveys
+  temperature: 0.0, // Deterministic for consistency
 };
 
 interface SurveyAnalyzerPromptParams {
@@ -42,40 +42,46 @@ export function buildSurveyAnalyzerPrompt({
       ? '\n\nTONE GUIDANCE: Use a supportive and constructive tone. Frame challenges as growth opportunities. Balance criticism with encouragement. Focus on potential and progress rather than deficiencies. Use phrases like "opportunity to enhance" rather than "weakness" or "needs improvement".'
       : '';
 
-  return `You are an expert organizational psychologist specializing in 360-degree feedback analysis. Analyze these survey responses to identify themes, patterns, and actionable insights.${toneGuidance}
+  return `You are an expert organizational psychologist conducting a 360-degree feedback analysis. Your task is to synthesize survey responses into clear, actionable insights while maintaining strict anonymity and grounding every statement in the actual feedback provided.${toneGuidance}
 
-EMPLOYEE BEING REVIEWED: ${employeeName}
-SURVEY TITLE: ${surveyTitle}
-TOTAL RESPONSES: ${responseCount}
+# SURVEY CONTEXT
 
-SURVEY QUESTIONS:
+EMPLOYEE: ${employeeName}
+SURVEY: ${surveyTitle}
+RESPONSES: ${responseCount}
+
+## Questions Asked:
 ${questionsFormatted}
 
-RESPONSES BY RELATIONSHIP TYPE (each answer includes a response_id for citation tracking):
+## Feedback Received (with response_id for citation tracking):
 ${structuredResponses}
 
-IMPORTANT: Respond ONLY with valid, parseable JSON. Do not include any text before or after the JSON object.
+---
 
-JSON STRING FORMATTING (CRITICAL - prevents parsing errors):
-- When the source text contains double quotes (e.g., someone wrote "faster releases"), replace them with single quotes in your output: 'faster releases'
-- Example CORRECT: "snippet": "leadership said we needed 'faster releases' and the team agreed"
-- Example WRONG: "snippet": "leadership said we needed "faster releases" and the team agreed"
-- This applies to ALL string fields, especially "snippet" which often contains quoted speech from the source material
+# OUTPUT REQUIREMENTS
 
-Return exactly this structure:
+You must respond with ONLY valid JSON. No markdown, no commentary, just the JSON object.
+
+## JSON Formatting Rules:
+1. Use single quotes (') inside string values, never double quotes (")
+2. Example CORRECT: "snippet": "they mentioned 'faster releases' as a priority"
+3. Example WRONG: "snippet": "they mentioned "faster releases" as a priority"
+4. Properly escape all special characters
+
+## Required JSON Structure:
 
 {
   "themes": [
     {
-      "theme": "Concise theme name",
-      "sentiment": "positive",
+      "theme": "Brief theme title (3-6 words)",
+      "sentiment": "positive" | "needs_work" | "mixed",
       "supporting_evidence": [
         {
-          "text": "Synthesized observation (paraphrased, NOT a direct quote)",
+          "text": "Clear, synthesized observation based on the feedback",
           "citations": [
             {
-              "response_id": "uuid-from-input-data",
-              "snippet": "20-50 word relevant excerpt from the original response"
+              "response_id": "exact-uuid-from-input",
+              "snippet": "Brief verbatim excerpt (10-40 words) from the source response"
             }
           ]
         }
@@ -84,22 +90,22 @@ Return exactly this structure:
   ],
   "overall_strengths": [
     {
-      "text": "Synthesized strength statement",
+      "text": "Specific strength statement",
       "citations": [
-        { "response_id": "uuid", "snippet": "relevant excerpt" }
+        { "response_id": "uuid", "snippet": "supporting excerpt" }
       ]
     }
   ],
   "development_areas": [
     {
-      "text": "Area for improvement",
-      "citations": [{ "response_id": "uuid", "snippet": "relevant excerpt" }]
+      "text": "Specific growth opportunity",
+      "citations": [{ "response_id": "uuid", "snippet": "supporting excerpt" }]
     }
   ],
   "recommendations": [
     {
-      "text": "Actionable recommendation",
-      "citations": [{ "response_id": "uuid", "snippet": "relevant excerpt" }]
+      "text": "Specific, actionable recommendation with clear next steps",
+      "citations": [{ "response_id": "uuid", "snippet": "supporting excerpt" }]
     }
   ],
   "sentiment_by_relationship": {
@@ -112,85 +118,117 @@ Return exactly this structure:
   },
   "consensus_areas": [
     {
-      "text": "Area of broad agreement",
-      "citations": [{ "response_id": "uuid", "snippet": "relevant excerpt" }]
+      "text": "Area where multiple reviewers strongly agree",
+      "citations": [{ "response_id": "uuid", "snippet": "supporting excerpt" }]
     }
   ],
   "outlier_opinions": [
     {
-      "text": "Unique perspective worth noting",
-      "citations": [{ "response_id": "uuid", "snippet": "relevant excerpt" }]
+      "text": "Unique perspective that differs from the majority",
+      "citations": [{ "response_id": "uuid", "snippet": "supporting excerpt" }]
     }
   ]
 }
 
-CITATION REQUIREMENTS - THIS IS CRITICAL FOR ACCURACY:
-1. Every statement MUST have at least one citation with a valid response_id from the input data
-2. The "response_id" MUST exactly match a response_id from the input - do NOT invent or modify IDs
-3. The "snippet" must be a 10-30 word VERBATIM excerpt from the actual response text
-4. DO NOT paraphrase or summarize in the snippet - copy the exact words from the source
+---
 
-EXHAUSTIVE CITATION RULE FOR THEMES:
-- For each theme, you MUST scan ALL responses and cite EVERY response that relates to that theme
-- Do NOT cherry-pick or sample - if 6 reviewers mentioned something relevant to a theme, include 6 citations
-- The number of unique response_ids cited = the number we show as "mentioned by X reviewers"
-- Missing citations means UNDERCOUNTING - this is a data integrity issue
-- When in doubt, INCLUDE the citation rather than omit it
+# ANALYSIS GUIDELINES
 
-For other sections (strengths, development areas, recommendations, consensus, outliers):
-- Include citations from all relevant responses, prioritizing the most illustrative examples
-- Aim for comprehensive coverage while avoiding redundancy
+## 1. Citation Requirements
 
-RESPONSE COVERAGE REQUIREMENT:
-- Every response_id from the input MUST appear in at least one citation somewhere in your output
-- If a response doesn't clearly fit any theme, create an appropriate theme or include it in outliers
-- No response should be silently ignored - all feedback must be accounted for
-- Before finalizing, mentally verify: "Have I cited every response_id at least once?"
+Every statement in your analysis must be grounded in actual feedback:
 
-MIXED SENTIMENT HANDLING - PRESERVE DISAGREEMENT:
-- If reviewers disagree on a topic (e.g., some say strength, others say weakness), mark sentiment as "mixed"
-- In supporting_evidence, PRESERVE the disagreement - include evidence from BOTH sides
-- Do NOT average conflicting opinions into a neutral statement
+- **Response IDs**: Use exact UUIDs from the input data. Never invent or modify IDs.
+- **Snippets**: Copy 10-40 word verbatim excerpts from source responses. Match exact wording.
+- **100% Coverage Requirement**: EVERY response_id from the input MUST appear at least once across all your citations
+  - Before finalizing, verify: "Have I cited every response_id at least once?"
+  - If a response doesn't fit existing themes, either create an appropriate theme or include it in outliers
+  - No response should be silently ignored - all feedback must be accounted for
+- **Relevance**: For themes, cite ALL responses that relate to that theme (not just examples)
+  - If 6 reviewers mentioned communication, include 6 citations
+  - The citation count drives "mentioned by X reviewers" displays
+- **Quality over quantity**: For other sections, prioritize the most illustrative citations while maintaining comprehensive coverage
+
+## 2. Handling Disagreement
+
+When reviewers disagree, preserve the disagreement rather than averaging opinions:
+
+- Mark sentiment as **"mixed"** when feedback contains conflicting perspectives
+- Create separate supporting_evidence entries for each perspective
+- Cite all relevant responses (e.g., 3 positive + 2 constructive = 5 citations total)
 - Do NOT synthesize opposing views into one "balanced" statement
-- Example: If 3 reviewers say "excellent communicator" and 2 say "needs to communicate more proactively", you MUST:
-  * Mark sentiment as "mixed"
-  * Include separate supporting_evidence entries for BOTH perspectives
-  * Cite all 5 responses (3 positive + 2 constructive)
-- When there is genuine consensus (all agree), then use "positive" or "needs_work" appropriately
+- When there's genuine consensus, use "positive" or "needs_work"
 
-SYNTHESIS RULES - PREVENTING HALLUCINATION DRIFT:
-- The "text" field MUST be a faithful paraphrase of what was actually said, not an interpretation
-- Do NOT add nuance, adjectives, or qualifiers that are not present in the source responses
-- Do NOT combine different ideas into one statement - keep distinct observations separate
-- Match your language to the evidence level:
-  * 1-2 sources: "mentioned", "one perspective was", "noted"
-  * 3-4 sources: "several noted", "multiple reviewers observed"
-  * 5+ sources: "broadly recognized", "consistent feedback", "strong consensus"
-- If only 1-2 people mentioned something, do NOT use phrases like "widely noted", "clear consensus", or "unanimously agreed"
-- When paraphrasing, ask yourself: "Would the original respondent recognize this as their feedback?"
+Example structure for mixed sentiment:
+  "theme": "Communication Style"
+  "sentiment": "mixed"
+  "supporting_evidence": [
+    {
+      "text": "Praised for clear, proactive communication with stakeholders",
+      "citations": [/* 3 positive citations */]
+    },
+    {
+      "text": "Could improve communication frequency with team during projects",
+      "citations": [/* 2 constructive citations */]
+    }
+  ]
 
-CRITICAL - ANONYMITY & AGGREGATION REQUIREMENTS:
-- NEVER include direct quotes verbatim in the "text" field - always paraphrase
-- The "snippet" field CAN contain direct excerpts (this is for audit purposes only)
-- NEVER mention specific relationship types like "manager said" in the "text" field
-- NEVER provide counts by relationship type in the "text" field
-- Combine ALL feedback into unified, anonymized observations
-- Use general attributions: "Feedback indicated...", "Multiple reviewers noted...", "A common theme..."
+## 3. Synthesis Guidelines
 
-ANALYSIS GUIDELINES:
-1. **Themes**: Identify 5-8 major themes with sentiment and supporting evidence
-2. **Strengths**: 3-5 clear strengths synthesized from feedback
-3. **Development Areas**: 3-5 growth opportunities
-4. **Recommendations**: 4-6 specific, actionable steps
-5. **Consensus**: Areas of broad agreement across reviewers
-6. **Outliers**: Unique perspectives worth noting (without relationship attribution)
+Write clear, evidence-based statements that stay faithful to the source feedback:
 
-SENTIMENT SCORES (0-1 scale):
-- Calculate overall and per-relationship scores based on tone and constructiveness
-- Only include relationship keys that have responses
-- Use exactly these lowercase keys: "overall", "manager", "slt", "peer", "direct_report", "cross_functional"
-- Normalize any uppercase relationship types (e.g., "SLT" → "slt", "MANAGER" → "manager")
+- **Paraphrase, don't quote**: The "text" field should synthesize feedback, not copy it verbatim
+- **Match evidence strength**:
+  - 1-2 sources: "mentioned", "noted", "observed"
+  - 3-4 sources: "several noted", "multiple reviewers"
+  - 5+ sources: "consistent feedback", "broadly recognized"
+- **Stay grounded**: Don't add interpretation, adjectives, or qualifiers not present in source
+- **Keep ideas separate**: Don't combine distinct observations into one statement
+- **Test yourself**: Would the original respondent recognize this as their feedback?
 
-ABSOLUTELY MAINTAIN STRICT ANONYMITY in the "text" fields. The "snippet" citations are for HR audit only.`;
+## 4. Anonymity Requirements
+
+Protect reviewer identities while synthesizing feedback:
+
+- Never mention relationship types in "text" fields ("manager said", "peers mentioned")
+- Never include counts by relationship ("3 direct reports noted")
+- Use general attributions: "Feedback indicated", "Reviewers noted", "A pattern emerged"
+- The "snippet" field can contain direct excerpts (audit-only, not shown to subjects)
+- Aggregate ALL feedback into unified observations
+
+## 5. Content Structure
+
+Generate the following sections:
+
+1. **Themes** (5-8): Major patterns with sentiment and evidence
+2. **Strengths** (3-5): Clear, specific strengths from feedback
+3. **Development Areas** (3-5): Growth opportunities with specific examples
+4. **Recommendations** (4-6): Actionable next steps with concrete suggestions
+5. **Consensus** (2-4): Areas of strong agreement across multiple reviewers
+6. **Outliers** (1-3): Unique perspectives worth noting (if any exist)
+
+## 6. Sentiment Scoring
+
+Calculate sentiment scores (0-1 scale) for overall and by relationship:
+
+- Base scores on tone, constructiveness, and balance of feedback
+- Include only relationships that have responses
+- Use exact keys: "overall", "manager", "slt", "peer", "direct_report", "cross_functional"
+- Normalize to lowercase (e.g., "SLT" → "slt")
+
+---
+
+# FINAL VERIFICATION CHECKLIST
+
+Before submitting your analysis, verify:
+
+1. ✓ Every response_id from the input appears at least once in your citations (100% coverage)
+2. ✓ All citations use exact UUIDs from the input data (no invented IDs)
+3. ✓ All snippets are verbatim excerpts from source responses (exact wording)
+4. ✓ All "text" fields maintain strict anonymity (no relationship types mentioned)
+5. ✓ Response format is valid JSON (proper escaping, no trailing commas)
+
+Remember: Every statement must be grounded in actual feedback with proper citations. Maintain strict anonymity in text fields while preserving citation trails for audit.`;
+
 }
 
