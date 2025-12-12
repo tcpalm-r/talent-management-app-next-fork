@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import {
   analyzeWithCitations,
-  analyzeWithCitationsStreaming,
   AnalysisResultWithCitations,
 } from '@/lib/services/surveyAnalyzerService';
 import { filterReportForSubject } from '@/lib/filterReport';
