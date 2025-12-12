@@ -159,11 +159,29 @@ export const GenericSuccessResponseSchema = z.object({
 }).passthrough();
 
 /**
+ * 360 Report Schema
+ * Validates the report structure to prevent render crashes
+ */
+export const Report360Schema = z.object({
+  id: z.string().uuid().optional(),
+  survey_id: z.string().uuid().optional(),
+  themes: z.array(z.any()).optional().default([]),
+  overall_strengths: z.array(z.any()).optional().default([]),
+  development_areas: z.array(z.any()).optional().default([]),
+  recommendations: z.array(z.any()).optional().default([]),
+  sentiment_by_relationship: z.record(z.any()).optional().default({}),
+  consensus_areas: z.array(z.any()).optional().default([]),
+  outlier_opinions: z.array(z.any()).optional().default([]),
+  generated_by: z.string().optional(),
+  generated_at: z.string().optional(),
+}).passthrough();
+
+/**
  * 360 Report Response
  * From /api/360-generate-report
  */
 export const Report360ResponseSchema = z.object({
-  report: z.any(), // Report structure is complex and varies
+  report: Report360Schema.nullable(), // Report with validated structure
   survey: SurveySchema.optional(),
   message: z.string().optional(),
 }).passthrough();

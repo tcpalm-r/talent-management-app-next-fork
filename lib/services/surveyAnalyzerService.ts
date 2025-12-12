@@ -54,6 +54,11 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
 
   console.log('[surveyAnalyzerService] Starting citation-enabled analysis');
 
+  // Validate API key before proceeding
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY environment variable is not configured. Please check your environment settings.');
+  }
+
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
   });

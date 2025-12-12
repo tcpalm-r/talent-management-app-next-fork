@@ -3366,12 +3366,13 @@ export default function Feedback360Dashboard({
         const isSLT = currentUser?.app_role === 'slt';
         const canSeeAdvanced = !isSubject || isAdmin || isSponsor;
 
-        // Check if we have sentiment/consensus data
-        const hasSentimentData = surveyResults.sentiment_by_relationship &&
-          (surveyResults.sentiment_by_relationship.manager !== undefined ||
-           surveyResults.sentiment_by_relationship.peer !== undefined ||
-           surveyResults.sentiment_by_relationship.direct_report !== undefined ||
-           surveyResults.sentiment_by_relationship.cross_functional !== undefined);
+        // Check if we have sentiment/consensus data (with defensive null checks)
+        const sentimentData = surveyResults?.sentiment_by_relationship;
+        const hasSentimentData = sentimentData &&
+          (sentimentData.manager !== undefined ||
+           sentimentData.peer !== undefined ||
+           sentimentData.direct_report !== undefined ||
+           sentimentData.cross_functional !== undefined);
 
         const hasConsensusData = (surveyResults.consensus_areas?.length > 0 || surveyResults.outlier_opinions?.length > 0);
 
@@ -4102,11 +4103,12 @@ export default function Feedback360Dashboard({
                 // Only show relationship breakdown if NOT a pure subject (subjects who are also sponsors/admins can see it)
                 const canSeeRelationshipBreakdown = !isSubject || isAdmin || isSponsor;
 
-                const hasRelationshipData = surveyResults.sentiment_by_relationship &&
-                       (surveyResults.sentiment_by_relationship.manager !== undefined ||
-                        surveyResults.sentiment_by_relationship.peer !== undefined ||
-                        surveyResults.sentiment_by_relationship.direct_report !== undefined ||
-                        surveyResults.sentiment_by_relationship.cross_functional !== undefined);
+                const sentimentByRelationship = surveyResults?.sentiment_by_relationship;
+                const hasRelationshipData = sentimentByRelationship &&
+                       (sentimentByRelationship.manager !== undefined ||
+                        sentimentByRelationship.peer !== undefined ||
+                        sentimentByRelationship.direct_report !== undefined ||
+                        sentimentByRelationship.cross_functional !== undefined);
 
                 return canSeeRelationshipBreakdown && hasRelationshipData;
               })() && (
@@ -4135,66 +4137,66 @@ export default function Feedback360Dashboard({
                     Sentiment scores (0-100%) from each reviewer group based on feedback tone and constructiveness.
                   </p>
                   <div className="space-y-4">
-                    {surveyResults.sentiment_by_relationship.manager !== undefined && (
+                    {surveyResults?.sentiment_by_relationship?.manager !== undefined && (
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium text-gray-700">Manager</span>
                           <span className="text-sm font-semibold text-blue-700">
-                            {Math.round(surveyResults.sentiment_by_relationship.manager * 100)}%
+                            {Math.round((surveyResults.sentiment_by_relationship?.manager ?? 0) * 100)}%
                           </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-3">
                           <div
                             className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300"
-                            style={{ width: `${surveyResults.sentiment_by_relationship.manager * 100}%` }}
+                            style={{ width: `${(surveyResults.sentiment_by_relationship?.manager ?? 0) * 100}%` }}
                           ></div>
                         </div>
                       </div>
                     )}
-                    {surveyResults.sentiment_by_relationship.peer !== undefined && (
+                    {surveyResults?.sentiment_by_relationship?.peer !== undefined && (
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium text-gray-700">Peers</span>
                           <span className="text-sm font-semibold text-green-700">
-                            {Math.round(surveyResults.sentiment_by_relationship.peer * 100)}%
+                            {Math.round((surveyResults.sentiment_by_relationship?.peer ?? 0) * 100)}%
                           </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-3">
                           <div
                             className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-300"
-                            style={{ width: `${surveyResults.sentiment_by_relationship.peer * 100}%` }}
+                            style={{ width: `${(surveyResults.sentiment_by_relationship?.peer ?? 0) * 100}%` }}
                           ></div>
                         </div>
                       </div>
                     )}
-                    {surveyResults.sentiment_by_relationship.direct_report !== undefined && (
+                    {surveyResults?.sentiment_by_relationship?.direct_report !== undefined && (
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium text-gray-700">Direct Reports</span>
                           <span className="text-sm font-semibold text-purple-700">
-                            {Math.round(surveyResults.sentiment_by_relationship.direct_report * 100)}%
+                            {Math.round((surveyResults.sentiment_by_relationship?.direct_report ?? 0) * 100)}%
                           </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-3">
                           <div
                             className="bg-gradient-to-r from-purple-500 to-purple-600 h-3 rounded-full transition-all duration-300"
-                            style={{ width: `${surveyResults.sentiment_by_relationship.direct_report * 100}%` }}
+                            style={{ width: `${(surveyResults.sentiment_by_relationship?.direct_report ?? 0) * 100}%` }}
                           ></div>
                         </div>
                       </div>
                     )}
-                    {surveyResults.sentiment_by_relationship.cross_functional !== undefined && (
+                    {surveyResults?.sentiment_by_relationship?.cross_functional !== undefined && (
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium text-gray-700">Cross-Functional</span>
                           <span className="text-sm font-semibold text-amber-700">
-                            {Math.round(surveyResults.sentiment_by_relationship.cross_functional * 100)}%
+                            {Math.round((surveyResults.sentiment_by_relationship?.cross_functional ?? 0) * 100)}%
                           </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-3">
                           <div
                             className="bg-gradient-to-r from-amber-500 to-amber-600 h-3 rounded-full transition-all duration-300"
-                            style={{ width: `${surveyResults.sentiment_by_relationship.cross_functional * 100}%` }}
+                            style={{ width: `${(surveyResults.sentiment_by_relationship?.cross_functional ?? 0) * 100}%` }}
                           ></div>
                         </div>
                       </div>
