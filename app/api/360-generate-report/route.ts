@@ -167,13 +167,17 @@ export async function POST(req: NextRequest) {
     }
 
     // ========================================================================
-    // STEP 3: Fetch responses
+    // STEP 3: Fetch responses (only from current reviewers)
     // ========================================================================
+
+    // Get list of active reviewer emails to filter responses
+    const activeReviewerEmails = reviewers.map(r => r.reviewer_email);
 
     const { data: responses, error: responsesError } = await supabaseAdmin
       .from('feedback_360_responses')
       .select('*')
-      .eq('survey_id', survey_id);
+      .eq('survey_id', survey_id)
+      .in('reviewer_email', activeReviewerEmails); // Only include responses from current reviewers
 
     if (responsesError) {
       return NextResponse.json({
@@ -186,6 +190,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         error: 'No responses found for this survey. Cannot generate analysis without responses.'
       }, { status: 400 });
+    }
+
+    // Log if any responses were excluded (removed reviewers)
+    const totalResponseCount = await supabaseAdmin
+      .from('feedback_360_responses')
+      .select('id', { count: 'exact', head: true })
+      .eq('survey_id', survey_id);
+
+    if (totalResponseCount.count && totalResponseCount.count > responses.length) {
+      console.log(`[360-generate-report] Excluded ${totalResponseCount.count - responses.length} responses from removed reviewers`);
     }
 
     // ========================================================================
