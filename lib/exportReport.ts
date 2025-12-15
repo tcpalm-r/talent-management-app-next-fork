@@ -53,7 +53,6 @@ interface Report360Data {
   overall_strengths?: StatementOrCited[];
   development_areas?: StatementOrCited[];
   recommendations?: StatementOrCited[];
-  sentiment_by_relationship?: Record<string, number>;
   consensus_areas?: StatementOrCited[];
   outlier_opinions?: StatementOrCited[];
 }
@@ -335,15 +334,9 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
   }
 
   // ==========================================================================
-  // SENTIMENT ANALYSIS - matches tab order position 7 (conditional, sponsor/admin only)
+  // CONSENSUS & OUTLIERS - matches tab order position 6 (conditional, sponsor/admin only)
   // ==========================================================================
-  const hasRelationshipData = report.sentiment_by_relationship &&
-    (report.sentiment_by_relationship.manager !== undefined ||
-     report.sentiment_by_relationship.peer !== undefined ||
-     report.sentiment_by_relationship.direct_report !== undefined ||
-     report.sentiment_by_relationship.cross_functional !== undefined);
-
-  if (hasRelationshipData) {
+  if (report.consensus_areas && report.consensus_areas.length > 0) {
     checkPageBreak(60);
 
     // Add divider and notice before sponsor/admin-only sections
@@ -368,66 +361,6 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     pdf.setDrawColor(251, 191, 36); // Amber-400
     pdf.line(margin, yPosition, pageWidth - margin, yPosition);
     yPosition += 10;
-
-    pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(0, 0, 0);
-    pdf.text('Sentiment Analysis', margin, yPosition);
-    yPosition += 10;
-
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-
-    const validRelationships = ['manager', 'slt', 'direct_report', 'cross_functional'];
-    const relationshipLabels: Record<string, string> = {
-      manager: 'Manager',
-      slt: 'SLT',
-      direct_report: 'Direct Report',
-      cross_functional: 'Cross-Functional'
-    };
-
-    validRelationships.forEach((relationship) => {
-      checkPageBreak(10);
-      const score = report.sentiment_by_relationship![relationship];
-      const hasReviewers = score !== undefined && score !== null;
-      const label = relationshipLabels[relationship];
-
-      pdf.text(`${label}:`, margin + 5, yPosition);
-
-      if (hasReviewers) {
-        const percentage = ((score as number) * 100).toFixed(0);
-        pdf.text(`${percentage}%`, margin + 60, yPosition);
-
-        // Draw progress bar
-        const barWidth = 80;
-        const barHeight = 4;
-        const barX = margin + 75;
-        const barY = yPosition - 3;
-
-        // Background bar
-        pdf.setFillColor(230, 230, 230);
-        pdf.rect(barX, barY, barWidth, barHeight, 'F');
-
-        // Filled bar
-        pdf.setFillColor(147, 51, 234); // Purple
-        pdf.rect(barX, barY, barWidth * (score as number), barHeight, 'F');
-      } else {
-        pdf.setTextColor(120, 120, 120);
-        pdf.text('No reviewers', margin + 60, yPosition);
-        pdf.setTextColor(0, 0, 0);
-      }
-
-      yPosition += 8;
-    });
-
-    yPosition += 5;
-  }
-
-  // ==========================================================================
-  // CONSENSUS & OUTLIERS - matches tab order position 8 (conditional, sponsor/admin only)
-  // ==========================================================================
-  if (report.consensus_areas && report.consensus_areas.length > 0) {
-    checkPageBreak(30);
 
     pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');

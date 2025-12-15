@@ -335,12 +335,10 @@ export default function Feedback360Dashboard({
 
   // Helper function to generate export report data
   const generateReportData = (filterForSubject: boolean) => {
-    let sentimentData = surveyResults.sentiment_by_relationship;
     let consensusData = surveyResults.consensus_areas;
     let outlierData = surveyResults.outlier_opinions;
 
     if (filterForSubject) {
-      sentimentData = { overall: surveyResults.sentiment_by_relationship?.overall || 0 };
       consensusData = [];
       outlierData = [];
     }
@@ -357,7 +355,6 @@ export default function Feedback360Dashboard({
       development_areas: surveyResults.development_areas,
       recommendations: surveyResults.recommendations,
       key_insights: surveyResults.key_insights,
-      sentiment_by_relationship: sentimentData,
       consensus_areas: consensusData,
       outlier_opinions: outlierData
     };
@@ -367,8 +364,8 @@ export default function Feedback360Dashboard({
   const handleFullExport = async () => {
     const confirmMessage =
       '⚠️ SENSITIVE DATA WARNING\n\n' +
-      'This export includes relationship-specific sentiment analysis, consensus areas, ' +
-      'and outlier opinions that reveal individual reviewer patterns.\n\n' +
+      'This export includes consensus areas and outlier opinions ' +
+      'that reveal individual reviewer patterns.\n\n' +
       'This data is NOT visible to the employee being reviewed.\n\n' +
       'Are you sure you want to export the full report?';
 
@@ -3586,14 +3583,6 @@ export default function Feedback360Dashboard({
         const isSLT = currentUser?.app_role === 'slt';
         const canSeeAdvanced = !isSubject || isAdmin || isSponsor;
 
-        // Check if we have sentiment/consensus data (with defensive null checks)
-        const sentimentData = surveyResults?.sentiment_by_relationship;
-        const hasSentimentData = sentimentData &&
-          (sentimentData.manager !== undefined ||
-           sentimentData.peer !== undefined ||
-           sentimentData.direct_report !== undefined ||
-           sentimentData.cross_functional !== undefined);
-
         const hasConsensusData = (surveyResults.consensus_areas?.length > 0 || surveyResults.outlier_opinions?.length > 0);
 
         // Define tabs
@@ -3603,7 +3592,6 @@ export default function Feedback360Dashboard({
           { id: 'strengths', label: 'Strengths' },
           { id: 'development', label: 'Development Areas' },
           { id: 'recommendations', label: 'Recommended Actions' },
-          ...(canSeeAdvanced && hasSentimentData ? [{ id: 'sentiment', label: 'Sentiment Analysis' }] : []),
           ...(canSeeAdvanced && hasConsensusData ? [{ id: 'consensus', label: 'Consensus & Outliers' }] : [])
         ];
 
@@ -4312,119 +4300,6 @@ export default function Feedback360Dashboard({
                   </div>
                 );
               })()}
-
-              {/* Sentiment Analysis Tab - Sponsor/Admin Only */}
-              {activeReportTab === 'sentiment' && (() => {
-                // Check if current user is the subject (employee being reviewed)
-                const isSubject = currentUser?.id === selectedSurvey?.employee_id;
-                // Check if user is sponsor or admin
-                const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
-                const isAdmin = currentUser?.app_role === 'admin';
-                // Only show relationship breakdown if NOT a pure subject (subjects who are also sponsors/admins can see it)
-                const canSeeRelationshipBreakdown = !isSubject || isAdmin || isSponsor;
-
-                const sentimentByRelationship = surveyResults?.sentiment_by_relationship;
-                const hasRelationshipData = sentimentByRelationship &&
-                       (sentimentByRelationship.manager !== undefined ||
-                        sentimentByRelationship.peer !== undefined ||
-                        sentimentByRelationship.direct_report !== undefined ||
-                        sentimentByRelationship.cross_functional !== undefined);
-
-                return canSeeRelationshipBreakdown && hasRelationshipData;
-              })() && (
-                <>
-                  {/* Privacy Notice Banner */}
-                  <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 dark:border-amber-600 p-4 mb-6">
-                    <div className="flex items-start">
-                      <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-500 mr-3 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                          Sponsor/Admin Only Section
-                        </p>
-                        <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                          This sentiment breakdown by relationship type is <strong>not visible to {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'}</strong>.
-                          Only survey sponsors and administrators can see this data to maintain reviewer confidentiality.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 dark:bg-blue-900/30 rounded-md p-6 border border-blue-200 dark:border-blue-700">
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                    Sentiment by Relationship Type
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    Sentiment scores (0-100%) from each reviewer group based on feedback tone and constructiveness.
-                  </p>
-                  <div className="space-y-4">
-                    {surveyResults?.sentiment_by_relationship?.manager !== undefined && (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Manager</span>
-                          <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">
-                            {Math.round((surveyResults.sentiment_by_relationship?.manager ?? 0) * 100)}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                          <div
-                            className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300"
-                            style={{ width: `${(surveyResults.sentiment_by_relationship?.manager ?? 0) * 100}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
-                    {surveyResults?.sentiment_by_relationship?.peer !== undefined && (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Peers</span>
-                          <span className="text-sm font-semibold text-green-700 dark:text-green-400">
-                            {Math.round((surveyResults.sentiment_by_relationship?.peer ?? 0) * 100)}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                          <div
-                            className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-300"
-                            style={{ width: `${(surveyResults.sentiment_by_relationship?.peer ?? 0) * 100}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
-                    {surveyResults?.sentiment_by_relationship?.direct_report !== undefined && (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Direct Reports</span>
-                          <span className="text-sm font-semibold text-purple-700 dark:text-purple-400">
-                            {Math.round((surveyResults.sentiment_by_relationship?.direct_report ?? 0) * 100)}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                          <div
-                            className="bg-gradient-to-r from-purple-500 to-purple-600 h-3 rounded-full transition-all duration-300"
-                            style={{ width: `${(surveyResults.sentiment_by_relationship?.direct_report ?? 0) * 100}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
-                    {surveyResults?.sentiment_by_relationship?.cross_functional !== undefined && (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Cross-Functional</span>
-                          <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-                            {Math.round((surveyResults.sentiment_by_relationship?.cross_functional ?? 0) * 100)}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                          <div
-                            className="bg-gradient-to-r from-amber-500 to-amber-600 h-3 rounded-full transition-all duration-300"
-                            style={{ width: `${(surveyResults.sentiment_by_relationship?.cross_functional ?? 0) * 100}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                </>
-              )}
 
               {/* Consensus & Outliers Tab - Sponsor/Admin Only */}
               {activeReportTab === 'consensus' && (surveyResults.consensus_areas?.length > 0 || surveyResults.outlier_opinions?.length > 0) && (

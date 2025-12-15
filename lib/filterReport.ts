@@ -2,8 +2,8 @@
  * Report Filtering Utilities
  *
  * Provides role-based data filtering for 360 feedback reports:
- * - Sponsors/Admins: See full report with relationship breakdowns and citations
- * - Subjects: See anonymized report with only aggregated data (no citations)
+ * - Sponsors/Admins: See full report with citations
+ * - Subjects: See anonymized report (no citations)
  */
 
 import type { Feedback360Report } from './schema';
@@ -48,9 +48,7 @@ function stripCitationsFromThemes(themes: any[]): any[] {
 /**
  * Filter report data for subject view
  *
- * Removes sensitive relationship-specific data that should only be visible
- * to sponsors and admins:
- * - Per-relationship sentiment scores (manager, peer, direct_report, cross_functional)
+ * Removes sensitive data that should only be visible to sponsors and admins:
  * - Relationship attributions in themes
  * - All citation data (subjects should not have access to audit mode)
  *
@@ -61,14 +59,9 @@ export function filterReportForSubject(
   fullReport: Feedback360Report
 ): Feedback360Report {
   console.log('[filterReport] Filtering report for subject view');
-  console.log('[filterReport] Before - sentiment_by_relationship keys:', Object.keys(fullReport.sentiment_by_relationship || {}));
 
   const filtered = {
     ...fullReport,
-    // Keep only overall sentiment score, remove per-relationship breakdowns
-    sentiment_by_relationship: {
-      overall: fullReport.sentiment_by_relationship?.overall || 0,
-    },
     // Remove relationship attributions and citations from themes
     themes: stripCitationsFromThemes(fullReport.themes || []),
     // Strip citations from all statement arrays (convert CitedStatement[] to string[])
@@ -84,14 +77,13 @@ export function filterReportForSubject(
     citation_coverage: undefined,
   };
 
-  console.log('[filterReport] After - sentiment_by_relationship keys:', Object.keys(filtered.sentiment_by_relationship || {}));
   console.log('[filterReport] After - citations stripped for subject view');
 
   return filtered;
 }
 
 /**
- * Determine if a user can view the full report (with relationship breakdowns)
+ * Determine if a user can view the full report
  *
  * @param userRole - The user's application role
  * @param surveyCreatedBy - The user ID who created/sponsored the survey
@@ -118,35 +110,13 @@ export function canViewFullReport(
 }
 
 /**
- * Check if sentiment_by_relationship contains per-relationship data
- * (not just overall score)
- *
- * @param sentimentData - The sentiment_by_relationship object
- * @returns true if contains relationship-specific scores
- */
-export function hasRelationshipBreakdown(sentimentData: {
-  overall?: number;
-  manager?: number;
-  peer?: number;
-  direct_report?: number;
-  cross_functional?: number;
-}): boolean {
-  return !!(
-    sentimentData.manager !== undefined ||
-    sentimentData.peer !== undefined ||
-    sentimentData.direct_report !== undefined ||
-    sentimentData.cross_functional !== undefined
-  );
-}
-
-/**
  * Filter report data for sponsor view (non-admin)
  *
- * Sponsors can see the full report with relationship breakdowns,
- * but NEVER see citations. Only admins can use the audit mode.
+ * Sponsors can see the full report but NEVER see citations.
+ * Only admins can use the audit mode.
  *
  * @param fullReport - The complete report with all data
- * @returns Report with citations stripped but relationship data intact
+ * @returns Report with citations stripped
  */
 export function filterReportForSponsor(
   fullReport: Feedback360Report
@@ -155,8 +125,6 @@ export function filterReportForSponsor(
 
   const filtered = {
     ...fullReport,
-    // Keep relationship breakdowns - sponsors can see these
-    sentiment_by_relationship: fullReport.sentiment_by_relationship,
     // Strip citations from all statement arrays
     themes: stripCitationsFromThemes(fullReport.themes || []),
     overall_strengths: stripCitationsFromStatements(fullReport.overall_strengths || []),

@@ -5,7 +5,6 @@
 import {
   filterReportForSubject,
   canViewFullReport,
-  hasRelationshipBreakdown,
 } from '../filterReport';
 import type { Feedback360Report } from '../schema';
 
@@ -49,18 +48,6 @@ describe('filterReport.ts - Report Filtering', () => {
   };
 
   describe('filterReportForSubject', () => {
-    it('should remove per-relationship sentiment scores', () => {
-      const filtered = filterReportForSubject(mockFullReport);
-
-      expect(filtered.sentiment_by_relationship).toEqual({
-        overall: 0.75,
-      });
-      expect(filtered.sentiment_by_relationship.manager).toBeUndefined();
-      expect(filtered.sentiment_by_relationship.peer).toBeUndefined();
-      expect(filtered.sentiment_by_relationship.direct_report).toBeUndefined();
-      expect(filtered.sentiment_by_relationship.cross_functional).toBeUndefined();
-    });
-
     it('should remove relationships_mentioned from themes', () => {
       const filtered = filterReportForSubject(mockFullReport);
 
@@ -89,37 +76,6 @@ describe('filterReport.ts - Report Filtering', () => {
       expect(filtered.themes[0].theme).toBe('Strong Communication');
       expect(filtered.themes[0].sentiment).toBe('very_positive');
       expect(filtered.themes[0].supporting_evidence).toEqual(['Clear and concise', 'Good listener']);
-    });
-
-    it('should handle report with only overall sentiment', () => {
-      const reportWithOnlyOverall = {
-        ...mockFullReport,
-        sentiment_by_relationship: {
-          overall: 0.8,
-        },
-      };
-
-      const filtered = filterReportForSubject(reportWithOnlyOverall);
-
-      expect(filtered.sentiment_by_relationship).toEqual({
-        overall: 0.8,
-      });
-    });
-
-    it('should handle report with missing overall sentiment', () => {
-      const reportWithoutOverall = {
-        ...mockFullReport,
-        sentiment_by_relationship: {
-          manager: 0.85,
-          peer: 0.70,
-        } as any,
-      };
-
-      const filtered = filterReportForSubject(reportWithoutOverall);
-
-      expect(filtered.sentiment_by_relationship).toEqual({
-        overall: 0,
-      });
     });
 
     it('should handle empty themes array', () => {
@@ -184,87 +140,16 @@ describe('filterReport.ts - Report Filtering', () => {
     });
   });
 
-  describe('hasRelationshipBreakdown', () => {
-    it('should return true when manager score exists', () => {
-      const result = hasRelationshipBreakdown({
-        overall: 0.75,
-        manager: 0.85,
-      });
-
-      expect(result).toBe(true);
-    });
-
-    it('should return true when peer score exists', () => {
-      const result = hasRelationshipBreakdown({
-        overall: 0.75,
-        peer: 0.70,
-      });
-
-      expect(result).toBe(true);
-    });
-
-    it('should return true when direct_report score exists', () => {
-      const result = hasRelationshipBreakdown({
-        overall: 0.75,
-        direct_report: 0.80,
-      });
-
-      expect(result).toBe(true);
-    });
-
-    it('should return true when cross_functional score exists', () => {
-      const result = hasRelationshipBreakdown({
-        overall: 0.75,
-        cross_functional: 0.65,
-      });
-
-      expect(result).toBe(true);
-    });
-
-    it('should return true when multiple relationship scores exist', () => {
-      const result = hasRelationshipBreakdown({
-        overall: 0.75,
-        manager: 0.85,
-        peer: 0.70,
-        direct_report: 0.80,
-        cross_functional: 0.65,
-      });
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false when only overall score exists', () => {
-      const result = hasRelationshipBreakdown({
-        overall: 0.75,
-      });
-
-      expect(result).toBe(false);
-    });
-
-    it('should return false for empty object', () => {
-      const result = hasRelationshipBreakdown({});
-
-      expect(result).toBe(false);
-    });
-
-    it('should handle score of 0 as valid breakdown', () => {
-      const result = hasRelationshipBreakdown({
-        overall: 0.75,
-        manager: 0, // 0 is a valid score
-      });
-
-      expect(result).toBe(true);
-    });
-  });
-
   describe('Integration scenarios', () => {
     it('should properly filter report for subject viewing', () => {
       const canView = canViewFullReport('user', 'manager-1', 'employee-1');
       const filtered = canView ? mockFullReport : filterReportForSubject(mockFullReport);
 
       expect(canView).toBe(false);
-      expect(hasRelationshipBreakdown(filtered.sentiment_by_relationship)).toBe(false);
-      expect(filtered.sentiment_by_relationship.overall).toBe(0.75);
+      // Verify relationships are stripped from themes
+      filtered.themes.forEach(theme => {
+        expect(theme.relationships_mentioned).toBeUndefined();
+      });
     });
 
     it('should not filter report for admin viewing', () => {
@@ -272,8 +157,8 @@ describe('filterReport.ts - Report Filtering', () => {
       const report = canView ? mockFullReport : filterReportForSubject(mockFullReport);
 
       expect(canView).toBe(true);
-      expect(hasRelationshipBreakdown(report.sentiment_by_relationship)).toBe(true);
-      expect(report.sentiment_by_relationship.manager).toBe(0.85);
+      // Admin should see full report with relationships
+      expect(report.themes[0].relationships_mentioned).toEqual(['peer', 'manager']);
     });
 
     it('should not filter report for survey creator', () => {
@@ -281,7 +166,8 @@ describe('filterReport.ts - Report Filtering', () => {
       const report = canView ? mockFullReport : filterReportForSubject(mockFullReport);
 
       expect(canView).toBe(true);
-      expect(hasRelationshipBreakdown(report.sentiment_by_relationship)).toBe(true);
+      // Creator should see full report with relationships
+      expect(report.themes[0].relationships_mentioned).toEqual(['peer', 'manager']);
     });
 
     it('should handle full workflow: check permission, filter if needed', () => {
@@ -298,7 +184,10 @@ describe('filterReport.ts - Report Filtering', () => {
 
         if (!canView) {
           const filtered = filterReportForSubject(mockFullReport);
-          expect(hasRelationshipBreakdown(filtered.sentiment_by_relationship)).toBe(false);
+          // Verify relationships are stripped when filtered
+          filtered.themes.forEach(theme => {
+            expect(theme.relationships_mentioned).toBeUndefined();
+          });
         }
       });
     });
