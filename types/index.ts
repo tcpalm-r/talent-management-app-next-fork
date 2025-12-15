@@ -351,6 +351,37 @@ export interface Citation {
   relevance_score?: number;   // 0-1, how relevant this citation is to the statement
 }
 
+// ==================== Two-Pass Analysis Types ====================
+
+/**
+ * Question-level summary from Pass 1 of the two-pass analysis pipeline.
+ * Contains themes, strengths, and gaps extracted from responses to a single question.
+ * Used as input for Pass 2 global synthesis.
+ */
+export interface QuestionSummary {
+  question_id: string;
+  question_text: string;
+  response_count: number;
+  themes: Array<{
+    theme: string;
+    support_count: number;  // Number of unique response_ids mentioning this theme
+    sentiment: 'positive' | 'needs_work' | 'mixed';
+    evidence: Array<{
+      text: string;
+      citations: Citation[];
+    }>;
+  }>;
+  strengths: Array<{
+    text: string;
+    citations: Citation[];
+  }>;
+  gaps: Array<{
+    text: string;
+    citations: Citation[];
+  }>;
+  examples: string[];  // Concrete examples with metrics/names when available
+}
+
 /**
  * A synthesized statement with citations to source responses.
  * Used throughout the report to enable audit trail functionality.
@@ -373,6 +404,40 @@ export interface CitedThemeAnalysis {
 }
 
 /**
+ * Consensus area - where multiple reviewer groups agree.
+ */
+export interface ConsensusArea {
+  text: string;
+  groups_agreeing: string[];
+  citations: Citation[];
+}
+
+/**
+ * Varied perspective - different views by relationship group.
+ */
+export interface VariedPerspective {
+  group: string;
+  view: string;
+  citations: Citation[];
+}
+
+/**
+ * Topic where different relationship groups see things differently.
+ */
+export interface VariedByRelationship {
+  topic: string;
+  perspectives: VariedPerspective[];
+}
+
+/**
+ * Outlier - unique perspective from a single reviewer.
+ */
+export interface Outlier {
+  text: string;
+  citations: Citation[];
+}
+
+/**
  * Extended Survey360Report with full citation support.
  * All text arrays are now CitedStatement arrays for auditability.
  */
@@ -383,8 +448,12 @@ export interface Survey360ReportWithCitations extends Omit<Survey360Report,
   overall_strengths: CitedStatement[];
   development_areas: CitedStatement[];
   recommendations: CitedStatement[];
-  consensus_areas: CitedStatement[];
+  consensus_areas: ConsensusArea[];
   outlier_opinions: CitedStatement[];
+
+  // New group-level analysis (v2/v3)
+  varied_by_relationship?: VariedByRelationship[];
+  outliers?: Outlier[];
 
   // Citation metadata
   has_citations: boolean;

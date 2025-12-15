@@ -2,6 +2,9 @@
  * Survey Analyzer Service
  *
  * Handles 360 survey analysis with citation tracking for admin audit trail.
+ * Uses a two-pass pipeline to reduce hallucination:
+ * - Pass 1: Question-level extraction (themes, strengths, gaps per question)
+ * - Pass 2: Global synthesis (cross-cutting themes, recommendations, group analysis)
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -11,10 +14,16 @@ import type {
   Survey360Participant,
   Survey360ReportWithCitations,
   SurveyQuestion,
+  QuestionSummary,
+  ParticipantRelationship,
 } from '../../types';
 import {
-  surveyAnalyzerConfig,
-  buildSurveyAnalyzerPrompt,
+  pass1Config,
+  buildPass1Prompt,
+  preparePass1Input,
+  pass2Config,
+  buildPass2Prompt,
+  formatQuestionSummaries,
 } from '../prompts';
 
 export interface AnalysisInput {
@@ -37,22 +46,27 @@ export interface AnalysisResultWithCitations {
     relevance_score?: number;
   }>;
   meta: {
-    version: 'v1-citations';
+    version: 'v1-citations' | 'v2-two-pass';
     elapsedMs: number;
     totalCitations: number;
     citationCoverage: number; // 0-100, percentage of statements with citations
+    pass1DurationMs?: number;
+    pass2DurationMs?: number;
   };
 }
 
 /**
- * Analyze survey responses with citation tracking.
- * This generates a report where each statement is linked to source response IDs.
+ * Analyze survey responses with citation tracking using two-pass pipeline.
+ * Pass 1 extracts question-level summaries, Pass 2 synthesizes into final report.
  */
 export async function analyzeWithCitations(input: AnalysisInput): Promise<AnalysisResultWithCitations> {
   const startTime = Date.now();
   const { survey, responses, participants, questions, tone = 'standard' } = input;
 
-  console.log('[surveyAnalyzerService] Starting citation-enabled analysis');
+  console.log('[surveyAnalyzerService] Starting two-pass analysis pipeline');
+  console.log(`[surveyAnalyzerService] Survey: ${survey.survey_name || survey.survey_title}`);
+  console.log(`[surveyAnalyzerService] Employee: ${survey.employee_name}`);
+  console.log(`[surveyAnalyzerService] Responses: ${responses.length}, Questions: ${questions.length}`);
 
   // Validate API key before proceeding
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -63,33 +77,46 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
     apiKey: process.env.ANTHROPIC_API_KEY,
   });
 
-  const structuredResponses = prepareResponsesForAnalysis(responses, participants, questions);
-  const questionsFormatted = questions.map((q, i) => `${i + 1}. ${q.question} (${q.type})`).join('\n');
+  // Get relationships that have responses (for Pass 2 sentiment calculation)
+  const participantMap = new Map(participants.map((p) => [p.id, p]));
+  const relationshipsWithResponses = [...new Set(
+    responses
+      .map((r) => participantMap.get(r.participant_id)?.relationship)
+      .filter((rel): rel is ParticipantRelationship => rel !== undefined)
+  )];
 
-  const prompt = buildSurveyAnalyzerPrompt({
-    employeeName: survey.employee_name,
-    surveyTitle: survey.survey_title,
-    responseCount: responses.length,
-    questionsFormatted,
-    structuredResponses,
+  // ========== PASS 1: Question-Level Extraction ==========
+  console.log('[surveyAnalyzerService] Pass 1: Extracting question-level summaries...');
+  const pass1Start = Date.now();
+
+  const questionSummaries = await runPass1(anthropic, {
+    survey,
+    responses,
+    questions,
+  });
+
+  const pass1Duration = Date.now() - pass1Start;
+  console.log(`[surveyAnalyzerService] Pass 1 complete: ${questionSummaries.length} question summaries in ${pass1Duration}ms`);
+
+  // Validate Pass 1 coverage
+  const pass1Coverage = validatePass1Coverage(responses, questions, questionSummaries);
+  console.log(`[surveyAnalyzerService] Pass 1 citation coverage: ${pass1Coverage.toFixed(1)}%`);
+
+  // ========== PASS 2: Global Synthesis ==========
+  console.log('[surveyAnalyzerService] Pass 2: Synthesizing global report...');
+  const pass2Start = Date.now();
+
+  const analysis = await runPass2(anthropic, {
+    survey,
+    questionSummaries,
+    relationshipsWithResponses,
     tone,
   });
 
-  const response = await anthropic.messages.create({
-    model: surveyAnalyzerConfig.model,
-    max_tokens: surveyAnalyzerConfig.maxTokens,
-    temperature: surveyAnalyzerConfig.temperature,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  const pass2Duration = Date.now() - pass2Start;
+  console.log(`[surveyAnalyzerService] Pass 2 complete in ${pass2Duration}ms`);
 
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type from Claude');
-  }
-
-  const analysis = extractJsonFromResponse(content.text);
-
-  // Log what the AI returned for the new group-level fields
+  // Log what the AI returned for group-level fields
   console.log('[surveyAnalyzerService] AI returned consensus_areas:', JSON.stringify(analysis.consensus_areas, null, 2).slice(0, 500));
   console.log('[surveyAnalyzerService] AI returned varied_by_relationship:', JSON.stringify(analysis.varied_by_relationship, null, 2).slice(0, 500));
   console.log('[surveyAnalyzerService] AI returned outliers:', JSON.stringify(analysis.outliers, null, 2).slice(0, 500));
@@ -105,7 +132,9 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   // Compute frequency for themes from citations (not AI-estimated)
   const themesWithFrequency = computeThemeFrequencies(analysis.themes);
 
-  console.log(`[surveyAnalyzerService] Citation analysis complete: ${flattenedCitations.length} citations, ${citationCoverage}% coverage`);
+  const totalDuration = Date.now() - startTime;
+  console.log(`[surveyAnalyzerService] Two-pass analysis complete: ${flattenedCitations.length} citations, ${citationCoverage}% coverage`);
+  console.log(`[surveyAnalyzerService] Total time: ${totalDuration}ms (Pass 1: ${pass1Duration}ms, Pass 2: ${pass2Duration}ms)`);
 
   return {
     report: {
@@ -115,27 +144,211 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
       development_areas: analysis.development_areas as Survey360ReportWithCitations['development_areas'] || [],
       recommendations: analysis.recommendations as Survey360ReportWithCitations['recommendations'] || [],
       sentiment_by_relationship: analysis.sentiment_by_relationship as Record<string, number> || {},
-      // Group-level analysis (v2 structure)
+      // Group-level analysis
       consensus_areas: analysis.consensus_areas as Survey360ReportWithCitations['consensus_areas'] || [],
-      varied_by_relationship: analysis.varied_by_relationship || [], // NEW: Topics where groups differ
-      outliers: analysis.outliers || [], // NEW: Unique single-reviewer perspectives
+      varied_by_relationship: (analysis.varied_by_relationship as Survey360ReportWithCitations['varied_by_relationship']) || [],
+      outliers: (analysis.outliers as Survey360ReportWithCitations['outliers']) || [],
       outlier_opinions: analysis.outlier_opinions as Survey360ReportWithCitations['outlier_opinions'] || [], // Keep for backward compat
       generated_at: new Date().toISOString(),
-      generated_by: surveyAnalyzerConfig.model,
+      generated_by: `${pass1Config.model} (two-pass)`,
       has_citations: true,
-      citation_version: '2.0', // Updated version for group-level analysis
+      citation_version: '3.0', // New version for two-pass pipeline
       total_citations: flattenedCitations.length,
       citation_coverage: citationCoverage,
     },
     citations: flattenedCitations,
     meta: {
-      version: 'v1-citations',
-      elapsedMs: Date.now() - startTime,
+      version: 'v2-two-pass',
+      elapsedMs: totalDuration,
       totalCitations: flattenedCitations.length,
       citationCoverage,
+      pass1DurationMs: pass1Duration,
+      pass2DurationMs: pass2Duration,
     },
   };
 }
+
+// ==================== Pass 1: Question-Level Extraction ====================
+
+interface Pass1Input {
+  survey: Survey360;
+  responses: Survey360Response[];
+  questions: SurveyQuestion[];
+}
+
+/**
+ * Run Pass 1: Extract themes, strengths, and gaps per question.
+ */
+async function runPass1(
+  anthropic: Anthropic,
+  input: Pass1Input
+): Promise<QuestionSummary[]> {
+  const { survey, responses, questions } = input;
+
+  // Prepare responses grouped by question
+  const questionBlocks = preparePass1Input(
+    responses.map((r) => ({
+      participant_id: r.participant_id,
+      responses: r.responses,
+      response_ids: r.response_ids,
+    })),
+    questions.map((q) => ({
+      id: q.id,
+      question: q.question,
+      type: q.type,
+      scale_max: q.scale_max,
+    }))
+  );
+
+  const prompt = buildPass1Prompt({
+    employeeName: survey.employee_name || 'the employee',
+    surveyTitle: survey.survey_name || survey.survey_title || '360 Feedback Survey',
+    totalResponseCount: responses.length,
+    questionBlocks,
+  });
+
+  console.log(`[Pass1] Prompt built, ${prompt.length} chars. Calling Claude API...`);
+  console.log(`[Pass1] Model: ${pass1Config.model}, maxTokens: ${pass1Config.maxTokens}`);
+
+  const response = await anthropic.messages.create({
+    model: pass1Config.model,
+    max_tokens: pass1Config.maxTokens,
+    temperature: pass1Config.temperature,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  console.log(`[Pass1] Claude API response received. Usage: ${JSON.stringify(response.usage)}`);
+
+  const content = response.content[0];
+  if (content.type !== 'text') {
+    throw new Error('Unexpected response type from Claude in Pass 1');
+  }
+
+  // Parse the JSON array response
+  const summaries = extractJsonArrayFromResponse(content.text);
+
+  if (!Array.isArray(summaries)) {
+    throw new Error('Pass 1 did not return a valid JSON array of question summaries');
+  }
+
+  // Validate structure
+  (summaries as Array<Record<string, unknown>>).forEach((summary, idx) => {
+    if (!summary.question_id || !summary.question_text) {
+      console.warn(`[Pass1] Question summary ${idx} missing required fields`);
+    }
+  });
+
+  return summaries as QuestionSummary[];
+}
+
+// ==================== Pass 2: Global Synthesis ====================
+
+interface Pass2Input {
+  survey: Survey360;
+  questionSummaries: QuestionSummary[];
+  relationshipsWithResponses: ParticipantRelationship[];
+  tone: 'standard' | 'softer';
+}
+
+/**
+ * Run Pass 2: Synthesize question summaries into final report.
+ */
+async function runPass2(
+  anthropic: Anthropic,
+  input: Pass2Input
+): Promise<Record<string, unknown>> {
+  const { survey, questionSummaries, relationshipsWithResponses, tone } = input;
+
+  // Format question summaries for the prompt
+  const questionSummariesFormatted = formatQuestionSummaries(questionSummaries);
+
+  // Count total responses from summaries
+  const totalResponseCount = questionSummaries.reduce((sum, qs) => sum + qs.response_count, 0);
+
+  const prompt = buildPass2Prompt({
+    employeeName: survey.employee_name || 'the employee',
+    surveyTitle: survey.survey_name || survey.survey_title || '360 Feedback Survey',
+    totalResponseCount: Math.ceil(totalResponseCount / questionSummaries.length), // Average per question
+    relationshipsWithResponses,
+    questionSummariesFormatted,
+    tone,
+  });
+
+  console.log(`[Pass2] Prompt built, ${prompt.length} chars. Calling Claude API...`);
+  console.log(`[Pass2] Model: ${pass2Config.model}, maxTokens: ${pass2Config.maxTokens}`);
+
+  const response = await anthropic.messages.create({
+    model: pass2Config.model,
+    max_tokens: pass2Config.maxTokens,
+    temperature: pass2Config.temperature,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  console.log(`[Pass2] Claude API response received. Usage: ${JSON.stringify(response.usage)}`);
+
+  const content = response.content[0];
+  if (content.type !== 'text') {
+    throw new Error('Unexpected response type from Claude in Pass 2');
+  }
+
+  // Parse the JSON object response
+  const analysis = extractJsonFromResponse(content.text);
+
+  return analysis;
+}
+
+// ==================== Validation ====================
+
+/**
+ * Calculate what percentage of response_ids from input appear in Pass 1 citations.
+ */
+function validatePass1Coverage(
+  responses: Survey360Response[],
+  questions: SurveyQuestion[],
+  summaries: QuestionSummary[]
+): number {
+  // Collect all response_ids from input
+  const allResponseIds = new Set<string>();
+  responses.forEach((r) => {
+    questions.forEach((q) => {
+      const answer = r.responses[q.id];
+      if (answer !== undefined && answer !== null && answer !== '') {
+        const responseId = r.response_ids?.[q.id] || r.participant_id;
+        allResponseIds.add(responseId);
+      }
+    });
+  });
+
+  // Collect all cited response_ids from Pass 1 summaries
+  const citedIds = new Set<string>();
+  summaries.forEach((summary) => {
+    // From themes
+    summary.themes?.forEach((theme) => {
+      theme.evidence?.forEach((ev) => {
+        ev.citations?.forEach((c) => {
+          if (c.response_id) citedIds.add(c.response_id);
+        });
+      });
+    });
+    // From strengths
+    summary.strengths?.forEach((s) => {
+      s.citations?.forEach((c) => {
+        if (c.response_id) citedIds.add(c.response_id);
+      });
+    });
+    // From gaps
+    summary.gaps?.forEach((g) => {
+      g.citations?.forEach((c) => {
+        if (c.response_id) citedIds.add(c.response_id);
+      });
+    });
+  });
+
+  if (allResponseIds.size === 0) return 100;
+  return (citedIds.size / allResponseIds.size) * 100;
+}
+
+// ==================== Existing Helper Functions ====================
 
 /**
  * Compute frequency for each theme based on unique response_ids in citations.
@@ -242,6 +455,8 @@ function extractCitationsFromAnalysis(analysis: Record<string, unknown>): Analys
   extractFromStatements(analysis.recommendations as unknown[], 'recommendation');
   extractFromStatements(analysis.consensus_areas as unknown[], 'consensus');
   extractFromStatements(analysis.outlier_opinions as unknown[], 'outlier');
+  // Also check for 'outliers' (new field name)
+  extractFromStatements(analysis.outliers as unknown[], 'outlier');
 
   return citations;
 }
@@ -261,6 +476,7 @@ function countStatements(analysis: Record<string, unknown>): number {
   countArray(analysis.recommendations);
   countArray(analysis.consensus_areas);
   countArray(analysis.outlier_opinions);
+  countArray(analysis.outliers);
 
   // Count theme supporting evidence
   if (Array.isArray(analysis.themes)) {
@@ -300,6 +516,7 @@ function countStatementsWithCitations(analysis: Record<string, unknown>): number
   countCitedArray(analysis.recommendations);
   countCitedArray(analysis.consensus_areas);
   countCitedArray(analysis.outlier_opinions);
+  countCitedArray(analysis.outliers);
 
   // Count theme supporting evidence with citations
   if (Array.isArray(analysis.themes)) {
@@ -324,8 +541,6 @@ function repairJson(text: string): string {
   repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
 
   // Fix unescaped newlines in strings (common AI issue)
-  // This is tricky - we need to find strings and escape newlines within them
-  // For now, just replace literal newlines that aren't already escaped
   repaired = repaired.replace(/([^\\])\\n/g, '$1\\\\n');
 
   // Try to close unclosed arrays/objects at the end
@@ -346,7 +561,7 @@ function repairJson(text: string): string {
 }
 
 /**
- * Extract JSON from v1 prompt response with error recovery
+ * Extract JSON object from response with error recovery
  */
 function extractJsonFromResponse(text: string): Record<string, unknown> {
   let jsonText = text.trim();
@@ -377,7 +592,6 @@ function extractJsonFromResponse(text: string): Record<string, unknown> {
       console.log('[extractJsonFromResponse] Repair attempt failed, trying truncation recovery...');
 
       // Third attempt: find the last complete object/array
-      // Look for the last valid closing brace that makes valid JSON
       for (let i = jsonText.length - 1; i > jsonText.length / 2; i--) {
         if (jsonText[i] === '}') {
           const truncated = jsonText.substring(0, i + 1);
@@ -400,60 +614,54 @@ function extractJsonFromResponse(text: string): Record<string, unknown> {
 }
 
 /**
- * Prepare responses for analysis with response IDs for citation tracking.
- * Each answer includes a [response_id: uuid] marker that Claude can reference.
- * The response_id maps to a specific question-answer row in feedback_360_responses.
+ * Extract JSON array from response with error recovery (for Pass 1)
  */
-function prepareResponsesForAnalysis(
-  responses: Survey360Response[],
-  participants: Survey360Participant[],
-  questions: SurveyQuestion[]
-): string {
-  const participantMap = new Map(participants.map((p) => [p.id, p]));
+function extractJsonArrayFromResponse(text: string): unknown[] {
+  let jsonText = text.trim();
 
-  const byRelationship: Record<string, Array<{ participant: Survey360Participant; response: Survey360Response }>> = {};
-
-  responses.forEach((response) => {
-    const participant = participantMap.get(response.participant_id);
-    if (!participant) return;
-
-    if (!byRelationship[participant.relationship]) {
-      byRelationship[participant.relationship] = [];
+  // Try to find JSON in code blocks first
+  const jsonBlockMatch = jsonText.match(/```(?:json)?\s*(\[[\s\S]*\])\s*```/);
+  if (jsonBlockMatch) {
+    jsonText = jsonBlockMatch[1];
+  } else {
+    // Try to find raw JSON array
+    const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[0];
     }
-    byRelationship[participant.relationship].push({ participant, response });
-  });
+  }
 
-  let output = '';
+  // First attempt: parse as-is
+  try {
+    return JSON.parse(jsonText);
+  } catch (firstError) {
+    console.log('[extractJsonArrayFromResponse] First parse attempt failed, trying repair...');
 
-  Object.entries(byRelationship).forEach(([relationship, items]) => {
-    output += `\n### ${relationship.toUpperCase()} (${items.length} response${items.length !== 1 ? 's' : ''})\n\n`;
+    // Second attempt: try to repair common issues
+    try {
+      const repaired = repairJson(jsonText);
+      return JSON.parse(repaired);
+    } catch (secondError) {
+      console.log('[extractJsonArrayFromResponse] Repair attempt failed, trying truncation recovery...');
 
-    items.forEach((item, index) => {
-      output += `**${relationship.charAt(0).toUpperCase() + relationship.slice(1)} #${index + 1}:**\n`;
-
-      questions.forEach((question) => {
-        const answer = item.response.responses[question.id];
-        if (answer !== undefined && answer !== null && answer !== '') {
-          // Get the specific response ID for this question-answer pair
-          // This is the actual row ID in feedback_360_responses table
-          const responseId = item.response.response_ids?.[question.id] || item.response.id;
-
-          output += `[response_id: ${responseId}]\n`;
-          output += `Q: ${question.question}\n`;
-
-          if (question.type === 'rating') {
-            output += `A: ${answer}/${question.scale_max || 5}\n`;
-          } else if (question.type === 'text') {
-            output += `A: "${answer}"\n`;
-          } else if (question.type === 'multiple_choice') {
-            output += `A: ${answer}\n`;
+      // Third attempt: find the last complete array
+      for (let i = jsonText.length - 1; i > jsonText.length / 2; i--) {
+        if (jsonText[i] === ']') {
+          const truncated = jsonText.substring(0, i + 1);
+          const repaired = repairJson(truncated);
+          try {
+            const result = JSON.parse(repaired);
+            console.log('[extractJsonArrayFromResponse] Recovered JSON by truncating at position', i);
+            return result;
+          } catch {
+            // Continue searching
           }
-          output += '\n';
         }
-      });
-    });
-  });
+      }
 
-  return output;
+      // If all else fails, throw the original error
+      console.error('[extractJsonArrayFromResponse] All recovery attempts failed');
+      throw firstError;
+    }
+  }
 }
-

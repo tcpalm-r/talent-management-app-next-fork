@@ -9,6 +9,8 @@
 
 export * from './generate-survey-response';
 export * from './survey-analyzer';
+export * from './survey-analyzer-pass1';
+export * from './survey-analyzer-pass2';
 export * from './generate-narrative';
 
 // Shared model configuration
