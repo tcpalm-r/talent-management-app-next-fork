@@ -192,22 +192,43 @@ const getCitations = (item: CitedItem): CitationData[] => {
  */
 const formatGroupLabel = (group: string, subjectFirstName: string): string => {
   const name = subjectFirstName || 'Subject';
-  switch (group?.toLowerCase()) {
+  const normalizedGroup = group?.toLowerCase()?.trim() || '';
+
+  // Handle exact matches first
+  switch (normalizedGroup) {
     case 'manager':
       return `${name}'s Manager`;
     case 'direct_report':
     case 'direct_reports':
       return `${name}'s Direct Reports`;
     case 'cross_functional':
+    case 'cross-functional':
+    case 'cross-functional colleagues':
       return 'Cross-functional Colleagues';
     case 'slt':
       return 'SLT';
     case 'peer':
     case 'peers':
       return 'Peers';
-    default:
-      return group || 'Unknown';
   }
+
+  // Handle AI-generated labels that contain "Subject's" - replace with actual name
+  if (normalizedGroup.includes("subject's")) {
+    return group.replace(/subject's/gi, `${name}'s`);
+  }
+
+  // Handle partial matches for common group types
+  if (normalizedGroup.includes('direct report')) {
+    return `${name}'s Direct Reports`;
+  }
+  if (normalizedGroup.includes('manager')) {
+    return `${name}'s Manager`;
+  }
+  if (normalizedGroup.includes('cross') && normalizedGroup.includes('functional')) {
+    return 'Cross-functional Colleagues';
+  }
+
+  return group || 'Unknown';
 };
 
 /**
