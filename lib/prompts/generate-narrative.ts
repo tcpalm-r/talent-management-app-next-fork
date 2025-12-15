@@ -189,10 +189,10 @@ ${reportDataText}
 ---
 
 INSTRUCTIONS:
-1. Write a compelling, professionally crafted narrative (500-700 words) that synthesizes ALL the data above
+1. Write a compelling, professionally crafted narrative (550-750 words) that synthesizes ALL the data above
 2. Begin with an opening paragraph that sets a positive, developmental tone
 3. Weave together themes, strengths, and development areas into a cohesive story
-4. Reference specific feedback points from the raw responses where relevant to add authenticity
+4. Reference specific feedback points from the raw responses as your PRIMARY source of examples. Use exact details (names of initiatives, metrics, specific situations) from the raw feedback. The analyzed report data provides structure; the raw responses provide the authentic voice and specifics.
 5. Include concrete, actionable insights and recommendations
 6. End with an encouraging closing that emphasizes growth and potential
 7. Use third person perspective (e.g., "${subjectName} demonstrates...")
@@ -202,6 +202,9 @@ INSTRUCTIONS:
 11. Make it feel personalized and specific to ${subjectName}, not generic
 12. GROUNDING: When the analyzed data includes citation snippets (shown as [Grounded in feedback: "..."]), use those exact phrases or close paraphrases to ensure the narrative stays true to actual reviewer feedback
 13. PRIORITIZATION: Give more weight to themes mentioned by more reviewers (higher frequency) - these represent stronger consensus
+14. COVERAGE: Include at least one specific example from EACH of the raw feedback questions above. Every question category (value creation, skills to develop, "I wish they knew", systems/processes) should have representation in the narrative.
+15. SPECIFICITY: When the raw feedback mentions specific metrics (e.g., "60% reduction", "double the impact"), project names, or concrete outcomes, prefer including these over generic statements. Specifics make the narrative more credible and actionable.
+16. BALANCE: Ensure the narrative doesn't over-index on a few dramatic examples. Include at least one reference to process/systems improvements and learning/knowledge-sharing behaviors.
 
 Write the narrative now (plain text only, no formatting):`;
 }
