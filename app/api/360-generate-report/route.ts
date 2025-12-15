@@ -335,14 +335,18 @@ export async function POST(req: NextRequest) {
       development_areas: analysisResult.development_areas || [],
       recommendations: analysisResult.recommendations || [],
       sentiment_by_relationship: analysisResult.sentiment_by_relationship as any || {},
+      // New group-level analysis structure (v2)
       consensus_areas: analysisResult.consensus_areas || [],
+      varied_by_relationship: analysisResult.varied_by_relationship || [],
+      outliers: analysisResult.outliers || [],
+      // Keep outlier_opinions for backward compatibility with old reports
       outlier_opinions: analysisResult.outlier_opinions || [],
       generated_by: analysisResult.generated_by || 'claude-sonnet-4',
       generated_at: analysisResult.generated_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
       // Citation metadata (always present now)
       has_citations: true,
-      citation_version: '1.0',
+      citation_version: '2.0', // Updated for group-level analysis
       total_citations: citations.length,
       citation_coverage: analysisMeta.citationCoverage || 0,
     };

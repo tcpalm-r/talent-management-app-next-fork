@@ -36,6 +36,29 @@ const getStatementText = (item: StatementOrCited): string => {
   return String(item);
 };
 
+// New v2 structure types
+type ConsensusAreaV2 = {
+  text: string;
+  groups_agreeing?: string[];
+  citations?: any[];
+};
+
+type VariedPerspective = {
+  group: string;
+  view: string;
+  citations?: any[];
+};
+
+type VariedByRelationship = {
+  topic: string;
+  perspectives: VariedPerspective[];
+};
+
+type OutlierV2 = {
+  text: string;
+  citations?: any[];
+};
+
 interface Report360Data {
   survey_name: string;
   employee_name: string;
@@ -53,9 +76,58 @@ interface Report360Data {
   overall_strengths?: StatementOrCited[];
   development_areas?: StatementOrCited[];
   recommendations?: StatementOrCited[];
-  consensus_areas?: StatementOrCited[];
+  // New v2 structure
+  consensus_areas?: (StatementOrCited | ConsensusAreaV2)[];
+  varied_by_relationship?: VariedByRelationship[];
+  outliers?: OutlierV2[];
+  // Backward compatibility
   outlier_opinions?: StatementOrCited[];
 }
+
+/**
+ * Format group name for PDF display
+ */
+const formatGroupLabelForPDF = (group: string, subjectFirstName: string): string => {
+  const name = subjectFirstName || 'Subject';
+  switch (group?.toLowerCase()) {
+    case 'manager':
+      return `${name}'s Manager`;
+    case 'direct_report':
+    case 'direct_reports':
+      return `${name}'s Direct Reports`;
+    case 'cross_functional':
+      return 'Cross-functional';
+    case 'slt':
+      return 'SLT';
+    case 'peer':
+    case 'peers':
+      return 'Peers';
+    default:
+      return group || 'Unknown';
+  }
+};
+
+/**
+ * Get short group label for badges
+ */
+const getShortGroupLabelForPDF = (group: string): string => {
+  switch (group?.toLowerCase()) {
+    case 'manager':
+      return 'Manager';
+    case 'direct_report':
+    case 'direct_reports':
+      return 'Direct Reports';
+    case 'cross_functional':
+      return 'Cross-func';
+    case 'slt':
+      return 'SLT';
+    case 'peer':
+    case 'peers':
+      return 'Peers';
+    default:
+      return group || '?';
+  }
+};
 
 /**
  * Export 360 feedback report as PDF
@@ -336,8 +408,17 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
   // ==========================================================================
   // CONSENSUS & OUTLIERS - matches tab order position 6 (conditional, sponsor/admin only)
   // ==========================================================================
-  if (report.consensus_areas && report.consensus_areas.length > 0) {
+  const hasConsensus = report.consensus_areas && report.consensus_areas.length > 0;
+  const hasVaried = report.varied_by_relationship && report.varied_by_relationship.length > 0;
+  const hasOutliers = report.outliers && report.outliers.length > 0;
+  const hasOldOutliers = report.outlier_opinions && report.outlier_opinions.length > 0;
+  const hasAnyGroupAnalysis = hasConsensus || hasVaried || hasOutliers || hasOldOutliers;
+
+  if (hasAnyGroupAnalysis) {
     checkPageBreak(60);
+
+    // Get subject's first name for labels
+    const subjectFirstName = report.employee_name?.split(' ')[0] || 'Subject';
 
     // Add divider and notice before sponsor/admin-only sections
     pdf.setDrawColor(251, 191, 36); // Amber-400
@@ -345,13 +426,13 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     pdf.line(margin, yPosition, pageWidth - margin, yPosition);
     yPosition += 8;
 
-    // Notice text - split across multiple lines for better readability
+    // Notice text
     pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(180, 83, 9); // Amber-700
 
     const line1 = '⚠ SPONSOR/ADMIN ONLY';
-    const line2 = 'The sections below are not visible to the employee being reviewed';
+    const line2 = `The sections below are not visible to ${subjectFirstName}`;
 
     pdf.text(line1, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 4;
@@ -365,46 +446,140 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(0, 0, 0);
-    pdf.text('Consensus & Outliers', margin, yPosition);
-    yPosition += 10;
+    pdf.text('Group-Level Analysis', margin, yPosition);
+    yPosition += 12;
 
-    pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(59, 130, 246); // Blue
-    pdf.text('Strong Consensus', margin, yPosition);
-    yPosition += 8;
+    // Section 1: Strong Consensus
+    if (hasConsensus) {
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(34, 197, 94); // Green-500
+      pdf.text('Strong Consensus', margin, yPosition);
+      yPosition += 6;
 
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'italic');
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('Areas where multiple reviewer groups agree', margin, yPosition);
+      yPosition += 6;
 
-    report.consensus_areas.forEach(area => {
-      checkPageBreak(10);
-      const height = addWrappedText(`• ${getStatementText(area)}`, margin + 5, yPosition, contentWidth - 5, 9);
-      yPosition += height + 2;
-    });
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(0, 0, 0);
 
-    yPosition += 3;
-  }
+      report.consensus_areas!.forEach((area: any) => {
+        checkPageBreak(15);
+        const text = getStatementText(area);
+        const height = addWrappedText(`• ${text}`, margin + 5, yPosition, contentWidth - 10, 9);
+        yPosition += height + 1;
 
-  if (report.outlier_opinions && report.outlier_opinions.length > 0) {
-    checkPageBreak(25);
+        // Show agreeing groups if available (v2 format)
+        if (area.groups_agreeing && area.groups_agreeing.length > 0) {
+          pdf.setFontSize(8);
+          pdf.setFont('helvetica', 'italic');
+          pdf.setTextColor(100, 100, 100);
+          const groupsText = area.groups_agreeing.map((g: string) => getShortGroupLabelForPDF(g)).join(', ');
+          pdf.text(`   [${groupsText}]`, margin + 5, yPosition);
+          yPosition += 4;
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(0, 0, 0);
+        }
+        yPosition += 2;
+      });
 
-    pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(59, 130, 246); // Blue
-    pdf.text('Unique Perspectives', margin, yPosition);
-    yPosition += 8;
+      yPosition += 5;
+    }
 
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(0, 0, 0);
+    // Section 2: Varied by Relationship
+    if (hasVaried) {
+      checkPageBreak(30);
 
-    report.outlier_opinions.forEach(opinion => {
-      checkPageBreak(10);
-      const height = addWrappedText(`• ${getStatementText(opinion)}`, margin + 5, yPosition, contentWidth - 5, 9);
-      yPosition += height + 2;
-    });
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(99, 102, 241); // Indigo-500
+      pdf.text('Varied by Relationship', margin, yPosition);
+      yPosition += 6;
+
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'italic');
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(`Topics where different groups perceive ${subjectFirstName} differently`, margin, yPosition);
+      yPosition += 8;
+
+      report.varied_by_relationship!.forEach((item: VariedByRelationship) => {
+        checkPageBreak(25);
+
+        // Topic header
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(item.topic.toUpperCase(), margin + 5, yPosition);
+        yPosition += 6;
+
+        // Perspectives
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+
+        item.perspectives?.forEach((perspective: VariedPerspective) => {
+          checkPageBreak(12);
+
+          // Group label
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(99, 102, 241); // Indigo-500
+          const groupLabel = formatGroupLabelForPDF(perspective.group, subjectFirstName);
+          pdf.text(`${groupLabel}:`, margin + 8, yPosition);
+
+          // Perspective text
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(0, 0, 0);
+          const viewText = `"${perspective.view}"`;
+          const height = addWrappedText(viewText, margin + 45, yPosition - 3, contentWidth - 50, 9);
+          yPosition += Math.max(height, 5) + 2;
+        });
+
+        yPosition += 4;
+      });
+
+      yPosition += 3;
+    }
+
+    // Section 3: Outliers
+    if (hasOutliers || hasOldOutliers) {
+      checkPageBreak(25);
+
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(245, 158, 11); // Amber-500
+      pdf.text('Outliers', margin, yPosition);
+      yPosition += 6;
+
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'italic');
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('Unique perspectives mentioned by only one reviewer', margin, yPosition);
+      yPosition += 6;
+
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(0, 0, 0);
+
+      // New format outliers
+      if (hasOutliers) {
+        report.outliers!.forEach((outlier: OutlierV2) => {
+          checkPageBreak(10);
+          const height = addWrappedText(`• ${outlier.text}`, margin + 5, yPosition, contentWidth - 10, 9);
+          yPosition += height + 2;
+        });
+      }
+      // Old format outlier_opinions (backward compatibility)
+      else if (hasOldOutliers) {
+        report.outlier_opinions!.forEach((opinion: any) => {
+          checkPageBreak(10);
+          const height = addWrappedText(`• ${getStatementText(opinion)}`, margin + 5, yPosition, contentWidth - 10, 9);
+          yPosition += height + 2;
+        });
+      }
+    }
   }
 
   // Footer on each page

@@ -25,6 +25,71 @@ function stripCitationsFromStatements(statements: any[]): string[] {
 }
 
 /**
+ * Strip citation data from ConsensusArea array (new v2 format)
+ * Keeps text and groups_agreeing, removes citations
+ */
+function stripCitationsFromConsensusAreas(areas: any[]): any[] {
+  if (!Array.isArray(areas)) return [];
+
+  return areas.map((item) => {
+    if (typeof item === 'object' && item !== null) {
+      // New v2 format with groups_agreeing
+      if ('groups_agreeing' in item) {
+        return {
+          text: item.text,
+          groups_agreeing: item.groups_agreeing,
+          // citations stripped
+        };
+      }
+      // Old format - just extract text
+      if ('text' in item) {
+        return item.text;
+      }
+    }
+    return item;
+  });
+}
+
+/**
+ * Strip citation data from VariedByRelationship array
+ * Keeps topic and perspectives (with group and view), removes citations
+ */
+function stripCitationsFromVariedByRelationship(items: any[]): any[] {
+  if (!Array.isArray(items)) return [];
+
+  return items.map((item) => {
+    if (typeof item === 'object' && item !== null && 'topic' in item) {
+      return {
+        topic: item.topic,
+        perspectives: Array.isArray(item.perspectives)
+          ? item.perspectives.map((p: any) => ({
+              group: p.group,
+              view: p.view,
+              // citations stripped
+            }))
+          : [],
+      };
+    }
+    return item;
+  });
+}
+
+/**
+ * Strip citation data from Outliers array
+ * Keeps only the text, removes citations
+ */
+function stripCitationsFromOutliers(outliers: any[]): any[] {
+  if (!Array.isArray(outliers)) return [];
+
+  return outliers.map((item) => {
+    if (typeof item === 'object' && item !== null && 'text' in item) {
+      return { text: item.text };
+    }
+    return item;
+  });
+}
+
+/**
  * Strip citation data from themes
  */
 function stripCitationsFromThemes(themes: any[]): any[] {
@@ -68,8 +133,14 @@ export function filterReportForSubject(
     overall_strengths: stripCitationsFromStatements(fullReport.overall_strengths || []),
     development_areas: stripCitationsFromStatements(fullReport.development_areas || []),
     recommendations: stripCitationsFromStatements(fullReport.recommendations || []),
-    consensus_areas: stripCitationsFromStatements(fullReport.consensus_areas || []),
-    outlier_opinions: stripCitationsFromStatements(fullReport.outlier_opinions || []),
+    // HIDE ALL GROUP-LEVEL ANALYSIS FROM SUBJECTS
+    // These sections reveal how different groups perceive the subject differently
+    // and should NEVER be visible to the subject being reviewed
+    consensus_areas: [], // Empty - subjects don't see consensus analysis
+    varied_by_relationship: [], // Empty - subjects don't see group differences
+    outliers: [], // Empty - subjects don't see individual outlier opinions
+    // Keep outlier_opinions empty for backward compatibility
+    outlier_opinions: [],
     // Remove citation metadata
     has_citations: false,
     citation_version: undefined,
@@ -77,7 +148,7 @@ export function filterReportForSubject(
     citation_coverage: undefined,
   };
 
-  console.log('[filterReport] After - citations stripped for subject view');
+  console.log('[filterReport] After - group analysis hidden, citations stripped for subject view');
 
   return filtered;
 }
@@ -130,7 +201,11 @@ export function filterReportForSponsor(
     overall_strengths: stripCitationsFromStatements(fullReport.overall_strengths || []),
     development_areas: stripCitationsFromStatements(fullReport.development_areas || []),
     recommendations: stripCitationsFromStatements(fullReport.recommendations || []),
-    consensus_areas: stripCitationsFromStatements(fullReport.consensus_areas || []),
+    // Group-level analysis - sponsors CAN see these, but without citations
+    consensus_areas: stripCitationsFromConsensusAreas(fullReport.consensus_areas || []),
+    varied_by_relationship: stripCitationsFromVariedByRelationship(fullReport.varied_by_relationship || []),
+    outliers: stripCitationsFromOutliers(fullReport.outliers || []),
+    // Keep outlier_opinions for backward compatibility
     outlier_opinions: stripCitationsFromStatements(fullReport.outlier_opinions || []),
     // Remove citation metadata - sponsors should not know citations exist
     has_citations: false,

@@ -152,6 +152,51 @@ export interface PerformanceReview {
 // ============================================================================
 
 /**
+ * Citation - Links analysis statements to source feedback
+ * Used for audit trail in 360 reports
+ */
+export interface Citation {
+  response_id: string;
+  snippet: string;
+}
+
+/**
+ * Consensus Area - Areas where multiple reviewer groups agree
+ * Part of the new group-level analysis system
+ */
+export interface ConsensusArea {
+  text: string;
+  groups_agreeing: string[]; // ['manager', 'direct_report', 'cross_functional', 'slt']
+  citations: Citation[];
+}
+
+/**
+ * Varied Perspective - A single group's view on a topic
+ */
+export interface VariedPerspective {
+  group: string; // 'manager' | 'direct_report' | 'cross_functional' | 'slt'
+  view: string;
+  citations: Citation[];
+}
+
+/**
+ * Varied by Relationship - Topics where different groups see things differently
+ * Shows how managers, direct reports, peers, etc. perceive the subject differently
+ */
+export interface VariedByRelationship {
+  topic: string;
+  perspectives: VariedPerspective[];
+}
+
+/**
+ * Outlier - Unique perspective from a single reviewer
+ */
+export interface Outlier {
+  text: string;
+  citations: Citation[];
+}
+
+/**
  * 360 Feedback Question
  */
 export interface Feedback360Question {
@@ -265,8 +310,12 @@ export interface Feedback360Report {
     cross_functional?: number; // Only shown to sponsors/admins
   };
   key_insights: string[];
-  consensus_areas: string[];
-  outlier_opinions: string[];
+  // New group-level analysis structure (v2)
+  consensus_areas: ConsensusArea[];
+  varied_by_relationship: VariedByRelationship[];
+  outliers: Outlier[];
+  // Deprecated: Old format for backward compatibility with existing reports
+  outlier_opinions?: string[];
   generated_by: string;
   generated_at: string;
   created_at: string;

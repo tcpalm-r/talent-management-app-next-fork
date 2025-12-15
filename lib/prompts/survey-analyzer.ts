@@ -118,13 +118,31 @@ You must respond with ONLY valid JSON. No markdown, no commentary, just the JSON
   },
   "consensus_areas": [
     {
-      "text": "Area where multiple reviewers strongly agree",
+      "text": "Clear statement of what all reviewer groups agree on",
+      "groups_agreeing": ["manager", "direct_report", "cross_functional"],
       "citations": [{ "response_id": "uuid", "snippet": "supporting excerpt" }]
     }
   ],
-  "outlier_opinions": [
+  "varied_by_relationship": [
     {
-      "text": "Unique perspective that differs from the majority",
+      "topic": "Short topic name (2-5 words, e.g., 'Communication Style')",
+      "perspectives": [
+        {
+          "group": "manager",
+          "view": "The manager's perspective on this topic",
+          "citations": [{ "response_id": "uuid", "snippet": "excerpt" }]
+        },
+        {
+          "group": "direct_report",
+          "view": "Direct reports' differing perspective on this topic",
+          "citations": [{ "response_id": "uuid", "snippet": "excerpt" }]
+        }
+      ]
+    }
+  ],
+  "outliers": [
+    {
+      "text": "Unique perspective mentioned by only one reviewer",
       "citations": [{ "response_id": "uuid", "snippet": "supporting excerpt" }]
     }
   ]
@@ -196,6 +214,13 @@ Protect reviewer identities while synthesizing feedback:
 - The "snippet" field can contain direct excerpts (audit-only, not shown to subjects)
 - Aggregate ALL feedback into unified observations
 
+**EXCEPTION for "varied_by_relationship" section ONLY:**
+- You MAY and SHOULD reference relationship types in the "group" field
+- You MAY describe different views by group (e.g., "Manager sees X, Direct Reports see Y")
+- This section is NEVER shown to the subject - only sponsors/admins see it
+- The PURPOSE is to reveal how different groups perceive the subject differently
+- This is the ONE section where group-level attribution is allowed and expected
+
 ## 5. Content Structure
 
 Generate the following sections:
@@ -204,8 +229,22 @@ Generate the following sections:
 2. **Strengths** (3-5): Clear, specific strengths from feedback
 3. **Development Areas** (3-5): Growth opportunities with specific examples
 4. **Recommendations** (4-6): Actionable next steps with concrete suggestions
-5. **Consensus** (2-4): Areas of strong agreement across multiple reviewers
-6. **Outliers** (1-3): Unique perspectives worth noting (if any exist)
+5. **Consensus Areas** (2-4): Topics where ALL relationship groups express similar views
+   - Only include if 2+ different groups provided feedback on this topic
+   - List which groups agree in "groups_agreeing" (e.g., ["manager", "direct_report", "cross_functional"])
+   - Requires substantive agreement, not just absence of disagreement
+6. **Varied by Relationship** (0-4): Topics where different groups see things differently
+   - Each item represents ONE topic with MULTIPLE perspectives from different groups
+   - Only include genuine divergence in perception (not just different wording)
+   - Group perspectives by relationship type in the "perspectives" array
+   - Highlight the contrast clearly - this is the VALUE of this section
+   - Example topics: Communication style, Availability, Leadership approach, Technical depth, Collaboration
+   - If no significant differences exist between groups, this array can be empty
+7. **Outliers** (0-3): Significant perspectives from a SINGLE reviewer
+   - Must be substantive and noteworthy (not just minor observations)
+   - Truly unique - not mentioned by anyone else in any group
+   - Could be especially insightful or concerning
+   - If no significant outliers exist, this array can be empty
 
 ## 6. Sentiment Scoring
 
@@ -225,10 +264,13 @@ Before submitting your analysis, verify:
 1. ✓ Every response_id from the input appears at least once in your citations (100% coverage)
 2. ✓ All citations use exact UUIDs from the input data (no invented IDs)
 3. ✓ All snippets are verbatim excerpts from source responses (exact wording)
-4. ✓ All "text" fields maintain strict anonymity (no relationship types mentioned)
+4. ✓ All "text" fields maintain strict anonymity (no relationship types mentioned) - EXCEPT in varied_by_relationship
 5. ✓ Response format is valid JSON (proper escaping, no trailing commas)
+6. ✓ consensus_areas includes "groups_agreeing" array listing which groups share that view
+7. ✓ varied_by_relationship shows GENUINE differences between groups (not just different wording)
+8. ✓ outliers are truly unique perspectives from single reviewers (not themes shared by multiple people)
 
-Remember: Every statement must be grounded in actual feedback with proper citations. Maintain strict anonymity in text fields while preserving citation trails for audit.`;
+Remember: Every statement must be grounded in actual feedback with proper citations. Maintain strict anonymity in text fields while preserving citation trails for audit. The varied_by_relationship section is the EXCEPTION where group attribution is required.`;
 
 }
 

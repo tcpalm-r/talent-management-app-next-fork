@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import Image from 'next/image';
 import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus, Check, User, Search, ChevronDown, Info, Loader2 } from 'lucide-react';
 import type { Employee, Department, ParticipantRelationship } from '../types';
 import Survey360Wizard from './Survey360Wizard';
@@ -180,6 +181,57 @@ const getCitations = (item: CitedItem): CitationData[] => {
     return item.citations;
   }
   return [];
+};
+
+/**
+ * Format a relationship group name for display
+ * Uses subject's first name for personalized labels
+ * @param group - The group identifier (manager, direct_report, cross_functional, slt)
+ * @param subjectFirstName - The subject's first name for personalized labels
+ * @returns Formatted display label
+ */
+const formatGroupLabel = (group: string, subjectFirstName: string): string => {
+  const name = subjectFirstName || 'Subject';
+  switch (group?.toLowerCase()) {
+    case 'manager':
+      return `${name}'s Manager`;
+    case 'direct_report':
+    case 'direct_reports':
+      return `${name}'s Direct Reports`;
+    case 'cross_functional':
+      return 'Cross-functional Colleagues';
+    case 'slt':
+      return 'SLT';
+    case 'peer':
+    case 'peers':
+      return 'Peers';
+    default:
+      return group || 'Unknown';
+  }
+};
+
+/**
+ * Get a short badge-friendly version of the group label
+ * @param group - The group identifier
+ * @returns Short label for badge display
+ */
+const getShortGroupLabel = (group: string): string => {
+  switch (group?.toLowerCase()) {
+    case 'manager':
+      return 'Manager';
+    case 'direct_report':
+    case 'direct_reports':
+      return 'Direct Reports';
+    case 'cross_functional':
+      return 'Cross-func';
+    case 'slt':
+      return 'SLT';
+    case 'peer':
+    case 'peers':
+      return 'Peers';
+    default:
+      return group || '?';
+  }
 };
 
 // Extended employee type with detected relationship for search results
@@ -1845,8 +1897,8 @@ export default function Feedback360Dashboard({
   return (
     <TooltipProvider>
     <div>
-      {/* Role Navigation Tabs - Primary sub-navigation for 360 Feedback section */}
-      <div className="mb-6 flex items-center justify-between">
+      {/* Role Navigation Tabs */}
+      <div className="mb-4">
         <NavigationTabs
           tabs={[
             // Only show All 360°s tab for Admin role (first position)
@@ -1888,7 +1940,6 @@ export default function Feedback360Dashboard({
           }}
           variant="underline"
         />
-        <span className="text-gray-500 italic text-sm">Hover over an element for more information</span>
       </div>
 
       {/* Pipeline Stats with Risk Flags - Only show on Sponsor tab */}
@@ -3162,7 +3213,12 @@ export default function Feedback360Dashboard({
         const isSLT = currentUser?.app_role === 'slt';
         const canSeeAdvanced = !isSubject || isAdmin || isSponsor;
 
-        const hasConsensusData = (surveyResults.consensus_areas?.length > 0 || surveyResults.outlier_opinions?.length > 0);
+        const hasConsensusData = (
+          surveyResults.consensus_areas?.length > 0 ||
+          surveyResults.varied_by_relationship?.length > 0 ||
+          surveyResults.outliers?.length > 0 ||
+          surveyResults.outlier_opinions?.length > 0  // backward compatibility
+        );
 
         // Define tabs
         const reportTabs = [
@@ -3176,7 +3232,19 @@ export default function Feedback360Dashboard({
 
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-md max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-md max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden relative">
+              {/* Loading overlay when generating/reanalyzing AI analysis */}
+              {isGeneratingAnalysis && (
+                <div className="absolute inset-0 bg-white/90 dark:bg-gray-800/90 flex flex-col items-center justify-center z-50 rounded-md">
+                  <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
+                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    Regenerating AI Analysis...
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4">
+                    Report may take up to 2 minutes to generate to ensure accuracy and precision
+                  </p>
+                </div>
+              )}
               <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -3558,71 +3626,189 @@ export default function Feedback360Dashboard({
               })()}
 
               {/* Consensus & Outliers Tab - Sponsor/Admin Only */}
-              {activeReportTab === 'consensus' && (surveyResults.consensus_areas?.length > 0 || surveyResults.outlier_opinions?.length > 0) && (
-                <>
-                  {/* Privacy Notice Banner */}
-                  <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 dark:border-amber-600 p-4 mb-6">
-                    <div className="flex items-start">
-                      <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-500 mr-3 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                          Sponsor/Admin Only Section
-                        </p>
-                        <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                          This consensus and outlier analysis is <strong>not visible to {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'}</strong>.
-                          Only survey sponsors and administrators can see this data to maintain reviewer confidentiality.
-                        </p>
+              {activeReportTab === 'consensus' && (() => {
+                // Check if we have any data to show (new or old format)
+                const hasConsensus = surveyResults.consensus_areas?.length > 0;
+                const hasVaried = surveyResults.varied_by_relationship?.length > 0;
+                const hasOutliers = surveyResults.outliers?.length > 0;
+                const hasOldOutliers = surveyResults.outlier_opinions?.length > 0;
+                const hasAnyData = hasConsensus || hasVaried || hasOutliers || hasOldOutliers;
+
+                if (!hasAnyData) return null;
+
+                // Get subject's first name for personalized labels
+                const employeeFullName = selectedSurvey.employee?.name || selectedSurvey.employee?.full_name || selectedSurvey.employee_name || '';
+                const subjectFirstName = employeeFullName?.split(' ')[0] || 'Subject';
+
+                return (
+                  <>
+                    {/* Privacy Notice Banner */}
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 dark:border-amber-600 p-4 mb-6">
+                      <div className="flex items-start">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-500 mr-3 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                            Sponsor/Admin Only Section
+                          </p>
+                          <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                            This group-level analysis is <strong>not visible to {subjectFirstName}</strong>.
+                            Only survey sponsors and administrators can see how different reviewer groups perceive the subject.
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {surveyResults.consensus_areas && surveyResults.consensus_areas.length > 0 && (
-                      <div className="bg-green-50 dark:bg-green-900/30 rounded-md p-4 border border-green-200 dark:border-green-700">
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                          Strong Consensus
-                        </h4>
-                        <ul className="space-y-1 text-sm">
-                          {surveyResults.consensus_areas.map((area: string | { text: string; citations?: any[] }, idx: number) => (
-                            <li key={idx} className="text-gray-700 dark:text-gray-300">
-                              • {getStatementText(area)}
-                              <InlineCitation
-                                citations={getCitations(area)}
-                                reportId={selectedSurvey.id}
-                                sectionType="consensus_areas"
-                                sectionIndex={idx}
-                                auditModeEnabled={effectiveAuditMode}
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    <div className="space-y-6">
+                      {/* Section 1: Strong Consensus */}
+                      {hasConsensus && (
+                        <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-5 border border-green-200 dark:border-green-700">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                            <span className="text-green-600 dark:text-green-400">✓</span>
+                            Strong Consensus
+                          </h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                            Areas where multiple reviewer groups agree
+                          </p>
+                          <ul className="space-y-3">
+                            {surveyResults.consensus_areas.map((area: any, idx: number) => (
+                              <li key={idx} className="text-gray-700 dark:text-gray-300">
+                                <div className="flex items-start gap-2">
+                                  <span className="text-green-600 dark:text-green-400 mt-0.5">•</span>
+                                  <div className="flex-1">
+                                    <span className="text-sm">{getStatementText(area)}</span>
+                                    <InlineCitation
+                                      citations={getCitations(area)}
+                                      reportId={selectedSurvey.id}
+                                      sectionType="consensus_areas"
+                                      sectionIndex={idx}
+                                      auditModeEnabled={effectiveAuditMode}
+                                    />
+                                    {/* Show agreeing groups as badges */}
+                                    {area.groups_agreeing && area.groups_agreeing.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-1.5">
+                                        {area.groups_agreeing.map((group: string, gIdx: number) => (
+                                          <span
+                                            key={gIdx}
+                                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200"
+                                          >
+                                            {getShortGroupLabel(group)}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
-                    {surveyResults.outlier_opinions && surveyResults.outlier_opinions.length > 0 && (
-                      <div className="bg-amber-50 dark:bg-amber-900/20 rounded-md p-4 border border-amber-200 dark:border-amber-700">
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                          Unique Perspectives
-                        </h4>
-                        <ul className="space-y-1 text-sm">
-                          {surveyResults.outlier_opinions.map((opinion: string | { text: string; citations?: any[] }, idx: number) => (
-                            <li key={idx} className="text-gray-700 dark:text-gray-300">
-                              • {getStatementText(opinion)}
-                              <InlineCitation
-                                citations={getCitations(opinion)}
-                                reportId={selectedSurvey.id}
-                                sectionType="outlier_opinions"
-                                sectionIndex={idx}
-                                auditModeEnabled={effectiveAuditMode}
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
+                      {/* Section 2: Varied by Relationship */}
+                      {hasVaried && (
+                        <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-5 border border-indigo-200 dark:border-indigo-700">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                            <span className="text-indigo-600 dark:text-indigo-400">⟷</span>
+                            Varied by Relationship
+                          </h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                            Topics where different groups perceive {subjectFirstName} differently
+                          </p>
+                          <div className="space-y-4">
+                            {surveyResults.varied_by_relationship.map((item: any, idx: number) => (
+                              <div
+                                key={idx}
+                                className="bg-white dark:bg-gray-800/50 rounded-md p-4 border border-indigo-100 dark:border-indigo-800"
+                              >
+                                <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-3 text-sm uppercase tracking-wide">
+                                  {item.topic}
+                                </h5>
+                                <div className="space-y-2">
+                                  {item.perspectives?.map((perspective: any, pIdx: number) => (
+                                    <div
+                                      key={pIdx}
+                                      className="flex items-start gap-3 text-sm"
+                                    >
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-800/50 text-indigo-800 dark:text-indigo-200 whitespace-nowrap min-w-[100px]">
+                                        {formatGroupLabel(perspective.group, subjectFirstName)}
+                                      </span>
+                                      <span className="text-gray-700 dark:text-gray-300 flex-1">
+                                        {perspective.view}
+                                        <InlineCitation
+                                          citations={perspective.citations || []}
+                                          reportId={selectedSurvey.id}
+                                          sectionType="varied_by_relationship"
+                                          sectionIndex={idx}
+                                          statementIndex={pIdx}
+                                          auditModeEnabled={effectiveAuditMode}
+                                        />
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Section 3: Outliers (Individual Perspectives) */}
+                      {(hasOutliers || hasOldOutliers) && (
+                        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-5 border border-amber-200 dark:border-amber-700">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                            <span className="text-amber-600 dark:text-amber-400">💡</span>
+                            Outliers
+                          </h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                            Unique perspectives mentioned by only one reviewer
+                          </p>
+                          <ul className="space-y-2">
+                            {/* New format outliers */}
+                            {surveyResults.outliers?.map((outlier: any, idx: number) => (
+                              <li key={`new-${idx}`} className="text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                                <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
+                                <span className="text-sm">
+                                  {getStatementText(outlier)}
+                                  <InlineCitation
+                                    citations={getCitations(outlier)}
+                                    reportId={selectedSurvey.id}
+                                    sectionType="outliers"
+                                    sectionIndex={idx}
+                                    auditModeEnabled={effectiveAuditMode}
+                                  />
+                                </span>
+                              </li>
+                            ))}
+                            {/* Old format outlier_opinions (backward compatibility) */}
+                            {!hasOutliers && surveyResults.outlier_opinions?.map((opinion: any, idx: number) => (
+                              <li key={`old-${idx}`} className="text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                                <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
+                                <span className="text-sm">
+                                  {getStatementText(opinion)}
+                                  <InlineCitation
+                                    citations={getCitations(opinion)}
+                                    reportId={selectedSurvey.id}
+                                    sectionType="outlier_opinions"
+                                    sectionIndex={idx}
+                                    auditModeEnabled={effectiveAuditMode}
+                                  />
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Empty state when no divergence detected */}
+                      {!hasVaried && hasConsensus && (
+                        <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+                          <p>All reviewer groups expressed similar views on all topics.</p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Narrative Tab - Final tab for generating one-page summary */}
               {activeReportTab === 'narrative' && (

@@ -89,6 +89,11 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
 
   const analysis = extractJsonFromResponse(content.text);
 
+  // Log what the AI returned for the new group-level fields
+  console.log('[surveyAnalyzerService] AI returned consensus_areas:', JSON.stringify(analysis.consensus_areas, null, 2).slice(0, 500));
+  console.log('[surveyAnalyzerService] AI returned varied_by_relationship:', JSON.stringify(analysis.varied_by_relationship, null, 2).slice(0, 500));
+  console.log('[surveyAnalyzerService] AI returned outliers:', JSON.stringify(analysis.outliers, null, 2).slice(0, 500));
+
   // Extract and flatten all citations for database storage
   const flattenedCitations = extractCitationsFromAnalysis(analysis);
 
@@ -110,12 +115,15 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
       development_areas: analysis.development_areas as Survey360ReportWithCitations['development_areas'] || [],
       recommendations: analysis.recommendations as Survey360ReportWithCitations['recommendations'] || [],
       sentiment_by_relationship: analysis.sentiment_by_relationship as Record<string, number> || {},
+      // Group-level analysis (v2 structure)
       consensus_areas: analysis.consensus_areas as Survey360ReportWithCitations['consensus_areas'] || [],
-      outlier_opinions: analysis.outlier_opinions as Survey360ReportWithCitations['outlier_opinions'] || [],
+      varied_by_relationship: analysis.varied_by_relationship || [], // NEW: Topics where groups differ
+      outliers: analysis.outliers || [], // NEW: Unique single-reviewer perspectives
+      outlier_opinions: analysis.outlier_opinions as Survey360ReportWithCitations['outlier_opinions'] || [], // Keep for backward compat
       generated_at: new Date().toISOString(),
       generated_by: surveyAnalyzerConfig.model,
       has_citations: true,
-      citation_version: '1.0',
+      citation_version: '2.0', // Updated version for group-level analysis
       total_citations: flattenedCitations.length,
       citation_coverage: citationCoverage,
     },
