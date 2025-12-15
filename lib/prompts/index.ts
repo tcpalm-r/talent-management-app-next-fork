@@ -10,7 +10,6 @@
 export * from './generate-survey-response';
 export * from './survey-analyzer';
 export * from './generate-narrative';
-export * from './adjust-item-specificity';
 
 // Shared model configuration
 export const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';

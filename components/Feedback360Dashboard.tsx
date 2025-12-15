@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus, Check, User, Search, ChevronDown, Info, Loader2 } from 'lucide-react';
-import type { Employee, Department, ParticipantRelationship, ReportAdjustments, ItemAdjustment, AdjustmentPosition } from '../types';
+import type { Employee, Department, ParticipantRelationship } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
 import Avatar from './Avatar';
-import AdjustmentPreviewModal from './AdjustmentPreviewModal';
 import { useToast, Tooltip, TooltipProvider } from './unified';
 import NavigationTabs from './unified/NavigationTabs';
 import { exportReportAsPDF } from '../lib/exportReport';
@@ -48,7 +47,6 @@ interface Survey {
   sent_at?: string | null;
   completed_at?: string | null;
   updated_at?: string | null;
-  report_adjustments?: ReportAdjustments; // Persisted sponsor adjustments
 }
 
 interface Reviewer {
@@ -280,26 +278,7 @@ export default function Feedback360Dashboard({
   const [finalNarrative, setFinalNarrative] = useState<string>('');
   const [isGeneratingNarrative, setIsGeneratingNarrative] = useState(false);
   const [narrativeOutdated, setNarrativeOutdated] = useState(false);
-
-  // Slider positions and original text for adjustment controls
-  // Format: { [itemIndex]: { specificity: 'left'|'center'|'right', tone: ..., length: ... } }
-  const [sliderPositions, setSliderPositions] = useState<Record<string, { specificity: string; tone: string; length: string }>>({});
-  // Store original text before any modifications: { [itemIndex]: originalText }
-  const [originalItemText, setOriginalItemText] = useState<Record<string, any>>({});
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
-
-  // Preview modal state for adjustment preview
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  const [previewOriginalText, setPreviewOriginalText] = useState('');
-  const [previewAdjustedText, setPreviewAdjustedText] = useState<string | null>(null);
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [pendingAdjustment, setPendingAdjustment] = useState<{
-    itemIndex: number;
-    sectionType: 'themes' | 'strengths' | 'development_areas' | 'key_insights';
-    adjustmentType: 'specificity' | 'tone' | 'length';
-    direction: 'more' | 'less' | 'harsher' | 'softer' | 'longer' | 'shorter';
-    newPosition: 'left' | 'center' | 'right';
-  } | null>(null);
 
   // Computed: Audit mode is only effective for admins
   // This ensures citations are never visible to sponsors or subjects
@@ -448,15 +427,6 @@ export default function Feedback360Dashboard({
         setFinalNarrative('');
         setNarrativeOutdated(false);
       }
-
-      // Load persisted report adjustments if they exist
-      if (fullSurvey.report_adjustments && Object.keys(fullSurvey.report_adjustments).length > 0) {
-        setSliderPositions(fullSurvey.report_adjustments as Record<string, { specificity: string; tone: string; length: string }>);
-      } else {
-        setSliderPositions({});
-      }
-      // Reset original text storage when loading a new survey
-      setOriginalItemText({});
 
       setIsResultsModalOpen(true);
       markSurveyAsViewed(survey.id);
@@ -881,397 +851,6 @@ export default function Feedback360Dashboard({
         variant: 'error',
       });
     }
-  };
-
-  // Handle slider position changes (3-position toggle: left | center | right)
-  // UPDATED: Removed adjacent-only constraint, added preview modal, added persistence
-  const handleSliderChange = async (
-    itemIndex: number,
-    sectionType: 'themes' | 'strengths' | 'development_areas' | 'key_insights',
-    adjustmentType: 'specificity' | 'tone' | 'length',
-    newPosition: 'left' | 'center' | 'right'
-  ) => {
-    if (!selectedSurvey || !surveyResults) return;
-
-    const itemKey = `${sectionType}-${itemIndex}`;
-    const currentPositions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
-    const currentPosition = currentPositions[adjustmentType];
-
-    // If clicking same position, do nothing
-    if (currentPosition === newPosition) return;
-
-    // If moving to center, restore original text (no API call needed)
-    if (newPosition === 'center') {
-      const originalText = originalItemText[itemKey];
-      if (originalText !== undefined) {
-        // Restore the original item
-        let sectionKey: string;
-        switch (sectionType) {
-          case 'themes': sectionKey = 'themes'; break;
-          case 'strengths': sectionKey = 'overall_strengths'; break;
-          case 'development_areas': sectionKey = 'development_areas'; break;
-          case 'key_insights': sectionKey = 'key_insights'; break;
-        }
-
-        const updatedSection = [...surveyResults[sectionKey]];
-        updatedSection[itemIndex] = originalText;
-
-        setSurveyResults({
-          ...surveyResults,
-          [sectionKey]: updatedSection
-        });
-      }
-
-      // Update slider position to center and persist
-      const newPositions = {
-        ...sliderPositions,
-        [itemKey]: {
-          ...currentPositions,
-          [adjustmentType]: 'center'
-        }
-      };
-      setSliderPositions(newPositions);
-      await saveAdjustments(newPositions);
-
-      notify({
-        title: 'Restored to Original',
-        description: 'The item has been restored to its original text.',
-        variant: 'info',
-      });
-
-      return;
-    }
-
-    // Moving to left or right - show preview modal
-    // Determine direction based on position and adjustment type
-    let direction: 'more' | 'less' | 'harsher' | 'softer' | 'longer' | 'shorter';
-    if (adjustmentType === 'specificity') {
-      direction = newPosition === 'left' ? 'less' : 'more';
-    } else if (adjustmentType === 'tone') {
-      direction = newPosition === 'left' ? 'softer' : 'harsher';
-    } else { // length
-      direction = newPosition === 'left' ? 'shorter' : 'longer';
-    }
-
-    // Show preview modal instead of immediate application
-    await previewAdjustment(itemIndex, sectionType, adjustmentType, direction, newPosition);
-  };
-
-  const adjustItem = async (
-    itemIndex: number,
-    adjustmentType: 'specificity' | 'tone' | 'length',
-    direction: 'more' | 'less' | 'harsher' | 'softer' | 'longer' | 'shorter',
-    sectionType: 'themes' | 'strengths' | 'development_areas' | 'key_insights'
-  ) => {
-    if (!selectedSurvey || !surveyResults) return;
-
-    setIsAdjustingItem(true);
-    try {
-      let item: any;
-      let sectionKey: string;
-      let sectionLabel: string;
-
-      switch (sectionType) {
-        case 'themes':
-          item = surveyResults.themes[itemIndex];
-          sectionKey = 'themes';
-          sectionLabel = 'theme';
-          break;
-        case 'strengths':
-          item = surveyResults.overall_strengths[itemIndex];
-          sectionKey = 'overall_strengths';
-          sectionLabel = 'strength';
-          break;
-        case 'development_areas':
-          item = surveyResults.development_areas[itemIndex];
-          sectionKey = 'development_areas';
-          sectionLabel = 'development area';
-          break;
-        case 'key_insights':
-          item = surveyResults.key_insights[itemIndex];
-          sectionKey = 'key_insights';
-          sectionLabel = 'insight';
-          break;
-      }
-
-      const response = await fetch('/api/ai/adjust-item-specificity', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          survey_id: selectedSurvey.id,
-          item: item,
-          section_type: sectionType,
-          adjustment_type: adjustmentType,
-          direction: direction,
-          raw_responses: rawSurveyData?.responses || []
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to adjust ${sectionLabel}`);
-      }
-
-      const data = await response.json();
-
-      // Update the item in the results
-      const updatedSection = [...surveyResults[sectionKey]];
-      updatedSection[itemIndex] = data.adjusted_item;
-
-      setSurveyResults({
-        ...surveyResults,
-        [sectionKey]: updatedSection
-      });
-
-      // Create appropriate success message based on adjustment type
-      let adjustmentMessage = '';
-      switch (adjustmentType) {
-        case 'specificity':
-          adjustmentMessage = `made ${direction} specific`;
-          break;
-        case 'tone':
-          adjustmentMessage = `made ${direction}`;
-          break;
-        case 'length':
-          adjustmentMessage = `made ${direction}`;
-          break;
-      }
-
-      notify({
-        title: `${sectionLabel.charAt(0).toUpperCase() + sectionLabel.slice(1)} Adjusted`,
-        description: `The ${sectionLabel} has been ${adjustmentMessage}.`,
-        variant: 'success',
-      });
-
-      // Deselect item after adjustment
-      setSelectedThemeIndex(null);
-      setSelectedStrengthIndex(null);
-      setSelectedDevelopmentIndex(null);
-      setSelectedInsightIndex(null);
-
-      // Mark narrative as outdated if it exists
-      if (finalNarrative) {
-        setNarrativeOutdated(true);
-      }
-    } catch (error: any) {
-      console.error('Error adjusting item:', error);
-      notify({
-        title: 'Error',
-        description: error.message || 'Failed to adjust item',
-        variant: 'error',
-      });
-    } finally {
-      setIsAdjustingItem(false);
-    }
-  };
-
-  // Save report adjustments to database
-  const saveAdjustments = async (newPositions: Record<string, { specificity: string; tone: string; length: string }>) => {
-    if (!selectedSurvey) return;
-
-    try {
-      const response = await fetch(`/api/surveys/${selectedSurvey.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          report_adjustments: newPositions,
-        }),
-      });
-
-      if (!response.ok) {
-        console.error('Failed to save report adjustments');
-      }
-    } catch (error) {
-      console.error('Error saving report adjustments:', error);
-    }
-  };
-
-  // Helper to extract text from an item that might be string or CitedStatement
-  const extractItemText = (item: any): string => {
-    if (typeof item === 'string') return item;
-    if (item?.text) return item.text;
-    return '';
-  };
-
-  // Preview adjustment before applying
-  const previewAdjustment = async (
-    itemIndex: number,
-    sectionType: 'themes' | 'strengths' | 'development_areas' | 'key_insights',
-    adjustmentType: 'specificity' | 'tone' | 'length',
-    direction: 'more' | 'less' | 'harsher' | 'softer' | 'longer' | 'shorter',
-    newPosition: 'left' | 'center' | 'right'
-  ) => {
-    if (!selectedSurvey || !surveyResults) return;
-
-    // Get the current item text
-    let item: any;
-    let itemText: string;
-
-    switch (sectionType) {
-      case 'themes':
-        item = surveyResults.themes[itemIndex];
-        // supporting_evidence can be string[] or CitedStatement[] (objects with text property)
-        if (item.supporting_evidence && Array.isArray(item.supporting_evidence)) {
-          itemText = item.supporting_evidence
-            .map((ev: any) => extractItemText(ev))
-            .filter((t: string) => t)
-            .join('\n');
-        } else {
-          itemText = item.theme || '';
-        }
-        break;
-      case 'strengths':
-        item = surveyResults.overall_strengths[itemIndex];
-        itemText = extractItemText(item);
-        break;
-      case 'development_areas':
-        item = surveyResults.development_areas[itemIndex];
-        itemText = extractItemText(item);
-        break;
-      case 'key_insights':
-        item = surveyResults.key_insights?.[itemIndex];
-        itemText = extractItemText(item);
-        break;
-    }
-
-    setPreviewOriginalText(itemText);
-    setPreviewAdjustedText(null);
-    setPendingAdjustment({ itemIndex, sectionType, adjustmentType, direction, newPosition });
-    setPreviewModalOpen(true);
-    setIsPreviewLoading(true);
-
-    // Fetch the preview from the API
-    try {
-      const response = await fetch('/api/ai/adjust-item-specificity', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          survey_id: selectedSurvey.id,
-          item: item,
-          section_type: sectionType,
-          adjustment_type: adjustmentType,
-          direction: direction,
-          raw_responses: rawSurveyData?.responses || [],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate preview');
-      }
-
-      const data = await response.json();
-
-      // Extract text from the adjusted item
-      let adjustedText: string;
-      if (sectionType === 'themes' && data.adjusted_item?.supporting_evidence) {
-        // Handle both string[] and CitedStatement[] formats
-        adjustedText = data.adjusted_item.supporting_evidence
-          .map((ev: any) => extractItemText(ev))
-          .filter((t: string) => t)
-          .join('\n');
-      } else if (typeof data.adjusted_item === 'string') {
-        adjustedText = data.adjusted_item;
-      } else {
-        adjustedText = extractItemText(data.adjusted_item);
-      }
-
-      setPreviewAdjustedText(adjustedText);
-    } catch (error) {
-      console.error('Error generating preview:', error);
-      setPreviewAdjustedText('Error generating preview. Please try again.');
-    } finally {
-      setIsPreviewLoading(false);
-    }
-  };
-
-  // Confirm and apply the previewed adjustment
-  const confirmAdjustment = async () => {
-    if (!pendingAdjustment || !selectedSurvey || !surveyResults || !previewAdjustedText) return;
-
-    const { itemIndex, sectionType, adjustmentType, newPosition } = pendingAdjustment;
-    const itemKey = `${sectionType}-${itemIndex}`;
-    const currentPositions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
-
-    // Store original if moving from center
-    if (currentPositions[adjustmentType] === 'center') {
-      let item: any;
-      switch (sectionType) {
-        case 'themes':
-          item = surveyResults.themes[itemIndex];
-          break;
-        case 'strengths':
-          item = surveyResults.overall_strengths[itemIndex];
-          break;
-        case 'development_areas':
-          item = surveyResults.development_areas[itemIndex];
-          break;
-        case 'key_insights':
-          item = surveyResults.key_insights?.[itemIndex];
-          break;
-      }
-      setOriginalItemText(prev => ({ ...prev, [itemKey]: item }));
-    }
-
-    // Apply the adjustment to surveyResults
-    let sectionKey: string;
-    switch (sectionType) {
-      case 'themes': sectionKey = 'themes'; break;
-      case 'strengths': sectionKey = 'overall_strengths'; break;
-      case 'development_areas': sectionKey = 'development_areas'; break;
-      case 'key_insights': sectionKey = 'key_insights'; break;
-    }
-
-    const updatedSection = [...surveyResults[sectionKey]];
-
-    // For themes, we need to update the supporting_evidence
-    if (sectionType === 'themes') {
-      updatedSection[itemIndex] = {
-        ...updatedSection[itemIndex],
-        supporting_evidence: previewAdjustedText.split('\n').filter(line => line.trim()),
-      };
-    } else {
-      updatedSection[itemIndex] = previewAdjustedText;
-    }
-
-    setSurveyResults({
-      ...surveyResults,
-      [sectionKey]: updatedSection,
-    });
-
-    // Update slider positions and persist to database
-    const newPositions = {
-      ...sliderPositions,
-      [itemKey]: {
-        ...currentPositions,
-        [adjustmentType]: newPosition,
-      },
-    };
-    setSliderPositions(newPositions);
-    await saveAdjustments(newPositions);
-
-    // Clear selection
-    setSelectedThemeIndex(null);
-    setSelectedStrengthIndex(null);
-    setSelectedDevelopmentIndex(null);
-    setSelectedInsightIndex(null);
-
-    // Mark narrative as outdated
-    if (finalNarrative) {
-      setNarrativeOutdated(true);
-    }
-
-    // Show success notification
-    notify({
-      title: 'Adjustment Applied',
-      description: 'The item has been updated successfully.',
-      variant: 'success',
-    });
-
-    // Close modal and reset state
-    setPreviewModalOpen(false);
-    setPendingAdjustment(null);
-    setPreviewAdjustedText(null);
-    setPreviewOriginalText('');
   };
 
   const addRecommendation = () => {
@@ -3764,423 +3343,100 @@ export default function Feedback360Dashboard({
               }}
             >
               {/* Key Themes Tab */}
-              {activeReportTab === 'themes' && surveyResults.themes && surveyResults.themes.length > 0 && (() => {
-                const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
-                const isAdmin = currentUser?.app_role === 'admin';
-                const canAdjustThemes = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
-
-                return (
-                  <div>
-                    {canAdjustThemes && (
-                      <div className="mb-4">
-                        <span className="text-sm text-gray-600 dark:text-gray-400 font-semibold italic">Click to adjust</span>
+              {activeReportTab === 'themes' && surveyResults.themes && surveyResults.themes.length > 0 && (
+                <div className="space-y-3">
+                  {surveyResults.themes.map((theme: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="border rounded-md p-4 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h5 className="font-medium text-gray-900 dark:text-gray-100">{theme.theme}</h5>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          theme.sentiment === 'very_positive' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' :
+                          theme.sentiment === 'positive' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' :
+                          theme.sentiment === 'mixed' ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300' :
+                          theme.sentiment === 'needs_work' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300' :
+                          theme.sentiment === 'critical' ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' :
+                          'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}>
+                          {theme.sentiment === 'very_positive' ? 'Very Positive' :
+                           theme.sentiment === 'positive' ? 'Positive' :
+                           theme.sentiment === 'mixed' ? 'Mixed' :
+                           theme.sentiment === 'needs_work' ? 'Needs Work' :
+                           theme.sentiment === 'critical' ? 'Critical' :
+                           theme.sentiment}
+                        </span>
                       </div>
-                    )}
-                    <div className="space-y-3">
-                      {surveyResults.themes.map((theme: any, idx: number) => (
-                        <div
-                          key={idx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            canAdjustThemes && setSelectedThemeIndex(idx === selectedThemeIndex ? null : idx);
-                          }}
-                          className={`border rounded-md p-4 transition-colors ${
-                            canAdjustThemes ? 'cursor-pointer hover:border-blue-500' : ''
-                          } ${
-                            selectedThemeIndex === idx
-                              ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-200 dark:ring-blue-800'
-                              : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-400'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <h5 className="font-medium text-gray-900 dark:text-gray-100">{theme.theme}</h5>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              theme.sentiment === 'very_positive' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' :
-                              theme.sentiment === 'positive' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' :
-                              theme.sentiment === 'mixed' ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300' :
-                              theme.sentiment === 'needs_work' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300' :
-                              theme.sentiment === 'critical' ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' :
-                              'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                            }`}>
-                              {theme.sentiment === 'very_positive' ? 'Very Positive' :
-                               theme.sentiment === 'positive' ? 'Positive' :
-                               theme.sentiment === 'mixed' ? 'Mixed' :
-                               theme.sentiment === 'needs_work' ? 'Needs Work' :
-                               theme.sentiment === 'critical' ? 'Critical' :
-                               theme.sentiment}
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                            Mentioned by {theme.frequency} reviewer{theme.frequency !== 1 ? 's' : ''}
-                            {theme.relationships_mentioned && theme.relationships_mentioned.length > 0 && (
-                              <span> ({theme.relationships_mentioned.join(', ')})</span>
-                            )}
-                          </p>
-                          {theme.supporting_evidence && theme.supporting_evidence.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              {theme.supporting_evidence.map((evidence: string | { text: string; citations?: any[] }, qIdx: number) => (
-                                <p key={qIdx} className="text-sm text-gray-600 dark:text-gray-400 pl-3 border-l-2 border-gray-300 dark:border-gray-600">
-                                  {getStatementText(evidence)}
-                                  <InlineCitation
-                                    citations={getCitations(evidence)}
-                                    reportId={selectedSurvey.id}
-                                    sectionType="themes"
-                                    sectionIndex={idx}
-                                    statementIndex={qIdx}
-                                    auditModeEnabled={effectiveAuditMode}
-                                  />
-                                </p>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Adjustment controls - only show when this theme is selected */}
-                          {canAdjustThemes && selectedThemeIndex === idx && (() => {
-                            const itemKey = `themes-${idx}`;
-                            const positions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
-
-                            return (
-                              <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-6 xl:gap-8 pr-2 lg:pr-4">
-                                {/* Specificity Control */}
-                                <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap shrink-0">Less Specific</span>
-                                  <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSliderChange(idx, 'themes', 'specificity', 'left');
-                                      }}
-                                      disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'left'}
-                                      className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
-                                        positions.specificity === 'left'
-                                          ? 'bg-blue-600 text-white'
-                                          : 'text-gray-700 hover:bg-gray-50'
-                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
-                                    >
-                                      ◀
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSliderChange(idx, 'themes', 'specificity', 'center');
-                                      }}
-                                      disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'center'}
-                                      className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${
-                                        positions.specificity === 'center'
-                                          ? 'bg-gray-100 text-gray-900'
-                                          : 'text-gray-700 hover:bg-gray-50'
-                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
-                                    >
-                                      ●
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSliderChange(idx, 'themes', 'specificity', 'right');
-                                      }}
-                                      disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'right'}
-                                      className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
-                                        positions.specificity === 'right'
-                                          ? 'bg-blue-600 text-white'
-                                          : 'text-gray-700 hover:bg-gray-50'
-                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
-                                    >
-                                      ▶
-                                    </button>
-                                  </div>
-                                  <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">More Specific</span>
-                                </div>
-
-                                <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
-
-                                {/* Tone Control */}
-                                <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
-                                  <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Softer</span>
-                                  <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSliderChange(idx, 'themes', 'tone', 'left');
-                                      }}
-                                      disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'left'}
-                                      className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
-                                        positions.tone === 'left'
-                                          ? 'bg-blue-600 text-white'
-                                          : 'text-gray-700 hover:bg-gray-50'
-                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
-                                    >
-                                      ◀
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSliderChange(idx, 'themes', 'tone', 'center');
-                                      }}
-                                      disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'center'}
-                                      className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${
-                                        positions.tone === 'center'
-                                          ? 'bg-gray-100 text-gray-900'
-                                          : 'text-gray-700 hover:bg-gray-50'
-                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
-                                    >
-                                      ●
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSliderChange(idx, 'themes', 'tone', 'right');
-                                      }}
-                                      disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'right'}
-                                      className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
-                                        positions.tone === 'right'
-                                          ? 'bg-blue-600 text-white'
-                                          : 'text-gray-700 hover:bg-gray-50'
-                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
-                                    >
-                                      ▶
-                                    </button>
-                                  </div>
-                                  <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Harsher</span>
-                                </div>
-
-                                <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
-
-                                {/* Length Control */}
-                                <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
-                                  <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Shorter</span>
-                                  <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSliderChange(idx, 'themes', 'length', 'left');
-                                      }}
-                                      disabled={isAdjustingItem || isPreviewLoading || positions.length === 'left'}
-                                      className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
-                                        positions.length === 'left'
-                                          ? 'bg-blue-600 text-white'
-                                          : 'text-gray-700 hover:bg-gray-50'
-                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
-                                    >
-                                      ◀
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSliderChange(idx, 'themes', 'length', 'center');
-                                      }}
-                                      disabled={isAdjustingItem || isPreviewLoading || positions.length === 'center'}
-                                      className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${
-                                        positions.length === 'center'
-                                          ? 'bg-gray-100 text-gray-900'
-                                          : 'text-gray-700 hover:bg-gray-50'
-                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
-                                    >
-                                      ●
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSliderChange(idx, 'themes', 'length', 'right');
-                                      }}
-                                      disabled={isAdjustingItem || isPreviewLoading || positions.length === 'right'}
-                                      className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
-                                        positions.length === 'right'
-                                          ? 'bg-blue-600 text-white'
-                                          : 'text-gray-700 hover:bg-gray-50'
-                                      } disabled:opacity-40 disabled:cursor-not-allowed`}
-                                    >
-                                      ▶
-                                    </button>
-                                  </div>
-                                  <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Longer</span>
-                                </div>
-                              </div>
-                            );
-                          })()}
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        Mentioned by {theme.frequency} reviewer{theme.frequency !== 1 ? 's' : ''}
+                        {theme.relationships_mentioned && theme.relationships_mentioned.length > 0 && (
+                          <span> ({theme.relationships_mentioned.join(', ')})</span>
+                        )}
+                      </p>
+                      {theme.supporting_evidence && theme.supporting_evidence.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {theme.supporting_evidence.map((evidence: string | { text: string; citations?: any[] }, qIdx: number) => (
+                            <p key={qIdx} className="text-sm text-gray-600 dark:text-gray-400 pl-3 border-l-2 border-gray-300 dark:border-gray-600">
+                              {getStatementText(evidence)}
+                              <InlineCitation
+                                citations={getCitations(evidence)}
+                                reportId={selectedSurvey.id}
+                                sectionType="themes"
+                                sectionIndex={idx}
+                                statementIndex={qIdx}
+                                auditModeEnabled={effectiveAuditMode}
+                              />
+                            </p>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  </div>
-                );
-              })()}
+                  ))}
+                </div>
+              )}
 
               {/* Strengths Tab */}
-              {activeReportTab === 'strengths' && surveyResults.overall_strengths && surveyResults.overall_strengths.length > 0 && (() => {
-                const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
-                const isAdmin = currentUser?.app_role === 'admin';
-                const canAdjustItems = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
-
-                return (
-                  <div>
-                    {canAdjustItems && (
-                      <div className="mb-3">
-                        <span className="text-sm text-gray-600 dark:text-gray-400 font-semibold italic">Click to adjust</span>
-                      </div>
-                    )}
-                    <ul className="space-y-1">
-                      {surveyResults.overall_strengths.map((strength: string | { text: string; citations?: any[] }, idx: number) => (
-                        <li
-                          key={idx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            canAdjustItems && setSelectedStrengthIndex(idx === selectedStrengthIndex ? null : idx);
-                          }}
-                          className={`flex items-start gap-2 rounded-md p-2 transition-colors border ${
-                            canAdjustItems ? 'cursor-pointer hover:border-blue-500' : ''
-                          } ${
-                            selectedStrengthIndex === idx
-                              ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-200 dark:ring-blue-800'
-                              : 'border-transparent hover:border-blue-400'
-                          }`}
-                        >
-                          <span className="text-green-600 dark:text-green-400 mt-1">•</span>
-                          <div className="flex-1">
-                            <span className="text-gray-700 dark:text-gray-300">
-                              {getStatementText(strength)}
-                              <InlineCitation
-                                citations={getCitations(strength)}
-                                reportId={selectedSurvey.id}
-                                sectionType="strengths"
-                                sectionIndex={idx}
-                                auditModeEnabled={effectiveAuditMode}
-                              />
-                            </span>
-
-                            {/* Adjustment controls */}
-                            {canAdjustItems && selectedStrengthIndex === idx && (() => {
-                              const itemKey = `strengths-${idx}`;
-                              const positions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
-
-                              return (
-                                <div className="mt-2 pt-2 border-t border-blue-200 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-6 xl:gap-8 pr-2 lg:pr-4">
-                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Less Specific</span>
-                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'left'); }} disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'center'); }} disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'right'); }} disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
-                                    </div>
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">More Specific</span>
-                                  </div>
-                                  <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
-                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Softer</span>
-                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'left'); }} disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'center'); }} disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'right'); }} disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
-                                    </div>
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Harsher</span>
-                                  </div>
-                                  <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
-                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Shorter</span>
-                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'left'); }} disabled={isAdjustingItem || isPreviewLoading || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'center'); }} disabled={isAdjustingItem || isPreviewLoading || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'right'); }} disabled={isAdjustingItem || isPreviewLoading || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
-                                    </div>
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Longer</span>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })()}
+              {activeReportTab === 'strengths' && surveyResults.overall_strengths && surveyResults.overall_strengths.length > 0 && (
+                <ul className="space-y-1">
+                  {surveyResults.overall_strengths.map((strength: string | { text: string; citations?: any[] }, idx: number) => (
+                    <li key={idx} className="flex items-start gap-2 rounded-md p-2 border border-transparent">
+                      <span className="text-green-600 dark:text-green-400 mt-1">•</span>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {getStatementText(strength)}
+                        <InlineCitation
+                          citations={getCitations(strength)}
+                          reportId={selectedSurvey.id}
+                          sectionType="strengths"
+                          sectionIndex={idx}
+                          auditModeEnabled={effectiveAuditMode}
+                        />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
               {/* Development Areas Tab */}
-              {activeReportTab === 'development' && surveyResults.development_areas && surveyResults.development_areas.length > 0 && (() => {
-                const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
-                const isAdmin = currentUser?.app_role === 'admin';
-                const canAdjustItems = (isSponsor || isAdmin) && selectedSurvey.status === 'completed';
-
-                return (
-                  <div>
-                    {canAdjustItems && (
-                      <div className="mb-3">
-                        <span className="text-sm text-gray-600 dark:text-gray-400 font-semibold italic">Click to adjust</span>
-                      </div>
-                    )}
-                    <ul className="space-y-1">
-                      {surveyResults.development_areas.map((area: string | { text: string; citations?: any[] }, idx: number) => (
-                        <li
-                          key={idx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            canAdjustItems && setSelectedDevelopmentIndex(idx === selectedDevelopmentIndex ? null : idx);
-                          }}
-                          className={`flex items-start gap-2 rounded-md p-2 transition-colors border ${
-                            canAdjustItems ? 'cursor-pointer hover:border-blue-500' : ''
-                          } ${
-                            selectedDevelopmentIndex === idx
-                              ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-200 dark:ring-blue-800'
-                              : 'border-transparent hover:border-blue-400'
-                          }`}
-                        >
-                          <span className="text-amber-600 dark:text-amber-400 mt-1">•</span>
-                          <div className="flex-1">
-                            <span className="text-gray-700 dark:text-gray-300">
-                              {getStatementText(area)}
-                              <InlineCitation
-                                citations={getCitations(area)}
-                                reportId={selectedSurvey.id}
-                                sectionType="development_areas"
-                                sectionIndex={idx}
-                                auditModeEnabled={effectiveAuditMode}
-                              />
-                            </span>
-
-                            {/* Adjustment controls */}
-                            {canAdjustItems && selectedDevelopmentIndex === idx && (() => {
-                              const itemKey = `development_areas-${idx}`;
-                              const positions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
-
-                              return (
-                                <div className="mt-2 pt-2 border-t border-blue-200 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-6 xl:gap-8 pr-2 lg:pr-4">
-                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Less Specific</span>
-                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'left'); }} disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'center'); }} disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'right'); }} disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
-                                    </div>
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">More Specific</span>
-                                  </div>
-                                  <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
-                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Softer</span>
-                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'left'); }} disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'center'); }} disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'right'); }} disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
-                                    </div>
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Harsher</span>
-                                  </div>
-                                  <div className="hidden lg:block h-4 w-px bg-gray-300"></div>
-                                  <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Shorter</span>
-                                    <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'left'); }} disabled={isAdjustingItem || isPreviewLoading || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'center'); }} disabled={isAdjustingItem || isPreviewLoading || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'right'); }} disabled={isAdjustingItem || isPreviewLoading || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
-                                    </div>
-                                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Longer</span>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })()}
+              {activeReportTab === 'development' && surveyResults.development_areas && surveyResults.development_areas.length > 0 && (
+                <ul className="space-y-1">
+                  {surveyResults.development_areas.map((area: string | { text: string; citations?: any[] }, idx: number) => (
+                    <li key={idx} className="flex items-start gap-2 rounded-md p-2 border border-transparent">
+                      <span className="text-amber-600 dark:text-amber-400 mt-1">•</span>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {getStatementText(area)}
+                        <InlineCitation
+                          citations={getCitations(area)}
+                          reportId={selectedSurvey.id}
+                          sectionType="development_areas"
+                          sectionIndex={idx}
+                          auditModeEnabled={effectiveAuditMode}
+                        />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
               {/* Recommendations Tab */}
               {activeReportTab === 'recommendations' && (() => {
@@ -4835,24 +4091,6 @@ export default function Feedback360Dashboard({
           setAiParsedData(null);
           loadSurveys();
         }}
-      />
-
-      {/* Adjustment Preview Modal */}
-      <AdjustmentPreviewModal
-        isOpen={previewModalOpen}
-        onClose={() => {
-          setPreviewModalOpen(false);
-          setPendingAdjustment(null);
-          setPreviewAdjustedText(null);
-          setPreviewOriginalText('');
-        }}
-        onConfirm={confirmAdjustment}
-        originalText={previewOriginalText}
-        adjustedText={previewAdjustedText}
-        isLoading={isPreviewLoading}
-        adjustmentType={pendingAdjustment?.adjustmentType || 'specificity'}
-        direction={pendingAdjustment?.direction || 'more'}
-        sectionType={pendingAdjustment?.sectionType || 'themes'}
       />
     </div>
     </TooltipProvider>

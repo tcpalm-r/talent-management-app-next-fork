@@ -263,17 +263,6 @@ export interface SurveyQuestion {
   scale_labels?: { min: string; max: string }; // e.g., { min: "Poor", max: "Excellent" }
 }
 
-// Report adjustment settings for sponsor-tweaking
-export type AdjustmentPosition = 'left' | 'center' | 'right';
-
-export interface ItemAdjustment {
-  specificity: AdjustmentPosition;
-  tone: AdjustmentPosition;
-  length: AdjustmentPosition;
-}
-
-export type ReportAdjustments = Record<string, ItemAdjustment>;
-
 export interface Survey360 {
   id: string;
   organization_id?: string; // Not in DB schema, used by UI only
@@ -288,7 +277,6 @@ export interface Survey360 {
   sent_at?: string | null;
   completed_at?: string | null;
   flagged_for_admin?: boolean; // Flag for admin review
-  report_adjustments?: ReportAdjustments; // Sponsor's per-item adjustments (specificity, tone, length)
   created_at: string;
   updated_at: string;
 }
