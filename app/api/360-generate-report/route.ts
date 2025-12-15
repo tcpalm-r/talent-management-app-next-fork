@@ -70,9 +70,12 @@ function determineViewerRole(
  * 6. Return generated report
  */
 export async function POST(req: NextRequest) {
+  let survey_id: string | null = null;  // Declare outside try for error handling access
+
   try {
     const body = await req.json();
-    const { survey_id, tone = 'standard' } = body;
+    survey_id = body.survey_id;
+    const tone = body.tone || 'standard';
     // Citations are always enabled for accuracy - they're just hidden from non-admins
 
     if (!survey_id) {
@@ -111,6 +114,34 @@ export async function POST(req: NextRequest) {
         error: 'Forbidden',
         message: 'Only survey sponsors and administrators can generate reports'
       }, { status: 403 });
+    }
+
+    // ========================================================================
+    // DUPLICATE GENERATION PROTECTION
+    // ========================================================================
+    // If survey is already in 'generating' status, reject the request
+    // This prevents multiple concurrent report generation attempts
+    if (survey.status === 'generating') {
+      return NextResponse.json({
+        error: 'Report generation already in progress',
+        message: 'A report is currently being generated for this survey. Please wait for it to complete.',
+        status: 'generating'
+      }, { status: 409 }); // 409 Conflict
+    }
+
+    // Set status to 'generating' BEFORE starting AI call (atomic lock)
+    const { error: lockError } = await supabaseAdmin
+      .from('feedback_360_surveys')
+      .update({ status: 'generating', updated_at: new Date().toISOString() })
+      .eq('id', survey_id)
+      .neq('status', 'generating'); // Only update if not already generating (race condition protection)
+
+    if (lockError) {
+      console.error('[360-generate-report] Failed to set generating status:', lockError);
+      return NextResponse.json({
+        error: 'Failed to start report generation',
+        details: lockError.message
+      }, { status: 500 });
     }
 
     // ========================================================================
@@ -293,6 +324,17 @@ export async function POST(req: NextRequest) {
     };
 
     // ========================================================================
+    // STEP 6b: Set survey status to 'generating' before AI call
+    // ========================================================================
+    // This allows the UI to show a loading state even if the user refreshes
+    const previousStatus = survey.status;
+    await supabaseAdmin
+      .from('feedback_360_surveys')
+      .update({ status: 'generating' })
+      .eq('id', survey_id);
+    console.log('📊 Survey status set to "generating"');
+
+    // ========================================================================
     // STEP 7: Call AI analyzer (ALWAYS with citations for accuracy)
     // ========================================================================
 
@@ -445,6 +487,21 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error generating 360 report:', error);
+
+    // Revert survey status to 'in_progress' if generation failed
+    // This releases the lock so the user can try again
+    if (survey_id) {
+      try {
+        await supabaseAdmin
+          .from('feedback_360_surveys')
+          .update({ status: 'in_progress', updated_at: new Date().toISOString() })
+          .eq('id', survey_id);
+        console.log('📊 Survey status reverted to "in_progress" due to error');
+      } catch (revertError) {
+        console.error('Failed to revert survey status:', revertError);
+      }
+    }
+
     return NextResponse.json(
       {
         error: 'Internal server error',

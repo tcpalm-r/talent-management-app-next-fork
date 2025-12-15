@@ -297,6 +297,8 @@ export default function Feedback360Dashboard({
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
   const [surveyResults, setSurveyResults] = useState<any>(null);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  const [isCancellingGeneration, setIsCancellingGeneration] = useState(false);
+  const generateAbortControllerRef = useRef<AbortController | null>(null);
   const [streamingText, setStreamingText] = useState<string>('');
   const [streamingCharCount, setStreamingCharCount] = useState(0);
   const [showRawData, setShowRawData] = useState(false);
@@ -345,6 +347,68 @@ export default function Feedback360Dashboard({
   useEffect(() => {
     loadSurveys();
   }, [organizationId, currentUser?.id, currentUser?.app_role]);
+
+  // Poll for survey status when a survey is in 'generating' state
+  // This handles the case where user refreshes page during report generation
+  useEffect(() => {
+    // Only poll if we have a selected survey that's generating
+    if (!selectedSurvey || selectedSurvey.status !== 'generating') {
+      return;
+    }
+
+    // Show the loading state immediately when detecting 'generating' status
+    setIsGeneratingAnalysis(true);
+    setIsDetailsModalOpen(true); // Ensure modal is open to show loading
+
+    console.log('[Polling] Detected generating status, starting poll for survey:', selectedSurvey.id);
+
+    // Poll every 3 seconds to check if generation completed
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/surveys/${selectedSurvey.id}/details`);
+        if (response.ok) {
+          const data = await response.json();
+          const updatedStatus = data.survey?.status;
+
+          console.log('[Polling] Survey status:', updatedStatus);
+
+          if (updatedStatus === 'completed') {
+            console.log('[Polling] Generation completed, loading results');
+            clearInterval(pollInterval);
+            setIsGeneratingAnalysis(false);
+
+            // Update selected survey and surveys list with new status
+            const updatedSurvey = { ...selectedSurvey, ...data.survey, status: 'completed' };
+            setSelectedSurvey(updatedSurvey);
+            setSurveys(prev => prev.map(s => s.id === selectedSurvey.id ? { ...s, status: 'completed' } : s));
+
+            // Load and show the results
+            await loadAndShowResults(updatedSurvey);
+          } else if (updatedStatus !== 'generating') {
+            // Status changed to something unexpected (e.g., 'active' on error)
+            console.log('[Polling] Generation failed or was reset, status:', updatedStatus);
+            clearInterval(pollInterval);
+            setIsGeneratingAnalysis(false);
+            setSelectedSurvey({ ...selectedSurvey, status: updatedStatus });
+            notify({
+              title: 'Generation Failed',
+              description: 'Report generation was interrupted. Please try again.',
+              variant: 'error',
+            });
+          }
+        }
+      } catch (error) {
+        console.error('[Polling] Error checking survey status:', error);
+        // Don't stop polling on network error, just log it
+      }
+    }, 3000);
+
+    // Cleanup interval on unmount or when dependencies change
+    return () => {
+      console.log('[Polling] Cleaning up poll interval');
+      clearInterval(pollInterval);
+    };
+  }, [selectedSurvey?.id, selectedSurvey?.status]);
 
   // Helper functions to track viewed surveys in localStorage
   const getViewedSurveys = (): Set<string> => {
@@ -764,7 +828,13 @@ export default function Feedback360Dashboard({
     }
 
     setIsGeneratingAnalysis(true);
+    setIsCancellingGeneration(false);
     setAnalyzerApiNotice(null); // Clear previous API notice
+
+    // Create new AbortController for this request
+    const abortController = new AbortController();
+    generateAbortControllerRef.current = abortController;
+
     try {
       // Call the API to generate AI analysis report
       const response = await fetch('/api/360-generate-report', {
@@ -775,11 +845,24 @@ export default function Feedback360Dashboard({
         body: JSON.stringify({
           survey_id: selectedSurvey.id,
         }),
+        signal: abortController.signal,
       });
 
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle 409 Conflict - report generation already in progress
+        if (response.status === 409 && data.status === 'generating') {
+          // Keep the loading state and show informative message
+          notify({
+            title: 'Generation In Progress',
+            description: 'A report is already being generated for this survey. Please wait.',
+            variant: 'warning',
+          });
+          // Update the survey status locally to trigger polling
+          setSelectedSurvey(prev => prev ? { ...prev, status: 'generating' } : prev);
+          return; // Don't throw, let the polling take over
+        }
         throw new Error(data.error || 'Failed to generate AI analysis');
       }
 
@@ -827,6 +910,11 @@ export default function Feedback360Dashboard({
 
       setShowIncompleteWarning(false);
     } catch (error: any) {
+      // Don't show error notification if user cancelled
+      if (error.name === 'AbortError') {
+        console.log('Report generation cancelled by user');
+        return; // State is already reset by cancelReportGeneration
+      }
       console.error('Error completing survey:', error);
       notify({
         title: 'Error',
@@ -835,6 +923,49 @@ export default function Feedback360Dashboard({
       });
     } finally {
       setIsGeneratingAnalysis(false);
+      setIsCancellingGeneration(false);
+      generateAbortControllerRef.current = null;
+    }
+  };
+
+  /**
+   * Cancel an in-progress report generation
+   * This aborts the fetch request and resets the survey status
+   */
+  const cancelReportGeneration = async () => {
+    if (!selectedSurvey) return;
+
+    setIsCancellingGeneration(true);
+
+    // Abort the fetch request
+    if (generateAbortControllerRef.current) {
+      generateAbortControllerRef.current.abort();
+      generateAbortControllerRef.current = null;
+    }
+
+    // Reset the survey status back to in_progress
+    try {
+      const response = await fetch(`/api/surveys/${selectedSurvey.id}/cancel-generation`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        // Update local state
+        setSelectedSurvey(prev => prev ? { ...prev, status: 'in_progress' } : prev);
+        setSurveys(prev => prev.map(s =>
+          s.id === selectedSurvey.id ? { ...s, status: 'in_progress' } : s
+        ));
+        notify({
+          title: 'Cancelled',
+          description: 'Report generation has been cancelled',
+          variant: 'default',
+        });
+      }
+    } catch (error) {
+      console.error('Error cancelling generation:', error);
+    } finally {
+      setIsGeneratingAnalysis(false);
+      setIsCancellingGeneration(false);
     }
   };
 
@@ -1783,24 +1914,28 @@ export default function Feedback360Dashboard({
     const styles = {
       draft: 'bg-gray-100 text-gray-700 border-gray-300',
       in_progress: 'bg-yellow-100 text-yellow-700 border-yellow-300',
+      generating: 'bg-purple-100 text-purple-700 border-purple-300 animate-pulse',
       completed: 'bg-green-100 text-green-700 border-green-300',
       finalized: 'bg-purple-100 text-purple-700 border-purple-300'
     };
     const icons = {
       draft: Clock,
       in_progress: MessageSquare,
+      generating: Loader2,
       completed: CheckCircle,
       finalized: ArrowDownCircle
     };
     const labels = {
       draft: 'Draft',
       in_progress: 'In Progress',
+      generating: 'Generating Report...',
       completed: 'Completed',
       finalized: 'Finalized'
     };
     const tooltips = {
       draft: 'Survey is not yet sent to reviewers',
       in_progress: 'Survey is active and awaiting responses',
+      generating: 'AI is analyzing responses and generating the report',
       completed: 'All responses received and analyzed',
       finalized: 'Survey is archived and final'
     };
@@ -2729,13 +2864,31 @@ export default function Feedback360Dashboard({
             {/* Loading overlay when generating AI analysis */}
             {isGeneratingAnalysis && (
               <div className="absolute inset-0 bg-white/90 dark:bg-gray-800/90 flex flex-col items-center justify-center z-50 rounded-md">
+                {/* Close button on loading overlay */}
+                <button
+                  onClick={() => {
+                    setIsDetailsModalOpen(false);
+                    // Note: Generation continues in background, polling will stop due to cleanup
+                  }}
+                  className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 z-50"
+                >
+                  <X className="w-6 h-6" />
+                </button>
                 <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
                 <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   Generating AI Analysis...
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4 mb-6">
                   Report may take up to 2 minutes to generate to ensure accuracy and precision
                 </p>
+                {/* Cancel button */}
+                <button
+                  onClick={cancelReportGeneration}
+                  disabled={isCancellingGeneration}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isCancellingGeneration ? 'Cancelling...' : 'Cancel'}
+                </button>
               </div>
             )}
             <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
@@ -3236,13 +3389,31 @@ export default function Feedback360Dashboard({
               {/* Loading overlay when generating/reanalyzing AI analysis */}
               {isGeneratingAnalysis && (
                 <div className="absolute inset-0 bg-white/90 dark:bg-gray-800/90 flex flex-col items-center justify-center z-50 rounded-md">
+                  {/* Close button on loading overlay */}
+                  <button
+                    onClick={() => {
+                      setIsResultsModalOpen(false);
+                      // Note: Generation continues in background, polling will stop due to cleanup
+                    }}
+                    className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 z-50"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
                   <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
                   <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                     Regenerating AI Analysis...
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4 mb-6">
                     Report may take up to 2 minutes to generate to ensure accuracy and precision
                   </p>
+                  {/* Cancel button */}
+                  <button
+                    onClick={cancelReportGeneration}
+                    disabled={isCancellingGeneration}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isCancellingGeneration ? 'Cancelling...' : 'Cancel'}
+                  </button>
                 </div>
               )}
               <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
