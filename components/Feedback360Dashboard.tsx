@@ -317,7 +317,7 @@ export default function Feedback360Dashboard({
   const [remindedReviewers, setRemindedReviewers] = useState<Set<string>>(new Set());
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
   const [surveyResults, setSurveyResults] = useState<any>(null);
-  const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  const [generatingSurveyId, setGeneratingSurveyId] = useState<string | null>(null);
   const [isCancellingGeneration, setIsCancellingGeneration] = useState(false);
   const generateAbortControllerRef = useRef<AbortController | null>(null);
   const [streamingText, setStreamingText] = useState<string>('');
@@ -378,7 +378,7 @@ export default function Feedback360Dashboard({
     }
 
     // Show the loading state immediately when detecting 'generating' status
-    setIsGeneratingAnalysis(true);
+    setGeneratingSurveyId(selectedSurvey.id);
     setIsDetailsModalOpen(true); // Ensure modal is open to show loading
 
     console.log('[Polling] Detected generating status, starting poll for survey:', selectedSurvey.id);
@@ -396,7 +396,7 @@ export default function Feedback360Dashboard({
           if (updatedStatus === 'completed') {
             console.log('[Polling] Generation completed, loading results');
             clearInterval(pollInterval);
-            setIsGeneratingAnalysis(false);
+            setGeneratingSurveyId(null);
 
             // Update selected survey and surveys list with new status
             const updatedSurvey = { ...selectedSurvey, ...data.survey, status: 'completed' };
@@ -409,7 +409,7 @@ export default function Feedback360Dashboard({
             // Status changed to something unexpected (e.g., 'active' on error)
             console.log('[Polling] Generation failed or was reset, status:', updatedStatus);
             clearInterval(pollInterval);
-            setIsGeneratingAnalysis(false);
+            setGeneratingSurveyId(null);
             setSelectedSurvey({ ...selectedSurvey, status: updatedStatus });
             notify({
               title: 'Generation Failed',
@@ -848,7 +848,7 @@ export default function Feedback360Dashboard({
       return;
     }
 
-    setIsGeneratingAnalysis(true);
+    setGeneratingSurveyId(selectedSurvey.id);
     setIsCancellingGeneration(false);
     setAnalyzerApiNotice(null); // Clear previous API notice
 
@@ -943,7 +943,7 @@ export default function Feedback360Dashboard({
         variant: 'error',
       });
     } finally {
-      setIsGeneratingAnalysis(false);
+      setGeneratingSurveyId(null);
       setIsCancellingGeneration(false);
       generateAbortControllerRef.current = null;
     }
@@ -985,7 +985,7 @@ export default function Feedback360Dashboard({
     } catch (error) {
       console.error('Error cancelling generation:', error);
     } finally {
-      setIsGeneratingAnalysis(false);
+      setGeneratingSurveyId(null);
       setIsCancellingGeneration(false);
     }
   };
@@ -1372,7 +1372,7 @@ export default function Feedback360Dashboard({
   };
 
   const reanalyzeSurvey = async (surveyId: string, tone: 'standard' | 'softer' = 'standard') => {
-    setIsGeneratingAnalysis(true);
+    setGeneratingSurveyId(surveyId);
     try {
       const response = await fetch('/api/360-generate-report', {
         method: 'POST',
@@ -1405,7 +1405,7 @@ export default function Feedback360Dashboard({
         variant: 'error',
       });
     } finally {
-      setIsGeneratingAnalysis(false);
+      setGeneratingSurveyId(null);
     }
   };
 
@@ -2883,7 +2883,7 @@ export default function Feedback360Dashboard({
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-md max-w-3xl w-full max-h-[90vh] overflow-y-auto relative">
             {/* Loading overlay when generating AI analysis */}
-            {isGeneratingAnalysis && (
+            {generatingSurveyId === selectedSurvey?.id && (
               <div className="absolute inset-0 bg-white/90 dark:bg-gray-800/90 flex flex-col items-center justify-center z-50 rounded-md">
                 {/* Close button on loading overlay */}
                 <button
@@ -3333,7 +3333,7 @@ export default function Feedback360Dashboard({
                           }
                           completeSurveyWithAI();
                         }}
-                        disabled={isGeneratingAnalysis || !canComplete}
+                        disabled={generatingSurveyId === selectedSurvey?.id || !canComplete}
                         className={`px-4 py-2 bg-gradient-to-r rounded-md font-medium flex items-center ${
                           canComplete
                             ? 'from-purple-600 to-indigo-700 text-white hover:from-purple-700 hover:to-indigo-800'
@@ -3341,7 +3341,7 @@ export default function Feedback360Dashboard({
                         } disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
                         title={!canComplete ? 'At least 70% of reviewers must submit their feedback before completing the review.' : ''}
                       >
-                        {isGeneratingAnalysis ? (
+                        {generatingSurveyId === selectedSurvey?.id ? (
                           <>
                             <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
                             Generating Analysis...
@@ -3408,7 +3408,7 @@ export default function Feedback360Dashboard({
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-md max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden relative">
               {/* Loading overlay when generating/reanalyzing AI analysis */}
-              {isGeneratingAnalysis && (
+              {generatingSurveyId === selectedSurvey?.id && (
                 <div className="absolute inset-0 bg-white/90 dark:bg-gray-800/90 flex flex-col items-center justify-center z-50 rounded-md">
                   {/* Close button on loading overlay */}
                   <button
@@ -4117,15 +4117,15 @@ export default function Feedback360Dashboard({
                         <>
                           <button
                             onClick={() => reanalyzeSurvey(selectedSurvey.id, 'standard')}
-                            disabled={isGeneratingAnalysis}
+                            disabled={generatingSurveyId === selectedSurvey?.id}
                             className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium flex items-center disabled:opacity-50"
                           >
                             <Sparkles className="w-4 h-4 mr-2" />
-                            {isGeneratingAnalysis ? 'Analyzing...' : 'Reanalyze'}
+                            {generatingSurveyId === selectedSurvey?.id ? 'Analyzing...' : 'Reanalyze'}
                           </button>
                           <button
                             onClick={() => reanalyzeSurvey(selectedSurvey.id, 'softer')}
-                            disabled={isGeneratingAnalysis}
+                            disabled={generatingSurveyId === selectedSurvey?.id}
                             className="px-4 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors font-medium flex items-center disabled:opacity-50"
                           >
                             Reanalyze (Softer Tone)
@@ -4428,11 +4428,11 @@ export default function Feedback360Dashboard({
               </button>
               <button
                 onClick={() => completeSurveyWithAI(true)}
-                disabled={isGeneratingAnalysis}
+                disabled={generatingSurveyId === selectedSurvey?.id}
                 className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
-                {isGeneratingAnalysis ? 'Generating...' : 'Proceed & Generate Analysis'}
+                {generatingSurveyId === selectedSurvey?.id ? 'Generating...' : 'Proceed & Generate Analysis'}
               </button>
             </div>
           </div>
