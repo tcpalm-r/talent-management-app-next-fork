@@ -41,12 +41,19 @@ interface RawResponse {
   responses?: Array<{ answer?: string; text?: string; response?: string }>;
 }
 
+interface CitationSnippet {
+  response_id: string;
+  snippet: string;
+}
+
 interface AdjustItemSpecificityPromptParams {
   item: ThemeItem | string;
   sectionType: SectionType;
   adjustmentType: AdjustmentType;
   direction: Direction;
   rawResponses?: RawResponse[];
+  /** Citation snippets directly related to this item - provides exact grounding context */
+  itemCitations?: CitationSnippet[];
 }
 
 function getDirectionInstruction(adjustmentType: AdjustmentType, direction: Direction): string {
@@ -91,6 +98,7 @@ export function buildAdjustItemSpecificityPrompt({
   adjustmentType,
   direction,
   rawResponses,
+  itemCitations,
 }: AdjustItemSpecificityPromptParams): string {
   const directionInstruction = getDirectionInstruction(adjustmentType, direction);
 
@@ -132,21 +140,42 @@ export function buildAdjustItemSpecificityPrompt({
   const inputLines = itemText.split('\n').filter(l => l.trim()).length;
   const isSingleLine = inputLines === 1;
 
-  // Only include raw responses for "more specific" direction
-  let responseHint = '';
-  if (direction === 'more' && rawResponses && rawResponses.length > 0) {
-    const responseTexts: string[] = [];
-    rawResponses.slice(0, 5).forEach((response) => {
-      const answers = response.answers || response.responses || [];
-      answers.slice(0, 2).forEach((answer) => {
-        const text = answer.answer || answer.text || answer.response || '';
-        if (text && text.trim().length > 20) {
-          responseTexts.push(text.trim().substring(0, 200));
-        }
+  // Build source context - prioritize item citations, fall back to raw responses
+  let sourceContext = '';
+
+  if (direction === 'more') {
+    // For "more specific" direction, we need source data to draw from
+    if (itemCitations && itemCitations.length > 0) {
+      // Use the actual citation snippets that back this item - these are the most relevant
+      const snippets = itemCitations
+        .map(c => c.snippet)
+        .filter(s => s && s.trim().length > 10);
+
+      if (snippets.length > 0) {
+        sourceContext = `\n\nSOURCE FEEDBACK (exact reviewer quotes - use these to add specificity):
+${snippets.map((s, i) => `${i + 1}. "${s}"`).join('\n')}`;
+      }
+    } else if (rawResponses && rawResponses.length > 0) {
+      // Fall back to raw responses if no citations available
+      const responseTexts: string[] = [];
+      rawResponses.forEach((response) => {
+        const answers = response.answers || response.responses || [];
+        answers.forEach((answer) => {
+          const text = answer.answer || answer.text || answer.response || '';
+          if (text && text.trim().length > 20) {
+            responseTexts.push(text.trim().substring(0, 300));
+          }
+        });
       });
-    });
-    if (responseTexts.length > 0) {
-      responseHint = `\n\nSource data (ONLY use to add specificity, do not invent):\n${responseTexts.slice(0, 3).join('\n')}`;
+      if (responseTexts.length > 0) {
+        // Include all available responses instead of just 3
+        sourceContext = `\n\nSOURCE FEEDBACK (use to add specificity, do not invent):
+${responseTexts.map((s, i) => `${i + 1}. ${s}`).join('\n')}`;
+      }
+    }
+
+    if (!sourceContext) {
+      sourceContext = '\n\n(No source feedback available - return input unchanged if specificity cannot be added)';
     }
   }
 
@@ -159,7 +188,7 @@ export function buildAdjustItemSpecificityPrompt({
 
 INPUT:
 ${itemText}
-${responseHint}
+${sourceContext}
 
 ${formatInstruction}
 
@@ -168,6 +197,7 @@ CONSTRAINTS:
 - ${sentimentContext} tone preserved
 - No explanations, no formatting, no bullets
 - If you can't do it without changing meaning, return the input exactly
+- ONLY use specific details that appear in the SOURCE FEEDBACK above - never invent
 
 ${directionInstruction}
 

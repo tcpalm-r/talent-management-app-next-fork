@@ -13,11 +13,22 @@ interface NarrativeRequest {
   }>;
   reportData: {
     executive_summary?: string;
-    themes?: Array<{ theme: string; description: string }>;
-    strengths?: string[];
-    development_areas?: string[];
+    themes?: Array<{
+      theme: string;
+      description?: string;
+      sentiment?: 'positive' | 'needs_work' | 'mixed';
+      supporting_evidence?: Array<{ text: string; citations?: Array<{ response_id: string; snippet: string }> }>;
+      frequency?: number;
+    }>;
+    strengths?: Array<string | { text: string; citations?: Array<{ response_id: string; snippet: string }> }>;
+    development_areas?: Array<string | { text: string; citations?: Array<{ response_id: string; snippet: string }> }>;
     key_insights?: string[];
-    recommendations?: string[];
+    recommendations?: Array<string | { text: string; citations?: Array<{ response_id: string; snippet: string }> }>;
+  };
+  /** Optional citation metadata for improved grounding */
+  citationContext?: {
+    totalCitations: number;
+    citationCoverage: number;
   };
 }
 
@@ -41,10 +52,13 @@ export async function POST(request: NextRequest) {
     });
 
     const body: NarrativeRequest = await request.json();
-    const { subjectName, rawResponses, reportData } = body;
+    const { subjectName, rawResponses, reportData, citationContext } = body;
 
     console.log('[generate-narrative API] Subject:', subjectName);
     console.log('[generate-narrative API] Raw responses count:', rawResponses?.length);
+    if (citationContext) {
+      console.log('[generate-narrative API] Citation context:', citationContext);
+    }
 
     if (!subjectName || !rawResponses || !reportData) {
       return NextResponse.json(
@@ -55,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[generate-narrative API] Calling Claude API...');
 
-    const prompt = buildGenerateNarrativePrompt({ subjectName, rawResponses, reportData });
+    const prompt = buildGenerateNarrativePrompt({ subjectName, rawResponses, reportData, citationContext });
 
     const response = await anthropic.messages.create({
       model: generateNarrativeConfig.model,

@@ -11,6 +11,8 @@ interface AdjustItemRequest {
   adjustment_type: 'specificity' | 'tone' | 'length';
   direction: 'more' | 'less' | 'harsher' | 'softer' | 'longer' | 'shorter';
   raw_responses?: any[];
+  /** Citation snippets directly related to this item - provides exact grounding context */
+  item_citations?: Array<{ response_id: string; snippet: string }>;
 }
 
 export async function POST(request: NextRequest) {
@@ -35,12 +37,13 @@ export async function POST(request: NextRequest) {
     });
 
     const body: AdjustItemRequest = await request.json();
-    const { item, section_type, adjustment_type, direction, raw_responses } = body;
+    const { item, section_type, adjustment_type, direction, raw_responses, item_citations } = body;
 
     console.log('[adjust-item-specificity API] Section type:', section_type);
     console.log('[adjust-item-specificity API] Adjustment type:', adjustment_type);
     console.log('[adjust-item-specificity API] Direction:', direction);
     console.log('[adjust-item-specificity API] Raw responses count:', raw_responses?.length || 0);
+    console.log('[adjust-item-specificity API] Item citations count:', item_citations?.length || 0);
 
     if (!item) {
       console.log('[adjust-item-specificity API] Error: Missing item');
@@ -66,6 +69,7 @@ export async function POST(request: NextRequest) {
       adjustmentType: adjustment_type,
       direction,
       rawResponses: raw_responses,
+      itemCitations: item_citations,
     });
 
     const response = await anthropic.messages.create({
