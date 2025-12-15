@@ -143,7 +143,7 @@ export default function MyReportDashboard({
                     try {
                       const reportData = {
                         survey_name: selectedSurvey.survey_name || 'Untitled Survey',
-                        employee_name: currentUser?.name || currentUser?.full_name || '',
+                        employee_name: currentUser?.name || '',
                         generated_by: surveyResults.generated_by,
                         generated_at: surveyResults.generated_at,
                         executive_summary: surveyResults.executive_summary,

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle, Sparkles, ChevronLeft, ArrowDownCircle, Download, Eye, Trash2, FileText, TrendingUp, Target, Lightbulb, BarChart3, GitCompare, UserPlus, UserMinus, Check, User, Search, ChevronDown, Info, Loader2 } from 'lucide-react';
-import type { Employee, Department, ParticipantRelationship } from '../types';
+import type { Employee, Department, ParticipantRelationship, ReportAdjustments, ItemAdjustment, AdjustmentPosition } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
 import Avatar from './Avatar';
+import AdjustmentPreviewModal from './AdjustmentPreviewModal';
 import { useToast, Tooltip, TooltipProvider } from './unified';
 import NavigationTabs from './unified/NavigationTabs';
 import { exportReportAsPDF } from '../lib/exportReport';
@@ -36,6 +37,7 @@ interface Survey {
   created_at: string | null;
   employee_id: string;
   employee?: Employee;
+  employee_name?: string; // Computed/joined field for subject name
   reviewers_count?: number;
   completed_count?: number;
   created_by?: string;
@@ -46,6 +48,7 @@ interface Survey {
   sent_at?: string | null;
   completed_at?: string | null;
   updated_at?: string | null;
+  report_adjustments?: ReportAdjustments; // Persisted sponsor adjustments
 }
 
 interface Reviewer {
@@ -285,6 +288,19 @@ export default function Feedback360Dashboard({
   const [originalItemText, setOriginalItemText] = useState<Record<string, any>>({});
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
 
+  // Preview modal state for adjustment preview
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewOriginalText, setPreviewOriginalText] = useState('');
+  const [previewAdjustedText, setPreviewAdjustedText] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [pendingAdjustment, setPendingAdjustment] = useState<{
+    itemIndex: number;
+    sectionType: 'themes' | 'strengths' | 'development_areas' | 'key_insights';
+    adjustmentType: 'specificity' | 'tone' | 'length';
+    direction: 'more' | 'less' | 'harsher' | 'softer' | 'longer' | 'shorter';
+    newPosition: 'left' | 'center' | 'right';
+  } | null>(null);
+
   // Computed: Audit mode is only effective for admins
   // This ensures citations are never visible to sponsors or subjects
   const effectiveAuditMode = auditModeEnabled && currentUser?.app_role === 'admin';
@@ -331,7 +347,7 @@ export default function Feedback360Dashboard({
 
     return {
       survey_name: selectedSurvey.survey_name || 'Untitled Survey',
-      employee_name: selectedSurvey.employee?.full_name || selectedSurvey.employee?.name || selectedSurvey.employee_name || '',
+      employee_name: selectedSurvey.employee?.name || selectedSurvey.employee_name || '',
       generated_by: surveyResults.generated_by,
       generated_at: surveyResults.generated_at,
       executive_summary: surveyResults.executive_summary,
@@ -435,6 +451,15 @@ export default function Feedback360Dashboard({
         setFinalNarrative('');
         setNarrativeOutdated(false);
       }
+
+      // Load persisted report adjustments if they exist
+      if (fullSurvey.report_adjustments && Object.keys(fullSurvey.report_adjustments).length > 0) {
+        setSliderPositions(fullSurvey.report_adjustments as Record<string, { specificity: string; tone: string; length: string }>);
+      } else {
+        setSliderPositions({});
+      }
+      // Reset original text storage when loading a new survey
+      setOriginalItemText({});
 
       setIsResultsModalOpen(true);
       markSurveyAsViewed(survey.id);
@@ -862,6 +887,7 @@ export default function Feedback360Dashboard({
   };
 
   // Handle slider position changes (3-position toggle: left | center | right)
+  // UPDATED: Removed adjacent-only constraint, added preview modal, added persistence
   const handleSliderChange = async (
     itemIndex: number,
     sectionType: 'themes' | 'strengths' | 'development_areas' | 'key_insights',
@@ -877,14 +903,7 @@ export default function Feedback360Dashboard({
     // If clicking same position, do nothing
     if (currentPosition === newPosition) return;
 
-    // Can only move to adjacent positions (e.g., from center to left/right, or from left/right to center)
-    const isAdjacent =
-      (currentPosition === 'center' && newPosition !== 'center') ||
-      (currentPosition !== 'center' && newPosition === 'center');
-
-    if (!isAdjacent) return; // Can't jump from left to right or vice versa
-
-    // If moving to center, restore original text (no API call)
+    // If moving to center, restore original text (no API call needed)
     if (newPosition === 'center') {
       const originalText = originalItemText[itemKey];
       if (originalText !== undefined) {
@@ -906,70 +925,39 @@ export default function Feedback360Dashboard({
         });
       }
 
-      // Update slider position to center
-      setSliderPositions({
+      // Update slider position to center and persist
+      const newPositions = {
         ...sliderPositions,
         [itemKey]: {
           ...currentPositions,
           [adjustmentType]: 'center'
         }
+      };
+      setSliderPositions(newPositions);
+      await saveAdjustments(newPositions);
+
+      notify({
+        title: 'Restored to Original',
+        description: 'The item has been restored to its original text.',
+        variant: 'info',
       });
 
       return;
     }
 
-    // Moving from center to left/right - store original and make API call
-    if (currentPosition === 'center') {
-      // Store original text before modification
-      let item: any;
-      let sectionKey: string;
-
-      switch (sectionType) {
-        case 'themes':
-          item = surveyResults.themes[itemIndex];
-          sectionKey = 'themes';
-          break;
-        case 'strengths':
-          item = surveyResults.overall_strengths[itemIndex];
-          sectionKey = 'overall_strengths';
-          break;
-        case 'development_areas':
-          item = surveyResults.development_areas[itemIndex];
-          sectionKey = 'development_areas';
-          break;
-        case 'key_insights':
-          item = surveyResults.key_insights[itemIndex];
-          sectionKey = 'key_insights';
-          break;
-      }
-
-      setOriginalItemText({
-        ...originalItemText,
-        [itemKey]: item
-      });
-
-      // Determine direction based on position and adjustment type
-      let direction: 'more' | 'less' | 'harsher' | 'softer' | 'longer' | 'shorter';
-      if (adjustmentType === 'specificity') {
-        direction = newPosition === 'left' ? 'less' : 'more';
-      } else if (adjustmentType === 'tone') {
-        direction = newPosition === 'left' ? 'softer' : 'harsher';
-      } else { // length
-        direction = newPosition === 'left' ? 'shorter' : 'longer';
-      }
-
-      // Make API call
-      await adjustItem(itemIndex, adjustmentType, direction, sectionType);
-
-      // Update slider position
-      setSliderPositions({
-        ...sliderPositions,
-        [itemKey]: {
-          ...currentPositions,
-          [adjustmentType]: newPosition
-        }
-      });
+    // Moving to left or right - show preview modal
+    // Determine direction based on position and adjustment type
+    let direction: 'more' | 'less' | 'harsher' | 'softer' | 'longer' | 'shorter';
+    if (adjustmentType === 'specificity') {
+      direction = newPosition === 'left' ? 'less' : 'more';
+    } else if (adjustmentType === 'tone') {
+      direction = newPosition === 'left' ? 'softer' : 'harsher';
+    } else { // length
+      direction = newPosition === 'left' ? 'shorter' : 'longer';
     }
+
+    // Show preview modal instead of immediate application
+    await previewAdjustment(itemIndex, sectionType, adjustmentType, direction, newPosition);
   };
 
   const adjustItem = async (
@@ -1078,6 +1066,215 @@ export default function Feedback360Dashboard({
     } finally {
       setIsAdjustingItem(false);
     }
+  };
+
+  // Save report adjustments to database
+  const saveAdjustments = async (newPositions: Record<string, { specificity: string; tone: string; length: string }>) => {
+    if (!selectedSurvey) return;
+
+    try {
+      const response = await fetch(`/api/surveys/${selectedSurvey.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          report_adjustments: newPositions,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to save report adjustments');
+      }
+    } catch (error) {
+      console.error('Error saving report adjustments:', error);
+    }
+  };
+
+  // Helper to extract text from an item that might be string or CitedStatement
+  const extractItemText = (item: any): string => {
+    if (typeof item === 'string') return item;
+    if (item?.text) return item.text;
+    return '';
+  };
+
+  // Preview adjustment before applying
+  const previewAdjustment = async (
+    itemIndex: number,
+    sectionType: 'themes' | 'strengths' | 'development_areas' | 'key_insights',
+    adjustmentType: 'specificity' | 'tone' | 'length',
+    direction: 'more' | 'less' | 'harsher' | 'softer' | 'longer' | 'shorter',
+    newPosition: 'left' | 'center' | 'right'
+  ) => {
+    if (!selectedSurvey || !surveyResults) return;
+
+    // Get the current item text
+    let item: any;
+    let itemText: string;
+
+    switch (sectionType) {
+      case 'themes':
+        item = surveyResults.themes[itemIndex];
+        // supporting_evidence can be string[] or CitedStatement[] (objects with text property)
+        if (item.supporting_evidence && Array.isArray(item.supporting_evidence)) {
+          itemText = item.supporting_evidence
+            .map((ev: any) => extractItemText(ev))
+            .filter((t: string) => t)
+            .join('\n');
+        } else {
+          itemText = item.theme || '';
+        }
+        break;
+      case 'strengths':
+        item = surveyResults.overall_strengths[itemIndex];
+        itemText = extractItemText(item);
+        break;
+      case 'development_areas':
+        item = surveyResults.development_areas[itemIndex];
+        itemText = extractItemText(item);
+        break;
+      case 'key_insights':
+        item = surveyResults.key_insights?.[itemIndex];
+        itemText = extractItemText(item);
+        break;
+    }
+
+    setPreviewOriginalText(itemText);
+    setPreviewAdjustedText(null);
+    setPendingAdjustment({ itemIndex, sectionType, adjustmentType, direction, newPosition });
+    setPreviewModalOpen(true);
+    setIsPreviewLoading(true);
+
+    // Fetch the preview from the API
+    try {
+      const response = await fetch('/api/ai/adjust-item-specificity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          survey_id: selectedSurvey.id,
+          item: item,
+          section_type: sectionType,
+          adjustment_type: adjustmentType,
+          direction: direction,
+          raw_responses: rawSurveyData?.responses || [],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate preview');
+      }
+
+      const data = await response.json();
+
+      // Extract text from the adjusted item
+      let adjustedText: string;
+      if (sectionType === 'themes' && data.adjusted_item?.supporting_evidence) {
+        // Handle both string[] and CitedStatement[] formats
+        adjustedText = data.adjusted_item.supporting_evidence
+          .map((ev: any) => extractItemText(ev))
+          .filter((t: string) => t)
+          .join('\n');
+      } else if (typeof data.adjusted_item === 'string') {
+        adjustedText = data.adjusted_item;
+      } else {
+        adjustedText = extractItemText(data.adjusted_item);
+      }
+
+      setPreviewAdjustedText(adjustedText);
+    } catch (error) {
+      console.error('Error generating preview:', error);
+      setPreviewAdjustedText('Error generating preview. Please try again.');
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
+  // Confirm and apply the previewed adjustment
+  const confirmAdjustment = async () => {
+    if (!pendingAdjustment || !selectedSurvey || !surveyResults || !previewAdjustedText) return;
+
+    const { itemIndex, sectionType, adjustmentType, newPosition } = pendingAdjustment;
+    const itemKey = `${sectionType}-${itemIndex}`;
+    const currentPositions = sliderPositions[itemKey] || { specificity: 'center', tone: 'center', length: 'center' };
+
+    // Store original if moving from center
+    if (currentPositions[adjustmentType] === 'center') {
+      let item: any;
+      switch (sectionType) {
+        case 'themes':
+          item = surveyResults.themes[itemIndex];
+          break;
+        case 'strengths':
+          item = surveyResults.overall_strengths[itemIndex];
+          break;
+        case 'development_areas':
+          item = surveyResults.development_areas[itemIndex];
+          break;
+        case 'key_insights':
+          item = surveyResults.key_insights?.[itemIndex];
+          break;
+      }
+      setOriginalItemText(prev => ({ ...prev, [itemKey]: item }));
+    }
+
+    // Apply the adjustment to surveyResults
+    let sectionKey: string;
+    switch (sectionType) {
+      case 'themes': sectionKey = 'themes'; break;
+      case 'strengths': sectionKey = 'overall_strengths'; break;
+      case 'development_areas': sectionKey = 'development_areas'; break;
+      case 'key_insights': sectionKey = 'key_insights'; break;
+    }
+
+    const updatedSection = [...surveyResults[sectionKey]];
+
+    // For themes, we need to update the supporting_evidence
+    if (sectionType === 'themes') {
+      updatedSection[itemIndex] = {
+        ...updatedSection[itemIndex],
+        supporting_evidence: previewAdjustedText.split('\n').filter(line => line.trim()),
+      };
+    } else {
+      updatedSection[itemIndex] = previewAdjustedText;
+    }
+
+    setSurveyResults({
+      ...surveyResults,
+      [sectionKey]: updatedSection,
+    });
+
+    // Update slider positions and persist to database
+    const newPositions = {
+      ...sliderPositions,
+      [itemKey]: {
+        ...currentPositions,
+        [adjustmentType]: newPosition,
+      },
+    };
+    setSliderPositions(newPositions);
+    await saveAdjustments(newPositions);
+
+    // Clear selection
+    setSelectedThemeIndex(null);
+    setSelectedStrengthIndex(null);
+    setSelectedDevelopmentIndex(null);
+    setSelectedInsightIndex(null);
+
+    // Mark narrative as outdated
+    if (finalNarrative) {
+      setNarrativeOutdated(true);
+    }
+
+    // Show success notification
+    notify({
+      title: 'Adjustment Applied',
+      description: 'The item has been updated successfully.',
+      variant: 'success',
+    });
+
+    // Close modal and reset state
+    setPreviewModalOpen(false);
+    setPendingAdjustment(null);
+    setPreviewAdjustedText(null);
+    setPreviewOriginalText('');
   };
 
   const addRecommendation = () => {
@@ -3665,7 +3862,7 @@ export default function Feedback360Dashboard({
                                         e.stopPropagation();
                                         handleSliderChange(idx, 'themes', 'specificity', 'left');
                                       }}
-                                      disabled={isAdjustingItem || positions.specificity === 'right'}
+                                      disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'left'}
                                       className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
                                         positions.specificity === 'left'
                                           ? 'bg-blue-600 text-white'
@@ -3679,7 +3876,7 @@ export default function Feedback360Dashboard({
                                         e.stopPropagation();
                                         handleSliderChange(idx, 'themes', 'specificity', 'center');
                                       }}
-                                      disabled={isAdjustingItem || positions.specificity === 'center'}
+                                      disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'center'}
                                       className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${
                                         positions.specificity === 'center'
                                           ? 'bg-gray-100 text-gray-900'
@@ -3693,7 +3890,7 @@ export default function Feedback360Dashboard({
                                         e.stopPropagation();
                                         handleSliderChange(idx, 'themes', 'specificity', 'right');
                                       }}
-                                      disabled={isAdjustingItem || positions.specificity === 'left'}
+                                      disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'right'}
                                       className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
                                         positions.specificity === 'right'
                                           ? 'bg-blue-600 text-white'
@@ -3717,7 +3914,7 @@ export default function Feedback360Dashboard({
                                         e.stopPropagation();
                                         handleSliderChange(idx, 'themes', 'tone', 'left');
                                       }}
-                                      disabled={isAdjustingItem || positions.tone === 'right'}
+                                      disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'left'}
                                       className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
                                         positions.tone === 'left'
                                           ? 'bg-blue-600 text-white'
@@ -3731,7 +3928,7 @@ export default function Feedback360Dashboard({
                                         e.stopPropagation();
                                         handleSliderChange(idx, 'themes', 'tone', 'center');
                                       }}
-                                      disabled={isAdjustingItem || positions.tone === 'center'}
+                                      disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'center'}
                                       className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${
                                         positions.tone === 'center'
                                           ? 'bg-gray-100 text-gray-900'
@@ -3745,7 +3942,7 @@ export default function Feedback360Dashboard({
                                         e.stopPropagation();
                                         handleSliderChange(idx, 'themes', 'tone', 'right');
                                       }}
-                                      disabled={isAdjustingItem || positions.tone === 'left'}
+                                      disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'right'}
                                       className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
                                         positions.tone === 'right'
                                           ? 'bg-blue-600 text-white'
@@ -3769,7 +3966,7 @@ export default function Feedback360Dashboard({
                                         e.stopPropagation();
                                         handleSliderChange(idx, 'themes', 'length', 'left');
                                       }}
-                                      disabled={isAdjustingItem || positions.length === 'right'}
+                                      disabled={isAdjustingItem || isPreviewLoading || positions.length === 'left'}
                                       className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
                                         positions.length === 'left'
                                           ? 'bg-blue-600 text-white'
@@ -3783,7 +3980,7 @@ export default function Feedback360Dashboard({
                                         e.stopPropagation();
                                         handleSliderChange(idx, 'themes', 'length', 'center');
                                       }}
-                                      disabled={isAdjustingItem || positions.length === 'center'}
+                                      disabled={isAdjustingItem || isPreviewLoading || positions.length === 'center'}
                                       className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${
                                         positions.length === 'center'
                                           ? 'bg-gray-100 text-gray-900'
@@ -3797,7 +3994,7 @@ export default function Feedback360Dashboard({
                                         e.stopPropagation();
                                         handleSliderChange(idx, 'themes', 'length', 'right');
                                       }}
-                                      disabled={isAdjustingItem || positions.length === 'left'}
+                                      disabled={isAdjustingItem || isPreviewLoading || positions.length === 'right'}
                                       className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
                                         positions.length === 'right'
                                           ? 'bg-blue-600 text-white'
@@ -3871,9 +4068,9 @@ export default function Feedback360Dashboard({
                                   <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
                                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Less Specific</span>
                                     <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'left'); }} disabled={isAdjustingItem || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'center'); }} disabled={isAdjustingItem || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'right'); }} disabled={isAdjustingItem || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'left'); }} disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'center'); }} disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'specificity', 'right'); }} disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
                                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">More Specific</span>
                                   </div>
@@ -3881,9 +4078,9 @@ export default function Feedback360Dashboard({
                                   <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
                                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Softer</span>
                                     <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'left'); }} disabled={isAdjustingItem || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'center'); }} disabled={isAdjustingItem || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'right'); }} disabled={isAdjustingItem || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'left'); }} disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'center'); }} disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'tone', 'right'); }} disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
                                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Harsher</span>
                                   </div>
@@ -3891,9 +4088,9 @@ export default function Feedback360Dashboard({
                                   <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
                                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Shorter</span>
                                     <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'left'); }} disabled={isAdjustingItem || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'center'); }} disabled={isAdjustingItem || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'right'); }} disabled={isAdjustingItem || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'left'); }} disabled={isAdjustingItem || isPreviewLoading || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'center'); }} disabled={isAdjustingItem || isPreviewLoading || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'strengths', 'length', 'right'); }} disabled={isAdjustingItem || isPreviewLoading || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
                                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Longer</span>
                                   </div>
@@ -3960,9 +4157,9 @@ export default function Feedback360Dashboard({
                                   <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
                                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Less Specific</span>
                                     <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'left'); }} disabled={isAdjustingItem || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'center'); }} disabled={isAdjustingItem || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'right'); }} disabled={isAdjustingItem || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'left'); }} disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'center'); }} disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.specificity === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'specificity', 'right'); }} disabled={isAdjustingItem || isPreviewLoading || positions.specificity === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.specificity === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
                                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">More Specific</span>
                                   </div>
@@ -3970,9 +4167,9 @@ export default function Feedback360Dashboard({
                                   <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
                                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Softer</span>
                                     <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'left'); }} disabled={isAdjustingItem || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'center'); }} disabled={isAdjustingItem || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'right'); }} disabled={isAdjustingItem || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'left'); }} disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'center'); }} disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.tone === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'tone', 'right'); }} disabled={isAdjustingItem || isPreviewLoading || positions.tone === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.tone === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
                                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Harsher</span>
                                   </div>
@@ -3980,9 +4177,9 @@ export default function Feedback360Dashboard({
                                   <div className="flex items-center gap-1.5 lg:gap-2 flex-[1_1_0%]">
                                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Shorter</span>
                                     <div className="inline-flex rounded-md overflow-hidden flex-1 min-w-[80px]">
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'left'); }} disabled={isAdjustingItem || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'center'); }} disabled={isAdjustingItem || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
-                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'right'); }} disabled={isAdjustingItem || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'left'); }} disabled={isAdjustingItem || isPreviewLoading || positions.length === 'left'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'left' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>◀</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'center'); }} disabled={isAdjustingItem || isPreviewLoading || positions.length === 'center'} className={`flex-1 px-3 py-1.5 text-xs font-medium border-x border-gray-300 transition-all ${positions.length === 'center' ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>●</button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleSliderChange(idx, 'development_areas', 'length', 'right'); }} disabled={isAdjustingItem || isPreviewLoading || positions.length === 'right'} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${positions.length === 'right' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>▶</button>
                                     </div>
                                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">Longer</span>
                                   </div>
@@ -4763,6 +4960,24 @@ export default function Feedback360Dashboard({
           setAiParsedData(null);
           loadSurveys();
         }}
+      />
+
+      {/* Adjustment Preview Modal */}
+      <AdjustmentPreviewModal
+        isOpen={previewModalOpen}
+        onClose={() => {
+          setPreviewModalOpen(false);
+          setPendingAdjustment(null);
+          setPreviewAdjustedText(null);
+          setPreviewOriginalText('');
+        }}
+        onConfirm={confirmAdjustment}
+        originalText={previewOriginalText}
+        adjustedText={previewAdjustedText}
+        isLoading={isPreviewLoading}
+        adjustmentType={pendingAdjustment?.adjustmentType || 'specificity'}
+        direction={pendingAdjustment?.direction || 'more'}
+        sectionType={pendingAdjustment?.sectionType || 'themes'}
       />
     </div>
     </TooltipProvider>

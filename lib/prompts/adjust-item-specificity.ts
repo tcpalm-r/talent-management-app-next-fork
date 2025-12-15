@@ -2,13 +2,25 @@
  * Adjust Item Specificity Prompt
  *
  * Used by: /api/ai/adjust-item-specificity
- * Purpose: Adjust specificity, tone, or length of 360 feedback report items
+ * Purpose: Make SUBTLE adjustments to 360 feedback report items
+ *
+ * PHILOSOPHY:
+ * This is a CONSTRAINED PARAPHRASING tool, NOT a content generation tool.
+ * The reviewer's voice and observations are SACRED. The sponsor can only
+ * adjust the PRESENTATION, never the SUBSTANCE.
+ *
+ * HARD RULES:
+ * 1. Output format MUST match input format (1 sentence → 1 sentence, 3 bullets → 3 bullets)
+ * 2. Never invent new observations - only rephrase what exists
+ * 3. Never change the underlying sentiment - positive stays positive, critical stays critical
+ * 4. If the adjustment is impossible without inventing content, return the original UNCHANGED
+ * 5. When in doubt, return the original text - it's better to make no change than a wrong change
  */
 
 export const adjustItemSpecificityConfig = {
   model: 'claude-sonnet-4-5-20250929',
-  maxTokens: 512,
-  temperature: 0.2,
+  maxTokens: 256, // Reduced - output should never be longer than input
+  temperature: 0.0, // Zero temperature for maximum consistency
 };
 
 type SectionType = 'themes' | 'strengths' | 'development_areas' | 'key_insights';
@@ -41,57 +53,37 @@ function getDirectionInstruction(adjustmentType: AdjustmentType, direction: Dire
   switch (adjustmentType) {
     case 'specificity':
       return direction === 'more'
-        ? `Make the item MORE SPECIFIC by:
-- Adding concrete examples, behaviors, or situations
-- Being more precise about what the feedback is referring to
-- Including specific skills, actions, or outcomes
-- Making it more actionable and detailed
-- Using specific terminology from the supporting evidence`
-        : `Make the item LESS SPECIFIC by:
-- Using broader, more general language
-- Removing overly specific examples or details
-- Making it more high-level and conceptual
-- Focusing on the overarching pattern rather than individual instances
-- Making it more universally applicable`;
+        ? `HOW: Add a specific detail from the source data (if available). If no source data, return input unchanged.
+Example: "Good at communication" → "Good at communicating project updates"`
+        : `HOW: Remove specific details, use broader terms.
+Example: "Excels at converting unclear directives into actionable technical plans" → "Effectively translates goals into plans"`;
 
     case 'tone':
       return direction === 'harsher'
-        ? `Make the item HARSHER by:
-- Using more direct and critical language
-- Being more frank about weaknesses or issues
-- Emphasizing areas that need urgent attention
-- Using stronger, more impactful words
-- Being less diplomatic and more straightforward
-- Highlighting the severity or importance of the issue`
-        : `Make the item SOFTER by:
-- Using more gentle and constructive language
-- Framing critiques more diplomatically
-- Emphasizing potential and opportunity rather than criticism
-- Using softer, more supportive words
-- Being more encouraging and less harsh
-- Focusing on growth rather than shortcomings`;
+        ? `HOW: Swap soft words for direct ones. Same observation, stronger language.
+Word swaps: "could improve"→"needs to improve", "sometimes"→"often", "has room to grow"→"requires development"`
+        : `HOW: Swap direct words for gentler ones. Same observation, softer language.
+Word swaps: "struggles with"→"is developing", "fails to"→"could strengthen", "weak"→"emerging"`;
 
     case 'length':
       return direction === 'longer'
-        ? `Make the item LONGER by:
-- Adding more detail and context
-- Expanding on key points with additional explanation
-- Including more examples or supporting details
-- Providing more comprehensive coverage
-- Elaborating on the implications or impact
-- Adding nuance and depth to the description`
-        : `Make the item SHORTER by:
-- Being more concise and removing unnecessary words
-- Focusing only on the most essential points
-- Eliminating redundant or repetitive information
-- Using more compact phrasing
-- Getting straight to the point
-- Keeping only the core message`;
+        ? `HOW: Add a few clarifying words. Do NOT add new information.
+Example: "Great at delegating" → "Demonstrates ability to delegate tasks effectively"`
+        : `HOW: Remove filler words, keep core meaning.
+Example: "Consistently demonstrates strong ability to communicate" → "Communicates effectively"`;
 
     default:
       throw new Error(`Invalid adjustment type: ${adjustmentType}`);
   }
 }
+
+// Helper to extract text from an item that might be string or CitedStatement
+function extractText(item: any): string {
+  if (typeof item === 'string') return item;
+  if (item?.text) return item.text;
+  return '';
+}
+
 
 export function buildAdjustItemSpecificityPrompt({
   item,
@@ -103,101 +95,81 @@ export function buildAdjustItemSpecificityPrompt({
   const directionInstruction = getDirectionInstruction(adjustmentType, direction);
 
   let itemText: string;
-  let contextInfo = '';
-  let sectionLabel: string;
+  let sentimentContext = '';
 
   switch (sectionType) {
     case 'themes':
       const themeItem = item as ThemeItem;
+      // Handle both string[] and CitedStatement[] (objects with text property)
       itemText =
         themeItem.supporting_evidence && themeItem.supporting_evidence.length > 0
-          ? themeItem.supporting_evidence.join('\n')
+          ? themeItem.supporting_evidence.map((ev: any) => extractText(ev)).filter(t => t).join('\n')
           : '';
-      sectionLabel = 'theme supporting evidence';
-      contextInfo = `\n\nTHEME TITLE (keep this unchanged): "${themeItem.theme}"`;
-      if (themeItem.relationships_mentioned && themeItem.relationships_mentioned.length > 0) {
-        contextInfo += `\n\nMentioned by: ${themeItem.relationships_mentioned.join(', ')}`;
-      }
-      contextInfo += `\n\nSENTIMENT: ${themeItem.sentiment}\nFREQUENCY: Mentioned by ${themeItem.frequency} reviewer(s)`;
+      sentimentContext = themeItem.sentiment === 'positive' ? 'POSITIVE' :
+                         themeItem.sentiment === 'negative' ? 'CONSTRUCTIVE' : 'NEUTRAL';
       break;
 
     case 'strengths':
-      itemText = item as string;
-      sectionLabel = 'strength';
-      contextInfo = '\n\nThis is a key strength identified from 360 feedback.';
+      itemText = extractText(item);
+      sentimentContext = 'POSITIVE';
       break;
 
     case 'development_areas':
-      itemText = item as string;
-      sectionLabel = 'development area';
-      contextInfo = '\n\nThis is a development area identified from 360 feedback.';
+      itemText = extractText(item);
+      sentimentContext = 'CONSTRUCTIVE';
       break;
 
     case 'key_insights':
-      itemText = item as string;
-      sectionLabel = 'insight';
-      contextInfo = '\n\nThis is a key insight synthesized from 360 feedback.';
+      itemText = extractText(item);
+      sentimentContext = 'NEUTRAL';
       break;
 
     default:
       throw new Error(`Invalid section type: ${sectionType}`);
   }
 
-  // Extract relevant response context from raw_responses
-  let responseContext = '';
-  if (rawResponses && rawResponses.length > 0) {
-    const responseTexts: string[] = [];
-    rawResponses.forEach((response) => {
-      const relationship = response.relationship || 'Reviewer';
-      const answers = response.answers || response.responses || [];
+  // Count lines to enforce format
+  const inputLines = itemText.split('\n').filter(l => l.trim()).length;
+  const isSingleLine = inputLines === 1;
 
-      answers.forEach((answer) => {
+  // Only include raw responses for "more specific" direction
+  let responseHint = '';
+  if (direction === 'more' && rawResponses && rawResponses.length > 0) {
+    const responseTexts: string[] = [];
+    rawResponses.slice(0, 5).forEach((response) => {
+      const answers = response.answers || response.responses || [];
+      answers.slice(0, 2).forEach((answer) => {
         const text = answer.answer || answer.text || answer.response || '';
-        if (text && text.trim().length > 0) {
-          responseTexts.push(`[${relationship}]: ${text.trim()}`);
+        if (text && text.trim().length > 20) {
+          responseTexts.push(text.trim().substring(0, 200));
         }
       });
     });
-
     if (responseTexts.length > 0) {
-      responseContext = `\n\nORIGINAL SURVEY RESPONSES (you must use ONLY information from these):\n${responseTexts.slice(0, 15).join('\n\n')}`;
+      responseHint = `\n\nSource data (ONLY use to add specificity, do not invent):\n${responseTexts.slice(0, 3).join('\n')}`;
     }
   }
 
-  const isThemeBullets = sectionType === 'themes';
+  // Create a very explicit format instruction
+  const formatInstruction = isSingleLine
+    ? 'CRITICAL: Your response must be EXACTLY ONE SENTENCE. No line breaks. No multiple sentences. ONE sentence only.'
+    : `CRITICAL: Your response must be EXACTLY ${inputLines} separate lines, one item per line.`;
 
-  return `You are an expert HR analyst helping refine 360-degree feedback report items. You have ${isThemeBullets ? 'supporting evidence bullet points' : `a ${sectionLabel}`} from an AI-generated report that needs to be adjusted.${responseContext}
+  return `Rephrase this feedback slightly. ${direction === 'more' ? 'Add specificity.' : direction === 'less' ? 'Use broader language.' : direction === 'harsher' ? 'Use more direct wording.' : direction === 'softer' ? 'Use gentler wording.' : direction === 'longer' ? 'Add clarifying words.' : 'Remove unnecessary words.'}
 
-CURRENT ${sectionLabel.toUpperCase()}:
-${isThemeBullets ? itemText : `"${itemText}"`}${contextInfo}
+INPUT:
+${itemText}
+${responseHint}
 
-YOUR TASK:
+${formatInstruction}
+
+CONSTRAINTS:
+- Same meaning, different wording
+- ${sentimentContext} tone preserved
+- No explanations, no formatting, no bullets
+- If you can't do it without changing meaning, return the input exactly
+
 ${directionInstruction}
 
-CRITICAL ANTI-HALLUCINATION RULES:
-- DO NOT add information that is not present in the original survey responses above
-- DO NOT invent examples, names, behaviors, or details
-- DO NOT embellish or exaggerate beyond what the responses state
-- ONLY rephrase, reorganize, or adjust the tone/length of EXISTING information
-- If making something "more specific," use ONLY details from the actual responses
-- If no survey responses are available, maintain the current text with minimal changes
-
-IMPORTANT GUIDELINES:
-1. Maintain the same sentiment and general meaning
-2. ${isThemeBullets ? 'Keep each bullet point concise and clear' : `Keep the ${sectionLabel} concise (1-2 sentences typically)`}
-3. Ground all content in the original survey responses provided above
-4. Make sure it's appropriate for a professional 360 feedback report
-5. The adjusted ${sectionLabel} should feel natural and well-written
-6. For strengths, maintain a positive tone
-7. For development areas, maintain a constructive tone
-8. For insights, maintain an analytical tone
-9. For themes, maintain consistency with the sentiment rating
-${isThemeBullets ? '10. DO NOT change or mention the theme title - only adjust the bullet points' : ''}
-
-Return ONLY the adjusted ${sectionLabel} text. ${isThemeBullets ? 'Return each bullet point on a new line without numbering or bullet symbols.' : 'Do not include any preamble, explanation, quotes, or additional formatting. Just the adjusted text itself.'}`;
+OUTPUT:`;
 }
-
-
-
-
-

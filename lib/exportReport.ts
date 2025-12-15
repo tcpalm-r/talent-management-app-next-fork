@@ -202,11 +202,12 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
 
-    report.themes.slice(0, 5).forEach((theme, idx) => {
+    report.themes.forEach((theme, idx) => {
       checkPageBreak(25);
 
       // Theme title and sentiment
       pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(0, 0, 0); // Reset to black for theme title
       pdf.text(`${idx + 1}. ${theme.theme}`, margin + 5, yPosition);
 
       // Sentiment badge with constructive language

@@ -84,6 +84,7 @@ export async function PATCH(
       'final_narrative',
       'narrative_generated_at',
       'narrative_version',
+      'report_adjustments', // Sponsor's per-item adjustments (specificity, tone, length)
     ];
 
     const updates: any = {
