@@ -83,19 +83,6 @@ const isUserSponsor = (
   const emailMatch = userEmailLower && survey.created_by_email?.toLowerCase() === userEmailLower;
   
   const isSponsor = uuidMatch || emailMatch;
-  
-  // DEBUG: Log sponsor check results (only for surveys where user might be sponsor)
-  if (logSurveyName || isSponsor) {
-    console.log(`[Sponsor Check] Survey: "${survey.survey_name}"`, {
-      'survey.created_by': survey.created_by,
-      'userDbId': userDbId,
-      'UUID match': uuidMatch,
-      'survey.created_by_email': survey.created_by_email,
-      'user.email': user.email,
-      'Email match': emailMatch,
-      'IS SPONSOR': isSponsor
-    });
-  }
 
   return isSponsor;
 };
@@ -1888,7 +1875,9 @@ export default function Feedback360Dashboard({
     return responseRate < 0.5 && daysUntilDue <= 3 && daysUntilDue > 0;
   });
 
-  const getStatusBadge = (status: string, flaggedForAdmin?: boolean, flaggedForReanalysis?: boolean, resolvedByAdmin?: boolean) => {
+  const getStatusBadge = (status: string, flaggedForAdmin?: boolean, flaggedForReanalysis?: boolean, resolvedByAdmin?: boolean, surveyId?: string) => {
+    // Override status to 'generating' if this survey is currently generating
+    const effectiveStatus = (surveyId && generatingSurveyId === surveyId) ? 'generating' : status;
     // Show "Needs Reanalysis" badge for flagged surveys
     if ((flaggedForAdmin || flaggedForReanalysis) && currentUser?.app_role === 'admin') {
       return (
@@ -1914,7 +1903,7 @@ export default function Feedback360Dashboard({
     }
 
     // Show "Resolved By Admin" badge when admin has resolved a flagged survey
-    if (resolvedByAdmin && status === 'completed') {
+    if (resolvedByAdmin && effectiveStatus === 'completed') {
       return (
         <Tooltip content="This survey was reviewed and resolved by an admin">
           <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-green-100 text-green-700 border-green-300 cursor-help">
@@ -1953,14 +1942,14 @@ export default function Feedback360Dashboard({
       completed: 'All responses received and analyzed',
       finalized: 'Survey is archived and final'
     };
-    const Icon = icons[status as keyof typeof icons] || Clock;
-    const tooltipText = tooltips[status as keyof typeof tooltips] || 'Survey status';
+    const Icon = icons[effectiveStatus as keyof typeof icons] || Clock;
+    const tooltipText = tooltips[effectiveStatus as keyof typeof tooltips] || 'Survey status';
 
     return (
       <Tooltip content={tooltipText}>
-        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border cursor-help ${styles[status as keyof typeof styles]}`}>
+        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border cursor-help ${styles[effectiveStatus as keyof typeof styles]}`}>
           <Icon className="w-3 h-3 mr-1" />
-          {labels[status as keyof typeof labels] || status}
+          {labels[effectiveStatus as keyof typeof labels] || effectiveStatus}
         </span>
       </Tooltip>
     );
@@ -2643,7 +2632,7 @@ export default function Feedback360Dashboard({
                 {/* Right side: Status badge and actions */}
                 <div className="ml-4 flex flex-col items-end gap-2">
                   {/* Status badge - Show on Sponsor and All 360°s tabs */}
-                  {(filterRole === 'sponsor' || filterRole === 'all') && getStatusBadge(survey.status || 'unknown', survey.flagged_for_admin ?? undefined, survey.flagged_for_reanalysis ?? undefined, survey.resolved_by_admin ?? undefined)}
+                  {(filterRole === 'sponsor' || filterRole === 'all') && getStatusBadge(survey.status || 'unknown', survey.flagged_for_admin ?? undefined, survey.flagged_for_reanalysis ?? undefined, survey.resolved_by_admin ?? undefined, survey.id)}
                 </div>
 
                 {/* Delete button - bottom right of card */}
@@ -2734,7 +2723,7 @@ export default function Feedback360Dashboard({
                       )}
                     </div>
                     <div className="mt-2">
-                      {getStatusBadge(selectedSurvey.status || 'unknown', selectedSurvey.flagged_for_admin ?? undefined, selectedSurvey.flagged_for_reanalysis ?? undefined, selectedSurvey.resolved_by_admin ?? undefined)}
+                      {getStatusBadge(selectedSurvey.status || 'unknown', selectedSurvey.flagged_for_admin ?? undefined, selectedSurvey.flagged_for_reanalysis ?? undefined, selectedSurvey.resolved_by_admin ?? undefined, selectedSurvey.id)}
                     </div>
                   </div>
                   <button
@@ -2931,7 +2920,7 @@ export default function Feedback360Dashboard({
                     </div>
                   )}
                 </div>
-                {getStatusBadge(selectedSurvey.status ?? 'draft', selectedSurvey.flagged_for_admin ?? undefined, selectedSurvey.flagged_for_reanalysis ?? undefined, selectedSurvey.resolved_by_admin ?? undefined)}
+                {getStatusBadge(selectedSurvey.status ?? 'draft', selectedSurvey.flagged_for_admin ?? undefined, selectedSurvey.flagged_for_reanalysis ?? undefined, selectedSurvey.resolved_by_admin ?? undefined, selectedSurvey.id)}
               </div>
 
               {/* Reviewers */}

@@ -87,15 +87,11 @@ export default function CreateWithAIModal({
   }
 
   const handleDone = async () => {
-    console.log('[CreateWithAIModal.handleDone] Starting - description length:', description.length);
-
     if (!description.trim()) {
-      console.log('[CreateWithAIModal.handleDone] Error: Empty description');
       setError('Please describe the survey you want to create');
       return;
     }
 
-    console.log('[CreateWithAIModal.handleDone] Calling API with description');
     setIsLoading(true);
     setError(null);
 
@@ -103,7 +99,6 @@ export default function CreateWithAIModal({
       // Feature temporarily disabled
       throw new Error('Create with AI feature is temporarily disabled. Please use the standard survey creation wizard.');
     } catch (err: any) {
-      console.error('[CreateWithAIModal.handleDone] Error:', err);
       setError(err.message || 'Failed to process your survey description');
     } finally {
       setIsLoading(false);
@@ -121,7 +116,6 @@ export default function CreateWithAIModal({
         const oneWeekLater = new Date(today);
         oneWeekLater.setDate(oneWeekLater.getDate() + 7);
         finalDueDate = oneWeekLater.toISOString().split('T')[0];
-        console.log('[CreateWithAIModal] No due date provided, defaulting to 1 week from today:', finalDueDate);
       }
 
       const finalData: ParsedSurveyData = {

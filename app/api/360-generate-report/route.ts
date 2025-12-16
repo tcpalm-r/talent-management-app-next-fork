@@ -4,6 +4,8 @@ import {
   analyzeWithCitations,
   AnalysisResultWithCitations,
   GenerationCancelledError,
+  isSurveyCancelled,
+  clearSurveyCancellation,
 } from '@/lib/services/surveyAnalyzerService';
 import { filterReportForSubject } from '@/lib/filterReport';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
@@ -383,6 +385,17 @@ export async function POST(req: NextRequest) {
     // STEP 8: Save report to database
     // ========================================================================
 
+    // Check for cancellation before saving (race condition protection)
+    if (isSurveyCancelled(survey_id)) {
+      console.log(`📊 Survey ${survey_id} was cancelled before saving - aborting`);
+      clearSurveyCancellation(survey_id);
+      return NextResponse.json({
+        success: false,
+        cancelled: true,
+        message: 'Report generation was cancelled',
+      });
+    }
+
     console.log('💾 Saving report to database...');
 
     // Build report data with citation metadata (always included now)
@@ -459,6 +472,19 @@ export async function POST(req: NextRequest) {
     // ========================================================================
     // STEP 9: Update survey status to 'completed'
     // ========================================================================
+
+    // Check if survey was cancelled during processing (race condition protection)
+    // If cancelled, don't update status to 'completed' - the cancel-generation API
+    // already set it to 'in_progress'
+    if (isSurveyCancelled(survey_id)) {
+      console.log(`📊 Survey ${survey_id} was cancelled during generation - not updating to completed`);
+      clearSurveyCancellation(survey_id);
+      return NextResponse.json({
+        success: false,
+        cancelled: true,
+        message: 'Report generation was cancelled',
+      });
+    }
 
     await supabaseAdmin
       .from('feedback_360_surveys')

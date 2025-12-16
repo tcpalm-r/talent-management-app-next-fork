@@ -216,15 +216,12 @@ export default function Survey360Wizard({
 
   // Handle AI modal completion (internal - triggered from within wizard)
   const handleAIModalComplete = (data: ParsedSurveyData) => {
-    console.log('[Survey360Wizard.handleAIModalComplete] AI modal data received:', data);
-
     // Find employee by name if the AI-parsed name differs from current selection
     if (data.employeeName) {
       const matchedEmployee = employees.find(
         emp => emp.name.toLowerCase() === data.employeeName.toLowerCase()
       );
       if (matchedEmployee) {
-        console.log('[Survey360Wizard.handleAIModalComplete] Setting employee:', matchedEmployee.name);
         setSelectedEmployee(matchedEmployee);
       }
     }
@@ -232,27 +229,21 @@ export default function Survey360Wizard({
     // Apply questions - combine with existing required questions if user hasn't changed them
     // or replace if AI provided custom questions
     if (data.questions && data.questions.length > 0) {
-      console.log('[Survey360Wizard.handleAIModalComplete] Setting custom questions:', data.questions);
       setCustomQuestions(data.questions);
     }
 
     // Apply raters
     if (data.raters && data.raters.length > 0) {
-      console.log('[Survey360Wizard.handleAIModalComplete] Setting reviewers:', data.raters);
       setRaters(data.raters);
-    } else {
-      console.log('[Survey360Wizard.handleAIModalComplete] WARNING: No reviewers found in AI response');
     }
 
     // Apply due date
     if (data.dueDate) {
-      console.log('[Survey360Wizard.handleAIModalComplete] Setting due date:', data.dueDate);
       setDueDate(data.dueDate);
     }
 
     // Apply survey title if provided
     if (data.surveyTitle) {
-      console.log('[Survey360Wizard.handleAIModalComplete] Setting survey title:', data.surveyTitle);
       setSurveyTitle(data.surveyTitle);
     }
 
@@ -268,40 +259,33 @@ export default function Survey360Wizard({
   // Handle AI data from external source (dashboard AI modal)
   // Just populate the data and show step 5, don't auto-launch
   const handleAIDataFromDashboard = (data: ParsedSurveyData) => {
-    console.log('[Survey360Wizard.handleAIDataFromDashboard] Received data from dashboard AI modal:', data);
-
     // Find employee by name
     if (data.employeeName) {
       const matchedEmployee = employees.find(
         emp => emp.name.toLowerCase() === data.employeeName.toLowerCase()
       );
       if (matchedEmployee) {
-        console.log('[Survey360Wizard.handleAIDataFromDashboard] Setting employee:', matchedEmployee.name);
         setSelectedEmployee(matchedEmployee);
       }
     }
 
     // Apply questions
     if (data.questions && data.questions.length > 0) {
-      console.log('[Survey360Wizard.handleAIDataFromDashboard] Setting custom questions:', data.questions);
       setCustomQuestions(data.questions);
     }
 
     // Apply raters
     if (data.raters && data.raters.length > 0) {
-      console.log('[Survey360Wizard.handleAIDataFromDashboard] Setting reviewers:', data.raters);
       setRaters(data.raters);
     }
 
     // Apply due date
     if (data.dueDate) {
-      console.log('[Survey360Wizard.handleAIDataFromDashboard] Setting due date:', data.dueDate);
       setDueDate(data.dueDate);
     }
 
     // Apply survey title if provided
     if (data.surveyTitle) {
-      console.log('[Survey360Wizard.handleAIDataFromDashboard] Setting survey title:', data.surveyTitle);
       setSurveyTitle(data.surveyTitle);
     }
 
@@ -353,11 +337,9 @@ export default function Survey360Wizard({
 
       // CRITICAL FIX: Prevent loading same draft multiple times (race condition fix)
       if (loadedDraftIdRef.current === draftSurvey.id) {
-        console.log('[DRAFT LOAD] ⏭️ Skipping load - already loaded draft:', draftSurvey.id);
         return;
       }
 
-      console.log('[DRAFT LOAD] 🔄 Loading draft:', draftSurvey.id);
       loadedDraftIdRef.current = draftSurvey.id;
 
       try {
@@ -413,16 +395,8 @@ export default function Survey360Wizard({
         // CRITICAL FIX: Use fresh survey data from API, not stale prop
         const partialReviewers = freshSurvey?.draft_partial_reviewers || [];
 
-        console.log('[DRAFT LOAD] ========== LOADING DRAFT ==========');
-        console.log('[DRAFT LOAD] Draft survey ID:', draftSurvey.id);
-        console.log('[DRAFT LOAD] Fresh survey from API:', JSON.stringify(freshSurvey, null, 2));
-        console.log('[DRAFT LOAD] Complete reviewers from DB:', JSON.stringify(completeReviewers, null, 2));
-        console.log('[DRAFT LOAD] Partial reviewers from API draft_partial_reviewers:', JSON.stringify(partialReviewers, null, 2));
-        console.log('[DRAFT LOAD] Fresh survey current_step:', freshSurvey?.current_step);
-
         // Combine both arrays - partial reviewers first (they're incomplete), then complete ones
         const combinedRaters = [...partialReviewers, ...completeReviewers];
-        console.log('[DRAFT LOAD] Combined raters to set:', JSON.stringify(combinedRaters, null, 2));
         setRaters(combinedRaters);
 
         // CRITICAL FIX: Use fresh survey data from API for all fields
@@ -481,7 +455,6 @@ export default function Survey360Wizard({
   // Handle AI-parsed data when received from dashboard AI modal
   useEffect(() => {
     if (isOpen && aiParsedData) {
-      console.log('[Survey360Wizard] Received AI parsed data from dashboard, calling handleAIDataFromDashboard');
       handleAIDataFromDashboard(aiParsedData);
     }
   }, [isOpen, aiParsedData]);
@@ -903,22 +876,11 @@ export default function Survey360Wizard({
     // Save draft if there's meaningful progress (including preview step)
     const hasProgress = selectedEmployee;
 
-    console.log('[DRAFT SAVE] ========== STARTING SAVE ==========');
-    console.log('[DRAFT SAVE] Has progress?', hasProgress);
-    console.log('[DRAFT SAVE] Selected employee:', selectedEmployee?.name);
-    console.log('[DRAFT SAVE] Current step index:', currentStepIndex);
-    console.log('[DRAFT SAVE] Total steps:', steps.length);
-
     if (hasProgress) {
       try {
         // If editing existing draft, update it; otherwise create new draft
         const isUpdating = !!draftSurvey;
         const apiUrl = isUpdating ? '/api/surveys/update-draft' : '/api/surveys/save-draft';
-
-        console.log('[DRAFT SAVE] Is updating?', isUpdating);
-        console.log('[DRAFT SAVE] Draft survey ID:', draftSurvey?.id);
-        console.log('[DRAFT SAVE] Raters being saved:', JSON.stringify(raters, null, 2));
-        console.log('[DRAFT SAVE] Current step:', currentStep);
 
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -952,24 +914,18 @@ export default function Survey360Wizard({
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.error('[DRAFT SAVE] ❌ API error:', errorData);
           throw new Error(errorData.error || 'Failed to save draft');
         }
 
-        const responseData = await response.json();
-        console.log('[DRAFT SAVE] ✅ API response:', responseData);
+        await response.json();
 
         // Refresh the survey list to show the new draft (no notification for draft save)
         onSurveyCreated();
-      } catch (error: any) {
-        console.error('[DRAFT SAVE] ❌ Error saving draft:', error);
+      } catch {
         // Don't show error notification, just close silently
       }
-    } else {
-      console.log('[DRAFT SAVE] ⚠️ Skipping save - no progress or on last step');
     }
 
-    console.log('[DRAFT SAVE] ========== CLOSING MODAL ==========');
     onClose();
   };
 
@@ -1399,10 +1355,7 @@ export default function Survey360Wizard({
             {/* AI-assisted review wizard button - disabled and hidden */}
             {false && (
               <button
-                onClick={() => {
-                  console.log('[Survey360Wizard] "Create with AI" button clicked');
-                  setIsAIModalOpen(true);
-                }}
+                onClick={() => setIsAIModalOpen(true)}
                 className="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded hover:from-purple-700 hover:to-indigo-700 transition-colors text-sm font-medium flex items-center gap-2"
                 title="Create survey with AI assistance"
                 disabled

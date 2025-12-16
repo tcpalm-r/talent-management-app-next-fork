@@ -50,7 +50,6 @@ export default function SurveyAIAssistant({
     }
   }, [isOpen, currentText]);
 
-  console.log('[SurveyAIAssistant] Render - isOpen:', isOpen);
 
   // Calculate text similarity (word overlap percentage)
   const calculateSimilarity = (text1: string, text2: string): number => {
@@ -83,15 +82,11 @@ export default function SurveyAIAssistant({
   };
 
   if (!isOpen) {
-    console.log('[SurveyAIAssistant] Not open, returning null');
     return null;
   }
 
   const handleProcess = async () => {
-    console.log('[SurveyAIAssistant.handleProcess] Starting - feedback length:', feedback.length);
-
     if (!feedback.trim()) {
-      console.log('[SurveyAIAssistant.handleProcess] Error: Empty feedback');
       setError('Please provide your thoughts before processing');
       return;
     }
@@ -99,7 +94,6 @@ export default function SurveyAIAssistant({
     // Count words in the input
     const wordCount = feedback.trim().split(/\s+/).filter(word => word.length > 0).length;
     if (wordCount < 30) {
-      console.log('[SurveyAIAssistant.handleProcess] Error: Not enough words', wordCount);
       setError('Can you give one or two specific examples? Claude needs enough input to create a sufficient response.');
       return;
     }
@@ -108,8 +102,6 @@ export default function SurveyAIAssistant({
       setError('Question not found');
       return;
     }
-
-    console.log('[SurveyAIAssistant.handleProcess] Calling API with feedback for single question');
 
     // Save original input before generating (only if not already saved)
     if (!originalInput) {
@@ -120,8 +112,6 @@ export default function SurveyAIAssistant({
     setError(null);
 
     try {
-      console.log('[SurveyAIAssistant.handleProcess] Calling survey response service');
-
       // Prepare request
       const request = {
         questionText: question.question_text,
@@ -133,14 +123,10 @@ export default function SurveyAIAssistant({
       // If regenerating, check similarity to determine if we should include original input
       if (hasGenerated && originalInput) {
         const similarity = calculateSimilarity(feedback, originalInput);
-        console.log('[SurveyAIAssistant.handleProcess] Text similarity:', similarity.toFixed(1) + '%');
 
         // Only include original input if text is still similar (≥30% overlap)
         if (similarity >= 30) {
           request.originalInput = originalInput;
-          console.log('[SurveyAIAssistant.handleProcess] Including original input (similar enough)');
-        } else {
-          console.log('[SurveyAIAssistant.handleProcess] Skipping original input (too different, treating as fresh)');
         }
       }
 
@@ -148,23 +134,18 @@ export default function SurveyAIAssistant({
       setApiNotice(null);
 
       // Call service with fallback notification callback
-      const result = await generateSurveyResponse(request, (reason, originalError) => {
-        console.warn('[SurveyAIAssistant] Fallback triggered:', reason, originalError);
+      const result = await generateSurveyResponse(request, (reason) => {
         // Only set fallback notice in local testing mode
         if (isLocalTesting) {
           setApiNotice({ type: 'fallback', message: `Fallback to v1: ${reason}` });
         }
       });
 
-      console.log('[SurveyAIAssistant.handleProcess] Service response:', result);
-
       if (!result.success) {
         throw new Error(result.error || 'Failed to generate response');
       }
 
       if (result.response) {
-        console.log('[SurveyAIAssistant.handleProcess] Setting AI-generated response');
-        console.log('[SurveyAIAssistant.handleProcess] API version used:', result.meta?.version);
         setFeedback(result.response);
         setHasGenerated(true);
 

@@ -37,15 +37,12 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
       fetch('/api/auth/switch-user')
         .then(res => res.json())
         .then(data => {
-          console.log('[TopHeader] Fetched test users:', data);
           if (data.users) {
             setTestUsers(data.users);
-          } else if (data.error) {
-            console.error('[TopHeader] Error from API:', data.error);
           }
         })
-        .catch(err => {
-          console.error('[TopHeader] Failed to fetch test users:', err);
+        .catch(() => {
+          // Silent fail for test user fetch
         })
         .finally(() => {
           setLoadingUsers(false);
