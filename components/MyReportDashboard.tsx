@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { FileText, Download, Eye, Calendar, X } from 'lucide-react';
 import type { Employee } from '../types';
 import { useToast } from './unified';
@@ -76,15 +77,27 @@ export default function MyReportDashboard({
       setSelectedSurvey(survey);
       setIsViewingReport(true);
 
-      // Fetch the report data
-      const response = await fetch(`/api/360-generate-report?survey_id=${survey.id}`);
-      if (!response.ok) {
+      // Fetch the report data and survey details in parallel
+      const [reportResponse, surveyDetailsResponse] = await Promise.all([
+        fetch(`/api/360-generate-report?survey_id=${survey.id}`),
+        fetch(`/api/surveys/${survey.id}/details`)
+      ]);
+
+      if (!reportResponse.ok) {
         throw new Error('Failed to load report');
       }
 
-      const data = await response.json();
+      const data = await reportResponse.json();
       setSurveyResults(data.report);
-      setFinalNarrative(data.report?.final_narrative || '');
+
+      // Get final_narrative from survey details (it's stored on the survey, not the report)
+      if (surveyDetailsResponse.ok) {
+        const surveyData = await surveyDetailsResponse.json();
+        setFinalNarrative(surveyData.survey?.final_narrative || '');
+      } else {
+        setFinalNarrative('');
+      }
+
       setActiveReportTab('themes');
     } catch (error: any) {
       console.error('Error loading report:', error);
@@ -224,9 +237,6 @@ export default function MyReportDashboard({
                          theme.sentiment}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                      Mentioned by {theme.frequency} reviewer{theme.frequency !== 1 ? 's' : ''}
-                    </p>
                     {theme.supporting_evidence && theme.supporting_evidence.length > 0 && (
                       <div className="mt-2 space-y-1">
                         {theme.supporting_evidence.map((evidence: string, qIdx: number) => (
@@ -329,13 +339,13 @@ export default function MyReportDashboard({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">My Performance Review</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Performance Review</h1>
         </div>
       </div>
 
       {/* 360° Review Report Section */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">My 360° Feedback</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">360° Feedback</h2>
         {finalizedSurveys.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-md border-2 border-dashed border-gray-300 dark:border-gray-600">
             <FileText className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
