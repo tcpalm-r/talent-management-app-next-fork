@@ -236,7 +236,7 @@ export default function MyReportDashboard({
             />
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-[500px]">
             {/* Themes Tab */}
             {activeReportTab === 'themes' && surveyResults.themes && surveyResults.themes.length > 0 && (
               <div className="space-y-3">
