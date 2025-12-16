@@ -106,9 +106,17 @@ export async function POST(
       updated_at: new Date().toISOString(),
     };
 
-    // Clear flagged_for_admin when going back from completed
+    // Clear flagged_for_admin and narrative fields when going back from completed
     if (currentStatus === 'completed') {
       updateData.flagged_for_admin = false;
+    }
+
+    // Clear narrative fields when going back to in_progress
+    if (shouldClearReport) {
+      updateData.final_narrative = null;
+      updateData.narrative_generated_at = null;
+      updateData.narrative_version = null;
+      updateData.ai_report_generated = false;
     }
 
     const { data: updatedSurvey, error: updateError } = await supabaseAdmin
