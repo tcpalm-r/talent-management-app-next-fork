@@ -192,25 +192,24 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
   // PAGE 1: COVER PAGE
   // ==========================================================================
 
-  // Title
-  pdf.setFontSize(24);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('360° Feedback Report', margin, yPosition);
-  yPosition += 15;
-
-  // Employee name (only show if available)
-  if (report.employee_name && report.employee_name.trim()) {
-    pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text(report.employee_name, margin, yPosition);
-    yPosition += 10;
+  // Title with employee name
+  // Try to get employee name from: 1) employee_name field, 2) extract from survey_name if it contains "360° Feedback - Name"
+  let employeeName = report.employee_name?.trim() || '';
+  if (!employeeName && report.survey_name) {
+    // Extract name from survey_name format "360° Feedback - Name"
+    const match = report.survey_name.match(/360°?\s*Feedback\s*-\s*(.+)/i);
+    if (match) {
+      employeeName = match[1].trim();
+    }
   }
 
-  // Survey name
-  pdf.setFontSize(12);
-  pdf.setTextColor(100, 100, 100);
-  pdf.text(report.survey_name || 'Untitled Survey', margin, yPosition);
-  yPosition += 15;
+  pdf.setFontSize(24);
+  pdf.setFont('helvetica', 'bold');
+  const titleText = employeeName
+    ? `360° Feedback - ${employeeName}`
+    : '360° Feedback Report';
+  pdf.text(titleText, margin, yPosition);
+  yPosition += 20;
 
   // Horizontal line
   pdf.setDrawColor(200, 200, 200);
