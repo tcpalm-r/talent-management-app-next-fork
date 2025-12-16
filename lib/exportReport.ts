@@ -547,7 +547,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
           // Group label
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(99, 102, 241); // Indigo-500
-          const groupLabel = formatGroupLabelForPDF(perspective.group, subjectFirstName);
+          const groupLabel = getShortGroupLabelForPDF(perspective.group);
           pdf.text(`${groupLabel}:`, margin + 8, yPosition);
 
           // Perspective text

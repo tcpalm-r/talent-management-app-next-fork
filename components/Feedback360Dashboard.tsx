@@ -3902,7 +3902,7 @@ export default function Feedback360Dashboard({
                                       className="flex items-start gap-3 text-sm"
                                     >
                                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-800/50 text-indigo-800 dark:text-indigo-200 whitespace-nowrap min-w-[100px]">
-                                        {formatGroupLabel(perspective.group, subjectFirstName)}
+                                        {getShortGroupLabel(perspective.group)}
                                       </span>
                                       <span className="text-gray-700 dark:text-gray-300 flex-1">
                                         {perspective.view}
