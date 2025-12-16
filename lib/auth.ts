@@ -214,6 +214,26 @@ export const TEST_USERS: SessionUser[] = [
     department: 'Operations',
     title: 'Vice President of Operations',
   },
+  {
+    id: '7423ab47-d55e-4cd9-8b5f-46d044d67a56',
+    auth0_id: 'rigol@jamesloudspeaker.com',
+    email: 'rigol@jamesloudspeaker.com',
+    full_name: 'Rigo Lopez',
+    given_name: 'Rigo',
+    family_name: 'Lopez',
+    picture: null,
+    app_role: 'leader',
+    app_permissions: {
+      read: true,
+      admin: false,
+      write: true,
+    },
+    global_role: 'user',
+    capabilities: [],
+    app_access: true,
+    department: 'Finance',
+    title: 'Plant Controller',
+  },
 ];
 
 /**
@@ -468,23 +488,19 @@ export function getClientUser(): SessionUser | null {
     try {
       // Try parsing directly first (new format - not manually encoded)
       const user = JSON.parse(userCookie);
-      console.log('[getClientUser] Found session for:', user.email);
       return user;
     } catch (error) {
       // If that fails, try decoding first (old double-encoded format)
       try {
-        console.log('[getClientUser] Trying to decode legacy cookie format...');
         const decoded = decodeURIComponent(userCookie);
         const user = JSON.parse(decoded);
-        console.log('[getClientUser] Found session (legacy format) for:', user.email);
 
         // Re-save the cookie in the new format to fix it
         document.cookie = `${USER_COOKIE}=${JSON.stringify(user)}; path=/; max-age=86400; SameSite=Lax`;
-        console.log('[getClientUser] Fixed legacy cookie format');
 
         return user;
       } catch (decodeError) {
-        console.error('[getClientUser] Failed to parse cookie (tried both formats):', error);
+        console.error('[getClientUser] Failed to parse cookie:', error);
       }
     }
   }
@@ -497,8 +513,6 @@ export function getClientUser(): SessionUser | null {
   if (userCookie) {
     try {
       const user = JSON.parse(decodeURIComponent(userCookie));
-      console.log('[getClientUser] Found legacy user-session for:', user.email);
-      console.warn('[getClientUser] Legacy cookie found - should migrate to ai-intranet-user');
       return user;
     } catch (error) {
       console.error('[getClientUser] Failed to parse user-session cookie:', error);
@@ -508,11 +522,9 @@ export function getClientUser(): SessionUser | null {
   // If no session cookie found and in dev mode, return MOCK_USER
   // This handles the case when DISABLE_AUTH=true but no cookie is set yet
   if (AUTH_DISABLED) {
-    console.log('[getClientUser] No session found, using MOCK_USER (dev mode)');
     return MOCK_USER;
   }
 
-  console.log('[getClientUser] No authenticated session found');
   return null;
 }
 

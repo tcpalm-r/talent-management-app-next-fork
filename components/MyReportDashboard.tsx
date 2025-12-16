@@ -11,6 +11,29 @@ interface MyReportDashboardProps {
   organizationId: string;
 }
 
+// Helper to extract text from cited items (can be string or {text, citations} object)
+type CitedItem = string | { text: string; citations?: any[] };
+const getStatementText = (item: CitedItem): string => {
+  if (typeof item === 'string') {
+    // Check if it's a JSON string that needs parsing
+    if (item.startsWith('{') && item.includes('"text"')) {
+      try {
+        const parsed = JSON.parse(item);
+        if (parsed && typeof parsed === 'object' && 'text' in parsed) {
+          return parsed.text;
+        }
+      } catch {
+        // Not valid JSON, return as-is
+      }
+    }
+    return item;
+  }
+  if (item && typeof item === 'object' && 'text' in item) {
+    return item.text;
+  }
+  return String(item);
+};
+
 interface Survey {
   id: string;
   survey_name: string | null;
@@ -98,7 +121,7 @@ export default function MyReportDashboard({
         setFinalNarrative('');
       }
 
-      setActiveReportTab('themes');
+      setActiveReportTab('narrative');
     } catch (error: any) {
       console.error('Error loading report:', error);
       notify({
@@ -114,7 +137,7 @@ export default function MyReportDashboard({
     setSelectedSurvey(null);
     setSurveyResults(null);
     setFinalNarrative('');
-    setActiveReportTab('themes');
+    setActiveReportTab('narrative');
   };
 
   if (loading) {
@@ -131,12 +154,12 @@ export default function MyReportDashboard({
   if (isViewingReport && surveyResults && selectedSurvey) {
     // Define tabs
     const reportTabs = [
+      { id: 'narrative', label: 'Narrative' },
       { id: 'themes', label: 'Themes' },
       { id: 'strengths', label: 'Strengths' },
       { id: 'development', label: 'Development Areas' },
       ...(surveyResults.key_insights && surveyResults.key_insights.length > 0 ? [{ id: 'insights', label: 'Insights' }] : []),
       { id: 'recommendations', label: 'Recommended Actions' },
-      { id: 'narrative', label: 'Narrative' }
     ];
 
     return (
@@ -252,45 +275,31 @@ export default function MyReportDashboard({
             )}
 
             {/* Strengths Tab */}
-            {activeReportTab === 'strengths' && surveyResults.strengths && surveyResults.strengths.length > 0 && (
-              <div className="space-y-3">
-                {surveyResults.strengths.map((strength: any, idx: number) => (
-                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
-                    <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-2">{strength.strength}</h5>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{strength.description}</p>
-                    {strength.supporting_evidence && strength.supporting_evidence.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        {strength.supporting_evidence.map((evidence: string, qIdx: number) => (
-                          <p key={qIdx} className="text-sm text-gray-600 dark:text-gray-400 pl-3 border-l-2 border-green-300 dark:border-green-600">
-                            {evidence}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+            {activeReportTab === 'strengths' && surveyResults.overall_strengths && surveyResults.overall_strengths.length > 0 && (
+              <ul className="space-y-1">
+                {surveyResults.overall_strengths.map((strength: CitedItem, idx: number) => (
+                  <li key={idx} className="flex items-start gap-2 rounded-md p-2">
+                    <span className="text-green-600 dark:text-green-400 mt-1">•</span>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {getStatementText(strength)}
+                    </span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
 
             {/* Development Areas Tab */}
             {activeReportTab === 'development' && surveyResults.development_areas && surveyResults.development_areas.length > 0 && (
-              <div className="space-y-3">
-                {surveyResults.development_areas.map((area: any, idx: number) => (
-                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
-                    <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-2">{area.area}</h5>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{area.description}</p>
-                    {area.supporting_evidence && area.supporting_evidence.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        {area.supporting_evidence.map((evidence: string, qIdx: number) => (
-                          <p key={qIdx} className="text-sm text-gray-600 dark:text-gray-400 pl-3 border-l-2 border-orange-300 dark:border-orange-600">
-                            {evidence}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+              <ul className="space-y-1">
+                {surveyResults.development_areas.map((area: CitedItem, idx: number) => (
+                  <li key={idx} className="flex items-start gap-2 rounded-md p-2">
+                    <span className="text-amber-600 dark:text-amber-400 mt-1">•</span>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {getStatementText(area)}
+                    </span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
 
             {/* Insights Tab */}
@@ -306,12 +315,20 @@ export default function MyReportDashboard({
 
             {/* Recommendations Tab */}
             {activeReportTab === 'recommendations' && surveyResults.recommendations && surveyResults.recommendations.length > 0 && (
-              <div className="space-y-3">
-                {surveyResults.recommendations.map((rec: string, idx: number) => (
-                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{rec}</p>
-                  </div>
-                ))}
+              <div>
+                <div className="mb-4">
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Recommended Actions
+                  </h4>
+                </div>
+                <ul className="space-y-3">
+                  {surveyResults.recommendations.map((rec: CitedItem, idx: number) => (
+                    <li key={idx} className="flex items-start gap-3">
+                      <span className="text-gray-400 dark:text-gray-500 font-medium text-sm flex-shrink-0 mt-0.5">{idx + 1}.</span>
+                      <span className="text-gray-700 dark:text-gray-300">{getStatementText(rec)}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 

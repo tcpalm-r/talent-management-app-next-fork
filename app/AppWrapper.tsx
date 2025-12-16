@@ -35,10 +35,7 @@ export default function AppWrapper() {
   }, []);
 
   useEffect(() => {
-    console.log('[AppWrapper] Auth loading state changed:', { authLoading, user: user?.email });
     if (!authLoading) {
-      // Always load with actual user or mock user for dev
-      console.log('[AppWrapper] Loading user data and organization');
       loadUserDataAndOrganization();
     }
   }, [authLoading]);
@@ -47,7 +44,6 @@ export default function AppWrapper() {
     try {
       setLoading(true);
       setError(null);
-      console.log('[AppWrapper] loadUserDataAndOrganization called');
 
       // SECURITY: Always use authenticated user (no MOCK_USER fallback)
       // Development mode (DISABLE_AUTH=true) provides MOCK_USER via middleware/auth
@@ -55,12 +51,9 @@ export default function AppWrapper() {
 
       // If no authenticated user, don't try to load data
       if (!currentUser) {
-        console.log('[AppWrapper] No authenticated user available, skipping data load');
         setLoading(false);
         return;
       }
-
-      console.log('[AppWrapper] Current user:', { id: currentUser.id, email: currentUser.email });
 
       // Map SessionUser to AppUser format
       const profile: AppUser = {
@@ -73,11 +66,9 @@ export default function AppWrapper() {
       } as AppUser;
 
       setUserProfile(profile);
-      console.log('[AppWrapper] User profile set:', { role: profile.role });
 
       // Load organization
       await loadOrganization();
-      console.log('[AppWrapper] Organization loaded');
     } catch (error) {
       console.error('[AppWrapper] Error loading user data:', error);
       setError(error instanceof Error ? error.message : 'Failed to load user data');
@@ -87,7 +78,6 @@ export default function AppWrapper() {
 
   const loadOrganization = async () => {
     try {
-      console.log('[AppWrapper] loadOrganization called');
       setLoading(true);
       setError(null);
 
@@ -100,7 +90,6 @@ export default function AppWrapper() {
         created_at: now,
         updated_at: now,
       };
-      console.log('[AppWrapper] Setting default organization:', defaultOrg);
       setOrganization(defaultOrg);
     } catch (error) {
       console.error('[AppWrapper] Error loading organization:', error);

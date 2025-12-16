@@ -4008,7 +4008,7 @@ export default function Feedback360Dashboard({
                         <div className="mb-6">
                           <h4 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Final Narrative</h4>
                           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            This one-page narrative will be the first page of the final 360 report that{' '}
+                            This will be the first page of the final 360 report that{' '}
                             {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'} sees.
                           </p>
                         </div>
@@ -4049,8 +4049,8 @@ export default function Feedback360Dashboard({
                       <FileText className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
                       <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No Narrative Generated Yet</h4>
                       <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-2xl mx-auto">
-                        Generate a comprehensive one-page narrative that synthesizes all the feedback and insights from this 360 feedback.
-                        This narrative will be the first page of the final report that{' '}
+                        Generate a comprehensive narrative that synthesizes all the feedback and insights from this 360 feedback.
+                        This will be the first page of the final report that{' '}
                         {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'} sees.
                       </p>
 

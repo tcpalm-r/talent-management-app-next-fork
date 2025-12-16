@@ -16,17 +16,24 @@ const config: Config = {
         sans: ['var(--font-montserrat)', 'system-ui', 'sans-serif'],
       },
       colors: {
+        // Sonance Beam Blue palette based on #00A3E1
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#e6f7fc',
+          100: '#b3e8f7',
+          200: '#80d9f2',
+          300: '#4dcaed',
+          400: '#26bee8',
+          500: '#00A3E1',  // Sonance "The Beam" blue
+          600: '#0092ca',
+          700: '#007eb0',
+          800: '#006994',
+          900: '#004d6e',
+        },
+        // Sonance brand colors
+        sonance: {
+          charcoal: '#333F48',
+          beam: '#00A3E1',
+          'light-gray': '#D9D9D6',
         },
       },
       gridTemplateColumns: {

@@ -1,62 +1,43 @@
-/**
- * Check what data is currently in the report for this survey
- */
-
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
 
-const surveyId = '0e040061-226e-4c02-aa8f-a4e02df9c80b';
+const supabase = createClient(
+  'https://ynycbfyzbavbgxvniylt.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlueWNiZnl6YmF2Ymd4dm5peWx0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODEyMTUyMiwiZXhwIjoyMDczNjk3NTIyfQ.xCyvrSs3RH1fZXqkh7NllVVY9vR-IDLlMFuwqHo96RE'
+);
 
 async function checkReportData() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-
-  console.log('🔍 Checking report data for survey:', surveyId);
-  console.log('');
-
-  const { data: report, error } = await supabase
+  // First, let's see what columns exist
+  const { data: reports, error } = await supabase
     .from('feedback_360_reports')
     .select('*')
-    .eq('survey_id', surveyId)
-    .single();
+    .order('created_at', { ascending: false })
+    .limit(1);
 
   if (error) {
-    console.error('❌ Error:', error);
+    console.error('Error fetching reports:', error);
     return;
   }
 
-  if (!report) {
-    console.log('⚠️  No report found');
+  if (!reports || reports.length === 0) {
+    console.log('No reports found');
     return;
   }
 
-  console.log('📊 Report Data:');
-  console.log('  Generated at:', report.generated_at);
-  console.log('  Updated at:', report.updated_at);
-  console.log('');
-
-  console.log('🎯 Sentiment by Relationship:');
-  console.log(JSON.stringify(report.sentiment_by_relationship, null, 2));
-  console.log('');
-
-  // Check what fields exist
-  const hasRelationshipData =
-    report.sentiment_by_relationship?.manager !== undefined ||
-    report.sentiment_by_relationship?.peer !== undefined ||
-    report.sentiment_by_relationship?.direct_report !== undefined ||
-    report.sentiment_by_relationship?.cross_functional !== undefined;
-
-  if (hasRelationshipData) {
-    console.log('⚠️  REPORT HAS RELATIONSHIP BREAKDOWN');
-    console.log('   This is the NEW format with per-relationship scores');
-    console.log('   Subjects should NOT see these fields!');
-  } else {
-    console.log('✅ REPORT ONLY HAS OVERALL SCORE');
-    console.log('   This is the OLD format or already filtered');
-    console.log('   Safe for subjects to view');
-  }
+  const report = reports[0];
+  console.log('Available columns:', Object.keys(report));
+  console.log('\n========================================');
+  console.log('Latest Report:');
+  console.log('Survey ID:', report.survey_id);
+  console.log('Created:', report.created_at);
+  console.log('\n--- consensus_areas ---');
+  console.log(JSON.stringify(report.consensus_areas, null, 2));
+  console.log('\n--- varied_by_relationship ---');
+  console.log(JSON.stringify(report.varied_by_relationship, null, 2));
+  console.log('\n--- outliers ---');
+  console.log(JSON.stringify(report.outliers, null, 2));
+  console.log('\n--- outlier_opinions (old field) ---');
+  console.log(JSON.stringify(report.outlier_opinions, null, 2));
+  console.log('========================================\n');
 }
 
 checkReportData().catch(console.error);

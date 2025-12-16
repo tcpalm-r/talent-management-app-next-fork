@@ -30,10 +30,10 @@ html, body {
   --text-lg: 1.125rem;     /* 18px - headings */
   --text-xl: 1.25rem;      /* 20px - page titles */
 
-  /* Color Palette (limited) */
-  --color-primary: #2563eb;      /* blue-600 */
-  --color-primary-hover: #1d4ed8; /* blue-700 */
-  --color-primary-light: #dbeafe; /* blue-100 */
+  /* Color Palette (limited) - Sonance Beam Blue */
+  --color-primary: #00A3E1;      /* Sonance Beam */
+  --color-primary-hover: #0092ca; /* Sonance Beam darker */
+  --color-primary-light: #e6f7fc; /* Sonance Beam light */
 
   --color-success: #16a34a;      /* green-600 */
   --color-success-light: #dcfce7; /* green-100 */
@@ -62,9 +62,9 @@ html, body {
 
 /* Dark Mode Color Palette */
 .dark {
-  --color-primary: #3b82f6;      /* blue-500 */
-  --color-primary-hover: #2563eb; /* blue-600 */
-  --color-primary-light: #1e3a8a; /* blue-900 */
+  --color-primary: #00A3E1;      /* Sonance Beam */
+  --color-primary-hover: #26bee8; /* Sonance Beam lighter */
+  --color-primary-light: #004d6e; /* Sonance Beam dark */
 
   --color-success: #22c55e;      /* green-500 */
   --color-success-light: #166534; /* green-800 */
@@ -121,8 +121,8 @@ html, body {
 
 /* Button Hierarchy */
 .btn-primary {
-  @apply px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white text-sm font-medium rounded-md
-         hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors shadow-sm;
+  @apply px-4 py-2 bg-primary-500 dark:bg-primary-600 text-white text-sm font-medium rounded-md
+         hover:bg-primary-600 dark:hover:bg-primary-700 transition-colors shadow-sm;
 }
 
 .btn-secondary {
@@ -355,10 +355,10 @@ html, body {
 /* Pin button pulse effect when employee is pinned */
 @keyframes pulse-blue {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+    box-shadow: 0 0 0 0 rgba(0, 163, 225, 0.7);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(37, 99, 235, 0);
+    box-shadow: 0 0 0 6px rgba(0, 163, 225, 0);
   }
 }
 
@@ -435,12 +435,12 @@ html, body {
 
 /* Employee focus badge */
 .employee-focused {
-  @apply ring-2 ring-blue-500 ring-offset-2;
+  @apply ring-2 ring-primary-500 ring-offset-2;
 }
 
 /* Compare mode active state */
 .compare-mode-active {
-  @apply bg-blue-50 border-blue-300;
+  @apply bg-primary-50 border-primary-300;
 }
 
 /* Floating action button for minimize state */
@@ -496,7 +496,7 @@ html, body {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: #00A3E1;
   cursor: pointer;
   border: 2px solid white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -511,7 +511,7 @@ html, body {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: #00A3E1;
   cursor: pointer;
   border: 2px solid white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);

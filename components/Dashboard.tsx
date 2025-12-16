@@ -35,7 +35,7 @@ export default function Dashboard({
 }: DashboardProps) {
   const { notify } = useToast();
 
-  const shellClass = 'mx-auto w-full px-6 lg:px-8 xl:px-12 max-w-screen-2xl 2xl:px-16 2xl:max-w-[1700px]';
+  const shellClass = 'mx-auto w-full px-4 lg:px-6 xl:px-8 max-w-screen-2xl 2xl:px-10 2xl:max-w-[1700px]';
 
   const [currentView, setCurrentView] = useState<View>('360-feedback');
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -54,15 +54,8 @@ export default function Dashboard({
 
     // If found, return the employee record; otherwise create a minimal one from userProfile
     if (matched) {
-      console.log('[Dashboard] Found currentUserEmployee in employees list:');
-      console.log('  - email:', matched.email);
-      console.log('  - id from employees:', matched.id);
-      console.log('  - id from userProfile:', userProfile.id);
-      console.log('  - IDs match?', matched.id === userProfile.id);
-
       // IMPORTANT: If IDs don't match, use userProfile ID (source of truth)
       if (matched.id !== userProfile.id) {
-        console.warn('[Dashboard] ⚠️  ID MISMATCH! Using userProfile ID as source of truth');
         return {
           ...matched,
           id: userProfile.id, // Override with correct ID from userProfile
@@ -74,7 +67,6 @@ export default function Dashboard({
 
     // Fallback: Create an employee record from userProfile so drafts can be saved with sponsor info
     if (userProfile.id && userProfile.email) {
-      console.log('[Dashboard] Using userProfile as currentUserEmployee (not found in employees list)');
       return {
         id: userProfile.id,
         email: userProfile.email,
@@ -248,7 +240,7 @@ export default function Dashboard({
           )}
 
           {!loading && (
-            <div className={`${shellClass} py-8`}>
+            <div className={`${shellClass} py-6`}>
               {/* View Content */}
               {currentView === '360-feedback' && (
                 <Feedback360Dashboard
