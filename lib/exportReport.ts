@@ -616,11 +616,10 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     );
   }
 
-  // Generate filename
-  const baseName = report.employee_name?.replace(/\s+/g, '-') || 'Report';
-  const date = new Date().toISOString().split('T')[0];
-  const suffixPart = suffix ? `-${suffix}` : '';
-  const filename = `360-Review-${baseName}-${date}${suffixPart}.pdf`;
+  // Generate filename - use employeeName variable from earlier (already extracted from employee_name or survey_name)
+  const subjectName = employeeName || 'Report';
+  const sponsorTag = suffix === 'FULL' ? ' (SPONSOR ONLY)' : '';
+  const filename = `360 Feedback${sponsorTag} - ${subjectName}.pdf`;
 
   // Save PDF
   pdf.save(filename);
