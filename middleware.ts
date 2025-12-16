@@ -85,9 +85,14 @@ function decodeJWT(token: string): Record<string, any> | null {
   }
 }
 
+// Control verbose logging - set to true for debugging auth issues
+const VERBOSE_AUTH_LOGGING = false;
+
 export async function middleware(request: NextRequest) {
   try {
-    console.log('[Sonance Auth] Processing request to:', request.nextUrl.pathname);
+    if (VERBOSE_AUTH_LOGGING) {
+      console.log('[Sonance Auth] Processing request to:', request.nextUrl.pathname);
+    }
 
     // Skip middleware for specific paths
     // IMPORTANT: Only skip public auth endpoints (login, logout, callback)
@@ -129,8 +134,6 @@ export async function middleware(request: NextRequest) {
     }
 
     if (authDisabled) {
-      console.log('[Sonance Auth] Authentication bypassed for local development');
-
       // Check if there's an existing user cookie from user switcher
       const existingUserCookie = request.cookies.get('ai-intranet-user');
       let currentUser = MOCK_USER;
@@ -138,10 +141,11 @@ export async function middleware(request: NextRequest) {
       if (existingUserCookie) {
         try {
           const parsedUser = JSON.parse(existingUserCookie.value);
-          console.log('[Sonance Auth] Found existing user cookie:', parsedUser.email);
           currentUser = parsedUser;
         } catch (error) {
-          console.error('[Sonance Auth] Failed to parse existing user cookie, using MOCK_USER');
+          if (VERBOSE_AUTH_LOGGING) {
+            console.error('[Sonance Auth] Failed to parse existing user cookie, using MOCK_USER');
+          }
         }
       }
 
@@ -160,7 +164,9 @@ export async function middleware(request: NextRequest) {
 
       // Set cookie if there wasn't one already
       if (!existingUserCookie) {
-        console.log('[Sonance Auth] No existing cookie, setting MOCK_USER');
+        if (VERBOSE_AUTH_LOGGING) {
+          console.log('[Sonance Auth] No existing cookie, setting MOCK_USER');
+        }
         response.cookies.set('ai-intranet-user', JSON.stringify(MOCK_USER), {
           httpOnly: false, // Accessible to JavaScript for client-side auth checks
           secure: false, // Not secure in development

@@ -38,7 +38,6 @@ export async function getAuthenticatedUser(
   if (userDataHeader) {
     try {
       const sessionUser = JSON.parse(userDataHeader) as SessionUser;
-      console.log('[auth-wrapper] Using session user from middleware:', sessionUser.email);
 
       // Get the profile from Supabase
       const profile = await getUserProfileByEmail(sessionUser.email);

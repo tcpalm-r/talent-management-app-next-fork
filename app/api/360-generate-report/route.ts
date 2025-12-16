@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import {
   analyzeWithCitations,
   AnalysisResultWithCitations,
+  GenerationCancelledError,
 } from '@/lib/services/surveyAnalyzerService';
 import { filterReportForSubject } from '@/lib/filterReport';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
@@ -501,6 +502,17 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
+    // Handle cancellation gracefully - not an error, just user action
+    if (error instanceof GenerationCancelledError) {
+      console.log(`📊 Report generation was cancelled for survey ${survey_id}`);
+      // Status already reverted by cancel-generation endpoint, just return success
+      return NextResponse.json({
+        success: false,
+        cancelled: true,
+        message: 'Report generation was cancelled',
+      });
+    }
+
     console.error('Error generating 360 report:', error);
 
     // Revert survey status to 'in_progress' if generation failed

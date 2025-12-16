@@ -8,6 +8,45 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+
+// ==================== Cancellation Registry ====================
+// In-memory registry to track cancelled survey generations
+// This allows us to stop processing between passes or before saving
+const cancelledSurveys = new Set<string>();
+
+/**
+ * Mark a survey generation as cancelled.
+ * Call this from the cancel-generation API route.
+ */
+export function markSurveyCancelled(surveyId: string): void {
+  cancelledSurveys.add(surveyId);
+  console.log(`[surveyAnalyzerService] Survey ${surveyId} marked for cancellation`);
+}
+
+/**
+ * Check if a survey generation has been cancelled.
+ */
+export function isSurveyCancelled(surveyId: string): boolean {
+  return cancelledSurveys.has(surveyId);
+}
+
+/**
+ * Clear the cancellation flag for a survey.
+ * Call this when starting a new generation or after handling cancellation.
+ */
+export function clearSurveyCancellation(surveyId: string): void {
+  cancelledSurveys.delete(surveyId);
+}
+
+/**
+ * Custom error for cancelled operations
+ */
+export class GenerationCancelledError extends Error {
+  constructor(surveyId: string) {
+    super(`Report generation cancelled for survey ${surveyId}`);
+    this.name = 'GenerationCancelledError';
+  }
+}
 import type {
   Survey360,
   Survey360Response,
@@ -58,10 +97,15 @@ export interface AnalysisResultWithCitations {
 /**
  * Analyze survey responses with citation tracking using two-pass pipeline.
  * Pass 1 extracts question-level summaries, Pass 2 synthesizes into final report.
+ * Supports cancellation between passes via the cancellation registry.
  */
 export async function analyzeWithCitations(input: AnalysisInput): Promise<AnalysisResultWithCitations> {
   const startTime = Date.now();
   const { survey, responses, participants, questions, tone = 'standard' } = input;
+  const surveyId = survey.id;
+
+  // Clear any stale cancellation flag from previous attempts
+  clearSurveyCancellation(surveyId);
 
   console.log('[surveyAnalyzerService] Starting two-pass analysis pipeline');
   console.log(`[surveyAnalyzerService] Survey: ${survey.survey_name || survey.survey_title}`);
@@ -98,6 +142,13 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   const pass1Duration = Date.now() - pass1Start;
   console.log(`[surveyAnalyzerService] Pass 1 complete: ${questionSummaries.length} question summaries in ${pass1Duration}ms`);
 
+  // Check for cancellation after Pass 1
+  if (isSurveyCancelled(surveyId)) {
+    console.log(`[surveyAnalyzerService] Generation cancelled after Pass 1 for survey ${surveyId}`);
+    clearSurveyCancellation(surveyId);
+    throw new GenerationCancelledError(surveyId);
+  }
+
   // Validate Pass 1 coverage
   const pass1Coverage = validatePass1Coverage(responses, questions, questionSummaries);
   console.log(`[surveyAnalyzerService] Pass 1 citation coverage: ${pass1Coverage.toFixed(1)}%`);
@@ -115,6 +166,13 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
 
   const pass2Duration = Date.now() - pass2Start;
   console.log(`[surveyAnalyzerService] Pass 2 complete in ${pass2Duration}ms`);
+
+  // Check for cancellation after Pass 2 (before saving)
+  if (isSurveyCancelled(surveyId)) {
+    console.log(`[surveyAnalyzerService] Generation cancelled after Pass 2 for survey ${surveyId}`);
+    clearSurveyCancellation(surveyId);
+    throw new GenerationCancelledError(surveyId);
+  }
 
   // Log what the AI returned for group-level fields
   console.log('[surveyAnalyzerService] AI returned consensus_areas:', JSON.stringify(analysis.consensus_areas, null, 2).slice(0, 500));

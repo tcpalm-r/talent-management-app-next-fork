@@ -277,14 +277,7 @@ export default function Feedback360Dashboard({
     if (!currentUser?.email || !employees) return null;
     const emailLower = currentUser.email.toLowerCase();
     const userRecord = employees.find(e => e.email?.toLowerCase() === emailLower);
-    
-    // DEBUG: Log sponsor detection data
-    console.log('[Sponsor Debug] currentUser.id (AI Intranet):', currentUser.id);
-    console.log('[Sponsor Debug] currentUser.email:', currentUser.email);
-    console.log('[Sponsor Debug] employees count:', employees?.length);
-    console.log('[Sponsor Debug] Found user in employees:', !!userRecord);
-    console.log('[Sponsor Debug] currentUserDbId (Supabase UUID):', userRecord?.id || 'NOT FOUND');
-    
+
     return userRecord?.id || null;
   }, [currentUser?.email, employees]);
   
@@ -2551,17 +2544,6 @@ export default function Feedback360Dashboard({
                     // SLT/Admin can only opt out if they opted in themselves (not assigned by sponsor)
                     const hasOptedIn = canOptInOut && isReviewer && (myReviewerRecord?.relationship === 'slt' || myReviewerRecord?.relationship === 'admin') && myReviewerRecord?.assigned_by_sponsor === false;
 
-                    // Debug logging for opt-in/opt-out button logic
-                    if (canOptInOut && isReviewer) {
-                      console.log(`[Opt-Out Debug] Survey: ${survey.survey_name}`);
-                      console.log('  canOptInOut:', canOptInOut);
-                      console.log('  isReviewer:', isReviewer);
-                      console.log('  myReviewerRecord:', myReviewerRecord);
-                      console.log('  relationship:', myReviewerRecord?.relationship);
-                      console.log('  assigned_by_sponsor:', myReviewerRecord?.assigned_by_sponsor);
-                      console.log('  hasOptedIn:', hasOptedIn);
-                    }
-
                     // If user is a reviewer and not completed, show complete button
                     if (isReviewer && !isCompleted && myReviewerRecord?.access_token) {
                       return (
@@ -2730,9 +2712,7 @@ export default function Feedback360Dashboard({
         // Leaders who are reviewers (not sponsors) should always see read-only view
         const isLeaderReviewer = isLeader && isReviewer && !isSponsor;
 
-        // DEBUG: Log modal decision
         const willShowReadOnlyModal = !canManage || isLeaderReviewerOnFinalized || isLeaderReviewer;
-        console.log('[Modal Debug] userRole:', currentUser?.app_role, 'isAdmin:', isAdmin, 'canManage:', canManage, 'willShowReadOnlyModal:', willShowReadOnlyModal);
 
         if (willShowReadOnlyModal) {
           // Read-only view for reviewers and subject (admins always go to management view above)
@@ -2900,7 +2880,7 @@ export default function Feedback360Dashboard({
                   Generating AI Analysis...
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4 mb-6">
-                  Report may take up to 2 minutes to generate to ensure accuracy and precision
+                  Report generation may take up to 8 minutes depending on number of reviewers
                 </p>
                 {/* Cancel button */}
                 <button
@@ -3425,7 +3405,7 @@ export default function Feedback360Dashboard({
                     Regenerating AI Analysis...
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4 mb-6">
-                    Report may take up to 2 minutes to generate to ensure accuracy and precision
+                    Report generation may take up to 8 minutes depending on number of reviewers
                   </p>
                   {/* Cancel button */}
                   <button

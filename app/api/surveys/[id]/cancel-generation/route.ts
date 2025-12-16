@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
+import { markSurveyCancelled } from '@/lib/services/surveyAnalyzerService';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +57,10 @@ export async function POST(
         currentStatus: survey.status
       }, { status: 400 });
     }
+
+    // Mark the survey as cancelled in the in-memory registry
+    // This will cause the analyzer service to stop between passes
+    markSurveyCancelled(surveyId);
 
     // Reset status to 'in_progress'
     const { error: updateError } = await supabaseAdmin
