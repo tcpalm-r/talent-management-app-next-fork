@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { FileText, Download, Eye, Calendar, X } from 'lucide-react';
 import type { Employee } from '../types';
-import { useToast } from './unified';
+import { useToast, Tooltip, TooltipProvider } from './unified';
 import NavigationTabs from './unified/NavigationTabs';
 import { exportReportAsPDF } from '../lib/exportReport';
 
@@ -353,57 +353,64 @@ export default function MyReportDashboard({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <TooltipProvider>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Performance Review</h1>
+          </div>
+        </div>
+
+        {/* 360° Review Report Section */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Performance Review</h1>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">360° Feedback</h2>
+          {finalizedSurveys.length === 0 ? (
+            <Tooltip
+              content="When all your 360 feedback is processed and your supervisor finalizes the report it will show up here"
+              side="bottom"
+            >
+              <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-md border-2 border-dashed border-gray-300 dark:border-gray-600 cursor-help">
+                <FileText className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                <p className="text-sm text-gray-500 dark:text-gray-400">No reports yet</p>
+              </div>
+            </Tooltip>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {finalizedSurveys.map((survey) => (
+              <div
+                key={survey.id}
+                className="border border-gray-200 dark:border-gray-700 rounded-md p-5 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                      {survey.survey_name || 'Untitled Survey'}
+                    </h3>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                      <Calendar className="w-3 h-3" />
+                      <span>
+                        Completed {survey.completed_at ? new Date(survey.completed_at).toLocaleDateString() : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-xs font-medium">
+                    Finalized
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => viewReport(survey)}
+                  className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors text-sm font-medium"
+                >
+                  <Eye className="w-4 h-4" />
+                  View Report
+                </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* 360° Review Report Section */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">360° Feedback</h2>
-        {finalizedSurveys.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-md border-2 border-dashed border-gray-300 dark:border-gray-600">
-            <FileText className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">No reports yet</p>
-            </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {finalizedSurveys.map((survey) => (
-            <div
-              key={survey.id}
-              className="border border-gray-200 dark:border-gray-700 rounded-md p-5 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
-                    {survey.survey_name || 'Untitled Survey'}
-                  </h3>
-                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                    <Calendar className="w-3 h-3" />
-                    <span>
-                      Completed {survey.completed_at ? new Date(survey.completed_at).toLocaleDateString() : 'N/A'}
-                    </span>
-                  </div>
-                </div>
-                <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-xs font-medium">
-                  Finalized
-                </span>
-              </div>
-
-              <button
-                onClick={() => viewReport(survey)}
-                className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors text-sm font-medium"
-              >
-                <Eye className="w-4 h-4" />
-                View Report
-              </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+    </TooltipProvider>
   );
 }
