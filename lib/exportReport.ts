@@ -6,6 +6,70 @@
 
 import jsPDF from 'jspdf';
 
+// Sonance brand color (from brand guidelines)
+const SONANCE_DARK = '#39464F'; // Sonance dark gray for text
+
+/**
+ * Load image from URL and convert to base64 for PDF embedding
+ */
+async function loadImageAsBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load Montserrat font from Google Fonts and register with jsPDF
+ */
+async function loadMontserratFont(pdf: jsPDF): Promise<boolean> {
+  try {
+    // Fetch Montserrat Regular and Bold from Google Fonts
+    const regularUrl = 'https://fonts.gstatic.com/s/montserrat/v26/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtr6Ew-.ttf';
+    const boldUrl = 'https://fonts.gstatic.com/s/montserrat/v26/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM70w-.ttf';
+
+    const [regularResponse, boldResponse] = await Promise.all([
+      fetch(regularUrl),
+      fetch(boldUrl)
+    ]);
+
+    if (!regularResponse.ok || !boldResponse.ok) return false;
+
+    const [regularBuffer, boldBuffer] = await Promise.all([
+      regularResponse.arrayBuffer(),
+      boldResponse.arrayBuffer()
+    ]);
+
+    // Convert to base64
+    const regularBase64 = btoa(
+      new Uint8Array(regularBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+    const boldBase64 = btoa(
+      new Uint8Array(boldBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+
+    // Register fonts with jsPDF
+    pdf.addFileToVFS('Montserrat-Regular.ttf', regularBase64);
+    pdf.addFileToVFS('Montserrat-Bold.ttf', boldBase64);
+    pdf.addFont('Montserrat-Regular.ttf', 'Montserrat', 'normal');
+    pdf.addFont('Montserrat-Bold.ttf', 'Montserrat', 'bold');
+
+    return true;
+  } catch (error) {
+    console.error('Failed to load Montserrat font:', error);
+    return false;
+  }
+}
+
 // Type for statements that may be strings or CitedStatement objects
 type StatementOrCited = string | { text: string; citations?: any[] };
 
@@ -166,6 +230,10 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
   const contentWidth = pageWidth - (2 * margin);
   let yPosition = margin;
 
+  // Load Montserrat font (Sonance brand font)
+  const fontLoaded = await loadMontserratFont(pdf);
+  const fontFamily = fontLoaded ? 'Montserrat' : 'helvetica';
+
   // Helper to add new page if needed
   const checkPageBreak = (neededSpace: number = 25) => {
     if (yPosition + neededSpace > pageHeight - margin) {
@@ -189,45 +257,66 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
   };
 
   // ==========================================================================
-  // PAGE 1: COVER PAGE
+  // PAGE 1: HEADER
   // ==========================================================================
 
-  // Title with employee name
-  // Try to get employee name from: 1) employee_name field, 2) extract from survey_name if it contains "360° Feedback - Name"
-  let employeeName = report.employee_name?.trim() || '';
-  if (!employeeName && report.survey_name) {
-    // Extract name from survey_name format "360° Feedback - Name"
-    const match = report.survey_name.match(/360°?\s*Feedback\s*-\s*(.+)/i);
-    if (match) {
-      employeeName = match[1].trim();
-    }
+  // Load Sonance logo
+  const logoUrl = '/logos/Sonance_Logo_2C_Dark_RGB.png';
+  const logoBase64 = await loadImageAsBase64(logoUrl);
+
+  // Logo dimensions: 1973x312 pixels (6.32:1 aspect ratio)
+  const logoWidth = 35; // mm - compact size for header
+  const logoHeight = logoWidth / 6.32; // ~5.5mm maintains aspect ratio
+
+  if (logoBase64) {
+    pdf.addImage(logoBase64, 'PNG', margin, yPosition, logoWidth, logoHeight);
   }
 
-  pdf.setFontSize(24);
-  pdf.setFont('helvetica', 'bold');
-  const titleText = employeeName
-    ? `360° Feedback - ${employeeName}`
-    : '360° Feedback Report';
-  pdf.text(titleText, margin, yPosition);
-  yPosition += 20;
-
-  // Horizontal line
-  pdf.setDrawColor(200, 200, 200);
-  pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-  yPosition += 10;
-
-  // Metadata
-  pdf.setFontSize(10);
+  // Date on the right side of header, aligned with logo
+  pdf.setFont(fontFamily, 'normal');
+  pdf.setFontSize(9);
   pdf.setTextColor(120, 120, 120);
   const generatedDate = new Date(report.generated_at).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
-  pdf.text(`Generated: ${generatedDate}`, margin, yPosition);
-  yPosition += 5;
-  pdf.text(`AI Model: ${report.generated_by || 'Claude AI'}`, margin, yPosition);
-  yPosition += 15;
+  pdf.text(generatedDate, pageWidth - margin, yPosition + logoHeight / 2 + 1, { align: 'right' });
+
+  yPosition += logoHeight + 6;
+
+  // Thin separator line
+  pdf.setDrawColor(200, 200, 200);
+  pdf.setLineWidth(0.3);
+  pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+  yPosition += 18; // Extra spacing before title
+
+  // Title with employee name
+  let employeeName = report.employee_name?.trim() || '';
+  if (!employeeName && report.survey_name) {
+    const match = report.survey_name.match(/360°?\s*Feedback\s*-\s*(.+)/i);
+    if (match) {
+      employeeName = match[1].trim();
+    }
+  }
+
+  pdf.setFontSize(22);
+  pdf.setFont(fontFamily, 'bold');
+  pdf.setTextColor(0, 0, 0);
+  const titleText = '360° Feedback Report';
+  pdf.text(titleText, margin, yPosition);
+  yPosition += 8;
+
+  // Employee name as subtitle
+  if (employeeName) {
+    pdf.setFontSize(14);
+    pdf.setFont(fontFamily, 'normal');
+    pdf.setTextColor(80, 80, 80);
+    pdf.text(employeeName, margin, yPosition);
+    yPosition += 12;
+  } else {
+    yPosition += 4;
+  }
 
   // ==========================================================================
   // NARRATIVE - First content after cover page, no header, just the text
@@ -246,7 +335,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     const paragraphs = narrative.split(/\n\n+/).filter(p => p.trim());
 
     pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
+    pdf.setFont(fontFamily, 'normal');
     pdf.setTextColor(0, 0, 0);
 
     paragraphs.forEach((paragraph, index) => {
@@ -285,19 +374,19 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     checkPageBreak(30);
 
     pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(59, 130, 246); // Blue
-    pdf.text('Themes', margin, yPosition);
+    pdf.setFont(fontFamily, 'normal');
+    pdf.setTextColor(0, 163, 225); // Sonance Blue "The Beam"
+    pdf.text('Themes', pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 10;
 
     pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
+    pdf.setFont(fontFamily, 'normal');
 
     report.themes.forEach((theme, idx) => {
       checkPageBreak(25);
 
       // Theme title and sentiment
-      pdf.setFont('helvetica', 'bold');
+      pdf.setFont(fontFamily, 'bold');
       pdf.setTextColor(0, 0, 0); // Reset to black for theme title
       pdf.text(`${idx + 1}. ${theme.theme}`, margin + 5, yPosition);
 
@@ -319,24 +408,14 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
       const color = sentimentColors[theme.sentiment] || [156, 163, 175];
       const label = sentimentLabels[theme.sentiment] || theme.sentiment.toUpperCase();
       pdf.setTextColor(color[0], color[1], color[2]);
-      pdf.text(`[${label}]`, pageWidth - margin - 35, yPosition);
+      pdf.text(label, pageWidth - margin - 30, yPosition);
       pdf.setTextColor(0, 0, 0);
 
       yPosition += 6;
 
-      // Frequency
-      pdf.setFont('helvetica', 'italic');
-      pdf.setFontSize(9);
-      pdf.setTextColor(100, 100, 100);
-      const frequencyText = theme.frequency !== undefined && theme.frequency > 0
-        ? `Mentioned by ${theme.frequency} reviewer(s)`
-        : 'Mentioned by reviewers';
-      pdf.text(frequencyText, margin + 5, yPosition);
-      yPosition += 5;
-
       // Supporting evidence (first 2)
       if (theme.supporting_evidence && theme.supporting_evidence.length > 0) {
-        pdf.setFont('helvetica', 'normal');
+        pdf.setFont(fontFamily, 'normal');
         pdf.setFontSize(9);
         theme.supporting_evidence.slice(0, 2).forEach(evidence => {
           checkPageBreak(15);
@@ -347,6 +426,8 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
 
       yPosition += 3;
     });
+
+    yPosition += 10; // Extra spacing before next section
   }
 
   // ==========================================================================
@@ -357,22 +438,26 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     checkPageBreak(30);
 
     pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(59, 130, 246); // Blue
-    pdf.text('Strengths', margin, yPosition);
+    pdf.setFont(fontFamily, 'normal');
+    pdf.setTextColor(0, 163, 225); // Sonance Blue "The Beam"
+    pdf.text('Strengths', pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 10;
 
     pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(0, 0, 0);
 
     report.overall_strengths.forEach((strength, idx) => {
       checkPageBreak(15);
-      const height = addWrappedText(`• ${getStatementText(strength)}`, margin + 5, yPosition, contentWidth - 5, 10);
-      yPosition += height + 3;
+      // Render bullet in bold black
+      pdf.setFont(fontFamily, 'bold');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('•', margin + 5, yPosition);
+      // Render text in normal black
+      pdf.setFont(fontFamily, 'normal');
+      const height = addWrappedText(getStatementText(strength), margin + 10, yPosition, contentWidth - 10, 10);
+      yPosition += height + 4;
     });
 
-    yPosition += 5;
+    yPosition += 12; // Extra spacing before next section
   }
 
   // ==========================================================================
@@ -382,22 +467,26 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     checkPageBreak(30);
 
     pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(59, 130, 246); // Blue
-    pdf.text('Development Areas', margin, yPosition);
+    pdf.setFont(fontFamily, 'normal');
+    pdf.setTextColor(0, 163, 225); // Sonance Blue "The Beam"
+    pdf.text('Development Areas', pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 10;
 
     pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(0, 0, 0);
 
     report.development_areas.forEach((area, idx) => {
       checkPageBreak(15);
-      const height = addWrappedText(`• ${getStatementText(area)}`, margin + 5, yPosition, contentWidth - 5, 10);
-      yPosition += height + 3;
+      // Render bullet in bold black
+      pdf.setFont(fontFamily, 'bold');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('•', margin + 5, yPosition);
+      // Render text in normal black
+      pdf.setFont(fontFamily, 'normal');
+      const height = addWrappedText(getStatementText(area), margin + 10, yPosition, contentWidth - 10, 10);
+      yPosition += height + 4;
     });
 
-    yPosition += 5;
+    yPosition += 12; // Extra spacing before next section
   }
 
   // ==========================================================================
@@ -407,22 +496,26 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     checkPageBreak(30);
 
     pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(59, 130, 246); // Blue
-    pdf.text('Recommended Actions', margin, yPosition);
+    pdf.setFont(fontFamily, 'normal');
+    pdf.setTextColor(0, 163, 225); // Sonance Blue "The Beam"
+    pdf.text('Recommended Actions', pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 10;
 
     pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(0, 0, 0);
 
     report.recommendations.forEach((rec, idx) => {
       checkPageBreak(15);
-      const height = addWrappedText(`${idx + 1}. ${getStatementText(rec)}`, margin + 5, yPosition, contentWidth - 5, 10);
-      yPosition += height + 3;
+      // Render number in bold black
+      pdf.setFont(fontFamily, 'bold');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`${idx + 1}.`, margin + 5, yPosition);
+      // Render text in normal black
+      pdf.setFont(fontFamily, 'normal');
+      const height = addWrappedText(getStatementText(rec), margin + 12, yPosition, contentWidth - 12, 10);
+      yPosition += height + 4;
     });
 
-    yPosition += 5;
+    yPosition += 12; // Extra spacing before next section
   }
 
   // ==========================================================================
@@ -448,7 +541,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
 
     // Notice text
     pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'bold');
+    pdf.setFont(fontFamily, 'bold');
     pdf.setTextColor(180, 83, 9); // Amber-700
 
     const line1 = '⚠ SPONSOR/ADMIN ONLY';
@@ -464,7 +557,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     yPosition += 10;
 
     pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
+    pdf.setFont(fontFamily, 'bold');
     pdf.setTextColor(0, 0, 0);
     pdf.text('Group-Level Analysis', margin, yPosition);
     yPosition += 12;
@@ -472,19 +565,19 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     // Section 1: Strong Consensus
     if (hasConsensus) {
       pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
+      pdf.setFont(fontFamily, 'bold');
       pdf.setTextColor(34, 197, 94); // Green-500
       pdf.text('Strong Consensus', margin, yPosition);
       yPosition += 6;
 
       pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'italic');
+      pdf.setFont(fontFamily, 'italic');
       pdf.setTextColor(100, 100, 100);
       pdf.text('Areas where multiple reviewer groups agree', margin, yPosition);
       yPosition += 6;
 
       pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'normal');
+      pdf.setFont(fontFamily, 'normal');
       pdf.setTextColor(0, 0, 0);
 
       report.consensus_areas!.forEach((area: any) => {
@@ -496,12 +589,12 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
         // Show agreeing groups if available (v2 format)
         if (area.groups_agreeing && area.groups_agreeing.length > 0) {
           pdf.setFontSize(8);
-          pdf.setFont('helvetica', 'italic');
+          pdf.setFont(fontFamily, 'italic');
           pdf.setTextColor(100, 100, 100);
           const groupsText = area.groups_agreeing.map((g: string) => getShortGroupLabelForPDF(g)).join(', ');
           pdf.text(`   [${groupsText}]`, margin + 5, yPosition);
           yPosition += 4;
-          pdf.setFont('helvetica', 'normal');
+          pdf.setFont(fontFamily, 'normal');
           pdf.setTextColor(0, 0, 0);
         }
         yPosition += 2;
@@ -515,13 +608,13 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
       checkPageBreak(30);
 
       pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
+      pdf.setFont(fontFamily, 'bold');
       pdf.setTextColor(99, 102, 241); // Indigo-500
       pdf.text('Varied by Relationship', margin, yPosition);
       yPosition += 6;
 
       pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'italic');
+      pdf.setFont(fontFamily, 'italic');
       pdf.setTextColor(100, 100, 100);
       pdf.text(`Topics where different groups perceive ${subjectFirstName} differently`, margin, yPosition);
       yPosition += 8;
@@ -531,26 +624,26 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
 
         // Topic header
         pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'bold');
+        pdf.setFont(fontFamily, 'bold');
         pdf.setTextColor(0, 0, 0);
         pdf.text(item.topic.toUpperCase(), margin + 5, yPosition);
         yPosition += 6;
 
         // Perspectives
         pdf.setFontSize(9);
-        pdf.setFont('helvetica', 'normal');
+        pdf.setFont(fontFamily, 'normal');
 
         item.perspectives?.forEach((perspective: VariedPerspective) => {
           checkPageBreak(12);
 
           // Group label
-          pdf.setFont('helvetica', 'bold');
+          pdf.setFont(fontFamily, 'bold');
           pdf.setTextColor(99, 102, 241); // Indigo-500
           const groupLabel = getShortGroupLabelForPDF(perspective.group);
           pdf.text(`${groupLabel}:`, margin + 8, yPosition);
 
           // Perspective text
-          pdf.setFont('helvetica', 'normal');
+          pdf.setFont(fontFamily, 'normal');
           pdf.setTextColor(0, 0, 0);
           const viewText = `"${perspective.view}"`;
           const height = addWrappedText(viewText, margin + 45, yPosition - 3, contentWidth - 50, 9);
@@ -568,19 +661,19 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
       checkPageBreak(25);
 
       pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
+      pdf.setFont(fontFamily, 'bold');
       pdf.setTextColor(245, 158, 11); // Amber-500
       pdf.text('Outliers', margin, yPosition);
       yPosition += 6;
 
       pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'italic');
+      pdf.setFont(fontFamily, 'italic');
       pdf.setTextColor(100, 100, 100);
       pdf.text('Unique perspectives mentioned by only one reviewer', margin, yPosition);
       yPosition += 6;
 
       pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'normal');
+      pdf.setFont(fontFamily, 'normal');
       pdf.setTextColor(0, 0, 0);
 
       // New format outliers
