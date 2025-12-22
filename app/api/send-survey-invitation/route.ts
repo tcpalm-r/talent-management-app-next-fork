@@ -177,14 +177,9 @@ export async function POST(request: Request) {
       employee: survey.employee?.name,
     });
 
-    // Build subject line with unique survey ID to prevent email threading
-    // Use last 6 characters of survey ID to keep it short but unique
-    const surveyIdShort = survey.id ? survey.id.slice(-6).toUpperCase() : '';
-    const surveyIdSuffix = surveyIdShort ? ` [${surveyIdShort}]` : '';
-    
     const subject = isReminder && daysRemaining !== null
-      ? `Reminder: 360° Feedback Due in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} - ${survey.employee?.name || 'Team Member'}${surveyIdSuffix}`
-      : `360° Feedback Request for ${survey.employee?.name || 'Team Member'}${surveyIdSuffix}`;
+      ? `Reminder: 360° Feedback Due in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} - ${survey.employee?.name || 'Team Member'}`
+      : `360° Feedback Request for ${survey.employee?.name || 'Team Member'}`;
 
     let emailResult;
     try {
@@ -224,12 +219,6 @@ export async function POST(request: Request) {
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
     <p style="font-size: 16px; margin-bottom: 20px;">Hi ${reviewer.reviewer_name || 'there'},</p>
 
-    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 15px; margin-bottom: 25px;">
-      <p style="margin: 0; color: #856404; font-size: 14px;">
-        <strong>🔒 Privacy Note:</strong> Your responses will be kept confidential and aggregated with other feedback to ensure anonymity - your comments cannot be traced back to you.
-      </p>
-    </div>
-
     ${isReminder && daysRemaining !== null ? `
     <div style="background: ${daysRemaining <= 3 ? '#fee2e2' : '#fef3c7'}; border-left: 4px solid ${daysRemaining <= 3 ? '#dc2626' : '#f59e0b'}; padding: 15px; margin: 25px 0;">
       <p style="margin: 0; color: ${daysRemaining <= 3 ? '#7f1d1d' : '#78350f'}; font-weight: 600; font-size: 18px;">
@@ -245,6 +234,12 @@ export async function POST(request: Request) {
       ${isReminder ? 'This is a friendly reminder that you have' : 'You\'ve been selected to provide'} 360° feedback for <strong>${survey.employee?.name || 'a team member'}</strong>.
       Your honest and constructive feedback will help them grow professionally.
     </p>
+
+    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 15px; margin-bottom: 25px;">
+      <p style="margin: 0; color: #856404; font-size: 14px;">
+        <strong>🔒 Privacy Note:</strong> Your responses will be kept confidential and aggregated with other feedback to ensure anonymity - your comments cannot be traced back to you.
+      </p>
+    </div>
 
     <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 25px 0;">
       <p style="margin: 0; color: #555;"><strong>Due Date:</strong> ${dueDate}</p>

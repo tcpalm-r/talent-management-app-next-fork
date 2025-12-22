@@ -303,7 +303,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
   pdf.setFontSize(22);
   pdf.setFont(fontFamily, 'bold');
   pdf.setTextColor(0, 0, 0);
-  const titleText = '360° Feedback Report';
+  const titleText = '360° Feedback';
   pdf.text(titleText, margin, yPosition);
   yPosition += 8;
 
@@ -539,27 +539,26 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     pdf.line(margin, yPosition, pageWidth - margin, yPosition);
     yPosition += 8;
 
-    // Notice text
+    // Notice text - matches web UI wording
     pdf.setFontSize(9);
     pdf.setFont(fontFamily, 'bold');
     pdf.setTextColor(180, 83, 9); // Amber-700
 
-    const line1 = '⚠ SPONSOR/ADMIN ONLY';
-    const line2 = `The sections below are not visible to ${subjectFirstName}`;
+    const line1 = 'Sponsor/Admin Only Section';
+    const line2 = `This group-level analysis is not visible to ${subjectFirstName}.`;
 
     pdf.text(line1, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 4;
+    pdf.setFont(fontFamily, 'normal');
     pdf.text(line2, pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 4;
+    const line3 = 'Only survey sponsors and administrators can see how different reviewer groups perceive the subject.';
+    pdf.setFontSize(8);
+    pdf.text(line3, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 8;
 
     pdf.setDrawColor(251, 191, 36); // Amber-400
     pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 10;
-
-    pdf.setFontSize(16);
-    pdf.setFont(fontFamily, 'bold');
-    pdf.setTextColor(0, 0, 0);
-    pdf.text('Group-Level Analysis', margin, yPosition);
     yPosition += 12;
 
     // Section 1: Strong Consensus
@@ -570,11 +569,6 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
       pdf.text('Strong Consensus', margin, yPosition);
       yPosition += 6;
 
-      pdf.setFontSize(8);
-      pdf.setFont(fontFamily, 'italic');
-      pdf.setTextColor(100, 100, 100);
-      pdf.text('Areas where multiple reviewer groups agree', margin, yPosition);
-      yPosition += 6;
 
       pdf.setFontSize(9);
       pdf.setFont(fontFamily, 'normal');
@@ -613,11 +607,6 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
       pdf.text('Varied by Relationship', margin, yPosition);
       yPosition += 6;
 
-      pdf.setFontSize(8);
-      pdf.setFont(fontFamily, 'italic');
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(`Topics where different groups perceive ${subjectFirstName} differently`, margin, yPosition);
-      yPosition += 8;
 
       report.varied_by_relationship!.forEach((item: VariedByRelationship) => {
         checkPageBreak(25);
@@ -627,7 +616,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
         pdf.setFont(fontFamily, 'bold');
         pdf.setTextColor(0, 0, 0);
         pdf.text(item.topic.toUpperCase(), margin + 5, yPosition);
-        yPosition += 6;
+        yPosition += 10;
 
         // Perspectives
         pdf.setFontSize(9);
@@ -666,11 +655,6 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
       pdf.text('Outliers', margin, yPosition);
       yPosition += 6;
 
-      pdf.setFontSize(8);
-      pdf.setFont(fontFamily, 'italic');
-      pdf.setTextColor(100, 100, 100);
-      pdf.text('Unique perspectives mentioned by only one reviewer', margin, yPosition);
-      yPosition += 6;
 
       pdf.setFontSize(9);
       pdf.setFont(fontFamily, 'normal');
