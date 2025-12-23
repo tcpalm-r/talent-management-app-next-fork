@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     const { data: surveys, error: surveysError } = await supabaseAdmin
       .from('feedback_360_surveys')
       .select('id, survey_name, employee_id, due_date, auto_reminder_days_before, status')
-      .eq('status', 'active') // Only active surveys
+      .eq('status', 'in_progress') // Only in-progress surveys
       .not('due_date', 'is', null) // Must have due date
       .not('auto_reminder_days_before', 'is', null) // Must have reminder configured
       .gte('due_date', new Date().toISOString()); // Due date hasn't passed yet
