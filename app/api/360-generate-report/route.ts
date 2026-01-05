@@ -14,7 +14,7 @@ import type { ParticipantRelationship } from '@/types';
 import type { UserProfile } from '@/lib/schema';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes - needed for two-pass Claude API calls
+export const maxDuration = 720; // 12 minutes - needed for two-pass Claude API calls with large surveys
 
 /**
  * API Route: /api/360-generate-report
