@@ -116,7 +116,7 @@ export async function POST(
       updateData.final_narrative = null;
       updateData.narrative_generated_at = null;
       updateData.narrative_version = null;
-      updateData.ai_report_generated = false;
+      // Note: ai_report_generated column was removed - don't set it
     }
 
     const { data: updatedSurvey, error: updateError } = await supabaseAdmin

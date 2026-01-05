@@ -430,7 +430,20 @@ export async function POST(req: NextRequest) {
 
     if (upsertError) {
       console.error('Error saving report to database:', upsertError);
-      // Don't fail the entire request - return the report anyway
+      // CRITICAL: Fail the request if we can't save the report to the database.
+      // Previously this silently continued, causing the report to be displayed once
+      // but never persisted - leading to "Report Not Found" on subsequent views.
+      // Revert survey status to 'in_progress' so user can try again
+      await supabaseAdmin
+        .from('feedback_360_surveys')
+        .update({ status: 'in_progress', updated_at: new Date().toISOString() })
+        .eq('id', survey_id);
+
+      return NextResponse.json({
+        error: 'Failed to save report to database',
+        details: upsertError.message,
+        message: 'The AI analysis completed but could not be saved. Please try again.'
+      }, { status: 500 });
     } else {
       console.log('✅ Report saved to database successfully');
 

@@ -79,7 +79,7 @@ export async function PATCH(
       'flagged_for_admin',
       'flagged_for_reanalysis',
       'resolved_by_admin',
-      'ai_report_generated',
+      // Note: ai_report_generated column doesn't exist in database - removed
       'report_data',
       'final_narrative',
       'narrative_generated_at',
