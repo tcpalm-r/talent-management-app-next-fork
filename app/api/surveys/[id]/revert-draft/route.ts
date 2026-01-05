@@ -50,15 +50,12 @@ export async function POST(
       );
     }
 
-    // Check permission - admins, SLT (elevated access), and survey creators
-    const canRevert =
-      user.app_role === 'admin' ||
-      user.app_role === 'slt' || // SLT can revert any survey
-      survey.created_by === profile.id; // Creators can revert their own surveys
+    // Check permission - admin-only access
+    const canRevert = user.app_role === 'admin';
 
     if (!canRevert) {
       return NextResponse.json(
-        { error: 'Forbidden: You do not have permission to modify this survey' },
+        { error: 'Forbidden: Only admins can revert surveys' },
         { status: 403 }
       );
     }

@@ -432,11 +432,15 @@ export default function Feedback360Dashboard({
   // Helper function to generate export report data
   const generateReportData = (filterForSubject: boolean) => {
     let consensusData = surveyResults.consensus_areas;
-    let outlierData = surveyResults.outlier_opinions;
+    let variedData = surveyResults.varied_by_relationship;
+    let outliersData = surveyResults.outliers;
+    let outlierOpinionsData = surveyResults.outlier_opinions;
 
     if (filterForSubject) {
       consensusData = [];
-      outlierData = [];
+      variedData = [];
+      outliersData = [];
+      outlierOpinionsData = [];
     }
 
     return {
@@ -452,7 +456,9 @@ export default function Feedback360Dashboard({
       recommendations: surveyResults.recommendations,
       key_insights: surveyResults.key_insights,
       consensus_areas: consensusData,
-      outlier_opinions: outlierData
+      varied_by_relationship: variedData,
+      outliers: outliersData,
+      outlier_opinions: outlierOpinionsData
     };
   };
 
@@ -3263,8 +3269,8 @@ export default function Feedback360Dashboard({
               {(isSponsor || isAdmin) && (
               <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div>
-                  {/* Send Backward - Always on left, always grey */}
-                  {(selectedSurvey.status === 'in_progress' || selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (() => {
+                  {/* Send Backward - Admins only */}
+                  {isAdmin && (selectedSurvey.status === 'in_progress' || selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (() => {
                     const targetStatus = selectedSurvey.status === 'finalized' ? 'Completed' :
                                         selectedSurvey.status === 'completed' ? 'In Progress' : 'Draft';
                     return (
@@ -4126,8 +4132,8 @@ export default function Feedback360Dashboard({
               ) : (
                 /* Normal footer for non-admin or non-flagged surveys */
                 <div className="flex items-center justify-between">
-                  {/* Send Backward - Only visible to sponsor or admin */}
-                  {(currentUser?.app_role === 'admin' || isUserSponsor(selectedSurvey, currentUser, currentUserDbId)) && (() => {
+                  {/* Send Backward - Only visible to admins */}
+                  {(currentUser?.app_role === 'admin') && (() => {
                     const targetStatus = selectedSurvey.status === 'finalized' ? 'Completed' :
                                         selectedSurvey.status === 'completed' ? 'In Progress' : 'Draft';
                     return (
