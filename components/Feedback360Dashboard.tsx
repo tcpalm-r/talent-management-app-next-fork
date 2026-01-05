@@ -464,6 +464,18 @@ export default function Feedback360Dashboard({
 
   // Handle full export with confirmation
   const handleFullExport = async () => {
+    // Check if narrative has been generated
+    if (!finalNarrative) {
+      notify({
+        title: 'Narrative Required',
+        description: 'You must generate a narrative before exporting the report.',
+        variant: 'error',
+      });
+      setActiveReportTab('narrative');
+      setIsExportDropdownOpen(false);
+      return;
+    }
+
     const confirmMessage =
       '⚠️ SENSITIVE DATA WARNING\n\n' +
       'This export includes consensus areas and outlier opinions ' +
@@ -487,6 +499,18 @@ export default function Feedback360Dashboard({
 
   // Handle subject-filtered export
   const handleSubjectExport = async () => {
+    // Check if narrative has been generated
+    if (!finalNarrative) {
+      notify({
+        title: 'Narrative Required',
+        description: 'You must generate a narrative before exporting the report.',
+        variant: 'error',
+      });
+      setActiveReportTab('narrative');
+      setIsExportDropdownOpen(false);
+      return;
+    }
+
     try {
       const reportData = generateReportData(true);
       const filename = await exportReportAsPDF(reportData, 'SUBJECT');
@@ -501,6 +525,17 @@ export default function Feedback360Dashboard({
 
   // Handle simple export (for non-sponsors/non-admins)
   const handleSimpleExport = async () => {
+    // Check if narrative has been generated
+    if (!finalNarrative) {
+      notify({
+        title: 'Narrative Required',
+        description: 'You must generate a narrative before exporting the report.',
+        variant: 'error',
+      });
+      setActiveReportTab('narrative');
+      return;
+    }
+
     try {
       const isSubject = currentUser?.id === selectedSurvey?.employee_id;
       const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);

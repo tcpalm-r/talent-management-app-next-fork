@@ -171,6 +171,17 @@ export default function MyReportDashboard({
               <div className="flex items-center gap-6">
                 <button
                   onClick={async () => {
+                    // Check if narrative has been generated
+                    if (!finalNarrative) {
+                      notify({
+                        title: 'Narrative Required',
+                        description: 'The narrative has not been generated for this report yet.',
+                        variant: 'error',
+                      });
+                      setActiveReportTab('narrative');
+                      return;
+                    }
+
                     try {
                       const reportData = {
                         survey_name: selectedSurvey.survey_name || 'Untitled Survey',
