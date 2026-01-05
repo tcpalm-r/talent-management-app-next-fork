@@ -542,9 +542,9 @@ export default function Feedback360Dashboard({
       setReportId(data.report?.id || null);
       setAuditModeEnabled(false); // Reset audit mode when loading a new report
 
-      // Load narrative if it exists
-      if ((fullSurvey as any).final_narrative) {
-        setFinalNarrative((fullSurvey as any).final_narrative);
+      // Load narrative from report (consolidated location)
+      if (data.report?.final_narrative) {
+        setFinalNarrative(data.report.final_narrative);
         setNarrativeOutdated(false);
       } else {
         setFinalNarrative('');
@@ -1224,18 +1224,18 @@ export default function Feedback360Dashboard({
       setFinalNarrative(data.narrative);
       setNarrativeOutdated(false);
 
-      // Save narrative to database
-      const saveResponse = await fetch(`/api/surveys/${selectedSurvey.id}`, {
+      // Save narrative to report (consolidated in feedback_360_reports table)
+      const saveResponse = await fetch('/api/360-generate-report', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          survey_id: selectedSurvey.id,
           final_narrative: data.narrative,
-          narrative_generated_at: new Date().toISOString(),
         }),
       });
 
       if (!saveResponse.ok) {
-        console.error('Failed to save narrative to database');
+        console.error('Failed to save narrative to report');
       }
 
       notify({

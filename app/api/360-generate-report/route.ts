@@ -420,6 +420,9 @@ export async function POST(req: NextRequest) {
       citation_version: '2.0', // Updated for group-level analysis
       total_citations: citations.length,
       citation_coverage: analysisMeta.citationCoverage || 0,
+      // Clear narrative on regeneration - user must generate new narrative
+      final_narrative: null,
+      narrative_version: 1,
     };
 
     const { data: savedReport, error: upsertError } = await supabaseAdmin
@@ -685,6 +688,94 @@ export async function GET(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error fetching 360 report:', error);
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        details: error.message
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH - Update report fields (e.g., narrative)
+ *
+ * Request body: { survey_id: string, final_narrative?: string, narrative_version?: number }
+ *
+ * Used for saving generated narrative to the report
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { survey_id, final_narrative, narrative_version } = body;
+
+    if (!survey_id) {
+      return NextResponse.json({ error: 'survey_id is required' }, { status: 400 });
+    }
+
+    // Authenticate user
+    const authData = await getAuthenticatedUser(req);
+    if (!authData) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Fetch the survey to verify permissions
+    const { data: survey, error: surveyError } = await supabaseAdmin
+      .from('feedback_360_surveys')
+      .select('id, created_by, employee_id, status')
+      .eq('id', survey_id)
+      .single();
+
+    if (surveyError || !survey) {
+      return NextResponse.json({ error: 'Survey not found' }, { status: 404 });
+    }
+
+    // Check permissions - only sponsor or admin can update the report
+    const viewerRole = determineViewerRole(authData.profile, survey);
+    if (viewerRole !== 'sponsor' && viewerRole !== 'admin') {
+      return NextResponse.json({
+        error: 'Forbidden',
+        message: 'Only the survey sponsor or admin can update the report'
+      }, { status: 403 });
+    }
+
+    // Build update object with only provided fields
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (final_narrative !== undefined) {
+      updateData.final_narrative = final_narrative;
+    }
+
+    if (narrative_version !== undefined) {
+      updateData.narrative_version = narrative_version;
+    }
+
+    // Update the report
+    const { data: updatedReport, error: updateError } = await supabaseAdmin
+      .from('feedback_360_reports')
+      .update(updateData)
+      .eq('survey_id', survey_id)
+      .select('id, final_narrative, narrative_version, updated_at')
+      .single();
+
+    if (updateError) {
+      console.error('Error updating report:', updateError);
+      return NextResponse.json({
+        error: 'Failed to update report',
+        details: updateError.message
+      }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      report: updatedReport
+    });
+
+  } catch (error: any) {
+    console.error('Error updating 360 report:', error);
     return NextResponse.json(
       {
         error: 'Internal server error',

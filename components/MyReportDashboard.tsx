@@ -113,13 +113,8 @@ export default function MyReportDashboard({
       const data = await reportResponse.json();
       setSurveyResults(data.report);
 
-      // Get final_narrative from survey details (it's stored on the survey, not the report)
-      if (surveyDetailsResponse.ok) {
-        const surveyData = await surveyDetailsResponse.json();
-        setFinalNarrative(surveyData.survey?.final_narrative || '');
-      } else {
-        setFinalNarrative('');
-      }
+      // Get final_narrative from report (consolidated in feedback_360_reports table)
+      setFinalNarrative(data.report?.final_narrative || '');
 
       setActiveReportTab('narrative');
     } catch (error: any) {

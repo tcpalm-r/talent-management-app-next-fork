@@ -133,14 +133,16 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   console.log('[surveyAnalyzerService] Pass 1: Extracting question-level summaries...');
   const pass1Start = Date.now();
 
-  const questionSummaries = await runPass1(anthropic, {
+  const pass1Result = await runPass1(anthropic, {
     survey,
     responses,
     questions,
   });
+  const { summaries: questionSummaries, outputTokens: pass1OutputTokens } = pass1Result;
 
   const pass1Duration = Date.now() - pass1Start;
   console.log(`[surveyAnalyzerService] Pass 1 complete: ${questionSummaries.length} question summaries in ${pass1Duration}ms`);
+  console.log(`[surveyAnalyzerService] Pass 1 output tokens: ${pass1OutputTokens}`);
 
   // Check for cancellation after Pass 1
   if (isSurveyCancelled(surveyId)) {
@@ -152,6 +154,28 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   // Validate Pass 1 coverage
   const pass1Coverage = validatePass1Coverage(responses, questions, questionSummaries);
   console.log(`[surveyAnalyzerService] Pass 1 citation coverage: ${pass1Coverage.toFixed(1)}%`);
+
+  // ========== RATE LIMIT DELAY ==========
+  // Calculate and apply delay to avoid hitting rate limit on Pass 2
+  const rateLimitDelay = calculateRateLimitDelay(pass1OutputTokens);
+  const delaySeconds = Math.round(rateLimitDelay / 1000);
+  console.log(`[surveyAnalyzerService] Rate limit management: waiting ${delaySeconds}s before Pass 2...`);
+  console.log(`[surveyAnalyzerService] (Pass 1 used ${pass1OutputTokens} tokens, limit is ${RATE_LIMIT_TOKENS_PER_MINUTE}/min)`);
+
+  // Check for cancellation during rate limit wait
+  const checkInterval = 5000; // Check every 5 seconds
+  let waited = 0;
+  while (waited < rateLimitDelay) {
+    if (isSurveyCancelled(surveyId)) {
+      console.log(`[surveyAnalyzerService] Generation cancelled during rate limit wait for survey ${surveyId}`);
+      clearSurveyCancellation(surveyId);
+      throw new GenerationCancelledError(surveyId);
+    }
+    const sleepTime = Math.min(checkInterval, rateLimitDelay - waited);
+    await sleep(sleepTime);
+    waited += sleepTime;
+  }
+  console.log(`[surveyAnalyzerService] Rate limit wait complete, proceeding to Pass 2`);
 
   // ========== PASS 2: Global Synthesis ==========
   console.log('[surveyAnalyzerService] Pass 2: Synthesizing global report...');
@@ -226,6 +250,38 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   };
 }
 
+// ==================== Rate Limit Configuration ====================
+
+const RATE_LIMIT_TOKENS_PER_MINUTE = 8000;
+const RATE_LIMIT_BUFFER_SECONDS = 15; // Extra buffer to ensure bucket has refilled
+
+/**
+ * Calculate delay needed to respect rate limits based on token usage.
+ * @param outputTokens - Number of output tokens used in previous request
+ * @returns Delay in milliseconds
+ */
+function calculateRateLimitDelay(outputTokens: number): number {
+  if (outputTokens <= RATE_LIMIT_TOKENS_PER_MINUTE) {
+    // Under limit, just add a small buffer
+    return RATE_LIMIT_BUFFER_SECONDS * 1000;
+  }
+
+  // Calculate how long to wait for the token bucket to refill
+  // Tokens refill at RATE_LIMIT_TOKENS_PER_MINUTE per minute
+  const tokensOverLimit = outputTokens - RATE_LIMIT_TOKENS_PER_MINUTE;
+  const minutesToWait = tokensOverLimit / RATE_LIMIT_TOKENS_PER_MINUTE;
+  const secondsToWait = Math.ceil(minutesToWait * 60) + RATE_LIMIT_BUFFER_SECONDS;
+
+  return secondsToWait * 1000;
+}
+
+/**
+ * Sleep helper for rate limit delays
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // ==================== Pass 1: Question-Level Extraction ====================
 
 interface Pass1Input {
@@ -234,13 +290,19 @@ interface Pass1Input {
   questions: SurveyQuestion[];
 }
 
+interface Pass1Result {
+  summaries: QuestionSummary[];
+  outputTokens: number;
+}
+
 /**
  * Run Pass 1: Extract themes, strengths, and gaps per question.
+ * Returns both summaries and token usage for rate limit management.
  */
 async function runPass1(
   anthropic: Anthropic,
   input: Pass1Input
-): Promise<QuestionSummary[]> {
+): Promise<Pass1Result> {
   const { survey, responses, questions } = input;
 
   // Prepare responses grouped by question
@@ -296,7 +358,10 @@ async function runPass1(
     }
   });
 
-  return summaries as QuestionSummary[];
+  return {
+    summaries: summaries as QuestionSummary[],
+    outputTokens: response.usage?.output_tokens || 0,
+  };
 }
 
 // ==================== Pass 2: Global Synthesis ====================
