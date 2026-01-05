@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, Search, User, Check, ChevronDown, X } from 'lucide-react';
+import { Search, User, Check, ChevronDown, X } from 'lucide-react';
 import type { Employee, Department, UserRole } from '../types';
 import type { PerformanceReview } from '../lib/schema';
 import EmployeeDetailModal from './EmployeeDetailModal';
@@ -82,20 +82,6 @@ export default function EmployeeList({
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const handleExport = async () => {
-    try {
-      const { exportToCSV } = await import('../lib/export');
-      exportToCSV({
-        employees: filteredEmployees,
-        departments,
-        boxDefinitions: [],
-      });
-    } catch (error) {
-      console.error('Export failed:', error);
-      alert('Export failed. Please try again.');
-    }
-  };
-
   const handleEmployeeClick = (employee: Employee) => {
     setSelectedEmployee(employee);
     setDetailInitialTab('details');
@@ -133,16 +119,7 @@ export default function EmployeeList({
   return (
     <>
       <div className="px-6 py-4 border-b dark:border-gray-700">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold dark:text-gray-100">Employees ({filteredEmployees.length})</h2>
-          <button
-            onClick={handleExport}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
-          </button>
-        </div>
+        <h2 className="text-xl font-semibold dark:text-gray-100 mb-4">Employees ({filteredEmployees.length})</h2>
 
         {/* Search */}
         <div className="relative mb-4">
