@@ -548,10 +548,10 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     const line2 = `This group-level analysis is not visible to ${subjectFirstName}.`;
 
     pdf.text(line1, pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 4;
+    yPosition += 6;
     pdf.setFont(fontFamily, 'normal');
     pdf.text(line2, pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 4;
+    yPosition += 6;
     const line3 = 'Only survey sponsors and administrators can see how different reviewer groups perceive the subject.';
     pdf.setFontSize(8);
     pdf.text(line3, pageWidth / 2, yPosition, { align: 'center' });
@@ -611,12 +611,12 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
       report.varied_by_relationship!.forEach((item: VariedByRelationship) => {
         checkPageBreak(25);
 
-        // Topic header
+        // Topic header - bullet point, bold, normal capitalization
         pdf.setFontSize(10);
         pdf.setFont(fontFamily, 'bold');
         pdf.setTextColor(0, 0, 0);
-        pdf.text(item.topic.toUpperCase(), margin + 5, yPosition);
-        yPosition += 10;
+        pdf.text(`• ${item.topic}`, margin + 5, yPosition);
+        yPosition += 7;
 
         // Perspectives
         pdf.setFontSize(9);

@@ -102,6 +102,7 @@ export async function middleware(request: NextRequest) {
       '/api/auth/logout',
       '/api/auth/callback',
       '/api/auth/validate-token',
+      '/api/auth/teams',      // Teams SSO token exchange
       '/_next/',
       '/favicon',
       '/unauthorized',
@@ -109,7 +110,11 @@ export async function middleware(request: NextRequest) {
       '/sitemap.xml',
       '/_next/static',
       '/_next/image',
-      '/public'
+      '/public',
+      '/auth-start',          // Teams auth popup start
+      '/auth-end',            // Teams auth popup callback
+      '/blank-auth-end',      // Teams silent token refresh
+      '/config'               // Teams tab configuration
     ];
 
     const pathname = request.nextUrl.pathname;

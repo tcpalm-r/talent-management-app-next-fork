@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import Image from 'next/image';
 
 interface AvatarProps {
   name?: string;
@@ -44,13 +45,16 @@ export default function Avatar({
   // If picture exists, show it
   if (picture) {
     return (
-      <img
-        src={picture}
-        alt={name}
-        className={`rounded-full object-cover ${sizeClasses[size]} ${className}`}
-        style={fontSizeStyles[size]}
-        title={name}
-      />
+      <div className={`relative rounded-full overflow-hidden ${sizeClasses[size]} ${className}`}>
+        <Image
+          src={picture}
+          alt={name}
+          fill
+          className="object-cover"
+          style={fontSizeStyles[size]}
+          title={name}
+        />
+      </div>
     );
   }
 
