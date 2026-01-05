@@ -338,23 +338,61 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     pdf.setFont(fontFamily, 'normal');
     pdf.setTextColor(0, 0, 0);
 
+    const lineHeight = 10 * 0.35 * 1.5; // 1.5x line spacing for 10pt font
+    const minLinesOnPage = 3; // Minimum lines to keep together (avoid orphans/widows)
+
     paragraphs.forEach((paragraph, index) => {
       const cleanParagraph = paragraph.replace(/\n/g, ' ').trim();
       const lines = pdf.splitTextToSize(cleanParagraph, contentWidth);
-      const paragraphHeight = lines.length * (10 * 0.35 * 1.5); // 1.5x line spacing
+      const paragraphHeight = lines.length * lineHeight;
+      const availableSpace = pageHeight - margin - 10 - yPosition;
+      const linesOnCurrentPage = Math.floor(availableSpace / lineHeight);
 
-      // Check if entire paragraph fits on page
-      if (yPosition + paragraphHeight > pageHeight - margin - 10) {
+      // Smart page break logic:
+      // - If whole paragraph fits, render it
+      // - If only 1-2 lines would fit on current page, move whole paragraph (avoid orphan)
+      // - Otherwise split, but ensure at least 3 lines carry over (avoid widow)
+      const needsPageBreak = paragraphHeight > availableSpace;
+      const canAvoidOrphan = linesOnCurrentPage >= minLinesOnPage;
+
+      if (needsPageBreak && !canAvoidOrphan) {
+        // Move whole paragraph to next page to avoid orphan (only 1-2 lines would fit)
         pdf.addPage();
         yPosition = margin;
       }
 
-      // Render paragraph with 1.5x line spacing
-      lines.forEach((line: string, lineIndex: number) => {
-        pdf.text(line, margin, yPosition + (lineIndex * 10 * 0.35 * 1.5));
-      });
+      if (needsPageBreak && canAvoidOrphan) {
+        // Determine split point: ensure at least minLinesOnPage carry over to avoid widow
+        const linesToCarryOver = lines.length - linesOnCurrentPage;
+        let splitAt = linesOnCurrentPage;
 
-      yPosition += paragraphHeight;
+        // If fewer than 3 lines would carry over, adjust split point to ensure 3 carry over
+        if (linesToCarryOver < minLinesOnPage && lines.length >= minLinesOnPage) {
+          splitAt = lines.length - minLinesOnPage;
+        }
+
+        // Render lines that fit on current page
+        for (let i = 0; i < splitAt; i++) {
+          pdf.text(lines[i], margin, yPosition + (i * lineHeight));
+        }
+
+        // Start new page for remaining lines
+        pdf.addPage();
+        yPosition = margin;
+
+        // Render remaining lines on new page
+        const remainingLines = lines.slice(splitAt);
+        remainingLines.forEach((line: string, lineIndex: number) => {
+          pdf.text(line, margin, yPosition + (lineIndex * lineHeight));
+        });
+        yPosition += remainingLines.length * lineHeight;
+      } else {
+        // Render paragraph normally (either fits or was moved to new page)
+        lines.forEach((line: string, lineIndex: number) => {
+          pdf.text(line, margin, yPosition + (lineIndex * lineHeight));
+        });
+        yPosition += paragraphHeight;
+      }
 
       // Add spacing between paragraphs (not after last)
       if (index < paragraphs.length - 1) {
