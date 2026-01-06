@@ -4,6 +4,7 @@ import { RotateCw, Users, Settings, FileText } from 'lucide-react';
 import { useMemo, useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
 import { UserContext } from '@/context/UserContext';
+import { useTeams } from '@/context/TeamsContext';
 import { AUTH_DISABLED } from '@/lib/auth';
 import { ThemeToggle, useToast } from './unified';
 
@@ -27,6 +28,7 @@ interface SidebarProps {
 
 export default function Sidebar({ currentView, onViewChange, userRole, userProfile }: SidebarProps) {
   const { notify } = useToast();
+  const { isInTeams } = useTeams();
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [testUsers, setTestUsers] = useState<TestUser[]>([]);
@@ -272,7 +274,8 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
 
       {/* Footer */}
       <div className="pb-4 border-t border-gray-200 dark:border-gray-700 w-full flex flex-col items-center justify-center pt-4 gap-3">
-        <ThemeToggle />
+        {/* Hide theme toggle in Teams - Teams controls the theme */}
+        {!isInTeams && <ThemeToggle />}
         <p className="text-xs text-gray-500 dark:text-gray-400">v1</p>
       </div>
     </aside>
