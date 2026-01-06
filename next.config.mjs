@@ -13,6 +13,20 @@ const nextConfig = {
   // Increase timeout for static page generation to handle slower builds
   staticPageGenerationTimeout: 120,
 
+  // Configure external image domains for Next.js Image Optimization
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 's.gravatar.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.auth0.com',
+      },
+    ],
+  },
+
   // Production-optimized cache headers
   async headers() {
     return [
