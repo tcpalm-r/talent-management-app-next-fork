@@ -3,6 +3,8 @@
 import { Settings, Pencil, Save, X, User, Shield, HelpCircle, Search, Trash2, GripVertical } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getActiveUsers, updateUserProfile, UserProfile } from '@/lib/supabase';
+import ConfirmDialog from './ConfirmDialog';
+import { useToast } from './unified';
 import {
   DndContext,
   closestCenter,
@@ -383,6 +385,7 @@ function Default360QuestionsManager() {
 }
 
 export default function AdminSettings() {
+  const { notify } = useToast();
   const [allEmployees, setAllEmployees] = useState<EditableEmployee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<EditableEmployee[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -390,6 +393,10 @@ export default function AdminSettings() {
   const [editValues, setEditValues] = useState<Record<string, Partial<UserProfile>>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  // Confirm dialog state (Teams iframe compatible)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<EditableEmployee | null>(null);
 
   useEffect(() => {
     loadEmployees();
@@ -489,33 +496,50 @@ export default function AdminSettings() {
     }));
   };
 
-  const deleteEmployee = async (employee: EditableEmployee) => {
-    const confirmDelete = confirm(
-      `Are you sure you want to delete ${employee.full_name}?\n\nThis will deactivate their account and they will no longer appear in the system.`
-    );
+  const deleteEmployee = (employee: EditableEmployee) => {
+    // Show confirm dialog instead of native confirm (Teams iframe compatible)
+    setEmployeeToDelete(employee);
+    setDeleteConfirmOpen(true);
+  };
 
-    if (!confirmDelete) return;
+  // Handler for confirmed employee deletion
+  const handleConfirmDeleteEmployee = async () => {
+    if (!employeeToDelete) return;
 
-    setDeleting(employee.id);
+    setDeleteConfirmOpen(false);
+    setDeleting(employeeToDelete.id);
 
     try {
       // Soft delete by setting is_active to false
-      const result = await updateUserProfile(employee.id, { is_active: false });
+      const result = await updateUserProfile(employeeToDelete.id, { is_active: false });
 
       if (result) {
         // Remove from both filtered and all employees lists
-        setFilteredEmployees(prev => prev.filter(emp => emp.id !== employee.id));
-        setAllEmployees(prev => prev.filter(emp => emp.id !== employee.id));
-        alert('User deactivated successfully');
+        setFilteredEmployees(prev => prev.filter(emp => emp.id !== employeeToDelete.id));
+        setAllEmployees(prev => prev.filter(emp => emp.id !== employeeToDelete.id));
+        notify({
+          title: 'User deactivated',
+          description: `${employeeToDelete.full_name} has been deactivated successfully.`,
+          variant: 'success',
+        });
       } else {
-        alert('Failed to delete user');
+        notify({
+          title: 'Error',
+          description: 'Failed to delete user',
+          variant: 'error',
+        });
       }
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Failed to delete user');
+      notify({
+        title: 'Error',
+        description: 'Failed to delete user',
+        variant: 'error',
+      });
     }
 
     setDeleting(null);
+    setEmployeeToDelete(null);
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -730,6 +754,23 @@ export default function AdminSettings() {
           )}
         </div>
       </div>
+
+      {/* Confirm Dialog for Delete Employee (Teams iframe compatible) */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        onClose={() => {
+          setDeleteConfirmOpen(false);
+          setEmployeeToDelete(null);
+        }}
+        onConfirm={handleConfirmDeleteEmployee}
+        title="Delete User"
+        message={employeeToDelete
+          ? `Are you sure you want to delete ${employeeToDelete.full_name}?\n\nThis will deactivate their account and they will no longer appear in the system.`
+          : ''}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

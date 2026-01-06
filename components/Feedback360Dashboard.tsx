@@ -4,6 +4,7 @@ import { MessageSquare, Plus, Send, CheckCircle, Clock, Users, X, AlertTriangle,
 import type { Employee, Department, ParticipantRelationship } from '../types';
 import Survey360Wizard from './Survey360Wizard';
 import CreateWithAIModal, { type ParsedSurveyData } from './CreateWithAIModal';
+import ConfirmDialog from './ConfirmDialog';
 import Avatar from './Avatar';
 import { useToast, Tooltip, TooltipProvider } from './unified';
 import NavigationTabs from './unified/NavigationTabs';
@@ -316,6 +317,21 @@ export default function Feedback360Dashboard({
   const [auditModeEnabled, setAuditModeEnabled] = useState(false);
   const [reportId, setReportId] = useState<string | null>(null);
 
+  // Confirm dialog state (replacing native window.confirm for Teams iframe compatibility)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmSurveyId, setDeleteConfirmSurveyId] = useState<string | null>(null);
+  const [removeReviewerConfirmOpen, setRemoveReviewerConfirmOpen] = useState(false);
+  const [removeReviewerConfirmId, setRemoveReviewerConfirmId] = useState<string | null>(null);
+  const [exportFullReportConfirmOpen, setExportFullReportConfirmOpen] = useState(false);
+  const [revertConfirmOpen, setRevertConfirmOpen] = useState(false);
+  const [revertConfirmData, setRevertConfirmData] = useState<{
+    surveyId: string;
+    status: string;
+    targetStatus: string;
+    message: string;
+    successMessage: string;
+  } | null>(null);
+
   // Ref for selected reviewer display to enable auto-focus
   const selectedReviewerDisplayRef = useRef<HTMLDivElement>(null);
 
@@ -463,7 +479,7 @@ export default function Feedback360Dashboard({
   };
 
   // Handle full export with confirmation
-  const handleFullExport = async () => {
+  const handleFullExport = () => {
     // Check if narrative has been generated
     if (!finalNarrative) {
       notify({
@@ -476,15 +492,13 @@ export default function Feedback360Dashboard({
       return;
     }
 
-    const confirmMessage =
-      '⚠️ SENSITIVE DATA WARNING\n\n' +
-      'This export includes consensus areas and outlier opinions ' +
-      'that reveal individual reviewer patterns.\n\n' +
-      'This data is NOT visible to the employee being reviewed.\n\n' +
-      'Are you sure you want to export the full report?';
+    // Show confirm dialog instead of native confirm (Teams iframe compatible)
+    setExportFullReportConfirmOpen(true);
+  };
 
-    if (!window.confirm(confirmMessage)) return;
-
+  // Handler for confirmed full report export
+  const handleConfirmFullExport = async () => {
+    setExportFullReportConfirmOpen(false);
     try {
       const reportData = generateReportData(false);
       const filename = await exportReportAsPDF(reportData, 'FULL');
@@ -775,14 +789,19 @@ export default function Feedback360Dashboard({
       return;
     }
 
-    if (!confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
-      return;
-    }
+    // Show confirm dialog instead of native confirm (Teams iframe compatible)
+    setDeleteConfirmSurveyId(surveyId);
+    setDeleteConfirmOpen(true);
+  };
+
+  // Handler for confirmed survey deletion
+  const handleConfirmDeleteSurvey = async () => {
+    if (!deleteConfirmSurveyId) return;
 
     try {
       const data = await fetchWithValidation(
         SurveyDeleteResponseSchema,
-        `/api/surveys/${surveyId}`,
+        `/api/surveys/${deleteConfirmSurveyId}`,
         { method: 'DELETE' }
       );
 
@@ -796,7 +815,9 @@ export default function Feedback360Dashboard({
         variant: 'success',
       });
 
-      // Close any open modals and reload
+      // Close dialogs and reload
+      setDeleteConfirmOpen(false);
+      setDeleteConfirmSurveyId(null);
       setIsDetailsModalOpen(false);
       await loadSurveys();
     } catch (error: any) {
@@ -806,6 +827,8 @@ export default function Feedback360Dashboard({
         description: error.message || 'Failed to delete review',
         variant: 'error',
       });
+      setDeleteConfirmOpen(false);
+      setDeleteConfirmSurveyId(null);
     }
   };
 
@@ -1430,7 +1453,7 @@ export default function Feedback360Dashboard({
     }
   };
 
-  const sendBackward = async (surveyId: string, currentStatus?: string) => {
+  const sendBackward = (surveyId: string, currentStatus?: string) => {
     const status = currentStatus || selectedSurvey?.status;
 
     // Determine target status and confirmation message based on current status
@@ -1459,9 +1482,24 @@ export default function Feedback360Dashboard({
       return;
     }
 
-    if (!confirm(confirmMessage)) {
-      return;
-    }
+    // Show confirm dialog instead of native confirm (Teams iframe compatible)
+    setRevertConfirmData({
+      surveyId,
+      status: status || '',
+      targetStatus,
+      message: confirmMessage,
+      successMessage,
+    });
+    setRevertConfirmOpen(true);
+  };
+
+  // Handler for confirmed revert/send backward
+  const handleConfirmRevert = async () => {
+    if (!revertConfirmData) return;
+
+    const { surveyId, status, successMessage } = revertConfirmData;
+    setRevertConfirmOpen(false);
+    setRevertConfirmData(null);
 
     try {
       const response = await fetch(`/api/surveys/${surveyId}/revert-draft`, {
@@ -1498,9 +1536,9 @@ export default function Feedback360Dashboard({
 
       // After surveys are reloaded, update selectedSurvey with fresh data
       if (selectedSurvey) {
-        const response = await fetch(`/api/surveys/list?organization_id=${organizationId}`);
-        if (response.ok) {
-          const listData = await response.json();
+        const refreshResponse = await fetch(`/api/surveys/list?organization_id=${organizationId}`);
+        if (refreshResponse.ok) {
+          const listData = await refreshResponse.json();
           const updatedSurveyData = listData.surveys?.find((s: any) => s.id === selectedSurvey.id);
 
           if (updatedSurveyData) {
@@ -1550,13 +1588,22 @@ export default function Feedback360Dashboard({
     }
   };
 
-  const removeReviewer = async (reviewerId: string) => {
-    if (!confirm('Are you sure you want to remove this reviewer?')) return;
+  const removeReviewer = (reviewerId: string) => {
+    // Show confirm dialog instead of native confirm (Teams iframe compatible)
+    setRemoveReviewerConfirmId(reviewerId);
+    setRemoveReviewerConfirmOpen(true);
+  };
+
+  // Handler for confirmed reviewer removal
+  const handleConfirmRemoveReviewer = async () => {
+    if (!removeReviewerConfirmId || !selectedSurvey) {
+      setRemoveReviewerConfirmOpen(false);
+      setRemoveReviewerConfirmId(null);
+      return;
+    }
 
     try {
-      if (!selectedSurvey) return;
-
-      const response = await fetch(`/api/surveys/${selectedSurvey.id}/reviewers/${reviewerId}`, {
+      const response = await fetch(`/api/surveys/${selectedSurvey.id}/reviewers/${removeReviewerConfirmId}`, {
         method: 'DELETE',
       });
 
@@ -1571,10 +1618,11 @@ export default function Feedback360Dashboard({
         variant: 'success',
       });
 
-      if (selectedSurvey) {
-        loadReviewers(selectedSurvey.id);
-        loadSurveys(); // Refresh to update counts
-      }
+      setRemoveReviewerConfirmOpen(false);
+      setRemoveReviewerConfirmId(null);
+
+      loadReviewers(selectedSurvey.id);
+      loadSurveys(); // Refresh to update counts
     } catch (error: any) {
       console.error('Error removing reviewer:', error);
       notify({
@@ -1582,6 +1630,8 @@ export default function Feedback360Dashboard({
         description: error.message || 'Failed to remove reviewer',
         variant: 'error',
       });
+      setRemoveReviewerConfirmOpen(false);
+      setRemoveReviewerConfirmId(null);
     }
   };
 
@@ -4456,6 +4506,67 @@ export default function Feedback360Dashboard({
           setAiParsedData(null);
           loadSurveys();
         }}
+      />
+
+      {/* Confirm Dialog for Delete Survey (Teams iframe compatible) */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        onClose={() => {
+          setDeleteConfirmOpen(false);
+          setDeleteConfirmSurveyId(null);
+        }}
+        onConfirm={handleConfirmDeleteSurvey}
+        title="Delete Review"
+        message="Are you sure you want to delete this review? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
+
+      {/* Confirm Dialog for Remove Reviewer (Teams iframe compatible) */}
+      <ConfirmDialog
+        isOpen={removeReviewerConfirmOpen}
+        onClose={() => {
+          setRemoveReviewerConfirmOpen(false);
+          setRemoveReviewerConfirmId(null);
+        }}
+        onConfirm={handleConfirmRemoveReviewer}
+        title="Remove Reviewer"
+        message="Are you sure you want to remove this reviewer?"
+        confirmText="Remove"
+        cancelText="Cancel"
+        variant="danger"
+      />
+
+      {/* Confirm Dialog for Full Report Export (Teams iframe compatible) */}
+      <ConfirmDialog
+        isOpen={exportFullReportConfirmOpen}
+        onClose={() => setExportFullReportConfirmOpen(false)}
+        onConfirm={handleConfirmFullExport}
+        title="Sensitive Data Warning"
+        message="This export includes consensus areas and outlier opinions that reveal individual reviewer patterns.
+
+This data is NOT visible to the employee being reviewed.
+
+Are you sure you want to export the full report?"
+        confirmText="Export Full Report"
+        cancelText="Cancel"
+        variant="warning"
+      />
+
+      {/* Confirm Dialog for Revert/Send Backward (Teams iframe compatible) */}
+      <ConfirmDialog
+        isOpen={revertConfirmOpen}
+        onClose={() => {
+          setRevertConfirmOpen(false);
+          setRevertConfirmData(null);
+        }}
+        onConfirm={handleConfirmRevert}
+        title="Send Review Backward"
+        message={revertConfirmData?.message || ''}
+        confirmText="Confirm"
+        cancelText="Cancel"
+        variant="warning"
       />
     </div>
     </TooltipProvider>
