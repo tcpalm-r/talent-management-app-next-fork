@@ -124,6 +124,15 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
+    // Check if running inside Microsoft Teams
+    // When in Teams, let the client-side handle SSO instead of redirecting to AI Intranet
+    const isInTeams = request.nextUrl.searchParams.get('inTeams') === 'true';
+    if (isInTeams) {
+      console.log('[Sonance Auth] Teams context detected - allowing client-side SSO');
+      // Let the request through - TeamsProvider on client will handle authentication
+      return NextResponse.next();
+    }
+
     // Check if authentication is disabled (mock mode)
     let authDisabled =
       process.env.NEXT_PUBLIC_DISABLE_AUTH?.trim() === 'true' ||

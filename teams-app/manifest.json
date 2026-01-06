@@ -1,0 +1,62 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "ed55b32f-81b9-41e5-b43b-882c2987c01c",
+  "developer": {
+    "name": "Sonance",
+    "websiteUrl": "https://sonance-360-review.vercel.app",
+    "privacyUrl": "https://sonance-360-review.vercel.app/privacy",
+    "termsOfUseUrl": "https://sonance-360-review.vercel.app/terms"
+  },
+  "name": {
+    "short": "Reviews",
+    "full": "Performance Reviews"
+  },
+  "description": {
+    "short": "360-degree feedback and talent management",
+    "full": "Access your organization's 360-degree feedback reviews, talent insights, and employee management tools. Create and manage feedback surveys, view employee profiles, and leverage AI-powered analysis and recommendations - all within Microsoft Teams."
+  },
+  "icons": {
+    "outline": "outline.png",
+    "color": "color.png"
+  },
+  "accentColor": "#00A3E1",
+  "staticTabs": [
+    {
+      "entityId": "sonance-360-home",
+      "name": "Reviews",
+      "contentUrl": "https://sonance-360-review.vercel.app/?inTeams=true",
+      "websiteUrl": "https://sonance-360-review.vercel.app",
+      "scopes": ["personal"]
+    }
+  ],
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://sonance-360-review.vercel.app/config",
+      "canUpdateConfiguration": true,
+      "scopes": ["team", "groupChat"]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "sonance-360-review.vercel.app"
+  ],
+  "webApplicationInfo": {
+    "id": "ed55b32f-81b9-41e5-b43b-882c2987c01c",
+    "resource": "api://sonance-360-review.vercel.app/ed55b32f-81b9-41e5-b43b-882c2987c01c"
+  },
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": [
+        {
+          "name": "TeamsActivity.Send.User",
+          "type": "Application"
+        }
+      ]
+    }
+  }
+}
