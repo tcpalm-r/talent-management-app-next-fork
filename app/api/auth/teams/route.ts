@@ -58,10 +58,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Enhanced debug logging to diagnose audience mismatch
+    console.log('[Teams Auth] Token payload:', JSON.stringify({
+      aud: payload.aud,
+      tid: payload.tid,
+      upn: payload.upn,
+      iss: payload.iss,
+    }, null, 2));
+    console.log('[Teams Auth] AZURE_CLIENT_ID env value:', AZURE_CLIENT_ID);
+
     // Validate token claims
-    // The 'aud' claim should match our Azure AD client ID
-    if (payload.aud !== AZURE_CLIENT_ID && payload.aud !== `api://${AZURE_CLIENT_ID}`) {
-      console.error('[Teams Auth] Invalid audience:', payload.aud, 'expected:', AZURE_CLIENT_ID);
+    // The 'aud' claim can be the client ID or the Application ID URI
+    const validAudiences = [
+      AZURE_CLIENT_ID,
+      `api://${AZURE_CLIENT_ID}`,
+      `api://sonance-360-review.vercel.app/${AZURE_CLIENT_ID}`,
+    ].filter(Boolean); // Remove undefined values if env var not set
+
+    console.log('[Teams Auth] Expected audiences:', validAudiences);
+
+    // Case-insensitive comparison to handle format variations
+    const tokenAudience = (payload.aud as string || '').toLowerCase();
+    const isValidAudience = validAudiences.some(
+      expected => expected && tokenAudience === expected.toLowerCase()
+    );
+
+    if (!isValidAudience) {
+      console.error('[Teams Auth] Invalid audience:', payload.aud);
+      console.error('[Teams Auth] Expected one of:', validAudiences);
+      console.error('[Teams Auth] Token audience (lowercase):', tokenAudience);
       return NextResponse.json(
         { error: 'Invalid token audience' },
         { status: 401 }
