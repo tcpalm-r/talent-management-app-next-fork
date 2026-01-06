@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
 import { UserContext } from '@/context/UserContext';
 import { AUTH_DISABLED, TEST_USERS } from '@/lib/auth';
+import { useToast } from './unified';
 
 interface TestUser {
   id: string;
@@ -22,6 +23,7 @@ interface TopHeaderProps {
 }
 
 export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRoleChange }: TopHeaderProps) {
+  const { notify } = useToast();
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [testUsers, setTestUsers] = useState<TestUser[]>([]);
@@ -76,12 +78,20 @@ export default function TopHeader({ userProfile, onMenuOpen, currentRole, onRole
       } else {
         const data = await response.json();
         console.error('Failed to switch user:', data.error);
-        alert('Failed to switch user: ' + data.error);
+        notify({
+          title: 'Error',
+          description: 'Failed to switch user: ' + data.error,
+          variant: 'error',
+        });
         setSwitching(false);
       }
     } catch (error) {
       console.error('Error switching user:', error);
-      alert('Error switching user');
+      notify({
+        title: 'Error',
+        description: 'Error switching user',
+        variant: 'error',
+      });
       setSwitching(false);
     }
   };

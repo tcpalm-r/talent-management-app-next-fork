@@ -111,6 +111,7 @@ function SortableQuestionItem({
 
 // Component for managing default 360 questions
 function Default360QuestionsManager() {
+  const { notify } = useToast();
   const [questions, setQuestions] = useState<Array<{ id: string; text: string; minWords?: number }>>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -156,21 +157,37 @@ function Default360QuestionsManager() {
         setIsEditing(false);
         setShowCustomInput(false);
         setCustomQuestionText('');
-        alert('Default questions updated successfully!');
+        notify({
+          title: 'Success',
+          description: 'Default questions updated successfully!',
+          variant: 'success',
+        });
       } else {
         const errorData = await response.json();
-        alert(errorData.error || 'Failed to save default questions');
+        notify({
+          title: 'Error',
+          description: errorData.error || 'Failed to save default questions',
+          variant: 'error',
+        });
       }
     } catch (error) {
       console.error('Error saving default questions:', error);
-      alert('Failed to save default questions');
+      notify({
+        title: 'Error',
+        description: 'Failed to save default questions',
+        variant: 'error',
+      });
     }
     setSaving(false);
   };
 
   const addCustomQuestion = () => {
     if (!customQuestionText.trim()) {
-      alert('Please enter a question');
+      notify({
+        title: 'Validation Error',
+        description: 'Please enter a question',
+        variant: 'error',
+      });
       return;
     }
 

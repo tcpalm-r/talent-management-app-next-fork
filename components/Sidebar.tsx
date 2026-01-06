@@ -5,7 +5,7 @@ import { useMemo, useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
 import { UserContext } from '@/context/UserContext';
 import { AUTH_DISABLED } from '@/lib/auth';
-import { ThemeToggle } from './unified';
+import { ThemeToggle, useToast } from './unified';
 
 type View = '360-feedback' | 'my-report' | 'directory' | 'admin-settings';
 
@@ -26,6 +26,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ currentView, onViewChange, userRole, userProfile }: SidebarProps) {
+  const { notify } = useToast();
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [testUsers, setTestUsers] = useState<TestUser[]>([]);
@@ -101,12 +102,20 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
       } else {
         const data = await response.json();
         console.error('Failed to switch user:', data.error);
-        alert('Failed to switch user: ' + data.error);
+        notify({
+          title: 'Error',
+          description: 'Failed to switch user: ' + data.error,
+          variant: 'error',
+        });
         setSwitching(false);
       }
     } catch (error) {
       console.error('Error switching user:', error);
-      alert('Error switching user');
+      notify({
+        title: 'Error',
+        description: 'Error switching user',
+        variant: 'error',
+      });
       setSwitching(false);
     }
   };
