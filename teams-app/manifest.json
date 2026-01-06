@@ -11,7 +11,7 @@
   },
   "name": {
     "short": "Reviews",
-    "full": "Performance Reviews"
+    "full": "360° Reviews"
   },
   "description": {
     "short": "360-degree feedback and talent management",
@@ -25,7 +25,7 @@
   "staticTabs": [
     {
       "entityId": "sonance-360-home",
-      "name": "Reviews",
+      "name": "360° Reviews",
       "contentUrl": "https://sonance-360-review.vercel.app/?inTeams=true",
       "websiteUrl": "https://sonance-360-review.vercel.app",
       "scopes": ["personal"]
@@ -35,7 +35,7 @@
     {
       "configurationUrl": "https://sonance-360-review.vercel.app/config",
       "canUpdateConfiguration": true,
-      "scopes": ["team", "groupChat"]
+      "scopes": ["team", "groupChat", "sharedChannel"]
     }
   ],
   "permissions": [
