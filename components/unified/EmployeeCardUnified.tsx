@@ -427,7 +427,7 @@ export default function EmployeeCardUnified({
               />
             </p>
             {employee.title && (
-              <p className="text-xs text-gray-600 whitespace-normal font-medium">
+              <p className="text-xs text-gray-600 truncate font-medium" title={employee.title}>
                 {employee.title}
               </p>
             )}
