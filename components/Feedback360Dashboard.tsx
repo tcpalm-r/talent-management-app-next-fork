@@ -2275,13 +2275,13 @@ export default function Feedback360Dashboard({
         <button
           onClick={() => setReviewerFilterStatus('all')}
           className={`bg-white dark:bg-gray-800 rounded-md shadow p-3 border-2 transition-all text-left ${
-            reviewerFilterStatus === 'all' ? 'border-cyan-500 dark:border-cyan-400' : 'border-cyan-200 dark:border-cyan-800 hover:border-cyan-300 dark:hover:border-cyan-700'
+            reviewerFilterStatus === 'all' ? 'border-blue-500 dark:border-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
           }`}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-cyan-700 dark:text-cyan-400">Total</p>
-              <p className="text-2xl font-bold text-cyan-900 dark:text-cyan-300">{reviewerStats.total}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{reviewerStats.total}</p>
             </div>
           </div>
         </button>
