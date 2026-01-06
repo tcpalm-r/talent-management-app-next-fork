@@ -56,17 +56,20 @@ describe('filterReport.ts - Report Filtering', () => {
       });
     });
 
-    it('should preserve all other report data', () => {
+    it('should preserve non-confidential report data and remove confidential sections', () => {
       const filtered = filterReportForSubject(mockFullReport);
 
+      // Should preserve basic metadata and subject-visible content
       expect(filtered.id).toBe(mockFullReport.id);
       expect(filtered.survey_id).toBe(mockFullReport.survey_id);
       expect(filtered.overall_strengths).toEqual(mockFullReport.overall_strengths);
       expect(filtered.development_areas).toEqual(mockFullReport.development_areas);
       expect(filtered.recommendations).toEqual(mockFullReport.recommendations);
       expect(filtered.key_insights).toEqual(mockFullReport.key_insights);
-      expect(filtered.consensus_areas).toEqual(mockFullReport.consensus_areas);
-      expect(filtered.outlier_opinions).toEqual(mockFullReport.outlier_opinions);
+
+      // Should remove confidential sections that reveal group-level analysis
+      expect(filtered.consensus_areas).toEqual([]);
+      expect(filtered.outlier_opinions).toEqual([]);
     });
 
     it('should preserve theme data except relationships', () => {

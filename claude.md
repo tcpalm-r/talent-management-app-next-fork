@@ -53,7 +53,8 @@ DISABLE_AUTH=true
 # Services
 ANTHROPIC_API_KEY=sk-ant-...  # Server-side only (secure)
 RESEND_API_KEY=re_...
-RESEND_FROM_EMAIL=feedback@aiintranet.sonance.com
+RESEND_FROM_EMAIL=noreply@sonance.com
+RESEND_FROM_NAME=Sonance 360 Feedback
 CRON_SECRET=<random-secret>
 ```
 
@@ -409,7 +410,7 @@ talent-management-next/
 | **Performance** | Implement caching strategy, optimize bundle size, add monitoring |
 | **Features** | Advanced analytics, custom report builder, mobile app, offline support |
 
----
+---/
 
 ## Additional Resources
 

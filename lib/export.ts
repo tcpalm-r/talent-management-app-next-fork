@@ -17,12 +17,6 @@ export function exportToCSV(data: ExportData) {
     manager: employee.manager_name || '',
     title: employee.title || '',
     location: employee.location || '',
-    performance: employee.assessment?.performance || '',
-    potential: employee.assessment?.potential || '',
-    box_label: getBoxLabel(employee, data.boxDefinitions),
-    assessed_by: employee.assessment?.assessed_by || '',
-    assessed_at: employee.assessment?.assessed_at ? 
-      new Date(employee.assessment.assessed_at).toLocaleDateString() : '',
   }));
 
   const csv = Papa.unparse(csvData);

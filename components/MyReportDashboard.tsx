@@ -369,7 +369,7 @@ export default function MyReportDashboard({
 
         {/* 360° Review Report Section */}
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">360° Feedback</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">My 360° Feedback</h2>
           {finalizedSurveys.length === 0 ? (
             <Tooltip
               content="When all your 360 feedback is processed and your supervisor finalizes the report it will show up here"

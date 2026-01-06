@@ -33,12 +33,17 @@ export async function POST(request: Request) {
     // Validate environment variables at the start
     const resendApiKey = process.env.RESEND_API_KEY;
     const resendFromEmail = process.env.RESEND_FROM_EMAIL;
-    
+    const resendFromName = process.env.RESEND_FROM_NAME || 'Sonance 360 Feedback';
+
+    // Format the from address with display name
+    const fromAddress = `${resendFromName} <${resendFromEmail}>`;
+
     console.log('[Email Send] Environment check:', {
       apiKeySet: !!resendApiKey && resendApiKey !== 'placeholder-key',
       apiKeyMasked: maskSecret(resendApiKey),
       fromEmailSet: !!resendFromEmail,
       fromEmail: resendFromEmail || 'NOT SET',
+      fromName: resendFromName,
     });
 
     if (!resendApiKey || resendApiKey === 'placeholder-key') {
@@ -172,7 +177,7 @@ export async function POST(request: Request) {
     // Send email using Resend
     console.log('[Email Send] Preparing to send:', {
       to: reviewer.reviewer_email,
-      from: resendFromEmail,
+      from: fromAddress,
       subject: isReminder ? 'Reminder' : 'Initial invitation',
       employee: survey.employee?.name,
     });
@@ -189,7 +194,7 @@ export async function POST(request: Request) {
       console.log('[Email Send] Resend client initialized, sending email...');
       
       emailResult = await resend.emails.send({
-        from: resendFromEmail,
+        from: fromAddress,
         to: reviewer.reviewer_email,
         subject,
         html: `
@@ -316,13 +321,13 @@ export async function POST(request: Request) {
       // Handle domain verification error
       if (emailResult.error.message?.includes('domain is not verified')) {
         errorMessage = `Domain not verified: ${emailResult.error.message}`;
-        errorHint = 'RESEND_FROM_EMAIL is not set or uses an unverified domain. Set RESEND_FROM_EMAIL in Vercel environment variables to a verified domain (e.g., feedback@aiintranet.sonance.com)';
+        errorHint = 'RESEND_FROM_EMAIL is not set or uses an unverified domain. Set RESEND_FROM_EMAIL in Vercel environment variables to a verified domain (e.g., noreply@sonance.com)';
       }
       
       // Handle missing from email
       if (emailResult.error.message?.includes('yourdomain.com') || !resendFromEmail) {
         errorMessage = 'RESEND_FROM_EMAIL environment variable is not configured';
-        errorHint = 'Set RESEND_FROM_EMAIL in Vercel environment variables (e.g., feedback@aiintranet.sonance.com)';
+        errorHint = 'Set RESEND_FROM_EMAIL in Vercel environment variables (e.g., noreply@sonance.com)';
       }
 
       // Try to update reviewer with email error (don't fail if this fails)

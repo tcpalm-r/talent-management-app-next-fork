@@ -35,7 +35,7 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
   const userContext = useContext(UserContext);
 
   const baseNavItems = [
-    { id: 'directory', label: 'Talent', icon: Users },
+    // { id: 'directory', label: 'Talent', icon: Users }, // Hidden for now
     { id: '360-feedback', label: '360°', icon: RotateCw },
     { id: 'my-report', label: 'Review', icon: FileText },
   ] as const;

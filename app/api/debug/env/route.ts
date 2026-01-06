@@ -63,6 +63,10 @@ export async function GET() {
         status: isSet(process.env.RESEND_FROM_EMAIL),
         value: process.env.RESEND_FROM_EMAIL || 'NOT SET (will use default)'
       },
+      'RESEND_FROM_NAME': {
+        status: isSet(process.env.RESEND_FROM_NAME),
+        value: process.env.RESEND_FROM_NAME || 'Sonance 360 Feedback (default)'
+      },
       'ADMIN_EMAIL': {
         status: isSet(process.env.ADMIN_EMAIL),
         value: process.env.ADMIN_EMAIL || 'NOT SET'

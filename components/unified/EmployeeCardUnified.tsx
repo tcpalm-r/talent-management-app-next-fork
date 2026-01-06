@@ -122,7 +122,7 @@ export default function EmployeeCardUnified({
         {...(enableDrag ? attributes : {})}
         onClick={handleCardClick}
         className={`
-          relative group bg-white border-2 border-gray-200 rounded-md p-4 transition-all cursor-pointer
+          relative group bg-white border-2 border-gray-200 rounded-md p-4 transition-all cursor-pointer overflow-hidden
           hover:border-blue-200 hover:shadow-md
           ${isDragActive ? 'opacity-50 scale-105 z-50 shadow-lg' : ''}
           ${isDragging ? 'opacity-50' : ''}
@@ -285,7 +285,7 @@ export default function EmployeeCardUnified({
         {...(enableDrag ? attributes : {})}
         onClick={handleCardClick}
         className={`
-          group relative bg-white border border-gray-200 rounded-md p-3 transition-all duration-200 cursor-pointer
+          group relative bg-white border border-gray-200 rounded-md p-3 transition-all duration-200 cursor-pointer overflow-hidden
           hover:border-blue-300 hover:shadow-md
           ${isDragActive ? 'opacity-50 scale-105 z-50 shadow-lg' : ''}
           ${isDragging ? 'opacity-50' : ''}
@@ -302,7 +302,7 @@ export default function EmployeeCardUnified({
           </div>
 
           {/* Content */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 overflow-hidden">
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm font-semibold text-gray-900 whitespace-normal leading-tight">
                 <EmployeeNameLink
@@ -320,7 +320,7 @@ export default function EmployeeCardUnified({
               )}
             </div>
               {employee.title && (
-                <p className="text-xs text-gray-600 whitespace-normal font-medium">
+                <p className="text-xs text-gray-600 truncate font-medium" title={employee.title}>
                   {employee.title}
                 </p>
               )}
@@ -353,7 +353,7 @@ export default function EmployeeCardUnified({
       {...(enableDrag ? attributes : {})}
       onClick={handleCardClick}
       className={`
-        group relative bg-white border border-gray-200 rounded-md p-3 transition-all duration-200 cursor-pointer
+        group relative bg-white border border-gray-200 rounded-md p-3 transition-all duration-200 cursor-pointer overflow-hidden
         hover:border-gray-300 hover:shadow-md hover:border-blue-300
         ${isDragActive ? 'opacity-50 scale-105 z-50 shadow-lg' : ''}
         ${isDragging ? 'opacity-50' : ''}
@@ -415,8 +415,8 @@ export default function EmployeeCardUnified({
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0 space-y-2">
-          <div className="space-y-1">
+        <div className="flex-1 min-w-0 space-y-2 overflow-hidden">
+          <div className="space-y-1 overflow-hidden">
             <p className="text-sm font-semibold text-gray-900 whitespace-normal leading-tight">
               <EmployeeNameLink
                 employee={employee}
@@ -427,7 +427,7 @@ export default function EmployeeCardUnified({
               />
             </p>
             {employee.title && (
-              <p className="text-xs text-gray-600 truncate font-medium" title={employee.title}>
+              <p className="text-xs text-gray-600 truncate font-medium max-w-full" title={employee.title}>
                 {employee.title}
               </p>
             )}
