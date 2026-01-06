@@ -36,11 +36,13 @@ export async function POST(request: NextRequest) {
 
     // Upsert all responses (insert or update if already exists)
     // Uses the unique constraint on (survey_id, question_id, reviewer_email)
+    // Set is_draft = false to mark as final submission
     const responsesToUpsert = responses.map((response: { questionId: string; responseText: string }) => ({
       survey_id: reviewerData.survey_id,
       question_id: response.questionId,
       reviewer_email: reviewerData.reviewer_email,
       response_text: response.responseText,
+      is_draft: false, // Mark as submitted, not draft
     }));
 
     const { error: upsertError } = await supabaseAdmin

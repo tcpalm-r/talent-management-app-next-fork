@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { CheckCircle, AlertCircle, Send, Loader, Sparkles } from 'lucide-react';
+import { CheckCircle, AlertCircle, Send, Loader, Sparkles, Cloud, CloudOff } from 'lucide-react';
+
+type SaveStatus = 'idle' | 'saving-local' | 'saved-local' | 'saving-server' | 'saved-server' | 'error';
 import SurveyAIAssistant from '../../../../components/SurveyAIAssistant';
 import { replaceNamePlaceholder } from '../../../../lib/questionUtils';
 import { Tooltip, TooltipProvider } from '../../../../components/unified';
@@ -54,18 +56,89 @@ export default function SurveyCompletionPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [responses, setResponses] = useState<Record<string, string>>({});
 
-  // Autosave draft responses to localStorage
+  // Three-tier save strategy state
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [hasUnsyncedChanges, setHasUnsyncedChanges] = useState(false);
+  const serverSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const responsesRef = useRef<Record<string, string>>({});
+
+  // Keep responsesRef in sync with responses state (for sendBeacon)
+  useEffect(() => {
+    responsesRef.current = responses;
+  }, [responses]);
+
+  // Server save function
+  const saveToServer = useCallback(async (responsesToSave: Record<string, string>) => {
+    if (!token || Object.keys(responsesToSave).length === 0) return;
+
+    try {
+      setSaveStatus('saving-server');
+      const response = await fetch('/api/survey-completion/save-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, responses: responsesToSave }),
+      });
+
+      if (response.ok) {
+        setSaveStatus('saved-server');
+        setHasUnsyncedChanges(false);
+        console.log('[SurveyCompletionPage] Draft saved to server');
+      } else {
+        setSaveStatus('error');
+        console.error('[SurveyCompletionPage] Server save failed');
+      }
+    } catch (err) {
+      setSaveStatus('error');
+      console.error('[SurveyCompletionPage] Server save error:', err);
+    }
+  }, [token]);
+
+  // Reset server save timer (debounced 7 seconds)
+  const resetServerSaveTimer = useCallback(() => {
+    if (serverSaveTimerRef.current) {
+      clearTimeout(serverSaveTimerRef.current);
+    }
+    serverSaveTimerRef.current = setTimeout(() => {
+      saveToServer(responsesRef.current);
+    }, 5000); // 5 seconds debounce
+  }, [saveToServer]);
+
+  // Instant localStorage save on every change
   useEffect(() => {
     if (Object.keys(responses).length > 0 && !success) {
       const draftKey = `survey-draft-${token}`;
-      const saveTimer = setTimeout(() => {
-        localStorage.setItem(draftKey, JSON.stringify(responses));
-        console.log('[SurveyCompletionPage] Draft saved to localStorage');
-      }, 500); // Debounce 500ms
-
-      return () => clearTimeout(saveTimer);
+      // Instant localStorage save
+      localStorage.setItem(draftKey, JSON.stringify(responses));
+      setSaveStatus('saved-local');
+      console.log('[SurveyCompletionPage] Draft saved to localStorage');
     }
   }, [responses, token, success]);
+
+  // visibilitychange / pagehide handler for sendBeacon
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && hasUnsyncedChanges && !success) {
+        // Use sendBeacon for reliable fire-and-forget save on tab close
+        const data = JSON.stringify({ token, responses: responsesRef.current });
+        const sent = navigator.sendBeacon('/api/survey-completion/save-draft', data);
+        if (sent) {
+          console.log('[SurveyCompletionPage] Draft sent via sendBeacon');
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handleVisibilityChange);
+      // Clear timer on unmount
+      if (serverSaveTimerRef.current) {
+        clearTimeout(serverSaveTimerRef.current);
+      }
+    };
+  }, [token, hasUnsyncedChanges, success]);
 
   useEffect(() => {
     loadSurveyData();
@@ -113,8 +186,8 @@ export default function SurveyCompletionPage() {
 
       setSurvey(surveyData.survey);
 
-      // Step 3: Load survey questions
-      const questionsResponse = await fetch(`/api/survey-completion/questions?surveyId=${startData.surveyId}`);
+      // Step 3: Load survey questions (include token to get server drafts)
+      const questionsResponse = await fetch(`/api/survey-completion/questions?surveyId=${startData.surveyId}&token=${token}`);
       const questionsData = await questionsResponse.json();
 
       if (!questionsResponse.ok || !questionsData.success) {
@@ -125,28 +198,41 @@ export default function SurveyCompletionPage() {
 
       setQuestions(questionsData.questions);
 
-      // Initialize responses - check for saved draft first
+      // Initialize responses - check for saved drafts
       const initialResponses: Record<string, string> = {};
       questionsData.questions.forEach((q: Question) => {
         initialResponses[q.id] = '';
       });
 
-      // Load draft from localStorage if it exists
+      // Priority: Server drafts > localStorage drafts
+      // 1. First, load from localStorage (fast)
       const draftKey = `survey-draft-${token}`;
       const savedDraft = localStorage.getItem(draftKey);
       if (savedDraft) {
         try {
-          const draftResponses = JSON.parse(savedDraft);
+          const localDraftResponses = JSON.parse(savedDraft);
           console.log('[SurveyCompletionPage] Loaded draft from localStorage');
-          // Merge saved draft with initial responses
-          Object.keys(draftResponses).forEach((questionId) => {
+          Object.keys(localDraftResponses).forEach((questionId) => {
             if (initialResponses.hasOwnProperty(questionId)) {
-              initialResponses[questionId] = draftResponses[questionId];
+              initialResponses[questionId] = localDraftResponses[questionId];
             }
           });
         } catch (e) {
-          console.error('[SurveyCompletionPage] Error loading draft:', e);
+          console.error('[SurveyCompletionPage] Error loading localStorage draft:', e);
         }
+      }
+
+      // 2. Then, merge server drafts (server wins - they're the source of truth for cross-device)
+      if (questionsData.draftResponses && Object.keys(questionsData.draftResponses).length > 0) {
+        console.log('[SurveyCompletionPage] Loaded draft from server');
+        Object.keys(questionsData.draftResponses).forEach((questionId) => {
+          if (initialResponses.hasOwnProperty(questionId)) {
+            // Server draft takes priority (cross-device sync)
+            initialResponses[questionId] = questionsData.draftResponses[questionId];
+          }
+        });
+        // Update localStorage with server state
+        localStorage.setItem(draftKey, JSON.stringify(initialResponses));
       }
 
       setResponses(initialResponses);
@@ -237,6 +323,13 @@ export default function SurveyCompletionPage() {
       localStorage.removeItem(draftKey);
       console.log('[SurveyCompletionPage] Draft cleared from localStorage');
 
+      // Clear server save timer and sync state
+      if (serverSaveTimerRef.current) {
+        clearTimeout(serverSaveTimerRef.current);
+      }
+      setHasUnsyncedChanges(false);
+      setSaveStatus('idle');
+
       setSuccess(true);
     } catch (err: any) {
       console.error('Error submitting survey:', err);
@@ -252,6 +345,9 @@ export default function SurveyCompletionPage() {
       ...prev,
       [questionId]: value,
     }));
+    // Mark as having unsynced changes and reset server save timer
+    setHasUnsyncedChanges(true);
+    resetServerSaveTimer();
   };
 
   const getWordCount = (text: string): number => {
@@ -499,9 +595,38 @@ export default function SurveyCompletionPage() {
 
           {/* Instructions */}
           <div className="bg-blue-50 border-b border-blue-200 px-8 py-5">
-            <p className="text-sm font-semibold text-blue-900">
-              🔒 Your feedback is confidential and will be aggregated with other responses for anonymity.
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-blue-900">
+                🔒 Your feedback is confidential and will be aggregated with other responses for anonymity.
+              </p>
+              {/* Save Status Indicator */}
+              <div className="flex items-center gap-2 text-xs">
+                {saveStatus === 'saved-local' && (
+                  <span className="flex items-center gap-1 text-gray-500">
+                    <Cloud className="w-3 h-3" />
+                    Saved locally
+                  </span>
+                )}
+                {saveStatus === 'saving-server' && (
+                  <span className="flex items-center gap-1 text-blue-600">
+                    <Loader className="w-3 h-3 animate-spin" />
+                    Syncing...
+                  </span>
+                )}
+                {saveStatus === 'saved-server' && (
+                  <span className="flex items-center gap-1 text-green-600">
+                    <Cloud className="w-3 h-3" />
+                    Saved to server ✓
+                  </span>
+                )}
+                {saveStatus === 'error' && (
+                  <span className="flex items-center gap-1 text-orange-600">
+                    <CloudOff className="w-3 h-3" />
+                    Save failed - retrying...
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Form */}
