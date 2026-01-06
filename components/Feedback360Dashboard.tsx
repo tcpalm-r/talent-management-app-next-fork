@@ -2518,29 +2518,6 @@ export default function Feedback360Dashboard({
                         />
                         {survey.employee?.name || 'Unknown Employee'}
                       </h3>
-
-                      {/* Relationship badges */}
-                      {isSponsor && (
-                        <Tooltip content="You created this survey">
-                          <span className="text-xs font-medium text-indigo-700 dark:text-indigo-400 cursor-help">
-                            Sponsor
-                          </span>
-                        </Tooltip>
-                      )}
-                      {isReviewee && (
-                        <Tooltip content="You are being reviewed">
-                          <span className="text-xs font-medium text-orange-700 dark:text-orange-400 cursor-help">
-                            Subject
-                          </span>
-                        </Tooltip>
-                      )}
-                      {isReviewer && (
-                        <Tooltip content="You were invited to provide feedback">
-                          <span className="text-xs font-medium text-cyan-700 dark:text-cyan-400 cursor-help">
-                            Reviewer
-                          </span>
-                        </Tooltip>
-                      )}
                     </div>
 
                   <div className="flex items-center space-x-4 text-sm">
