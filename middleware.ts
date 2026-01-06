@@ -125,11 +125,48 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check if running inside Microsoft Teams
-    // When in Teams, let the client-side handle SSO instead of redirecting to AI Intranet
+    // When in Teams, check for existing session cookie first before allowing client-side SSO
     const isInTeams = request.nextUrl.searchParams.get('inTeams') === 'true';
     if (isInTeams) {
-      console.log('[Sonance Auth] Teams context detected - allowing client-side SSO');
-      // Let the request through - TeamsProvider on client will handle authentication
+      console.log('[Sonance Auth] Teams context detected');
+
+      // Check if Teams SSO already set a session cookie
+      const teamsSessionCookie = request.cookies.get('ai-intranet-user');
+      if (teamsSessionCookie) {
+        try {
+          const session = JSON.parse(teamsSessionCookie.value);
+
+          // Check if session is still valid (24 hour expiry)
+          if (session.timestamp && Date.now() - session.timestamp < 86400000) {
+            console.log('[Sonance Auth] Teams: Valid session found for:', session.email);
+
+            // Re-query local database to get latest app_role
+            const localRole = await getLocalUserRole(session.email);
+            if (localRole) {
+              session.app_role = localRole.app_role;
+              session.app_permissions = localRole.app_permissions;
+            }
+
+            // Add user data to request headers for API routes
+            const requestHeaders = new Headers(request.headers);
+            requestHeaders.set('x-user-data', JSON.stringify(session));
+            requestHeaders.set('x-user-id', session.auth0_id || session.id);
+            requestHeaders.set('x-user-role', session.app_role);
+            requestHeaders.set('x-user-email', session.email);
+
+            return NextResponse.next({
+              request: { headers: requestHeaders },
+            });
+          } else {
+            console.log('[Sonance Auth] Teams: Session expired');
+          }
+        } catch (error) {
+          console.error('[Sonance Auth] Teams: Failed to parse session cookie:', error);
+        }
+      }
+
+      // No valid session - let TeamsProvider handle SSO
+      console.log('[Sonance Auth] Teams: No valid session, allowing client-side SSO');
       return NextResponse.next();
     }
 

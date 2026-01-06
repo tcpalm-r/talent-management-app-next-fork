@@ -297,15 +297,23 @@ export function getSessionFromRequest(request: NextRequest): string | null {
 
 /**
  * Get user from request cookies
+ * Handles both URL-encoded (AI Intranet) and plain JSON (Teams SSO) cookie formats
  */
 export function getUserFromRequest(request: NextRequest): SessionUser | null {
   const userCookie = request.cookies.get(USER_COOKIE)?.value;
   if (!userCookie) return null;
 
   try {
-    return JSON.parse(decodeURIComponent(userCookie));
+    // Try parsing as plain JSON first (Teams SSO format)
+    return JSON.parse(userCookie);
   } catch {
-    return null;
+    // Fall back to URL-decoded JSON (AI Intranet format)
+    try {
+      return JSON.parse(decodeURIComponent(userCookie));
+    } catch {
+      console.error('[Auth] Failed to parse user cookie');
+      return null;
+    }
   }
 }
 
