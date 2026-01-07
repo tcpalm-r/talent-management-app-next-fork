@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,16 @@ const ORGANIZATION_ID = 'f8a8b8c8-d8e8-4f8f-8f8f-8f8f8f8f8f8f';
  */
 export async function GET(request: NextRequest) {
   try {
+    const authData = await getAuthenticatedUser(request);
+    if (!authData) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { user, profile } = authData;
+    const role = user.app_role?.toLowerCase() || 'user';
     const searchParams = request.nextUrl.searchParams;
     const organizationId = searchParams.get('organization_id');
 
@@ -31,19 +42,56 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    let allowedUserIds: string[] | null = null;
+
+    if (role !== 'admin' && role !== 'slt') {
+      if (role === 'leader') {
+        const { data: directReports, error: directReportsError } = await supabaseAdmin
+          .from('user_profiles')
+          .select('id')
+          .eq('manager_id', profile.id)
+          .eq('is_active', true);
+
+        if (directReportsError) {
+          console.error('Error loading direct reports:', directReportsError);
+          return NextResponse.json(
+            { error: 'Failed to load direct reports', details: directReportsError.message },
+            { status: 500 }
+          );
+        }
+
+        const directReportIds = directReports?.map(dr => dr.id) || [];
+        allowedUserIds = Array.from(new Set([profile.id, ...directReportIds]));
+      } else {
+        allowedUserIds = [profile.id];
+      }
+    }
+
+    let userProfilesQuery = supabaseAdmin
+      .from('user_profiles')
+      .select('id, full_name, email, employee_number, department, manager_id, title, location, app_role, created_at, updated_at')
+      .eq('is_active', true);
+
+    if (allowedUserIds) {
+      userProfilesQuery = userProfilesQuery.in('id', allowedUserIds);
+    }
+
+    let assessmentsQuery = supabaseAdmin
+      .from('assessments')
+      .select('*');
+
+    if (allowedUserIds) {
+      assessmentsQuery = assessmentsQuery.in('user_id', allowedUserIds);
+    }
+
     // Load user_profiles (employees), departments, and assessments in parallel
     const [userProfilesResult, departmentsResult, assessmentsResult] = await Promise.all([
-      supabaseAdmin
-        .from('user_profiles')
-        .select('id, full_name, email, employee_number, department, manager_id, title, location, app_role, created_at, updated_at')
-        .eq('is_active', true),
+      userProfilesQuery,
       supabaseAdmin
         .from('departments' as any)
         .select('*')
         .order('name'),
-      supabaseAdmin
-        .from('assessments')
-        .select('*')
+      assessmentsQuery
     ]);
 
     if (userProfilesResult.error) {
@@ -101,9 +149,15 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    const filteredDepartments = role === 'admin' || role === 'slt'
+      ? departmentsResult.data || []
+      : (departmentsResult.data || []).filter((dept: any) =>
+          employeesWithRelations.some(emp => emp.department_id === dept.id)
+        );
+
     return NextResponse.json({
       employees: employeesWithRelations,
-      departments: departmentsResult.data || [],
+      departments: filteredDepartments,
       assessments: assessmentsResult.data || []
     });
   } catch (error) {

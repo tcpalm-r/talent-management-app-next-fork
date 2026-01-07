@@ -94,6 +94,18 @@ export async function middleware(request: NextRequest) {
       console.log('[Sonance Auth] Processing request to:', request.nextUrl.pathname);
     }
 
+    // Allow cron jobs to reach their handlers; handlers enforce CRON_SECRET.
+    const pathname = request.nextUrl.pathname;
+    if (pathname.startsWith('/api/cron')) {
+      const cronSecret = process.env.CRON_SECRET;
+      const authHeader = request.headers.get('authorization');
+      const isDevelopment = process.env.NODE_ENV === 'development';
+
+      if (isDevelopment || (cronSecret && authHeader === `Bearer ${cronSecret}`)) {
+        return NextResponse.next();
+      }
+    }
+
     // Skip middleware for specific paths
     // IMPORTANT: Only skip public auth endpoints (login, logout, callback)
     // DO NOT skip /api/auth/me, /api/auth/sync, /api/auth/switch-user - they need auth!
@@ -116,8 +128,6 @@ export async function middleware(request: NextRequest) {
       '/blank-auth-end',      // Teams silent token refresh
       '/config'               // Teams tab configuration
     ];
-
-    const pathname = request.nextUrl.pathname;
 
     // Skip middleware for paths that should be public
     if (skipPaths.some(path => pathname.startsWith(path))) {

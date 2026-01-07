@@ -34,17 +34,19 @@ export const maxDuration = 720; // 12 minutes - needed for two-pass Claude API c
  */
 function determineViewerRole(
   user: UserProfile,
-  survey: { created_by: string; employee_id: string; status: string | null }
+  survey: { created_by: string; created_by_email?: string | null; employee_id: string; status: string | null }
 ): 'sponsor' | 'subject' | 'admin' | 'unauthorized' {
-  // Admins and SLT can see everything (elevated access)
-  if (user.app_role === 'admin' || user.app_role === 'slt') {
+  // Admins can see everything (elevated access)
+  if (user.app_role === 'admin') {
     return 'admin';
   }
 
   // Check if user is the survey sponsor (creator)
   const isSponsor =
     user.id === survey.created_by ||
-    (user.email && user.email === survey.created_by);
+    (!!user.email &&
+      !!survey.created_by_email &&
+      user.email.toLowerCase() === survey.created_by_email.toLowerCase());
 
   if (isSponsor) {
     return 'sponsor';
@@ -619,6 +621,7 @@ export async function GET(req: NextRequest) {
           employee_id,
           status,
           created_by,
+          created_by_email,
           created_at
         )
       `)
@@ -723,7 +726,7 @@ export async function PATCH(req: NextRequest) {
     // Fetch the survey to verify permissions
     const { data: survey, error: surveyError } = await supabaseAdmin
       .from('feedback_360_surveys')
-      .select('id, created_by, employee_id, status')
+      .select('id, created_by, created_by_email, employee_id, status')
       .eq('id', survey_id)
       .single();
 

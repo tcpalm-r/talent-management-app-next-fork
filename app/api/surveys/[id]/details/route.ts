@@ -12,8 +12,8 @@
  *
  * Authorization:
  * - Admins: Full access
- * - Leaders: Access to own surveys, direct reports, surveys where they're involved
- * - Users: Limited access (only finalized surveys where they're the subject)
+ * - Sponsors: Full access to their own surveys
+ * - Subjects: Finalized surveys only
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -143,34 +143,17 @@ async function checkSurveyAccess(
   if (role === 'admin') return true;
 
   // Check if user created the survey
-  if (survey.created_by === profile.id) return true;
+  const isSponsor =
+    survey.created_by === profile.id ||
+    (survey.created_by_email &&
+      profile.email &&
+      survey.created_by_email.toLowerCase() === profile.email.toLowerCase());
+
+  if (isSponsor) return true;
 
   // Check if user is the subject
   if (survey.employee_id === profile.id) {
-    // Regular users can only see finalized surveys where they're the subject
-    if (role === 'user' && survey.status !== 'finalized') {
-      return false;
-    }
-    return true;
-  }
-
-  // Check if user is a reviewer
-  const isReviewer = survey.reviewers?.some(
-    (r: any) => r.reviewer_email === profile.email
-  );
-  if (isReviewer) return true;
-
-  // For leaders, check if subject is a direct report
-  if (role === 'leader') {
-    const { data: directReports } = await supabaseAdmin
-      .from('user_profiles')
-      .select('id')
-      .eq('manager_id', profile.id);
-
-    const directReportIds = directReports?.map(dr => dr.id) || [];
-    if (directReportIds.includes(survey.employee_id)) {
-      return true;
-    }
+    return survey.status === 'finalized';
   }
 
   return false;

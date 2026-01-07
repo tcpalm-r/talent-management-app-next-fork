@@ -160,10 +160,12 @@ export async function GET(request: NextRequest) {
           try {
             // Call the send-survey-invitation endpoint
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004';
+            const internalSecret = process.env.CRON_SECRET;
             const emailResponse = await fetch(`${baseUrl}/api/send-survey-invitation`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
+                ...(internalSecret ? { 'Authorization': `Bearer ${internalSecret}` } : {}),
               },
               body: JSON.stringify({
                 surveyId: survey.id,

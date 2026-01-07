@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getValidatedAppUrl } from '@/lib/url-validator';
+import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,12 +29,15 @@ const getResend = () => {
 
 // Use singleton supabaseAdmin client (service role, bypasses RLS)
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     // Validate environment variables at the start
     const resendApiKey = process.env.RESEND_API_KEY;
     const resendFromEmail = process.env.RESEND_FROM_EMAIL;
     const resendFromName = process.env.RESEND_FROM_NAME || 'Sonance 360 Feedback';
+    const internalSecret = process.env.CRON_SECRET;
+    const authHeader = request.headers.get('authorization');
+    const isInternalRequest = !!internalSecret && authHeader === `Bearer ${internalSecret}`;
 
     // Format the from address with display name
     const fromAddress = `${resendFromName} <${resendFromEmail}>`;
@@ -139,6 +143,31 @@ export async function POST(request: Request) {
 
     const survey = { ...surveyResult.data, employee: employeeData };
     const reviewer = reviewerResult.data;
+
+    if (!isInternalRequest) {
+      const authData = await getAuthenticatedUser(request);
+      if (!authData) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+
+      const { user, profile } = authData;
+      const isAdmin = user.app_role === 'admin';
+      const isSponsor =
+        survey.created_by === profile.id ||
+        (survey.created_by_email &&
+          profile.email &&
+          survey.created_by_email.toLowerCase() === profile.email.toLowerCase());
+
+      if (!isAdmin && !isSponsor) {
+        return NextResponse.json(
+          { error: 'Forbidden: Only the survey sponsor or admin can send invitations' },
+          { status: 403 }
+        );
+      }
+    }
 
     // Generate survey URL with access token - validate URL first
     let baseUrl: string;

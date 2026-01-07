@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,16 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    const authData = await getAuthenticatedUser(request);
+    if (!authData) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { user, profile } = authData;
+    const role = user.app_role?.toLowerCase() || 'user';
     const searchParams = request.nextUrl.searchParams;
     const organizationId = searchParams.get('organization_id');
     const status = searchParams.get('status');
@@ -29,6 +40,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    let allowedEmployeeIds: string[] | null = null;
+
+    if (role !== 'admin' && role !== 'slt') {
+      if (role === 'leader') {
+        const { data: directReports, error: directReportsError } = await supabaseAdmin
+          .from('user_profiles')
+          .select('id')
+          .eq('manager_id', profile.id)
+          .eq('is_active', true);
+
+        if (directReportsError) {
+          console.error('Error loading direct reports:', directReportsError);
+          return NextResponse.json(
+            { error: 'Failed to load direct reports', details: directReportsError.message },
+            { status: 500 }
+          );
+        }
+
+        const directReportIds = directReports?.map(dr => dr.id) || [];
+        allowedEmployeeIds = Array.from(new Set([profile.id, ...directReportIds]));
+      } else {
+        allowedEmployeeIds = [profile.id];
+      }
+    }
+
     // Build query using admin client
     let query = supabaseAdmin
       .from('feedback_360_surveys' as any)
@@ -38,6 +74,10 @@ export async function GET(request: NextRequest) {
     // Apply status filter if provided
     if (status) {
       query = query.eq('status', status);
+    }
+
+    if (allowedEmployeeIds) {
+      query = query.in('employee_id', allowedEmployeeIds);
     }
 
     const { data, error } = await query;
