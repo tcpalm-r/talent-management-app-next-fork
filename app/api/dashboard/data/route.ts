@@ -3,15 +3,21 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
 
+// Single-tenant organization ID (was hardcoded in the employees materialized view)
+const ORGANIZATION_ID = 'f8a8b8c8-d8e8-4f8f-8f8f-8f8f8f8f8f8f';
+
 /**
  * GET /api/dashboard/data
  *
  * Loads employees, departments, and assessments for a given organization.
  * Query params:
- *   - organization_id: The organization ID to filter by (required)
+ *   - organization_id: The organization ID to filter by (required for API compatibility)
  *
  * Returns:
  *   { employees, departments, assessments }
+ *
+ * Note: This endpoint now queries user_profiles directly instead of the
+ * employees materialized view. Field names are mapped for backward compatibility.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -25,27 +31,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Load employees, departments, and assessments in parallel using admin client
-    const [employeesResult, departmentsResult, assessmentsResult] = await Promise.all([
+    // Load user_profiles (employees), departments, and assessments in parallel
+    const [userProfilesResult, departmentsResult, assessmentsResult] = await Promise.all([
       supabaseAdmin
-        .from('employees' as any)
-        .select('*')
-        .eq('organization_id', organizationId),
+        .from('user_profiles')
+        .select('id, full_name, email, employee_number, department, manager_id, title, location, app_role, created_at, updated_at')
+        .eq('is_active', true),
       supabaseAdmin
         .from('departments' as any)
         .select('*')
-        .eq('organization_id', organizationId)
         .order('name'),
       supabaseAdmin
         .from('assessments')
         .select('*')
-        .eq('organization_id', organizationId)
     ]);
 
-    if (employeesResult.error) {
-      console.error('Error loading employees:', employeesResult.error);
+    if (userProfilesResult.error) {
+      console.error('Error loading employees:', userProfilesResult.error);
       return NextResponse.json(
-        { error: 'Failed to load employees', details: employeesResult.error.message },
+        { error: 'Failed to load employees', details: userProfilesResult.error.message },
         { status: 500 }
       );
     }
@@ -66,12 +70,36 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Combine data and attach relations
-    const employeesWithRelations = (employeesResult.data || []).map((employee: any) => ({
-      ...employee,
-      department: departmentsResult.data?.find((d: any) => d.id === employee.department_id) || null,
-      assessment: assessmentsResult.data?.find((a: any) => a.employee_id === employee.id) || null
-    }));
+    // Create a lookup map for manager names
+    const userProfilesById = new Map(
+      (userProfilesResult.data || []).map((up: any) => [up.id, up])
+    );
+
+    // Transform user_profiles to match legacy Employee interface
+    const employeesWithRelations = (userProfilesResult.data || []).map((up: any) => {
+      // Find department by name match
+      const dept = departmentsResult.data?.find((d: any) => d.name === up.department) || null;
+      // Get manager's name
+      const manager = up.manager_id ? userProfilesById.get(up.manager_id) : null;
+
+      return {
+        id: up.id,
+        organization_id: ORGANIZATION_ID,
+        employee_id: up.employee_number,
+        name: up.full_name,
+        email: up.email,
+        department_id: dept?.id || null,
+        department: dept,
+        manager_name: manager?.full_name || null,
+        title: up.title,
+        location: up.location,
+        app_role: up.app_role,
+        reports_to_id: up.manager_id,
+        created_at: up.created_at,
+        updated_at: up.updated_at,
+        assessment: assessmentsResult.data?.find((a: any) => a.user_id === up.id) || null
+      };
+    });
 
     return NextResponse.json({
       employees: employeesWithRelations,

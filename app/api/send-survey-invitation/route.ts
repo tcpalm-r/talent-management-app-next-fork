@@ -111,15 +111,16 @@ export async function POST(request: Request) {
         .single(),
     ]);
 
-    // Fetch employee details separately from employees view
+    // Fetch employee details from user_profiles (replaces employees materialized view)
     let employeeData = null;
     if (surveyResult.data?.employee_id) {
       const { data: empData } = await supabaseAdmin
-        .from('employees' as any)
-        .select('name, email')
+        .from('user_profiles')
+        .select('full_name, email')
         .eq('id', surveyResult.data.employee_id)
         .single();
-      employeeData = empData;
+      // Map full_name to name for backward compatibility
+      employeeData = empData ? { name: empData.full_name, email: empData.email } : null;
     }
 
     if (surveyResult.error || !surveyResult.data) {
