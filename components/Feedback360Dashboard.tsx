@@ -3356,27 +3356,36 @@ export default function Feedback360Dashboard({
                     const completionPercent = completedReviewers / totalReviewers;
                     const isAdmin = currentUser?.app_role === 'admin';
                     const meetsThreshold = completionPercent >= 0.7;
-                    const canComplete = isAdmin || meetsThreshold;
+                    // SLT must meet threshold, admins can bypass with confirmation
+                    const canComplete = meetsThreshold;
+                    const canBypass = isAdmin && !meetsThreshold;
 
                     return (
                       <button
                         onClick={() => {
-                          if (!canComplete) {
+                          if (!canComplete && !canBypass) {
                             notify({
                               title: '>70% Reviewer completion required to complete 360°',
                               variant: 'error',
                             });
                             return;
                           }
+                          // Admin bypass confirmation
+                          if (canBypass) {
+                            const confirmed = window.confirm(
+                              `Warning: Only ${completedReviewers}/${totalReviewers} reviewers (${Math.round(completionPercent * 100)}%) have completed their feedback.\n\nThe recommended threshold is 70%. Are you sure you want to proceed?`
+                            );
+                            if (!confirmed) return;
+                          }
                           completeSurveyWithAI();
                         }}
-                        disabled={generatingSurveyId === selectedSurvey?.id || !canComplete}
+                        disabled={generatingSurveyId === selectedSurvey?.id || (!canComplete && !canBypass)}
                         className={`px-4 py-2 bg-gradient-to-r rounded-md font-medium flex items-center ${
-                          canComplete
+                          canComplete || canBypass
                             ? 'from-purple-600 to-indigo-700 text-white hover:from-purple-700 hover:to-indigo-800'
                             : 'from-gray-400 to-gray-500 text-gray-200 cursor-not-allowed'
                         } disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
-                        title={!canComplete ? 'At least 70% of reviewers must submit their feedback before completing the review.' : ''}
+                        title={!canComplete && !canBypass ? 'At least 70% of reviewers must submit their feedback before completing the review.' : (canBypass ? 'Admin: Click to bypass threshold with confirmation' : '')}
                       >
                         {generatingSurveyId === selectedSurvey?.id ? (
                           <>
