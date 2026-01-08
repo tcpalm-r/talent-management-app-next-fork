@@ -2444,7 +2444,7 @@ export default function Feedback360Dashboard({
                 : filterRole === 'all'
                 ? 'No 360°s in the system yet'
                 : filterStatus === 'all'
-                ? 'No 360°s yet. Launch a 360° Review and it will show up here.'
+                ? 'Launch a 360° Review and it will show up here.'
                 : filterStatus === 'draft'
                 ? 'Nothing drafted'
                 : filterStatus === 'in_progress'
