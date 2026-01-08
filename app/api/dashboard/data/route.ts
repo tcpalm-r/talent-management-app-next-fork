@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
 
     // Load user_profiles (employees), departments, and assessments in parallel
     const [userProfilesResult, departmentsResult, assessmentsResult] = await Promise.all([
-      userProfilesQuery,
+      userProfilesQuery.order('full_name'),
       supabaseAdmin
         .from('departments' as any)
         .select('*')
