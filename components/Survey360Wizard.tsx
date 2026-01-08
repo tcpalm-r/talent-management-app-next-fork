@@ -1007,6 +1007,7 @@ export default function Survey360Wizard({
               surveyId: draftSurvey.id,
               surveyName: surveyTitle || `360° Feedback - ${displayName}`,
               dueDate,
+              autoReminderDaysBefore,
               preferredName: preferredName || null,
               requiredQuestions,
               customQuestions,
@@ -2037,4 +2038,3 @@ export default function Survey360Wizard({
     document.body
   ) : null;
 }
-

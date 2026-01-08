@@ -34,6 +34,9 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
+  const { searchParams } = new URL(request.url);
+  const debug = searchParams.get('debug') === '1';
+  const dryRun = searchParams.get('dry_run') === '1';
 
   console.log('[Cron] Automatic survey reminders job started');
 
@@ -81,6 +84,8 @@ export async function GET(request: NextRequest) {
         message: 'No surveys found needing reminders',
         surveysProcessed: 0,
         remindersSent: 0,
+        debug,
+        dryRun,
         executionTime: Date.now() - startTime,
       });
     }
@@ -113,6 +118,17 @@ export async function GET(request: NextRequest) {
 
         if (!shouldSendToday) {
           console.log(`[Cron] Skipping survey ${survey.id}: not reminder day (${daysUntilDue} days vs ${reminderDaysBefore} days)`);
+          if (debug) {
+            results.details.push({
+              surveyId: survey.id,
+              surveyName: survey.survey_name,
+              dueDate: survey.due_date,
+              daysUntilDue,
+              reminderDaysBefore,
+              shouldSendToday: false,
+              reason: 'not_reminder_day',
+            });
+          }
           continue;
         }
 
@@ -137,6 +153,20 @@ export async function GET(request: NextRequest) {
 
         if (!reviewers || reviewers.length === 0) {
           console.log(`[Cron] No incomplete reviewers for survey ${survey.id}`);
+          if (debug) {
+            results.details.push({
+              surveyId: survey.id,
+              surveyName: survey.survey_name,
+              dueDate: survey.due_date,
+              daysUntilDue,
+              reminderDaysBefore,
+              shouldSendToday: true,
+              reviewersTotal: 0,
+              remindersSent: 0,
+              skipped: 0,
+              reason: 'no_incomplete_reviewers',
+            });
+          }
           continue;
         }
 
@@ -161,6 +191,12 @@ export async function GET(request: NextRequest) {
             // Call the send-survey-invitation endpoint
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004';
             const internalSecret = process.env.CRON_SECRET;
+            if (dryRun) {
+              sentCount++;
+              results.remindersSent++;
+              console.log(`[Cron] DRY RUN: would send reminder to ${reviewer.reviewer_email} for survey ${survey.id}`);
+              continue;
+            }
             const emailResponse = await fetch(`${baseUrl}/api/send-survey-invitation`, {
               method: 'POST',
               headers: {
@@ -220,10 +256,14 @@ export async function GET(request: NextRequest) {
         results.details.push({
           surveyId: survey.id,
           surveyName: survey.survey_name,
+          dueDate: survey.due_date,
           daysUntilDue,
+          reminderDaysBefore,
+          shouldSendToday: true,
           reviewersTotal: reviewers.length,
           remindersSent: sentCount,
           skipped: skippedCount,
+          dryRun,
         });
 
         console.log(`[Cron] Survey ${survey.id} complete: sent ${sentCount}, skipped ${skippedCount}`);
@@ -254,6 +294,8 @@ export async function GET(request: NextRequest) {
       remindersSent: results.remindersSent,
       errors: results.errors.length > 0 ? results.errors : undefined,
       details: results.details,
+      debug,
+      dryRun,
       executionTime,
     });
 
