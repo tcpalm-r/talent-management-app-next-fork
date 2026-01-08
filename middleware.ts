@@ -94,9 +94,9 @@ export async function middleware(request: NextRequest) {
       console.log('[Sonance Auth] Processing request to:', request.nextUrl.pathname);
     }
 
-    // Allow cron jobs to reach their handlers; handlers enforce CRON_SECRET.
+    // Allow internal cron + email endpoints; handlers enforce CRON_SECRET.
     const pathname = request.nextUrl.pathname;
-    if (pathname.startsWith('/api/cron')) {
+    if (pathname.startsWith('/api/cron') || pathname.startsWith('/api/send-survey-invitation')) {
       return NextResponse.next();
     }
 
