@@ -82,8 +82,6 @@ export async function GET(request: NextRequest) {
     // Apply role-based filtering
     let filteredSurveys = allSurveys || [];
 
-    console.log(`[Survey Filter] User: ${profile.email}, Role: ${user.app_role}, Total surveys: ${allSurveys?.length || 0}`);
-
     if (user.app_role === 'admin') {
       // Admins see everything - no filtering needed
       filteredSurveys = allSurveys || [];
@@ -143,40 +141,6 @@ export async function GET(request: NextRequest) {
           (r: any) => r.reviewer_email === profile.email
         );
 
-        let reason = '';
-        let willShow = false;
-
-        if (isCreator) {
-          reason = 'creator';
-          willShow = true;
-        } else if (survey.status === 'draft') {
-          reason = 'draft (blocked)';
-          willShow = false;
-        } else if (isSubject && survey.status === 'finalized') {
-          reason = 'subject (finalized)';
-          willShow = true;
-        } else if (isSubject && survey.status !== 'finalized') {
-          reason = `subject (${survey.status}) - BLOCKED`;
-          willShow = false;
-        } else if (isDirectReport) {
-          reason = 'direct report';
-          willShow = true;
-        } else if (isReviewer) {
-          reason = 'reviewer';
-          willShow = true;
-        }
-
-        console.log(`[Leader Filter] Survey ${survey.id.substring(0, 8)}:`, {
-          subject_email: survey.employee_email || 'unknown',
-          status: survey.status,
-          isCreator,
-          isSubject,
-          isDirectReport,
-          isReviewer,
-          reason,
-          willShow
-        });
-
         if (isCreator) return true;
 
         // For non-creator scenarios, exclude draft surveys
@@ -228,8 +192,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log(`[Survey Filter] Filtered down to ${filteredSurveys.length} surveys for ${profile.email}`);
-
     // Prepare response
     const responseData = {
       surveys: filteredSurveys,
@@ -250,11 +212,6 @@ export async function GET(request: NextRequest) {
         errors: validation.error?.errors?.slice(0, 5) || [], // First 5 errors
         surveyCount: filteredSurveys.length,
       });
-    } else {
-      // Validation passed - log success in dev mode
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[API /surveys/list] ✓ Response validation passed (${filteredSurveys.length} surveys)`);
-      }
     }
 
     return NextResponse.json(responseData);
