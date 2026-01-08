@@ -5,39 +5,88 @@
  * Called by middleware after successful Sonance hub authentication.
  */
 
+import { createHmac, timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+
+const MAX_TOKEN_AGE_MS = 5 * 60 * 1000;
+
+const verifyAuthSyncToken = (
+  token: string,
+  secret: string
+): { user: Record<string, any>; iat: number } | null => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+
+    const [encodedHeader, encodedPayload, encodedSignature] = parts;
+    const data = `${encodedHeader}.${encodedPayload}`;
+    const expectedSignature = createHmac('sha256', secret)
+      .update(data)
+      .digest('base64url');
+
+    const signatureBuffer = Buffer.from(encodedSignature);
+    const expectedBuffer = Buffer.from(expectedSignature);
+    if (
+      signatureBuffer.length !== expectedBuffer.length ||
+      !timingSafeEqual(signatureBuffer, expectedBuffer)
+    ) {
+      return null;
+    }
+
+    const payloadRaw = Buffer.from(encodedPayload, 'base64url').toString('utf-8');
+    const payload = JSON.parse(payloadRaw);
+    if (!payload || typeof payload !== 'object' || !payload.user) return null;
+
+    const iat = payload.iat;
+    if (typeof iat !== 'number' || Math.abs(Date.now() - iat) > MAX_TOKEN_AGE_MS) {
+      return null;
+    }
+
+    return payload;
+  } catch (error) {
+    console.error('[SYNC] Failed to verify auth sync token:', error);
+    return null;
+  }
+};
 
 export async function POST(request: NextRequest) {
   try {
     console.log('[SYNC] Syncing user profile from authentication');
 
-    // Get user data from request body (sent by middleware)
-    const body = await request.json();
-    const userData = body.userData;
-
-    if (!userData) {
-      console.error('[SYNC] No userData provided');
+    const authSyncSecret = process.env.AUTH_SYNC_SECRET;
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    if (!authSyncSecret && !isDevelopment) {
+      console.error('[SYNC] AUTH_SYNC_SECRET is not configured');
       return NextResponse.json(
-        { error: 'No user data' },
-        { status: 400 }
+        { error: 'Auth sync misconfigured' },
+        { status: 500 }
       );
     }
 
-    // Get the mapped user data from headers (set by middleware before calling this route)
-    const userDataHeader = request.headers.get('x-user-data');
-
-    if (!userDataHeader) {
-      console.error('[SYNC] No user data in headers');
+    const authSyncToken = request.headers.get('x-auth-sync-token');
+    if (!authSyncToken) {
+      console.error('[SYNC] Missing auth sync token');
       return NextResponse.json(
-        { error: 'Not authenticated' },
+        { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
     try {
-      const mappedUser = JSON.parse(userDataHeader);
+      const verifiedPayload = authSyncSecret
+        ? verifyAuthSyncToken(authSyncToken, authSyncSecret)
+        : null;
+      if (!verifiedPayload) {
+        console.error('[SYNC] Invalid or expired auth sync token');
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+
+      const mappedUser = verifiedPayload.user;
       console.log('[SYNC] Syncing user profile for:', mappedUser.email);
 
       // Try to sync user profile to database
@@ -52,11 +101,6 @@ export async function POST(request: NextRequest) {
           given_name: mappedUser.given_name,
           family_name: mappedUser.family_name,
           picture: mappedUser.picture,
-          global_role: mappedUser.global_role,
-          capabilities: mappedUser.capabilities,
-          app_role: mappedUser.app_role,
-          app_permissions: mappedUser.app_permissions,
-          app_access: mappedUser.app_access,
           department: mappedUser.department,
           title: mappedUser.title,
         });

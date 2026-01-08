@@ -258,9 +258,21 @@ export async function syncUserProfileViaSupabase(userData: any): Promise<any> {
   try {
     console.log('[SYNC-SUPABASE] Starting profile sync for:', userData.email);
 
+    if (!userData?.auth0_id || !userData?.email) {
+      console.error('[SYNC-SUPABASE] Missing auth0_id or email; cannot sync profile');
+      return null;
+    }
+
+    // Preserve roles/permissions from the local database (source of truth)
+    const { data: existingProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('id, app_role, app_permissions, global_role, capabilities, app_access, local_permissions')
+      .eq('auth0_id', userData.auth0_id)
+      .maybeSingle();
+
     // Prepare the profile data
     const profileData = {
-      id: userData.id,
+      id: existingProfile?.id || userData.id,
       auth0_id: userData.auth0_id,
       email: userData.email,
       full_name: userData.full_name || userData.email,
@@ -268,12 +280,12 @@ export async function syncUserProfileViaSupabase(userData: any): Promise<any> {
       family_name: userData.family_name || null,
       picture: userData.picture || userData.avatar_url || null,
       avatar_url: userData.avatar_url || userData.picture || null,
-      global_role: userData.global_role || userData.role || 'user',
-      capabilities: userData.capabilities || [],
-      app_role: userData.app_role || userData.role || 'user',
-      app_permissions: userData.app_permissions || userData.permissions || {},
-      app_access: userData.app_access !== false, // Default to true
-      local_permissions: userData.local_permissions || {},
+      global_role: existingProfile?.global_role || 'user',
+      capabilities: existingProfile?.capabilities || [],
+      app_role: existingProfile?.app_role || 'user',
+      app_permissions: existingProfile?.app_permissions || {},
+      app_access: existingProfile?.app_access ?? true,
+      local_permissions: existingProfile?.local_permissions || {},
       department: userData.department || null,
       title: userData.title || null,
       phone: userData.phone || null,

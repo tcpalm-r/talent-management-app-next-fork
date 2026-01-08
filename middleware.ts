@@ -39,6 +39,28 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
+const base64UrlEncode = (input: Uint8Array | string): string => {
+  const buffer = typeof input === 'string' ? Buffer.from(input) : Buffer.from(input);
+  return buffer.toString('base64url');
+};
+
+const signAuthSyncToken = async (payload: Record<string, any>, secret: string): Promise<string> => {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+  const data = `${encodedHeader}.${encodedPayload}`;
+  const key = await crypto.subtle.importKey(
+    'raw',
+    Buffer.from(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, Buffer.from(data));
+  const encodedSignature = Buffer.from(signature).toString('base64url');
+  return `${data}.${encodedSignature}`;
+};
+
 /**
  * Get user's app_role from LOCAL user_profiles table
  * This is the source of truth for project-level permissions
@@ -306,15 +328,33 @@ export async function middleware(request: NextRequest) {
               localRole ? '(from user_profiles)' : '(fallback to AI Intranet)');
 
             // Sync user profile to database (fire and forget)
-            fetch(`${request.nextUrl.origin}/api/auth/sync`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-user-data': JSON.stringify(mappedUser),
-                'x-user-id': mappedUser.auth0_id,
-              },
-              body: JSON.stringify({ userData: user })
-            }).catch(err => console.error('[Sonance Auth] Failed to sync user profile:', err));
+            const authSyncSecret = process.env.AUTH_SYNC_SECRET;
+            if (!authSyncSecret) {
+              console.error('[Sonance Auth] AUTH_SYNC_SECRET is not configured; skipping profile sync');
+            } else {
+              const syncPayload = {
+                user: {
+                  id: mappedUser.id,
+                  auth0_id: mappedUser.auth0_id,
+                  email: mappedUser.email,
+                  full_name: mappedUser.full_name,
+                  given_name: mappedUser.given_name,
+                  family_name: mappedUser.family_name,
+                  picture: mappedUser.picture,
+                  department: mappedUser.department,
+                  title: mappedUser.title,
+                },
+                iat: Date.now(),
+              };
+              const syncToken = await signAuthSyncToken(syncPayload, authSyncSecret);
+              fetch(`${request.nextUrl.origin}/api/auth/sync`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-auth-sync-token': syncToken,
+                },
+              }).catch(err => console.error('[Sonance Auth] Failed to sync user profile:', err));
+            }
 
             // Create request headers with user data for API routes
             const requestHeaders = new Headers(request.headers);
