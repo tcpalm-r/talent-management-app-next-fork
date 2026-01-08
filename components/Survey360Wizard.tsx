@@ -1974,7 +1974,13 @@ export default function Survey360Wizard({
                 <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-md p-4">
                   <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Due Date</div>
                   <div className="font-semibold text-gray-900 dark:text-gray-100">
-                    {new Date(dueDate).toLocaleDateString()}
+                    {(() => {
+                      const [year, month, day] = dueDate.split('-').map(Number);
+                      if (!year || !month || !day) {
+                        return new Date(dueDate).toLocaleDateString();
+                      }
+                      return new Date(year, month - 1, day).toLocaleDateString();
+                    })()}
                   </div>
                 </div>
               </div>
