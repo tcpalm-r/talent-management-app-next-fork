@@ -1897,7 +1897,7 @@ export default function Feedback360Dashboard({
   if (filterRole === 'reviewer' && reviewerSearchQuery.trim()) {
     const query = reviewerSearchQuery.toLowerCase().trim();
     filteredSurveys = filteredSurveys.filter(survey => {
-      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || '';
+      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || survey.employee_name?.toLowerCase() || '';
 
       // Check if query matches start of first name or last name ONLY
       const nameParts = employeeName.split(/\s+/).filter(part => part.length > 0); // Split by whitespace and remove empty strings
@@ -1909,7 +1909,7 @@ export default function Feedback360Dashboard({
   if (filterRole === 'sponsor' && sponsorSearchQuery.trim()) {
     const query = sponsorSearchQuery.toLowerCase().trim();
     filteredSurveys = filteredSurveys.filter(survey => {
-      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || '';
+      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || survey.employee_name?.toLowerCase() || '';
 
       // Check if query matches start of first name or last name ONLY
       const nameParts = employeeName.split(/\s+/).filter(part => part.length > 0); // Split by whitespace and remove empty strings
@@ -1921,7 +1921,7 @@ export default function Feedback360Dashboard({
   if (filterRole === 'needs_reanalysis' && sponsorSearchQuery.trim()) {
     const query = sponsorSearchQuery.toLowerCase().trim();
     filteredSurveys = filteredSurveys.filter(survey => {
-      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || '';
+      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || survey.employee_name?.toLowerCase() || '';
       const nameParts = employeeName.split(/\s+/).filter(part => part.length > 0);
       return nameParts.some(part => part.startsWith(query));
     });
@@ -1931,7 +1931,7 @@ export default function Feedback360Dashboard({
   if (filterRole === 'all' && allSurveysSearchQuery.trim()) {
     const query = allSurveysSearchQuery.toLowerCase().trim();
     filteredSurveys = filteredSurveys.filter(survey => {
-      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || '';
+      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || survey.employee_name?.toLowerCase() || '';
       const nameParts = employeeName.split(/\s+/).filter(part => part.length > 0);
       return nameParts.some(part => part.startsWith(query));
     });
@@ -2562,11 +2562,11 @@ export default function Feedback360Dashboard({
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 leading-tight">
                         360° Feedback -
                         <Avatar
-                          name={survey.employee?.name}
+                          name={survey.employee?.name || survey.employee_name}
                           picture={survey.employee?.picture ?? undefined}
                           size="xs"
                         />
-                        {survey.employee?.name || 'Unknown Employee'}
+                        {survey.employee?.name || survey.employee_name || 'Unknown Employee'}
                       </h3>
                     </div>
 
@@ -2605,7 +2605,7 @@ export default function Feedback360Dashboard({
                     if (isReviewer && !isCompleted && myReviewerRecord?.access_token) {
                       return (
                         <div className="flex items-center gap-2 mt-4">
-                          <Tooltip content={`Complete your feedback survey for ${survey.employee?.name}`}>
+                          <Tooltip content={`Complete your feedback survey for ${survey.employee?.name || survey.employee_name || 'this employee'}`}>
                             <a
                               href={`/survey/complete/${myReviewerRecord.access_token}`}
                               target="_blank"
@@ -2641,7 +2641,7 @@ export default function Feedback360Dashboard({
                     if (canOptInOut && !isReviewer && survey.status === 'in_progress') {
                       const roleText = isAdmin ? 'Admin' : 'SLT member';
                       return (
-                        <Tooltip content={`You were not selected as a reviewer of ${survey.employee?.name}, but any ${roleText} can opt in`}>
+                        <Tooltip content={`You were not selected as a reviewer of ${survey.employee?.name || survey.employee_name || 'this employee'}, but any ${roleText} can opt in`}>
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();

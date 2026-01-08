@@ -45,6 +45,15 @@ export async function GET(request: NextRequest) {
     let allowedUserIds: string[] | null = null;
 
     if (role !== 'admin' && role !== 'slt') {
+      // Validate profile.id exists for non-admin roles
+      if (!profile.id) {
+        console.error('Profile ID is missing for non-admin user');
+        return NextResponse.json(
+          { error: 'User profile incomplete', details: 'Profile ID is required' },
+          { status: 400 }
+        );
+      }
+
       if (role === 'leader') {
         const { data: directReports, error: directReportsError } = await supabaseAdmin
           .from('user_profiles')
@@ -53,11 +62,8 @@ export async function GET(request: NextRequest) {
           .eq('is_active', true);
 
         if (directReportsError) {
-          console.error('Error loading direct reports:', directReportsError);
-          return NextResponse.json(
-            { error: 'Failed to load direct reports', details: directReportsError.message },
-            { status: 500 }
-          );
+          // Non-fatal - leader can still see themselves
+          console.warn('Warning loading direct reports (non-fatal):', directReportsError);
         }
 
         const directReportIds = directReports?.map(dr => dr.id) || [];
@@ -102,20 +108,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Departments and assessments are non-critical - log errors but continue
     if (departmentsResult.error) {
-      console.error('Error loading departments:', departmentsResult.error);
-      return NextResponse.json(
-        { error: 'Failed to load departments', details: departmentsResult.error.message },
-        { status: 500 }
-      );
+      console.warn('Warning loading departments (non-fatal):', departmentsResult.error);
     }
 
     if (assessmentsResult.error) {
-      console.error('Error loading assessments:', assessmentsResult.error);
-      return NextResponse.json(
-        { error: 'Failed to load assessments', details: assessmentsResult.error.message },
-        { status: 500 }
-      );
+      console.warn('Warning loading assessments (non-fatal):', assessmentsResult.error);
     }
 
     // Create a lookup map for manager names

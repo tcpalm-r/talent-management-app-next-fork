@@ -192,10 +192,32 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Fetch employee names for survey subjects
+    const employeeIds = [...new Set(filteredSurveys.map((s: any) => s.employee_id).filter(Boolean))];
+    let employeeNames: Record<string, string> = {};
+
+    if (employeeIds.length > 0) {
+      const { data: employees } = await supabaseAdmin
+        .from('user_profiles')
+        .select('id, full_name')
+        .in('id', employeeIds);
+
+      employeeNames = (employees || []).reduce((acc: Record<string, string>, emp: any) => {
+        acc[emp.id] = emp.full_name;
+        return acc;
+      }, {});
+    }
+
+    // Add employee_name to each survey
+    const surveysWithNames = filteredSurveys.map((survey: any) => ({
+      ...survey,
+      employee_name: employeeNames[survey.employee_id] || null,
+    }));
+
     // Prepare response
     const responseData = {
-      surveys: filteredSurveys,
-      count: filteredSurveys.length,
+      surveys: surveysWithNames,
+      count: surveysWithNames.length,
       role: user.app_role,
     };
 
