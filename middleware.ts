@@ -97,13 +97,7 @@ export async function middleware(request: NextRequest) {
     // Allow cron jobs to reach their handlers; handlers enforce CRON_SECRET.
     const pathname = request.nextUrl.pathname;
     if (pathname.startsWith('/api/cron')) {
-      const cronSecret = process.env.CRON_SECRET;
-      const authHeader = request.headers.get('authorization');
-      const isDevelopment = process.env.NODE_ENV === 'development';
-
-      if (isDevelopment || (cronSecret && authHeader === `Bearer ${cronSecret}`)) {
-        return NextResponse.next();
-      }
+      return NextResponse.next();
     }
 
     // Skip middleware for specific paths
