@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getValidatedAppUrl } from '@/lib/url-validator';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
+import { getEASponsorMapping } from '@/lib/ea-sponsor-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -161,7 +162,13 @@ export async function POST(request: NextRequest) {
           profile.email &&
           survey.created_by_email.toLowerCase() === profile.email.toLowerCase());
 
-      if (!isAdmin && !isSponsor) {
+      // Check for EA delegation - EA can send reminders for their SLT's in_progress surveys
+      const eaSponsorMapping = getEASponsorMapping(profile.email);
+      const isDelegatedEA = eaSponsorMapping &&
+        survey.status === 'in_progress' &&
+        survey.created_by_email?.toLowerCase() === eaSponsorMapping.sltEmail.toLowerCase();
+
+      if (!isAdmin && !isSponsor && !isDelegatedEA) {
         return NextResponse.json(
           { error: 'Forbidden: Only the survey sponsor or admin can send invitations' },
           { status: 403 }

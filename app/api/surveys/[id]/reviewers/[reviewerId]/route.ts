@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getEASponsorMapping } from '@/lib/ea-sponsor-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,11 +55,17 @@ export async function PATCH(
       );
     }
 
-    // Check permission - admins, SLT, and survey creators
+    // Check permission - admins, SLT, survey creators, and delegated EAs
+    const eaSponsorMapping = getEASponsorMapping(profile.email);
+    const isDelegatedEA = eaSponsorMapping &&
+      survey.status === 'in_progress' &&
+      survey.created_by_email?.toLowerCase() === eaSponsorMapping.sltEmail.toLowerCase();
+
     const canModify =
       user.app_role === 'admin' ||
       user.app_role === 'slt' ||  // HIGH PRIORITY FIX: SLT has elevated access
-      survey.created_by === profile.id;
+      survey.created_by === profile.id ||
+      isDelegatedEA; // EA delegation for in_progress surveys
 
     if (!canModify) {
       return NextResponse.json(
@@ -151,11 +158,17 @@ export async function DELETE(
       );
     }
 
-    // Check permission - admins, SLT, and survey creators
+    // Check permission - admins, SLT, survey creators, and delegated EAs
+    const eaSponsorMapping = getEASponsorMapping(profile.email);
+    const isDelegatedEA = eaSponsorMapping &&
+      survey.status === 'in_progress' &&
+      survey.created_by_email?.toLowerCase() === eaSponsorMapping.sltEmail.toLowerCase();
+
     const canModify =
       user.app_role === 'admin' ||
       user.app_role === 'slt' ||  // HIGH PRIORITY FIX: SLT has elevated access
-      survey.created_by === profile.id;
+      survey.created_by === profile.id ||
+      isDelegatedEA; // EA delegation for in_progress surveys
 
     if (!canModify) {
       return NextResponse.json(
