@@ -2598,7 +2598,7 @@ export default function Feedback360Dashboard({
                             const reviewers = data.reviewers || [];
                             const freshSurvey = {
                               ...data,
-                              employee: survey.employee,
+                              employee: survey.employee || (data.employee_name ? { name: data.employee_name } : null),
                               reviewers_count: reviewers.length,
                               completed_count: reviewers.filter((r: any) => r.status === 'completed').length
                             };
@@ -2855,7 +2855,7 @@ export default function Feedback360Dashboard({
                       <Users className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" />
                       <span className="text-sm text-gray-600 dark:text-gray-400">Employee:</span>
                       <span className="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {selectedSurvey.employee?.name || 'Unknown'}
+                        {selectedSurvey.employee?.name || selectedSurvey.employee_name || 'Unknown'}
                       </span>
                       {selectedSurvey.employee?.title && (
                         <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">• {selectedSurvey.employee.title}</span>
@@ -3025,11 +3025,11 @@ export default function Feedback360Dashboard({
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 leading-tight">
                   360° Feedback -
                   <Avatar
-                    name={selectedSurvey.employee?.name}
+                    name={selectedSurvey.employee?.name || selectedSurvey.employee_name}
                     picture={selectedSurvey.employee?.picture ?? undefined}
                     size="xs"
                   />
-                  {selectedSurvey.employee?.name || 'Unknown'}
+                  {selectedSurvey.employee?.name || selectedSurvey.employee_name || 'Unknown'}
                 </h2>
                 <button
                   onClick={() => setIsDetailsModalOpen(false)}
