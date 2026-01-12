@@ -196,9 +196,11 @@ export async function GET(request: NextRequest) {
         if (isReviewer) return true;
 
         // EA Delegation: EAs can see in_progress surveys where their SLT is the sponsor
+        // BUT exclude surveys where the EA themselves is the subject (they shouldn't see their own 360)
         if (delegatedSltEmailLower &&
             survey.status === 'in_progress' &&
-            survey.created_by_email?.toLowerCase() === delegatedSltEmailLower) {
+            survey.created_by_email?.toLowerCase() === delegatedSltEmailLower &&
+            !isSubject) {
           return true;
         }
 

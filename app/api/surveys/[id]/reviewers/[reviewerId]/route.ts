@@ -57,9 +57,12 @@ export async function PATCH(
 
     // Check permission - admins, SLT, survey creators, and delegated EAs
     const eaSponsorMapping = getEASponsorMapping(profile.email);
+    // EA delegation: can manage in_progress surveys where their SLT is sponsor
+    // BUT exclude surveys where the EA themselves is the subject
     const isDelegatedEA = eaSponsorMapping &&
       survey.status === 'in_progress' &&
-      survey.created_by_email?.toLowerCase() === eaSponsorMapping.sltEmail.toLowerCase();
+      survey.created_by_email?.toLowerCase() === eaSponsorMapping.sltEmail.toLowerCase() &&
+      survey.employee_id !== profile.id;
 
     const canModify =
       user.app_role === 'admin' ||
@@ -160,9 +163,12 @@ export async function DELETE(
 
     // Check permission - admins, SLT, survey creators, and delegated EAs
     const eaSponsorMapping = getEASponsorMapping(profile.email);
+    // EA delegation: can manage in_progress surveys where their SLT is sponsor
+    // BUT exclude surveys where the EA themselves is the subject
     const isDelegatedEA = eaSponsorMapping &&
       survey.status === 'in_progress' &&
-      survey.created_by_email?.toLowerCase() === eaSponsorMapping.sltEmail.toLowerCase();
+      survey.created_by_email?.toLowerCase() === eaSponsorMapping.sltEmail.toLowerCase() &&
+      survey.employee_id !== profile.id;
 
     const canModify =
       user.app_role === 'admin' ||

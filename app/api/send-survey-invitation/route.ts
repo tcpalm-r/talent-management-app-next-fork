@@ -163,10 +163,12 @@ export async function POST(request: NextRequest) {
           survey.created_by_email.toLowerCase() === profile.email.toLowerCase());
 
       // Check for EA delegation - EA can send reminders for their SLT's in_progress surveys
+      // BUT exclude surveys where the EA themselves is the subject
       const eaSponsorMapping = getEASponsorMapping(profile.email);
       const isDelegatedEA = eaSponsorMapping &&
         survey.status === 'in_progress' &&
-        survey.created_by_email?.toLowerCase() === eaSponsorMapping.sltEmail.toLowerCase();
+        survey.created_by_email?.toLowerCase() === eaSponsorMapping.sltEmail.toLowerCase() &&
+        survey.employee_id !== profile.id;
 
       if (!isAdmin && !isSponsor && !isDelegatedEA) {
         return NextResponse.json(
