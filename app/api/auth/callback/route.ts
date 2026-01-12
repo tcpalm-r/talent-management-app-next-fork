@@ -130,12 +130,12 @@ export async function GET(request: NextRequest) {
     const familyName = idTokenPayload.family_name;
     const picture = idTokenPayload.picture;
 
-    // Check if user exists in Supabase
+    // Check if user exists in Supabase (case-insensitive email lookup to prevent duplicates)
     console.log('[Auth0 Callback] Looking up user in Supabase with email:', email);
     const { data: existingUser, error: lookupError } = await supabaseAdmin
       .from('user_profiles')
       .select('*')
-      .eq('email', email)
+      .ilike('email', email)
       .single();
 
     console.log('[Auth0 Callback] Lookup result:', { existingUser: !!existingUser, error: lookupError?.code });

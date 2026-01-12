@@ -71,7 +71,7 @@ async function getLocalUserRole(email: string) {
     const { data, error } = await supabase
       .from('user_profiles')
       .select('app_role, app_permissions')
-      .eq('email', email)
+      .ilike('email', email)
       .eq('is_active', true)
       .single();
 
