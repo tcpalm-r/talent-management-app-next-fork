@@ -14,12 +14,14 @@
  * - SLT: See own surveys (all statuses), direct report surveys, surveys where they're reviewer, surveys where they're subject (finalized only)
  * - Leader: See own surveys (all statuses), direct report surveys, surveys where they're reviewer, surveys where they're subject (finalized only)
  * - User: See own surveys (all statuses), surveys where they're reviewer, surveys where they're subject (finalized only)
+ * - EA (User with delegation): Also see in_progress surveys where their assigned SLT is the sponsor
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { SurveyListResponseSchema, validateSchema } from '@/lib/api-schemas';
+import { getEASponsorMapping } from '@/lib/ea-sponsor-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -162,7 +164,12 @@ export async function GET(request: NextRequest) {
       // 1. Surveys they created
       // 2. Surveys where they're the subject (finalized only)
       // 3. Surveys where they're a reviewer
+      // 4. EA Delegation: in_progress surveys where their assigned SLT is the creator
       const userEmailLower = profile.email?.toLowerCase();
+
+      // Check if user is an EA with delegation privileges
+      const eaSponsorMapping = getEASponsorMapping(profile.email);
+      const delegatedSltEmailLower = eaSponsorMapping?.sltEmail?.toLowerCase();
 
       filteredSurveys = (allSurveys || []).filter((survey: any) => {
         // Check if user is creator - only check UUID and email (created_by is always Supabase UUID)
@@ -187,6 +194,13 @@ export async function GET(request: NextRequest) {
 
         // Reviewers can see surveys they're assigned to (excluding drafts)
         if (isReviewer) return true;
+
+        // EA Delegation: EAs can see in_progress surveys where their SLT is the sponsor
+        if (delegatedSltEmailLower &&
+            survey.status === 'in_progress' &&
+            survey.created_by_email?.toLowerCase() === delegatedSltEmailLower) {
+          return true;
+        }
 
         return false;
       });

@@ -9,6 +9,7 @@ import Avatar from './Avatar';
 import { useToast, Tooltip, TooltipProvider } from './unified';
 import NavigationTabs from './unified/NavigationTabs';
 import { exportReportAsPDF } from '../lib/exportReport';
+import { getEASponsorMapping, type EASponsorMapping } from '@/lib/ea-sponsor-config';
 import { AuditModeToggle } from './AuditModeToggle';
 import { InlineCitation } from './InlineCitation';
 import { fetchWithFallback, fetchWithValidation } from '@/lib/api-client';
@@ -275,13 +276,22 @@ export default function Feedback360Dashboard({
   const [editingDraftSurvey, setEditingDraftSurvey] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'in_progress' | 'completed' | 'needs_review' | 'needs_reanalysis' | 'finalized'>('all');
   const [reviewerFilterStatus, setReviewerFilterStatus] = useState<'all' | 'required' | 'optional'>('all');
+  // Check if current user is an EA with delegation privileges
+  const eaSponsorMapping = useMemo(() => {
+    return getEASponsorMapping(currentUser?.email);
+  }, [currentUser?.email]);
+
   // Only Admin and SLT can sponsor surveys, everyone else defaults to 'reviewer'
-  const [filterRole, setFilterRole] = useState<'all' | 'sponsor' | 'reviewer' | 'needs_reanalysis'>(
-    currentUser?.app_role === 'admin' ? 'all' : (currentUser?.app_role === 'slt') ? 'sponsor' : 'reviewer'
+  // EAs with delegation default to 'delegated_sponsor'
+  const [filterRole, setFilterRole] = useState<'all' | 'sponsor' | 'reviewer' | 'needs_reanalysis' | 'delegated_sponsor'>(
+    currentUser?.app_role === 'admin' ? 'all' :
+    (currentUser?.app_role === 'slt') ? 'sponsor' :
+    getEASponsorMapping(currentUser?.email) ? 'delegated_sponsor' : 'reviewer'
   );
   const [reviewerSearchQuery, setReviewerSearchQuery] = useState('');
   const [sponsorSearchQuery, setSponsorSearchQuery] = useState('');
   const [allSurveysSearchQuery, setAllSurveysSearchQuery] = useState('');
+  const [delegatedSponsorSearchQuery, setDelegatedSponsorSearchQuery] = useState('');
   const [preselectedEmployee, setPreselectedEmployee] = useState<Employee | undefined>(undefined);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -1820,6 +1830,15 @@ export default function Feedback360Dashboard({
       return isSponsor;
     }
 
+    // Delegated Sponsor tab (EA only):
+    // - Shows in_progress surveys where the delegated SLT is the sponsor
+    if (filterRole === 'delegated_sponsor') {
+      if (!eaSponsorMapping) return false;
+      const sltEmailLower = eaSponsorMapping.sltEmail.toLowerCase();
+      return survey.created_by_email?.toLowerCase() === sltEmailLower
+        && survey.status === 'in_progress';
+    }
+
     // Needs Reanalysis tab (Admin only): ALL flagged surveys
     if (filterRole === 'needs_reanalysis') {
       return survey.flagged_for_reanalysis === true;
@@ -1869,6 +1888,16 @@ export default function Feedback360Dashboard({
 
   // Count for All 360°s tab (Admin only) - ALL surveys except drafts
   const allSurveysCount = surveys.filter(s => s.status !== 'draft').length;
+
+  // Count for Delegated Sponsor tab (EA only) - in_progress surveys where delegated SLT is sponsor
+  const delegatedSponsorCount = useMemo(() => {
+    if (!eaSponsorMapping) return 0;
+    const sltEmailLower = eaSponsorMapping.sltEmail.toLowerCase();
+    return surveys.filter(s =>
+      s.created_by_email?.toLowerCase() === sltEmailLower &&
+      s.status === 'in_progress'
+    ).length;
+  }, [surveys, eaSponsorMapping]);
 
   // Then filter by status (only applies to Sponsor tab now)
   // Reviewer and Subject tabs ignore manual status filter (automatic filtering above)
@@ -1930,6 +1959,16 @@ export default function Feedback360Dashboard({
   // Apply search filter on All 360°s tab
   if (filterRole === 'all' && allSurveysSearchQuery.trim()) {
     const query = allSurveysSearchQuery.toLowerCase().trim();
+    filteredSurveys = filteredSurveys.filter(survey => {
+      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || survey.employee_name?.toLowerCase() || '';
+      const nameParts = employeeName.split(/\s+/).filter(part => part.length > 0);
+      return nameParts.some(part => part.startsWith(query));
+    });
+  }
+
+  // Apply search filter on Delegated Sponsor tab (EA)
+  if (filterRole === 'delegated_sponsor' && delegatedSponsorSearchQuery.trim()) {
+    const query = delegatedSponsorSearchQuery.toLowerCase().trim();
     filteredSurveys = filteredSurveys.filter(survey => {
       const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || survey.employee_name?.toLowerCase() || '';
       const nameParts = employeeName.split(/\s+/).filter(part => part.length > 0);
@@ -2150,6 +2189,13 @@ export default function Feedback360Dashboard({
               tooltip: 'Active 360 feedback sessions awaiting your input. Provide anonymous feedback, aggregated with AI',
               count: reviewerCount
             },
+            // Show Delegated Sponsor tab for EAs - positioned after Give Feedback
+            ...(eaSponsorMapping ? [{
+              id: 'delegated_sponsor',
+              label: `${eaSponsorMapping.sltDisplayName}'s 360s`,
+              tooltip: `Manage in-progress 360 surveys on behalf of ${eaSponsorMapping.sltDisplayName}. You can view progress, send reminders, and manage reviewers.`,
+              count: delegatedSponsorCount
+            }] : []),
             // Only show Needs Reanalysis tab for Admin role
             ...(currentUser?.app_role === 'admin' ? [{
               id: 'needs_reanalysis',
@@ -2160,12 +2206,13 @@ export default function Feedback360Dashboard({
           ]}
           activeTab={filterRole}
           onTabChange={(tabId) => {
-            setFilterRole(tabId as 'all' | 'sponsor' | 'reviewer' | 'needs_reanalysis');
+            setFilterRole(tabId as 'all' | 'sponsor' | 'reviewer' | 'needs_reanalysis' | 'delegated_sponsor');
             setFilterStatus('all'); // Reset status filter when switching tabs
             setReviewerFilterStatus('all'); // Reset reviewer filter when switching tabs
             setReviewerSearchQuery(''); // Clear reviewer search when switching tabs
             setSponsorSearchQuery(''); // Clear sponsor search when switching tabs
             setAllSurveysSearchQuery(''); // Clear all surveys search when switching tabs
+            setDelegatedSponsorSearchQuery(''); // Clear delegated sponsor search when switching tabs
           }}
           variant="underline"
         />
@@ -2426,6 +2473,22 @@ export default function Feedback360Dashboard({
         </div>
       )}
 
+      {/* Delegated Sponsor Tab - Search Only (EA Only) */}
+      {filterRole === 'delegated_sponsor' && eaSponsorMapping && (
+        <div className="mt-6 mb-6">
+          <div className="relative w-[675px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by employee name..."
+              value={delegatedSponsorSearchQuery}
+              onChange={(e) => setDelegatedSponsorSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Reviews List */}
       {loading ? (
         <div className="text-center py-12 mt-6">
@@ -2443,6 +2506,8 @@ export default function Feedback360Dashboard({
                 ? 'No surveys need reanalysis'
                 : filterRole === 'all'
                 ? 'No 360°s in the system yet'
+                : filterRole === 'delegated_sponsor'
+                ? `No in-progress 360°s for ${eaSponsorMapping?.sltDisplayName || 'your SLT'}`
                 : filterStatus === 'all'
                 ? 'Launch a 360° Review and it will show up here.'
                 : filterStatus === 'draft'
@@ -2699,8 +2764,8 @@ export default function Feedback360Dashboard({
 
                 {/* Right side: Status badge and actions */}
                 <div className="ml-4 flex flex-col items-end gap-2">
-                  {/* Status badge - Show on Sponsor and All 360°s tabs */}
-                  {(filterRole === 'sponsor' || filterRole === 'all') && getStatusBadge(survey.status || 'unknown', survey.flagged_for_admin ?? undefined, survey.flagged_for_reanalysis ?? undefined, survey.resolved_by_admin ?? undefined, survey.id)}
+                  {/* Status badge - Show on Sponsor, All 360°s, and Delegated Sponsor tabs */}
+                  {(filterRole === 'sponsor' || filterRole === 'all' || filterRole === 'delegated_sponsor') && getStatusBadge(survey.status || 'unknown', survey.flagged_for_admin ?? undefined, survey.flagged_for_reanalysis ?? undefined, survey.resolved_by_admin ?? undefined, survey.id)}
                 </div>
 
                 {/* Delete button - bottom right of card */}
@@ -2757,11 +2822,17 @@ export default function Feedback360Dashboard({
         const isReviewer = selectedSurvey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
         const userCompletedReview = isReviewer && selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.status === 'completed';
 
+        // Check if current user is a delegated sponsor (EA) for this survey
+        const isDelegatedSponsor = eaSponsorMapping &&
+          selectedSurvey.created_by_email?.toLowerCase() === eaSponsorMapping.sltEmail.toLowerCase() &&
+          selectedSurvey.status === 'in_progress';
+
         // Only sponsors and admins can manage surveys
         // Leaders can only manage if they are the sponsor
+        // EAs (delegated sponsors) can manage in-progress surveys for their SLT
         // IMPORTANT: Admins should ALWAYS see the full management view, regardless of
         // whether they're the sponsor or a reviewer
-        const canManage = isSponsor || isAdmin;
+        const canManage = isSponsor || isAdmin || isDelegatedSponsor;
 
         // Leaders who are reviewers on finalized surveys should see read-only view, not sponsor view
         const isLeaderReviewerOnFinalized = isLeader && isReviewer && !isSponsor && selectedSurvey.status === 'finalized';
@@ -3001,7 +3072,7 @@ export default function Feedback360Dashboard({
                       return `${completedReviewers}/${totalReviewers}`;
                     })()} completed)
                   </h4>
-                  {(isSponsor || isAdmin) && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
+                  {(isSponsor || isAdmin || isDelegatedSponsor) && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
                   <button
                     onClick={() => setIsAddingReviewer(!isAddingReviewer)}
                     className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 font-medium"
@@ -3257,8 +3328,8 @@ export default function Feedback360Dashboard({
                   </div>
                 )}
 
-                {/* Only show reviewers list to admin, sponsor, or SLT (for in-progress surveys) */}
-                {(isAdmin || isSponsor || (isSLT && selectedSurvey.status === 'in_progress')) ? (
+                {/* Only show reviewers list to admin, sponsor, SLT (for in-progress surveys), or delegated sponsors */}
+                {(isAdmin || isSponsor || (isSLT && selectedSurvey.status === 'in_progress') || isDelegatedSponsor) ? (
                   <div className="bg-gray-50 dark:bg-gray-900/30 rounded-md p-4 space-y-2 max-h-[240px] overflow-y-auto">
                     {surveyReviewers.length === 0 ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No reviewers added yet</p>
@@ -3290,7 +3361,7 @@ export default function Feedback360Dashboard({
                               {reviewer.reviewer_email} • {formatRelationship(reviewer.relationship)}
                             </div>
                           </div>
-                          {(isSponsor || isAdmin) && (
+                          {(isSponsor || isAdmin || isDelegatedSponsor) && (
                           <div className="flex items-center gap-6">
                             {reviewer.status !== 'completed' && (
                               remindedReviewers.has(reviewer.id) ? (
@@ -3323,16 +3394,16 @@ export default function Feedback360Dashboard({
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">Reviewer details are only visible to admins and the review sponsor.</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">Reviewer details are only visible to admins, sponsors, and their delegates.</p>
                 )}
               </div>
 
-              {/* Actions - Visible to sponsor and admins */}
-              {(isSponsor || isAdmin) && (
+              {/* Actions - Visible to sponsor, admins, and delegated sponsors */}
+              {(isSponsor || isAdmin || isDelegatedSponsor) && (
               <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div>
-                  {/* Send Backward - Admins only */}
-                  {isAdmin && (selectedSurvey.status === 'in_progress' || selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (() => {
+                  {/* Send Backward - Admins only (not delegated sponsors) */}
+                  {isAdmin && !isDelegatedSponsor && (selectedSurvey.status === 'in_progress' || selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (() => {
                     const targetStatus = selectedSurvey.status === 'finalized' ? 'Completed' :
                                         selectedSurvey.status === 'completed' ? 'In Progress' : 'Draft';
                     return (
@@ -3350,7 +3421,8 @@ export default function Feedback360Dashboard({
                 </div>
                 <div className="flex items-center gap-3">
                   {/* Complete with AI for in_progress - disabled if below 70% completion threshold */}
-                  {selectedSurvey.status === 'in_progress' && (() => {
+                  {/* Hide for delegated sponsors (EAs) - they can only manage, not complete */}
+                  {selectedSurvey.status === 'in_progress' && !isDelegatedSponsor && (() => {
                     const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 1;
                     const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
                     const completionPercent = completedReviewers / totalReviewers;

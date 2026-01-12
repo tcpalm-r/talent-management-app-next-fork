@@ -52,17 +52,13 @@ export default function Dashboard({
     // Try to find the user in the employees list by email (case-insensitive)
     const matched = employees.find(e => e.email?.toLowerCase() === userProfile.email?.toLowerCase());
 
-    // If found, return the employee record; otherwise create a minimal one from userProfile
+    // If found, return the employee record with authenticated user's role
     if (matched) {
-      // IMPORTANT: If IDs don't match, use userProfile ID (source of truth)
-      if (matched.id !== userProfile.id) {
-        return {
-          ...matched,
-          id: userProfile.id, // Override with correct ID from userProfile
-        };
-      }
-
-      return matched;
+      return {
+        ...matched,
+        id: userProfile.id, // Use authenticated user's ID (source of truth)
+        app_role: userProfile.app_role, // Always use authenticated user's role from session
+      };
     }
 
     // Fallback: Create an employee record from userProfile so drafts can be saved with sponsor info
