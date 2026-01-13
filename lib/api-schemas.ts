@@ -101,6 +101,10 @@ export const SurveyListResponseSchema = z.object({
   surveys: z.array(SurveySchema),
   count: z.number(),
   role: z.string(),
+  page: z.number().optional(),
+  pageSize: z.number().optional(),
+  totalCount: z.number().optional(),
+  pageCount: z.number().optional(),
 }).passthrough();
 
 /**

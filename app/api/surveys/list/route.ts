@@ -5,9 +5,13 @@
  * Replaces all loadSurveys() calls in Feedback360Dashboard.
  *
  * Query Parameters:
+ * - organization_id: Organization scope (recommended)
  * - createdBy: Filter by creator ID
  * - employeeId: Filter by subject employee ID
  * - status: Filter by status (draft|in_progress|completed|finalized|needs_review)
+ * - page: Page number (1-based, optional)
+ * - pageSize: Page size (optional)
+ * - limit/offset: Alternative pagination parameters (optional)
  *
  * Role-Based Access:
  * - Admin: See all surveys
@@ -40,11 +44,179 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     // Extract query parameters
+    const organizationId = searchParams.get('organization_id');
     const createdBy = searchParams.get('createdBy');
     const employeeId = searchParams.get('employeeId');
     const status = searchParams.get('status');
+    const pageParam = searchParams.get('page');
+    const pageSizeParam = searchParams.get('pageSize') || searchParams.get('page_size');
+    const limitParam = searchParams.get('limit');
+    const offsetParam = searchParams.get('offset');
 
-    // Base query - fetch all surveys with reviewers
+    const parsedPage = pageParam ? parseInt(pageParam, 10) : null;
+    const parsedPageSize = pageSizeParam ? parseInt(pageSizeParam, 10) : null;
+    const parsedLimit = limitParam ? parseInt(limitParam, 10) : null;
+    const parsedOffset = offsetParam ? parseInt(offsetParam, 10) : null;
+
+    if (
+      (parsedPage !== null && (Number.isNaN(parsedPage) || parsedPage < 1)) ||
+      (parsedPageSize !== null && (Number.isNaN(parsedPageSize) || parsedPageSize < 1)) ||
+      (parsedLimit !== null && (Number.isNaN(parsedLimit) || parsedLimit < 1)) ||
+      (parsedOffset !== null && (Number.isNaN(parsedOffset) || parsedOffset < 0))
+    ) {
+      return NextResponse.json(
+        { error: 'Invalid pagination parameters' },
+        { status: 400 }
+      );
+    }
+
+    const shouldPaginate =
+      parsedPage !== null ||
+      parsedPageSize !== null ||
+      parsedLimit !== null ||
+      parsedOffset !== null;
+
+    const defaultPageSize = 50;
+    const pageSize = parsedPageSize ?? parsedLimit ?? (shouldPaginate ? defaultPageSize : null);
+    const page = parsedOffset !== null
+      ? (parsedPage ?? Math.floor(parsedOffset / (pageSize || 1)) + 1)
+      : (parsedPage ?? 1);
+    const rangeStart = shouldPaginate
+      ? (parsedOffset !== null ? parsedOffset : (page - 1) * (pageSize || defaultPageSize))
+      : null;
+    const rangeEnd = shouldPaginate
+      ? (rangeStart || 0) + (pageSize || defaultPageSize) - 1
+      : null;
+
+    const baseSurveyIdQuery = () => {
+      let query = supabaseAdmin
+        .from('feedback_360_surveys')
+        .select('id');
+
+      if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+      }
+
+      return query;
+    };
+
+    const fetchSurveyIds = async (query: ReturnType<typeof baseSurveyIdQuery>, context: string) => {
+      const { data, error } = await query;
+      if (error) {
+        console.error(`Error loading surveys for ${context}:`, error);
+        throw error;
+      }
+      return data?.map(row => row.id) || [];
+    };
+
+    let allowedSurveyIds: string[] | null = null;
+    const role = user.app_role || 'user';
+
+    if (role !== 'admin') {
+      const allowedIds = new Set<string>();
+
+      const creatorIds = await fetchSurveyIds(
+        baseSurveyIdQuery().eq('created_by', profile.id),
+        'creator-id'
+      );
+      creatorIds.forEach(id => allowedIds.add(id));
+
+      if (profile.email) {
+        const creatorEmailIds = await fetchSurveyIds(
+          baseSurveyIdQuery().ilike('created_by_email', profile.email),
+          'creator-email'
+        );
+        creatorEmailIds.forEach(id => allowedIds.add(id));
+      }
+
+      const subjectFinalIds = await fetchSurveyIds(
+        baseSurveyIdQuery()
+          .eq('employee_id', profile.id)
+          .eq('status', 'finalized'),
+        'subject-finalized'
+      );
+      subjectFinalIds.forEach(id => allowedIds.add(id));
+
+      if (role === 'slt') {
+        const inProgressIds = await fetchSurveyIds(
+          baseSurveyIdQuery().eq('status', 'in_progress'),
+          'slt-in-progress'
+        );
+        inProgressIds.forEach(id => allowedIds.add(id));
+      }
+
+      if (role === 'leader') {
+        const { data: directReports, error: directReportsError } = await supabaseAdmin
+          .from('user_profiles')
+          .select('id')
+          .eq('manager_id', profile.id);
+
+        if (directReportsError) {
+          console.error('Error loading direct reports:', directReportsError);
+          return NextResponse.json(
+            { error: 'Failed to load direct reports', details: directReportsError.message },
+            { status: 500 }
+          );
+        }
+
+        const directReportIds = directReports?.map(dr => dr.id) || [];
+        if (directReportIds.length > 0) {
+          const directReportSurveyIds = await fetchSurveyIds(
+            baseSurveyIdQuery()
+              .in('employee_id', directReportIds)
+              .neq('status', 'draft'),
+            'direct-reports'
+          );
+          directReportSurveyIds.forEach(id => allowedIds.add(id));
+        }
+      }
+
+      if (profile.email) {
+        const { data: reviewerRows, error: reviewerError } = await supabaseAdmin
+          .from('feedback_360_survey_reviewers')
+          .select('survey_id')
+          .eq('reviewer_email', profile.email);
+
+        if (reviewerError) {
+          console.error('Error loading reviewer surveys:', reviewerError);
+          return NextResponse.json(
+            { error: 'Failed to load reviewer surveys', details: reviewerError.message },
+            { status: 500 }
+          );
+        }
+
+        const reviewerSurveyIds = reviewerRows?.map(row => row.survey_id) || [];
+        if (reviewerSurveyIds.length > 0) {
+          const reviewerSurveyIdsFiltered = await fetchSurveyIds(
+            baseSurveyIdQuery()
+              .in('id', reviewerSurveyIds)
+              .neq('status', 'draft'),
+            'reviewer-surveys'
+          );
+          reviewerSurveyIdsFiltered.forEach(id => allowedIds.add(id));
+        }
+      }
+
+      if (role === 'user') {
+        const eaSponsorMapping = getEASponsorMapping(profile.email);
+        const delegatedSltEmailLower = eaSponsorMapping?.sltEmail?.toLowerCase();
+
+        if (delegatedSltEmailLower) {
+          const delegatedSurveyIds = await fetchSurveyIds(
+            baseSurveyIdQuery()
+              .eq('status', 'in_progress')
+              .ilike('created_by_email', delegatedSltEmailLower)
+              .neq('employee_id', profile.id),
+            'ea-delegation'
+          );
+          delegatedSurveyIds.forEach(id => allowedIds.add(id));
+        }
+      }
+
+      allowedSurveyIds = Array.from(allowedIds);
+    }
+
+    // Base query - fetch surveys with reviewers
     let query = supabaseAdmin
       .from('feedback_360_surveys')
       .select(`
@@ -57,8 +229,31 @@ export async function GET(request: NextRequest) {
           relationship,
           assigned_by_sponsor
         )
-      `)
+      `, shouldPaginate ? { count: 'exact' } : undefined)
       .order('created_at', { ascending: false });
+
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+
+    if (allowedSurveyIds) {
+      if (allowedSurveyIds.length === 0) {
+        return NextResponse.json({
+          surveys: [],
+          count: 0,
+          role: user.app_role,
+          ...(shouldPaginate
+            ? {
+                page,
+                pageSize,
+                totalCount: 0,
+                pageCount: 0,
+              }
+            : {}),
+        });
+      }
+      query = query.in('id', allowedSurveyIds);
+    }
 
     // Apply filters if provided
     if (createdBy) {
@@ -71,7 +266,11 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status);
     }
 
-    const { data: allSurveys, error } = await query;
+    if (shouldPaginate && rangeStart !== null && rangeEnd !== null) {
+      query = query.range(rangeStart, rangeEnd);
+    }
+
+    const { data: filteredSurveys, error, count } = await query;
 
     if (error) {
       console.error('Error loading surveys:', error);
@@ -81,135 +280,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Apply role-based filtering
-    let filteredSurveys = allSurveys || [];
-
-    if (user.app_role === 'admin') {
-      // Admins see everything - no filtering needed
-      filteredSurveys = allSurveys || [];
-    } else if (user.app_role === 'slt') {
-      // SLT members see:
-      // 1. All 'in_progress' surveys (for opt-in capability)
-      // 2. Surveys they created (all statuses)
-      // 3. Surveys where they're the subject (finalized only, unless creator)
-      // 4. Surveys where they're a reviewer (all statuses except draft)
-      const profileEmailLower = profile.email?.toLowerCase();
-      filteredSurveys = (allSurveys || []).filter((survey: any) => {
-        // Show surveys created by this SLT member (all statuses)
-        // Only check UUID and email - created_by is always Supabase UUID, never AI Intranet ID
-        const isCreator =
-          survey.created_by === profile.id ||
-          survey.created_by_email?.toLowerCase() === profileEmailLower;
-        if (isCreator) return true;
-
-        // Show surveys where SLT is the subject (finalized only)
-        if (survey.employee_id === profile.id && survey.status === 'finalized') return true;
-
-        // Show surveys where SLT is a reviewer (exclude drafts)
-        const isReviewer = survey.reviewers?.some(
-          (r: any) => r.reviewer_email === profile.email
-        );
-        if (isReviewer && survey.status !== 'draft') return true;
-
-        // Show all other 'in_progress' surveys (for opt-in)
-        if (survey.status === 'in_progress') return true;
-
-        return false;
-      });
-    } else if (user.app_role === 'leader') {
-      // Leaders see:
-      // 1. Surveys they created
-      // 2. Surveys for their direct reports (if we have manager_id relationship)
-      // 3. Surveys where they're the subject (finalized only, unless creator)
-      // 4. Surveys where they're a reviewer
-
-      // Get direct report IDs (if available)
-      const { data: directReports } = await supabaseAdmin
-        .from('user_profiles')
-        .select('id')
-        .eq('manager_id', profile.id);
-
-      const directReportIds = directReports?.map(dr => dr.id) || [];
-      const leaderEmailLower = profile.email?.toLowerCase();
-
-      filteredSurveys = (allSurveys || []).filter((survey: any) => {
-        // Created by this leader - only check UUID and email (created_by is always Supabase UUID)
-        const isCreator =
-          survey.created_by === profile.id ||
-          survey.created_by_email?.toLowerCase() === leaderEmailLower;
-        const isSubject = survey.employee_id === profile.id;
-        const isDirectReport = directReportIds.includes(survey.employee_id);
-        const isReviewer = survey.reviewers?.some(
-          (r: any) => r.reviewer_email === profile.email
-        );
-
-        if (isCreator) return true;
-
-        // For non-creator scenarios, exclude draft surveys
-        if (survey.status === 'draft') return false;
-
-        // Subject is this leader (finalized only)
-        if (isSubject && survey.status === 'finalized') return true;
-
-        // Subject is a direct report
-        if (isDirectReport) return true;
-
-        // This leader is a reviewer (only for active/completed/finalized surveys)
-        if (isReviewer) return true;
-
-        return false;
-      });
-    } else {
-      // Regular users see:
-      // 1. Surveys they created
-      // 2. Surveys where they're the subject (finalized only)
-      // 3. Surveys where they're a reviewer
-      // 4. EA Delegation: in_progress surveys where their assigned SLT is the creator
-      const userEmailLower = profile.email?.toLowerCase();
-
-      // Check if user is an EA with delegation privileges
-      const eaSponsorMapping = getEASponsorMapping(profile.email);
-      const delegatedSltEmailLower = eaSponsorMapping?.sltEmail?.toLowerCase();
-
-      filteredSurveys = (allSurveys || []).filter((survey: any) => {
-        // Check if user is creator - only check UUID and email (created_by is always Supabase UUID)
-        const isCreator =
-          survey.created_by === profile.id ||
-          survey.created_by_email?.toLowerCase() === userEmailLower;
-        const isSubject = survey.employee_id === profile.id;
-        const isReviewer = survey.reviewers?.some(
-          (r: any) => r.reviewer_email === profile.email
-        );
-
-        // User can see surveys they created (including drafts)
-        if (isCreator) return true;
-
-        // Non-creators cannot see draft surveys
-        if (survey.status === 'draft') return false;
-
-        // Subject can see their own survey ONLY when finalized
-        if (isSubject && survey.status === 'finalized') {
-          return true;
-        }
-
-        // Reviewers can see surveys they're assigned to (excluding drafts)
-        if (isReviewer) return true;
-
-        // EA Delegation: EAs can see in_progress surveys where their SLT is the sponsor
-        // BUT exclude surveys where the EA themselves is the subject (they shouldn't see their own 360)
-        if (delegatedSltEmailLower &&
-            survey.status === 'in_progress' &&
-            survey.created_by_email?.toLowerCase() === delegatedSltEmailLower &&
-            !isSubject) {
-          return true;
-        }
-
-        return false;
-      });
-    }
+    const resolvedSurveys = filteredSurveys || [];
 
     // Fetch employee names for survey subjects
-    const employeeIds = [...new Set(filteredSurveys.map((s: any) => s.employee_id).filter(Boolean))];
+    const employeeIds = [...new Set(resolvedSurveys.map((s: any) => s.employee_id).filter(Boolean))];
     let employeeNames: Record<string, string> = {};
 
     if (employeeIds.length > 0) {
@@ -225,16 +299,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Add employee_name to each survey
-    const surveysWithNames = filteredSurveys.map((survey: any) => ({
+    const surveysWithNames = resolvedSurveys.map((survey: any) => ({
       ...survey,
       employee_name: employeeNames[survey.employee_id] || null,
     }));
 
     // Prepare response
+    const totalCount = shouldPaginate ? (count ?? surveysWithNames.length) : surveysWithNames.length;
     const responseData = {
       surveys: surveysWithNames,
       count: surveysWithNames.length,
       role: user.app_role,
+      ...(shouldPaginate
+        ? {
+            page,
+            pageSize,
+            totalCount,
+            pageCount: pageSize ? Math.ceil(totalCount / pageSize) : 1,
+          }
+        : {}),
     };
 
     // Validate response before sending (observability only - doesn't block)
@@ -248,7 +331,7 @@ export async function GET(request: NextRequest) {
       // Log validation errors but still return data (passthrough mode)
       console.warn('[API /surveys/list] Response validation failed:', {
         errors: validation.error?.errors?.slice(0, 5) || [], // First 5 errors
-        surveyCount: filteredSurveys.length,
+        surveyCount: resolvedSurveys.length,
       });
     }
 

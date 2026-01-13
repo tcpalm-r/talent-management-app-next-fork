@@ -15,6 +15,18 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "Sonance 360° Reviews",
   description: "Talent Management and 360° Feedback Review Platform",
+  icons: {
+    icon: [
+      {
+        url: '/favicon-dark.png',
+        media: '(prefers-color-scheme: dark)',
+      },
+      {
+        url: '/favicon-light.png',
+        media: '(prefers-color-scheme: light)',
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
