@@ -14,7 +14,7 @@ const MOCK_USER = {
   given_name: 'Thomas',
   family_name: 'Palmer',
   picture: null,
-  app_role: 'leader', // Updated to match database value
+  app_role: 'admin', // Match lib/auth.ts MOCK_USER for consistent dev experience
   app_permissions: {
     manage_users: true,
     manage_reviews: true,
