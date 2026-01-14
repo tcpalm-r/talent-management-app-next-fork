@@ -208,8 +208,11 @@ export async function POST(
       newSurveyStatus = 'in_progress';
     }
 
-    // Update survey status if it changed
-    if (newSurveyStatus !== survey.status) {
+    const statusLocked = survey.status === 'queued' || survey.status === 'generating';
+    const effectiveStatus = statusLocked ? survey.status : newSurveyStatus;
+
+    // Update survey status if it changed and isn't locked by generation/queue
+    if (!statusLocked && newSurveyStatus !== survey.status) {
       await supabaseAdmin
         .from('feedback_360_surveys')
         .update({ status: newSurveyStatus })
@@ -218,7 +221,7 @@ export async function POST(
 
     return NextResponse.json({
       reviewer: newReviewer,
-      surveyStatus: newSurveyStatus,
+      surveyStatus: effectiveStatus,
       message: 'Reviewer added successfully',
     });
 

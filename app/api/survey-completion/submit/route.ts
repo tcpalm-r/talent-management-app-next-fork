@@ -93,7 +93,9 @@ export async function POST(request: NextRequest) {
         await supabaseAdmin
           .from('feedback_360_surveys')
           .update({ status: 'in_progress' })
-          .eq('id', reviewerData.survey_id);
+          .eq('id', reviewerData.survey_id)
+          .neq('status', 'queued')
+          .neq('status', 'generating');
       }
     }
 

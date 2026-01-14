@@ -375,19 +375,19 @@ export default function Feedback360Dashboard({
     loadSurveys();
   }, [organizationId, currentUser?.id, currentUser?.app_role]);
 
-  // Poll for survey status when a survey is in 'generating' state
+  // Poll for survey status when a survey is in 'generating' or 'queued' state
   // This handles the case where user refreshes page during report generation
   useEffect(() => {
-    // Only poll if we have a selected survey that's generating
-    if (!selectedSurvey || selectedSurvey.status !== 'generating') {
+    // Only poll if we have a selected survey that's generating or queued
+    if (!selectedSurvey || (selectedSurvey.status !== 'generating' && selectedSurvey.status !== 'queued')) {
       return;
     }
 
-    // Show the loading state immediately when detecting 'generating' status
+    // Show the loading state immediately when detecting 'generating' or 'queued' status
     setGeneratingSurveyId(selectedSurvey.id);
     setIsDetailsModalOpen(true); // Ensure modal is open to show loading
 
-    console.log('[Polling] Detected generating status, starting poll for survey:', selectedSurvey.id);
+    console.log('[Polling] Detected generating/queued status, starting poll for survey:', selectedSurvey.id);
 
     // Poll every 3 seconds to check if generation completed
     const pollInterval = setInterval(async () => {
@@ -411,6 +411,8 @@ export default function Feedback360Dashboard({
 
             // Load and show the results
             await loadAndShowResults(updatedSurvey);
+          } else if (updatedStatus === 'generating' || updatedStatus === 'queued') {
+            setSelectedSurvey({ ...selectedSurvey, status: updatedStatus });
           } else if (updatedStatus !== 'generating') {
             // Status changed to something unexpected (e.g., 'active' on error)
             console.log('[Polling] Generation failed or was reset, status:', updatedStatus);
@@ -919,11 +921,25 @@ export default function Feedback360Dashboard({
         },
         body: JSON.stringify({
           survey_id: selectedSurvey.id,
+          queue_if_busy: true,
         }),
         signal: abortController.signal,
       });
 
       const data = await response.json();
+
+      if (response.status === 202 && data.status === 'queued') {
+        notify({
+          title: 'Queued',
+          description: 'Your report was queued and will start once a slot is available.',
+          variant: 'default',
+        });
+        setSelectedSurvey(prev => prev ? { ...prev, status: 'queued' } : prev);
+        setSurveys(prev => prev.map(s =>
+          s.id === selectedSurvey.id ? { ...s, status: 'queued' } : s
+        ));
+        return;
+      }
 
       if (!response.ok) {
         // Handle 409 Conflict - report generation already in progress
@@ -1431,10 +1447,23 @@ export default function Feedback360Dashboard({
       const response = await fetch('/api/360-generate-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ survey_id: surveyId, tone }),
+        body: JSON.stringify({ survey_id: surveyId, tone, queue_if_busy: true }),
       });
 
       const data = await response.json();
+
+      if (response.status === 202 && data.status === 'queued') {
+        notify({
+          title: 'Queued',
+          description: 'Reanalysis was queued and will start once a slot is available.',
+          variant: 'default',
+        });
+        setSelectedSurvey(prev => prev ? { ...prev, status: 'queued' } : prev);
+        setSurveys(prev => prev.map(s =>
+          s.id === surveyId ? { ...s, status: 'queued' } : s
+        ));
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to reanalyze survey');
@@ -2007,7 +2036,8 @@ export default function Feedback360Dashboard({
 
   const getStatusBadge = (status: string, flaggedForAdmin?: boolean, flaggedForReanalysis?: boolean, resolvedByAdmin?: boolean, surveyId?: string) => {
     // Override status to 'generating' if this survey is currently generating
-    const effectiveStatus = (surveyId && generatingSurveyId === surveyId) ? 'generating' : status;
+    const shouldForceGenerating = surveyId && generatingSurveyId === surveyId && status !== 'queued';
+    const effectiveStatus = shouldForceGenerating ? 'generating' : status;
     // Show "Needs Reanalysis" badge for flagged surveys
     if ((flaggedForAdmin || flaggedForReanalysis) && currentUser?.app_role === 'admin') {
       return (
@@ -2047,6 +2077,7 @@ export default function Feedback360Dashboard({
     const styles = {
       draft: 'bg-gray-100 text-gray-700 border-gray-300',
       in_progress: 'bg-yellow-100 text-yellow-700 border-yellow-300',
+      queued: 'bg-blue-100 text-blue-700 border-blue-300',
       generating: 'bg-purple-100 text-purple-700 border-purple-300 animate-pulse',
       completed: 'bg-green-100 text-green-700 border-green-300',
       finalized: 'bg-purple-100 text-purple-700 border-purple-300'
@@ -2054,6 +2085,7 @@ export default function Feedback360Dashboard({
     const icons = {
       draft: Clock,
       in_progress: MessageSquare,
+      queued: Clock,
       generating: Loader2,
       completed: CheckCircle,
       finalized: ArrowDownCircle
@@ -2061,6 +2093,7 @@ export default function Feedback360Dashboard({
     const labels = {
       draft: 'Draft',
       in_progress: 'In Progress',
+      queued: 'Queued',
       generating: 'Generating Report...',
       completed: 'Completed',
       finalized: 'Finalized'
@@ -2068,6 +2101,7 @@ export default function Feedback360Dashboard({
     const tooltips = {
       draft: 'Survey is not yet sent to reviewers',
       in_progress: 'Survey is active and awaiting responses',
+      queued: 'Report generation is queued and will start soon',
       generating: 'AI is analyzing responses and generating the report',
       completed: 'All responses received and analyzed',
       finalized: 'Survey is archived and final'
@@ -3005,10 +3039,12 @@ export default function Feedback360Dashboard({
                 </button>
                 <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
                 <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  Generating AI Analysis...
+                  {selectedSurvey?.status === 'queued' ? 'Queued for AI Analysis...' : 'Generating AI Analysis...'}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4 mb-6">
-                  Report generation may take up to 8 minutes depending on number of reviewers
+                  {selectedSurvey?.status === 'queued'
+                    ? 'We will start as soon as a slot is available.'
+                    : 'Report generation may take up to 8 minutes depending on number of reviewers'}
                 </p>
                 {/* Cancel button */}
                 <button
@@ -3016,7 +3052,7 @@ export default function Feedback360Dashboard({
                   disabled={isCancellingGeneration}
                   className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {isCancellingGeneration ? 'Cancelling...' : 'Cancel'}
+                  {isCancellingGeneration ? 'Cancelling...' : (selectedSurvey?.status === 'queued' ? 'Remove from Queue' : 'Cancel')}
                 </button>
               </div>
             )}
@@ -3462,7 +3498,7 @@ export default function Feedback360Dashboard({
                         {generatingSurveyId === selectedSurvey?.id ? (
                           <>
                             <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
-                            Generating Analysis...
+                            {selectedSurvey?.status === 'queued' ? 'Queued...' : 'Generating Analysis...'}
                           </>
                         ) : (
                           <>
@@ -3540,10 +3576,12 @@ export default function Feedback360Dashboard({
                   </button>
                   <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
                   <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    Regenerating AI Analysis...
+                    {selectedSurvey?.status === 'queued' ? 'Queued for Reanalysis...' : 'Regenerating AI Analysis...'}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4 mb-6">
-                    Report generation may take up to 8 minutes depending on number of reviewers
+                    {selectedSurvey?.status === 'queued'
+                      ? 'We will start as soon as a slot is available.'
+                      : 'Report generation may take up to 8 minutes depending on number of reviewers'}
                   </p>
                   {/* Cancel button */}
                   <button
@@ -3551,7 +3589,7 @@ export default function Feedback360Dashboard({
                     disabled={isCancellingGeneration}
                     className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {isCancellingGeneration ? 'Cancelling...' : 'Cancel'}
+                    {isCancellingGeneration ? 'Cancelling...' : (selectedSurvey?.status === 'queued' ? 'Remove from Queue' : 'Cancel')}
                   </button>
                 </div>
               )}
@@ -4550,7 +4588,9 @@ export default function Feedback360Dashboard({
                 className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
-                {generatingSurveyId === selectedSurvey?.id ? 'Generating...' : 'Proceed & Generate Analysis'}
+                {generatingSurveyId === selectedSurvey?.id
+                  ? (selectedSurvey?.status === 'queued' ? 'Queued...' : 'Generating...')
+                  : 'Proceed & Generate Analysis'}
               </button>
             </div>
           </div>

@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 import { markSurveyCancelled } from '@/lib/services/surveyAnalyzerService';
+import { releaseReportGenerationLock } from '@/lib/report-generation-lock';
+import { removeQueuedReport } from '@/lib/report-generation-queue';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/surveys/[id]/cancel-generation
  *
- * Cancels an in-progress report generation by resetting the survey status
- * from 'generating' back to 'in_progress'.
+ * Cancels an in-progress or queued report generation by resetting the survey status
+ * back to 'in_progress'.
  */
 export async function POST(
   req: NextRequest,
@@ -49,18 +51,22 @@ export async function POST(
       }, { status: 403 });
     }
 
-    // Only allow cancellation if currently generating
-    if (survey.status !== 'generating') {
+    const cancellableStatuses = new Set(['generating', 'queued']);
+
+    // Only allow cancellation if currently generating or queued
+    if (!cancellableStatuses.has(survey.status)) {
       return NextResponse.json({
         error: 'Cannot cancel',
-        message: `Survey is not currently generating (status: ${survey.status})`,
+        message: `Survey is not currently generating or queued (status: ${survey.status})`,
         currentStatus: survey.status
       }, { status: 400 });
     }
 
-    // Mark the survey as cancelled in the in-memory registry
-    // This will cause the analyzer service to stop between passes
-    markSurveyCancelled(surveyId);
+    if (survey.status === 'generating') {
+      // Mark the survey as cancelled in the in-memory registry
+      // This will cause the analyzer service to stop between passes
+      markSurveyCancelled(surveyId);
+    }
 
     // Reset status to 'in_progress'
     const { error: updateError } = await supabaseAdmin
@@ -78,6 +84,9 @@ export async function POST(
         details: updateError.message
       }, { status: 500 });
     }
+
+    await removeQueuedReport(surveyId);
+    await releaseReportGenerationLock(surveyId);
 
     console.log(`[cancel-generation] Survey ${surveyId} generation cancelled by ${authData.profile.email}`);
 
