@@ -59,7 +59,8 @@ export async function GET(request: NextRequest) {
           .from('user_profiles')
           .select('id')
           .eq('manager_id', profile.id)
-          .eq('is_active', true);
+          .eq('is_active', true)
+          .or('is_hidden.is.null,is_hidden.eq.false');
 
         if (directReportsError) {
           // Non-fatal - leader can still see themselves
@@ -76,7 +77,8 @@ export async function GET(request: NextRequest) {
     let userProfilesQuery = supabaseAdmin
       .from('user_profiles')
       .select('id, full_name, email, employee_number, department, manager_id, title, location, app_role, created_at, updated_at')
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .or('is_hidden.is.null,is_hidden.eq.false');
 
     if (allowedUserIds) {
       userProfilesQuery = userProfilesQuery.in('id', allowedUserIds);

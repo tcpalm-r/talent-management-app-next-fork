@@ -59,6 +59,7 @@ export interface UserProfile {
   // Metadata
   last_sync: string | null;
   is_active: boolean | null;
+  is_hidden: boolean | null; // When true, hides user from selection UIs (reviewer picker, subject selection)
   scim_active: boolean | null;
   created_at: string | null;
   updated_at: string | null;

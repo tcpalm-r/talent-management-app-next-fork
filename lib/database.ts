@@ -66,13 +66,14 @@ export async function getUserProfileByEmail(email: string): Promise<UserProfile 
 }
 
 /**
- * Get all active users
+ * Get all active users (excludes hidden users)
  */
 export async function getActiveUsers(): Promise<UserProfile[]> {
   const { data, error } = await supabase
     .from('user_profiles')
     .select('*')
     .eq('is_active', true)
+    .or('is_hidden.is.null,is_hidden.eq.false')
     .order('full_name');
 
   if (error) {
@@ -84,7 +85,7 @@ export async function getActiveUsers(): Promise<UserProfile[]> {
 }
 
 /**
- * Get users by department
+ * Get users by department (excludes hidden users)
  */
 export async function getUsersByDepartment(department: string): Promise<UserProfile[]> {
   const { data, error } = await supabase
@@ -92,6 +93,7 @@ export async function getUsersByDepartment(department: string): Promise<UserProf
     .select('*')
     .eq('department', department)
     .eq('is_active', true)
+    .or('is_hidden.is.null,is_hidden.eq.false')
     .order('full_name');
 
   if (error) {
@@ -103,7 +105,7 @@ export async function getUsersByDepartment(department: string): Promise<UserProf
 }
 
 /**
- * Get direct reports for a manager
+ * Get direct reports for a manager (excludes hidden users)
  */
 export async function getDirectReports(managerId: string): Promise<UserProfile[]> {
   const { data, error } = await supabase
@@ -111,6 +113,7 @@ export async function getDirectReports(managerId: string): Promise<UserProfile[]
     .select('*')
     .eq('manager_id', managerId)
     .eq('is_active', true)
+    .or('is_hidden.is.null,is_hidden.eq.false')
     .order('full_name');
 
   if (error) {
@@ -136,7 +139,7 @@ export async function getManager(employeeId: string): Promise<UserProfile | null
 }
 
 /**
- * Get SLT members (excluding a specific employee if provided)
+ * Get SLT members (excluding a specific employee if provided, excludes hidden users)
  */
 export async function getSLTMembers(excludeEmployeeId?: string): Promise<UserProfile[]> {
   let query = supabase
@@ -144,6 +147,7 @@ export async function getSLTMembers(excludeEmployeeId?: string): Promise<UserPro
     .select('*')
     .eq('app_role', 'slt')
     .eq('is_active', true)
+    .or('is_hidden.is.null,is_hidden.eq.false')
     .order('full_name');
 
   if (excludeEmployeeId) {
@@ -161,7 +165,7 @@ export async function getSLTMembers(excludeEmployeeId?: string): Promise<UserPro
 }
 
 /**
- * Search employees by name, email, or title
+ * Search employees by name, email, or title (excludes hidden users)
  */
 export async function searchEmployees(
   searchTerm: string,
@@ -171,6 +175,7 @@ export async function searchEmployees(
     .from('user_profiles')
     .select('*')
     .eq('is_active', true)
+    .or('is_hidden.is.null,is_hidden.eq.false')
     .order('full_name');
 
   if (excludeEmployeeId) {
