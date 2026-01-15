@@ -26,12 +26,22 @@ export function detectRelationship(
   reviewer: UserProfile
 ): ParticipantRelationship {
   // Rule 1: Is the reviewer the subject's manager?
+  // Check both manager_id (UUID) and manager_email (fallback for legacy data)
   if (subject.manager_id && reviewer.id === subject.manager_id) {
+    return 'manager';
+  }
+  if (subject.manager_email && reviewer.email &&
+      subject.manager_email.toLowerCase() === reviewer.email.toLowerCase()) {
     return 'manager';
   }
 
   // Rule 2: Is the reviewer a direct report of the subject?
+  // Check both manager_id (UUID) and manager_email (fallback for legacy data)
   if (reviewer.manager_id && reviewer.manager_id === subject.id) {
+    return 'direct_report';
+  }
+  if (reviewer.manager_email && subject.email &&
+      reviewer.manager_email.toLowerCase() === subject.email.toLowerCase()) {
     return 'direct_report';
   }
 
