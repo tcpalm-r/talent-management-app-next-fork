@@ -43,16 +43,8 @@ export default function SurveyCompletionPage() {
   const [success, setSuccess] = useState(false);
   const [activeQuestionForAI, setActiveQuestionForAI] = useState<string | null>(null);
 
-  // Meta feedback state
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-  const [navigationRating, setNavigationRating] = useState<number>(3);
-  const [aiHelperRating, setAiHelperRating] = useState<number>(3);
-  const [didNotUseAI, setDidNotUseAI] = useState(false);
-  const [additionalComments, setAdditionalComments] = useState('');
-
   const [reviewer, setReviewer] = useState<Reviewer | null>(null);
   const [survey, setSurvey] = useState<Survey | null>(null);
-  const [surveyId, setSurveyId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [responses, setResponses] = useState<Record<string, string>>({});
 
@@ -165,7 +157,6 @@ export default function SurveyCompletionPage() {
       }
 
       setReviewer(startData.reviewer);
-      setSurveyId(startData.surveyId);
 
       // Check if already completed
       if (startData.reviewer.status === 'completed') {
@@ -354,52 +345,6 @@ export default function SurveyCompletionPage() {
     return text.trim().split(/\s+/).filter(word => word.length > 0).length;
   };
 
-  const handleMetaFeedbackSubmit = async () => {
-    try {
-      // Ensure we have a survey ID and reviewer ID
-      if (!surveyId) {
-        console.error('Cannot submit feedback: Survey ID is missing');
-        alert('Unable to submit feedback. Please try again.');
-        return;
-      }
-
-      if (!reviewer?.id) {
-        console.error('Cannot submit feedback: Reviewer ID is missing');
-        alert('Unable to submit feedback. Please try again.');
-        return;
-      }
-
-      // Ensure ratings are integers
-      const payload = {
-        surveyId: surveyId,
-        reviewerId: reviewer.id,
-        navigationRating: Math.round(navigationRating),
-        aiHelperRating: didNotUseAI ? 0 : Math.round(aiHelperRating),
-        additionalComments: additionalComments.trim() || null,
-      };
-
-      console.log('Submitting meta feedback:', payload);
-
-      const response = await fetch('/api/survey-completion/meta-feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Error submitting meta feedback:', errorData);
-        alert('Failed to submit feedback. Please try again.');
-        return;
-      }
-
-      setFeedbackSubmitted(true);
-    } catch (err: any) {
-      console.error('Error submitting meta feedback:', err);
-      alert('Failed to submit feedback. Please try again.');
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -414,145 +359,17 @@ export default function SurveyCompletionPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
-          {/* Thank You Header */}
-          <div className="text-center mb-10">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-10 h-10 text-green-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h1>
-            <p className="text-gray-600">
-              Your feedback has been submitted successfully. Your input is valuable and will help {survey?.employee_name || 'the employee'} grow professionally.
-            </p>
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-
-          {/* Meta Feedback Form */}
-          {!feedbackSubmitted ? (
-            <div className="border-t border-gray-200 pt-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Help us improve this experience</h3>
-
-              {/* Question 1: Navigation Rating */}
-              <div className="mb-8">
-                <label className="block text-sm font-medium text-gray-700 mb-4">
-                  1. How easy was it to navigate to the survey email and access this form?
-                </label>
-                <div className="relative">
-                  <div className="mx-[10%]">
-                    <input
-                      type="range"
-                      min="1"
-                      max="5"
-                      step="0.01"
-                      value={navigationRating}
-                      onChange={(e) => setNavigationRating(Number(e.target.value))}
-                      onMouseUp={(e) => setNavigationRating(Math.round(Number((e.target as HTMLInputElement).value)))}
-                      onTouchEnd={(e) => setNavigationRating(Math.round(Number((e.target as HTMLInputElement).value)))}
-                      className="w-full h-2 bg-gray-200 rounded-md appearance-none cursor-pointer accent-blue-600"
-                      style={{
-                        WebkitAppearance: 'none',
-                        appearance: 'none',
-                        transition: 'all 1s ease-out',
-                      }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-600 mt-2">
-                    <span className="text-center" style={{width: '20%'}}>Very Difficult</span>
-                    <span className="text-center" style={{width: '20%'}}>Difficult</span>
-                    <span className="text-center" style={{width: '20%'}}>Neutral</span>
-                    <span className="text-center" style={{width: '20%'}}>Easy</span>
-                    <span className="text-center" style={{width: '20%'}}>Very Easy</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Question 2: AI Helper Rating */}
-              <div className="mb-8">
-                <label className="block text-sm font-medium text-gray-700 mb-4">
-                  2. How was your experience with the AI Response Helper?
-                </label>
-
-                {/* Checkbox for "Didn't use it" */}
-                <div className="mb-4 ml-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={didNotUseAI}
-                      onChange={(e) => {
-                        setDidNotUseAI(e.target.checked);
-                        if (!e.target.checked) {
-                          setAiHelperRating(3);
-                        }
-                      }}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">I didn't use the AI helper</span>
-                  </label>
-                </div>
-
-                {/* Slider (disabled when checkbox is checked) */}
-                <div className={`relative ${didNotUseAI ? 'opacity-50 pointer-events-none' : ''}`}>
-                  <div className="mx-[10%]">
-                    <input
-                      type="range"
-                      min="1"
-                      max="5"
-                      step="0.01"
-                      value={aiHelperRating || 3}
-                      onChange={(e) => setAiHelperRating(Number(e.target.value))}
-                      onMouseUp={(e) => setAiHelperRating(Math.round(Number((e.target as HTMLInputElement).value)))}
-                      onTouchEnd={(e) => setAiHelperRating(Math.round(Number((e.target as HTMLInputElement).value)))}
-                      disabled={didNotUseAI}
-                      className="w-full h-2 bg-gray-200 rounded-md appearance-none cursor-pointer accent-blue-600 disabled:cursor-not-allowed"
-                      style={{
-                        WebkitAppearance: 'none',
-                        appearance: 'none',
-                        transition: 'all 1s ease-out',
-                      }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-600 mt-2">
-                    <span className="text-center" style={{width: '20%'}}>Poor</span>
-                    <span className="text-center" style={{width: '20%'}}>Fair</span>
-                    <span className="text-center" style={{width: '20%'}}>Good</span>
-                    <span className="text-center" style={{width: '20%'}}>Very Good</span>
-                    <span className="text-center" style={{width: '20%'}}>Excellent</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Question 3: Additional Comments */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-4">
-                  3. Any other thoughts, suggestions, or issues you'd like to share?
-                </label>
-                <textarea
-                  value={additionalComments}
-                  onChange={(e) => setAdditionalComments(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white text-gray-900 placeholder-gray-400"
-                  placeholder="Optional - share any feedback about your experience..."
-                />
-              </div>
-
-              {/* Submit Button */}
-              <button
-                onClick={handleMetaFeedbackSubmit}
-                className="w-full bg-blue-600 text-white py-3 px-6 rounded-md font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Submit Feedback
-              </button>
-            </div>
-          ) : (
-            <div className="border-t border-gray-200 pt-6 text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <CheckCircle className="w-8 h-8 text-blue-600" />
-              </div>
-              <p className="text-gray-700 font-medium mb-2">Thank you for your feedback!</p>
-              <p className="text-sm text-gray-500">
-                You can safely close this window.
-              </p>
-            </div>
-          )}
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h1>
+          <p className="text-gray-600 mb-4">
+            Your feedback has been submitted successfully. Your input is valuable and will help {survey?.employee_name || 'the employee'} grow professionally.
+          </p>
+          <p className="text-sm text-gray-500">
+            You can safely close this window.
+          </p>
         </div>
       </div>
     );
