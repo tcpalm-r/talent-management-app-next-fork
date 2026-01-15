@@ -58,11 +58,11 @@ export async function POST(request: NextRequest) {
       console.warn('[User Switcher] Falling back to hardcoded user data');
     }
 
-    // Merge: prefer hardcoded values for dev testing (allows testing specific roles)
+    // Merge: prefer database values for app_role, fall back to hardcoded
     const user = {
       ...baseUser,
-      // Use hardcoded role to allow testing specific personas (e.g., SLT, leader, user)
-      app_role: baseUser.app_role,
+      // Use database role to reflect actual permissions
+      app_role: dbUser?.app_role || baseUser.app_role,
       full_name: baseUser.full_name,
       email: baseUser.email,
       department: baseUser.department || dbUser?.department,
@@ -141,16 +141,16 @@ export async function GET(request: NextRequest) {
       (dbUsers || []).map(u => [u.id, u])
     );
 
-    // Merge: prefer hardcoded values for dev testing (allows testing specific roles)
+    // Merge: prefer database values for app_role, fall back to hardcoded
     // Maintain the order from TEST_USERS
     const users = TEST_USERS.map(baseUser => {
       const dbUser = dbUserMap.get(baseUser.id);
       return {
         id: baseUser.id,
-        // Use hardcoded values to allow testing specific personas
+        // Use database role to reflect actual permissions
         email: baseUser.email,
         full_name: baseUser.full_name,
-        app_role: baseUser.app_role,
+        app_role: dbUser?.app_role || baseUser.app_role,
         department: baseUser.department || dbUser?.department,
         title: baseUser.title || dbUser?.title,
       };
