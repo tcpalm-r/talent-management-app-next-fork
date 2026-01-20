@@ -8,6 +8,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { fetch as undiciFetch } from 'undici';
 
 // ==================== Cancellation Registry ====================
 // In-memory registry to track cancelled survey generations
@@ -119,6 +120,9 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
 
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
+    timeout: 5 * 60 * 1000, // 5 minute timeout (mainly for initial connection)
+    maxRetries: 2, // Reduced retries since we use streaming now
+    fetch: undiciFetch as unknown as typeof fetch, // Use undici fetch to bypass Next.js patching
   });
 
   // Get relationships that have responses (for Pass 2 sentiment calculation)
@@ -330,22 +334,81 @@ async function runPass1(
   console.log(`[Pass1] Prompt built, ${prompt.length} chars. Calling Claude API...`);
   console.log(`[Pass1] Model: ${pass1Config.model}, maxTokens: ${pass1Config.maxTokens}`);
 
-  const response = await anthropic.messages.create({
-    model: pass1Config.model,
-    max_tokens: pass1Config.maxTokens,
-    temperature: pass1Config.temperature,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  const apiCallStart = Date.now();
+  let responseText = '';
+  let usage: { input_tokens?: number; output_tokens?: number } = {};
+  let stopReason = '';
 
-  console.log(`[Pass1] Claude API response received. Usage: ${JSON.stringify(response.usage)}`);
+  try {
+    // Use streaming to avoid timeout issues with large responses
+    console.log(`[Pass1] Using streaming API to avoid timeout...`);
+    const stream = anthropic.messages.stream({
+      model: pass1Config.model,
+      max_tokens: pass1Config.maxTokens,
+      temperature: pass1Config.temperature,
+      messages: [{ role: 'user', content: prompt }],
+    });
 
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type from Claude in Pass 1');
+    // Track progress during streaming
+    let tokenCount = 0;
+    let lastProgressLog = Date.now();
+    const PROGRESS_LOG_INTERVAL = 10000; // Log every 10 seconds
+
+    stream.on('text', (text) => {
+      responseText += text;
+      tokenCount++;
+
+      // Log progress periodically
+      const now = Date.now();
+      if (now - lastProgressLog > PROGRESS_LOG_INTERVAL) {
+        const elapsed = Math.round((now - apiCallStart) / 1000);
+        console.log(`[Pass1] Streaming progress: ${responseText.length} chars, ~${tokenCount} tokens, ${elapsed}s elapsed`);
+        lastProgressLog = now;
+      }
+    });
+
+    // Wait for the stream to complete
+    const finalMessage = await stream.finalMessage();
+
+    usage = finalMessage.usage || {};
+    stopReason = finalMessage.stop_reason || '';
+
+    console.log(`[Pass1] API call completed after ${Date.now() - apiCallStart}ms`);
+  } catch (apiError: any) {
+    console.error(`[Pass1] API call FAILED after ${Date.now() - apiCallStart}ms`);
+    console.error(`[Pass1] Error name: ${apiError.name}`);
+    console.error(`[Pass1] Error message: ${apiError.message}`);
+    console.error(`[Pass1] Error status: ${apiError.status}`);
+    if (apiError.error) {
+      console.error(`[Pass1] Error details: ${JSON.stringify(apiError.error)}`);
+    }
+    // Log partial response if we got any
+    if (responseText.length > 0) {
+      console.error(`[Pass1] Partial response received (${responseText.length} chars) before error`);
+    }
+    throw apiError;
   }
 
+  console.log(`[Pass1] Claude API response received. Usage: ${JSON.stringify(usage)}, Stop reason: ${stopReason}`);
+
+  // With streaming, we already have the text in responseText
+  if (!responseText || responseText.length === 0) {
+    console.error(`[Pass1] Empty response received from Claude API`);
+    throw new Error('Empty response from Claude in Pass 1');
+  }
+
+  console.log(`[Pass1] Response received: ${responseText.length} chars`);
+
   // Parse the JSON array response
-  const summaries = extractJsonArrayFromResponse(content.text);
+  let summaries;
+  try {
+    summaries = extractJsonArrayFromResponse(responseText);
+    console.log(`[Pass1] Parsed ${Array.isArray(summaries) ? summaries.length : 0} question summaries`);
+  } catch (parseError: any) {
+    console.error(`[Pass1] JSON parse failed: ${parseError.message}`);
+    console.error(`[Pass1] Response preview: ${responseText.slice(0, 500)}...`);
+    throw parseError;
+  }
 
   if (!Array.isArray(summaries)) {
     throw new Error('Pass 1 did not return a valid JSON array of question summaries');
@@ -360,7 +423,7 @@ async function runPass1(
 
   return {
     summaries: summaries as QuestionSummary[],
-    outputTokens: response.usage?.output_tokens || 0,
+    outputTokens: usage.output_tokens || 0,
   };
 }
 
@@ -400,22 +463,52 @@ async function runPass2(
   console.log(`[Pass2] Prompt built, ${prompt.length} chars. Calling Claude API...`);
   console.log(`[Pass2] Model: ${pass2Config.model}, maxTokens: ${pass2Config.maxTokens}`);
 
-  const response = await anthropic.messages.create({
-    model: pass2Config.model,
-    max_tokens: pass2Config.maxTokens,
-    temperature: pass2Config.temperature,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  const apiCallStart = Date.now();
+  let responseText = '';
 
-  console.log(`[Pass2] Claude API response received. Usage: ${JSON.stringify(response.usage)}`);
+  try {
+    // Use streaming to avoid timeout issues with large responses
+    console.log(`[Pass2] Using streaming API to avoid timeout...`);
+    const stream = anthropic.messages.stream({
+      model: pass2Config.model,
+      max_tokens: pass2Config.maxTokens,
+      temperature: pass2Config.temperature,
+      messages: [{ role: 'user', content: prompt }],
+    });
 
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type from Claude in Pass 2');
+    // Track progress during streaming
+    let lastProgressLog = Date.now();
+    const PROGRESS_LOG_INTERVAL = 10000; // Log every 10 seconds
+
+    stream.on('text', (text) => {
+      responseText += text;
+
+      const now = Date.now();
+      if (now - lastProgressLog > PROGRESS_LOG_INTERVAL) {
+        const elapsed = Math.round((now - apiCallStart) / 1000);
+        console.log(`[Pass2] Streaming progress: ${responseText.length} chars, ${elapsed}s elapsed`);
+        lastProgressLog = now;
+      }
+    });
+
+    const finalMessage = await stream.finalMessage();
+    console.log(`[Pass2] API call completed after ${Date.now() - apiCallStart}ms`);
+    console.log(`[Pass2] Claude API response received. Usage: ${JSON.stringify(finalMessage.usage)}`);
+  } catch (apiError: any) {
+    console.error(`[Pass2] API call FAILED after ${Date.now() - apiCallStart}ms`);
+    console.error(`[Pass2] Error: ${apiError.name} - ${apiError.message}`);
+    if (responseText.length > 0) {
+      console.error(`[Pass2] Partial response received (${responseText.length} chars) before error`);
+    }
+    throw apiError;
+  }
+
+  if (!responseText || responseText.length === 0) {
+    throw new Error('Empty response from Claude in Pass 2');
   }
 
   // Parse the JSON object response
-  const analysis = extractJsonFromResponse(content.text);
+  const analysis = extractJsonFromResponse(responseText);
 
   return analysis;
 }
@@ -741,16 +834,22 @@ function extractJsonFromResponse(text: string): Record<string, unknown> {
  */
 function extractJsonArrayFromResponse(text: string): unknown[] {
   let jsonText = text.trim();
+  console.log(`[extractJsonArrayFromResponse] DEBUG - Input length: ${jsonText.length}`);
 
   // Try to find JSON in code blocks first
   const jsonBlockMatch = jsonText.match(/```(?:json)?\s*(\[[\s\S]*\])\s*```/);
   if (jsonBlockMatch) {
     jsonText = jsonBlockMatch[1];
+    console.log(`[extractJsonArrayFromResponse] DEBUG - Found JSON in code block, extracted ${jsonText.length} chars`);
   } else {
     // Try to find raw JSON array
     const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       jsonText = jsonMatch[0];
+      console.log(`[extractJsonArrayFromResponse] DEBUG - Found raw JSON array, extracted ${jsonText.length} chars`);
+    } else {
+      console.log(`[extractJsonArrayFromResponse] DEBUG - No JSON array pattern found in response`);
+      console.log(`[extractJsonArrayFromResponse] DEBUG - Response starts with: ${jsonText.slice(0, 200)}`);
     }
   }
 

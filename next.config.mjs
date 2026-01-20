@@ -2,6 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['lucide-react'],
+  experimental: {
+    // Exclude Anthropic SDK from Next.js bundling to prevent HTTP client issues
+    serverComponentsExternalPackages: ['@anthropic-ai/sdk'],
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },

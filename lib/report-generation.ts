@@ -203,17 +203,13 @@ export async function generateReportForSurvey({
     }
 
     // ========================================================================
-    // STEP 3: Fetch responses (only from current reviewers)
+    // STEP 3: Fetch responses (include all responses for this survey)
     // ========================================================================
-
-    // Get list of active reviewer emails to filter responses
-    const activeReviewerEmails = reviewers.map(r => r.reviewer_email);
 
     const { data: responses, error: responsesError } = await supabaseAdmin
       .from('feedback_360_responses')
       .select('*')
-      .eq('survey_id', surveyId)
-      .in('reviewer_email', activeReviewerEmails); // Only include responses from current reviewers
+      .eq('survey_id', surveyId);
 
     if (responsesError) {
       return NextResponse.json({
@@ -228,15 +224,26 @@ export async function generateReportForSurvey({
       }, { status: 400 });
     }
 
-    // Log if any responses were excluded (removed reviewers)
-    const totalResponseCount = await supabaseAdmin
-      .from('feedback_360_responses')
-      .select('id', { count: 'exact', head: true })
-      .eq('survey_id', surveyId);
+    const normalizeEmail = (value: string | null | undefined) =>
+      (value || '').trim().toLowerCase();
 
-    if (totalResponseCount.count && totalResponseCount.count > responses.length) {
-      console.log(`[360-generate-report] Excluded ${totalResponseCount.count - responses.length} responses from removed reviewers`);
-    }
+    // Map reviewers by normalized email for case-insensitive matching
+    const reviewerByEmail = new Map<string, typeof reviewers[number]>();
+    reviewers.forEach(reviewer => {
+      const key = normalizeEmail(reviewer.reviewer_email);
+      if (key && !reviewerByEmail.has(key)) {
+        reviewerByEmail.set(key, reviewer);
+      }
+    });
+
+    // Track response emails that don't match a reviewer row
+    const missingReviewerEmails = new Set<string>();
+    responses.forEach(response => {
+      const responseEmailKey = normalizeEmail(response.reviewer_email) || `unknown-response-${response.id}`;
+      if (!reviewerByEmail.has(responseEmailKey)) {
+        missingReviewerEmails.add(responseEmailKey);
+      }
+    });
 
     // ========================================================================
     // STEP 4: Fetch questions linked to this survey
@@ -282,8 +289,30 @@ export async function generateReportForSurvey({
     // STEP 6: Transform data for AI analyzer
     // ========================================================================
 
+    if (missingReviewerEmails.size > 0) {
+      console.warn(
+        `[360-generate-report] Found ${missingReviewerEmails.size} response emails with no matching reviewer record. Including them as synthetic participants.`
+      );
+    }
+
+    const nowIso = new Date().toISOString();
+    const fallbackReviewers = Array.from(missingReviewerEmails).map((emailKey, index) => ({
+      id: `synthetic-reviewer-${index + 1}`,
+      survey_id: surveyId,
+      reviewer_name: emailKey.startsWith('unknown-response-') ? 'Unknown Reviewer' : emailKey,
+      reviewer_email: emailKey,
+      relationship: 'cross_functional',
+      status: 'completed',
+      access_token: '',
+      invited_at: nowIso,
+      completed_at: nowIso,
+      created_at: nowIso,
+    }));
+
+    const allReviewers = [...reviewers, ...fallbackReviewers];
+
     // Map reviewers to participants format with relationship field
-    const participants = reviewers.map(reviewer => {
+    const participants = allReviewers.map(reviewer => {
       // Normalize relationship value to valid ParticipantRelationship
       let relationship: ParticipantRelationship = 'cross_functional';
       const rel = (reviewer.relationship || 'cross_functional').toLowerCase();
@@ -299,9 +328,9 @@ export async function generateReportForSurvey({
         relationship,
         status: reviewer.status as 'pending' | 'in_progress' | 'completed',
         access_token: reviewer.access_token || '',
-        invited_at: reviewer.invited_at || reviewer.created_at || new Date().toISOString(),
+        invited_at: reviewer.invited_at || reviewer.created_at || nowIso,
         completed_at: reviewer.completed_at || undefined,
-        created_at: reviewer.created_at || new Date().toISOString(),
+        created_at: reviewer.created_at || nowIso,
       };
     });
 
@@ -318,22 +347,28 @@ export async function generateReportForSurvey({
     });
 
     // Create a map of reviewer email to reviewer ID for proper participant mapping
-    const emailToIdMap = new Map(reviewers.map(r => [r.reviewer_email, r.id]));
+    const emailToIdMap = new Map<string, string>();
+    allReviewers.forEach(r => {
+      const key = normalizeEmail(r.reviewer_email);
+      if (key && !emailToIdMap.has(key)) {
+        emailToIdMap.set(key, r.id);
+      }
+    });
 
     // Group responses by reviewer for the analyzer
     // The DB stores individual question-answer pairs, but analyzer expects grouped responses
     // For citation tracking, we also store the response_id for each question
     const groupedResponses = responses.reduce((acc, response) => {
-      const reviewerEmail = response.reviewer_email;
-      const reviewerId = emailToIdMap.get(reviewerEmail);
+      const reviewerEmailKey = normalizeEmail(response.reviewer_email) || `unknown-response-${response.id}`;
+      const reviewerId = emailToIdMap.get(reviewerEmailKey);
 
       if (!reviewerId) {
-        console.warn(`No reviewer ID found for email: ${reviewerEmail}`);
+        console.warn(`No reviewer ID found for response email: ${response.reviewer_email || 'unknown'}`);
         return acc;
       }
 
-      if (!acc[reviewerEmail]) {
-        acc[reviewerEmail] = {
+      if (!acc[reviewerEmailKey]) {
+        acc[reviewerEmailKey] = {
           id: response.id, // First response ID (for backwards compat)
           survey_id: response.survey_id,
           participant_id: reviewerId, // Use reviewer ID (UUID) to match participants array
@@ -346,9 +381,9 @@ export async function generateReportForSurvey({
       }
 
       // Add this question's response and its ID for citation tracking
-      acc[reviewerEmail].responses[response.question_id] =
+      acc[reviewerEmailKey].responses[response.question_id] =
         response.response_text || response.rating;
-      acc[reviewerEmail].response_ids[response.question_id] = response.id;
+      acc[reviewerEmailKey].response_ids[response.question_id] = response.id;
 
       return acc;
     }, {} as Record<string, any>);
