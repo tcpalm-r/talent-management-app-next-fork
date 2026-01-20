@@ -314,6 +314,26 @@ export const TEST_USERS: SessionUser[] = [
     department: 'Product Management',
     title: null,
   },
+  {
+    id: '0f7544b4-e320-48c2-805c-ee4271007ffa',
+    auth0_id: 'BrianT@sonance.com',
+    email: 'BrianT@sonance.com',
+    full_name: 'Brian Taksier',
+    given_name: 'Brian',
+    family_name: 'Taksier',
+    picture: null,
+    app_role: 'leader',
+    app_permissions: {
+      read: true,
+      admin: false,
+      write: true,
+    },
+    global_role: 'user',
+    capabilities: [],
+    app_access: true,
+    department: 'Services',
+    title: 'Technical Support Supervisor',
+  },
 ];
 
 /**
