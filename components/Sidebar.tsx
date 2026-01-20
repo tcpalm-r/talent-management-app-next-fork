@@ -41,8 +41,8 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
   const baseNavItems = [
     // { id: 'directory', label: 'Talent', icon: Users }, // Hidden for now
     { id: '360-feedback', label: '360°', icon: RotateCw },
-    { id: 'my-report', label: 'Review', icon: FileText },
     { id: 'itp', label: 'ITP', icon: VennDiagramIcon },
+    { id: 'my-report', label: 'Review', icon: FileText },
   ] as const;
 
   const leaderNavItems = [] as const;
