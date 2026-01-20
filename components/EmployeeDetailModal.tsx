@@ -20,6 +20,7 @@ import Survey360Wizard from './Survey360Wizard';
 import CriticalRoleSetupModal from './CriticalRoleSetupModal';
 import { useToast, EmployeeNameLink } from './unified';
 import { AICoachMicroPanel, getEmployeeModalSuggestions } from './AICoachMicroPanel';
+import { ITPSelfAssessment } from './ITPSelfAssessment';
 import { useUnifiedAICoach } from '../context/UnifiedAICoachContext';
 
 /**
@@ -1225,11 +1226,14 @@ export default function EmployeeDetailModal({
             </div>
           )}
 
-          {/* Performance Review & ITP Matrix Tab (Combined) */}
+          {/* ITP Self-Assessment Tab */}
           {activeTab === 'perf-review' && (
-            <div className="text-center text-gray-500 py-8">
-              ITP Self-assessment - Coming Soon
-            </div>
+            <ITPSelfAssessment
+              employeeId={employee.id}
+              employeeName={employee.name}
+              currentUserId={currentUser?.id}
+              isViewOnly={currentUser?.id !== employee.id && currentUser?.app_role !== 'admin'}
+            />
           )}
 
           {/* PIP Tab */}

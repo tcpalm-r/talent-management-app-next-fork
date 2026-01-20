@@ -1,6 +1,7 @@
 'use client';
 
 import { RotateCw, Users, Settings, FileText } from 'lucide-react';
+import { VennDiagramIcon } from './icons/VennDiagramIcon';
 import { useMemo, useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
 import { UserContext } from '@/context/UserContext';
@@ -8,7 +9,7 @@ import { useTeams } from '@/context/TeamsContext';
 import { AUTH_DISABLED } from '@/lib/auth';
 import { ThemeToggle, useToast } from './unified';
 
-type View = '360-feedback' | 'my-report' | 'directory' | 'admin-settings';
+type View = '360-feedback' | 'my-report' | 'itp' | 'directory' | 'admin-settings';
 
 interface TestUser {
   id: string;
@@ -41,6 +42,7 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
     // { id: 'directory', label: 'Talent', icon: Users }, // Hidden for now
     { id: '360-feedback', label: '360°', icon: RotateCw },
     { id: 'my-report', label: 'Review', icon: FileText },
+    { id: 'itp', label: 'ITP', icon: VennDiagramIcon },
   ] as const;
 
   const leaderNavItems = [] as const;
