@@ -2738,9 +2738,8 @@ export default function Feedback360Dashboard({
 
                     // If user is SLT/Admin but not a reviewer, show opt-in button (only for in_progress surveys)
                     if (canOptInOut && !isReviewer && survey.status === 'in_progress') {
-                      const roleText = isAdmin ? 'Admin' : 'SLT member';
                       return (
-                        <Tooltip content={`You were not selected as a reviewer of ${survey.employee?.name || survey.employee_name || 'this employee'}, but any ${roleText} can opt in`}>
+                        <Tooltip content={`You were not selected as a reviewer of ${survey.employee?.name || survey.employee_name || 'this employee'}, but any Admin or SLT can opt in`}>
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
