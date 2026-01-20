@@ -35,29 +35,14 @@ export function ITPVirtueSection({
   const totalCount = behaviors.length;
   const isComplete = completedCount === totalCount;
 
-  // Get icon based on virtue
-  const getVirtueIcon = (v: ITPVirtue): string => {
-    switch (v) {
-      case 'humble':
-        return '🤝';
-      case 'hungry':
-        return '🔥';
-      case 'people_smart':
-        return '🧠';
-    }
-  };
-
   return (
     <div className={`mb-8 rounded-xl border-2 ${config.borderColor} overflow-hidden`}>
       {/* Section Header */}
       <div className={`${config.bgColor} px-6 py-4 border-b ${config.borderColor}`}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">{getVirtueIcon(virtue)}</span>
-            <h3 className={`text-xl font-bold ${config.color}`}>
-              {config.displayName}
-            </h3>
-          </div>
+          <h3 className={`text-xl font-bold ${config.color}`}>
+            {config.displayName}
+          </h3>
           <div className="flex items-center gap-2">
             {isComplete && (
               <CheckCircle className="w-5 h-5 text-green-500" />

@@ -15,6 +15,7 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  RotateCcw,
 } from 'lucide-react';
 
 interface ITPSelfAssessmentProps {
@@ -46,6 +47,7 @@ export function ITPSelfAssessment({
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [submitting, setSubmitting] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
   // Debounce timer for auto-save
@@ -260,6 +262,40 @@ export function ITPSelfAssessment({
     }
   };
 
+  // Reset draft (delete and start fresh)
+  const resetDraft = async () => {
+    if (!currentAssessment || currentAssessment.status !== 'draft') return;
+
+    if (!confirm('Are you sure you want to reset? This will clear all your current responses.')) {
+      return;
+    }
+
+    try {
+      setResetting(true);
+      setError(null);
+
+      const response = await fetch(`/api/itp/assessments/${currentAssessment.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to reset assessment');
+      }
+
+      // Clear local state and reload
+      setResponses({});
+      setCurrentAssessment(null);
+      pendingChangesRef.current = {};
+      await loadAssessments();
+    } catch (err) {
+      console.error('Error resetting ITP assessment:', err);
+      setError(err instanceof Error ? err.message : 'Failed to reset assessment');
+    } finally {
+      setResetting(false);
+    }
+  };
+
   // Calculate completion stats
   const completedCount = Object.keys(responses).length;
   const totalCount = allBehaviorKeys.length;
@@ -286,10 +322,7 @@ export function ITPSelfAssessment({
   if (!currentAssessment && isOwnAssessment && !isViewOnly) {
     return (
       <div className="text-center py-12">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
-          <Plus className="w-8 h-8 text-blue-600" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
           No ITP Self-Assessment Yet
         </h3>
         <p className="text-gray-500 mb-6 max-w-md mx-auto">
@@ -454,29 +487,43 @@ export function ITPSelfAssessment({
         />
       ))}
 
-      {/* Submit Button */}
+      {/* Action Buttons */}
       {canEdit && (
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+        <div className="flex justify-between pt-4 border-t border-gray-200">
           <button
-            onClick={() => saveDraft(responses)}
-            disabled={saveStatus === 'saving'}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50"
+            onClick={resetDraft}
+            disabled={resetting}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-500 bg-white hover:bg-gray-50 hover:text-gray-700 transition-colors disabled:opacity-50"
           >
-            <Save className="w-4 h-4 mr-2" />
-            Save Draft
-          </button>
-          <button
-            onClick={submitAssessment}
-            disabled={!isComplete || submitting}
-            className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting ? (
+            {resetting ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
-              <Send className="w-4 h-4 mr-2" />
+              <RotateCcw className="w-4 h-4 mr-2" />
             )}
-            Submit Assessment
+            Reset
           </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => saveDraft(responses)}
+              disabled={saveStatus === 'saving'}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save Draft
+            </button>
+            <button
+              onClick={submitAssessment}
+              disabled={!isComplete || submitting}
+              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4 mr-2" />
+              )}
+              Submit Assessment
+            </button>
+          </div>
         </div>
       )}
 

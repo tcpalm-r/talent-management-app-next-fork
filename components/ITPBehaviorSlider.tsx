@@ -24,7 +24,7 @@ export function ITPBehaviorSlider({
   onChange,
   disabled = false,
 }: ITPBehaviorSliderProps) {
-  const [localValue, setLocalValue] = useState<number>(value ?? 3);
+  const [localValue, setLocalValue] = useState<number>(value ?? 1);
   const [isDragging, setIsDragging] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
 
@@ -139,7 +139,7 @@ export function ITPBehaviorSlider({
     onChange(behavior.behaviorKey, markerValue);
   };
 
-  const displayValue = isDragging ? localValue : (value ?? localValue);
+  const displayValue = isDragging ? localValue : (value ?? 1);
   const thumbPosition = getPositionFromValue(displayValue);
 
   // Get accent color based on virtue
@@ -247,15 +247,6 @@ export function ITPBehaviorSlider({
           <span className="text-green-600 font-medium">Role Modeling</span>
         </div>
       </div>
-
-      {/* Current selection indicator */}
-      {value !== null && (
-        <div className="mt-3 text-center">
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${virtueConfig.bgColor} ${virtueConfig.color} border ${virtueConfig.borderColor}`}>
-            Current: {value} - {RATING_LABELS[value] || `Between ${RATING_LABELS[value - 1] || 'Not Living'} and ${RATING_LABELS[value + 1] || 'Role Modeling'}`}
-          </span>
-        </div>
-      )}
     </div>
   );
 }
