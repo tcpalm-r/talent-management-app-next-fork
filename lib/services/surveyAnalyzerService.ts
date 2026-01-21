@@ -8,7 +8,6 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { fetch as undiciFetch } from 'undici';
 
 // ==================== Cancellation Registry ====================
 // In-memory registry to track cancelled survey generations
@@ -122,7 +121,6 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
     apiKey: process.env.ANTHROPIC_API_KEY,
     timeout: 5 * 60 * 1000, // 5 minute timeout (mainly for initial connection)
     maxRetries: 2, // Reduced retries since we use streaming now
-    fetch: undiciFetch as unknown as typeof fetch, // Use undici fetch to bypass Next.js patching
   });
 
   // Get relationships that have responses (for Pass 2 sentiment calculation)

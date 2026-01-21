@@ -1,0 +1,23 @@
+
+> talent-management-next@0.1.0 dev
+> bash ./run-dev.sh
+
+ ⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::3004
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at /Users/thomas.palmer/talent-management-next/node_modules/next/dist/server/lib/start-server.js:280:16
+    at new Promise (<anonymous>)
+    at startServer (/Users/thomas.palmer/talent-management-next/node_modules/next/dist/server/lib/start-server.js:191:11)
+    at /Users/thomas.palmer/talent-management-next/node_modules/next/dist/server/lib/start-server.js:310:52
+    at Span.traceAsyncFn (/Users/thomas.palmer/talent-management-next/node_modules/next/dist/trace/trace.js:154:26)
+    at process.<anonymous> (/Users/thomas.palmer/talent-management-next/node_modules/next/dist/server/lib/start-server.js:310:35)
+    at process.emit (node:events:519:28) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3004
+}
+[?25h
