@@ -3062,7 +3062,7 @@ export default function Feedback360Dashboard({
                 <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4 mb-6">
                   {selectedSurvey?.status === 'queued'
                     ? 'We will start as soon as a slot is available.'
-                    : 'Report generation may take up to 8 minutes depending on number of reviewers'}
+                    : 'Report generation may take up to 15 minutes depending on number of reviewers'}
                 </p>
                 {/* Cancel button */}
                 <button
@@ -3600,7 +3600,7 @@ export default function Feedback360Dashboard({
                   <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4 mb-6">
                     {selectedSurvey?.status === 'queued'
                       ? 'We will start as soon as a slot is available.'
-                      : 'Report generation may take up to 8 minutes depending on number of reviewers'}
+                      : 'Report generation may take up to 15 minutes depending on number of reviewers'}
                   </p>
                   {/* Cancel button */}
                   <button
