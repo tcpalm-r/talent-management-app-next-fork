@@ -4349,7 +4349,7 @@ export default function Feedback360Dashboard({
                     );
                   })()}
 
-                  <div className={`flex items-center gap-6 ${!(currentUser?.app_role === 'admin' || isUserSponsor(selectedSurvey, currentUser, currentUserDbId)) ? 'ml-auto' : ''}`}>
+                  <div className={`flex items-center gap-6 ${currentUser?.app_role !== 'admin' ? 'ml-auto' : ''}`}>
                     {/* Workflow controls - Only visible to sponsor or admin */}
                     {(currentUser?.app_role === 'admin' || isUserSponsor(selectedSurvey, currentUser, currentUserDbId)) && (
                       <>
