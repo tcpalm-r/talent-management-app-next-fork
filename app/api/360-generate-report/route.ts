@@ -5,7 +5,7 @@ import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 import { determineViewerRole, generateReportForSurvey } from '@/lib/report-generation';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 720; // 12 minutes - needed for two-pass Claude API calls with large surveys
+export const maxDuration = 800; // Max allowed on Pro with Fluid Compute - needed for two-pass Claude API calls
 
 /**
  * API Route: /api/360-generate-report
