@@ -623,7 +623,7 @@ export default function Feedback360Dashboard({
       notify({
         title: isReportNotFound ? 'Report Not Found' : 'Error',
         description: isReportNotFound
-          ? 'The analysis report could not be found. Please regenerate the analysis by opening the survey and clicking "Complete Review with AI Analysis".'
+          ? 'The analysis report could not be found. Please regenerate the analysis by opening the survey and clicking "Complete 360° with AI Analysis".'
           : error.message || 'Failed to load review results',
         variant: 'error',
       });
@@ -3511,7 +3511,7 @@ export default function Feedback360Dashboard({
                         ) : (
                           <>
                             <Sparkles className="w-4 h-4 mr-2" />
-                            Complete Review with AI Analysis
+                            Complete 360° with AI Analysis
                           </>
                         )}
                       </button>
