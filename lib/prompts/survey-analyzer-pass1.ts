@@ -15,7 +15,7 @@
 
 export const pass1Config = {
   model: 'claude-sonnet-4-5-20250929',
-  maxTokens: 20000,
+  maxTokens: 32000, // Increased from 20000 - surveys with 15+ reviewers need more room
   temperature: 0.0, // Deterministic for consistency
 };
 
