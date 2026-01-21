@@ -630,6 +630,16 @@ export default function Feedback360Dashboard({
     }
   };
 
+  // Auto-recover from survey/results mismatch (race condition fix)
+  useEffect(() => {
+    if (isResultsModalOpen && surveyResults && selectedSurvey &&
+        surveyResults.survey_id !== selectedSurvey.id) {
+      console.log('[Mismatch Recovery] surveyResults.survey_id:', surveyResults.survey_id,
+                  'selectedSurvey.id:', selectedSurvey.id, '- refetching correct report');
+      loadAndShowResults(selectedSurvey);
+    }
+  }, [isResultsModalOpen, surveyResults?.survey_id, selectedSurvey?.id]);
+
   const loadSurveys = async () => {
     setLoading(true);
     try {
@@ -3541,7 +3551,8 @@ export default function Feedback360Dashboard({
       })()}
 
       {/* Review Results Modal */}
-      {isResultsModalOpen && surveyResults && selectedSurvey && (() => {
+      {isResultsModalOpen && surveyResults && selectedSurvey &&
+       surveyResults.survey_id === selectedSurvey.id && (() => {
         // Check permissions for advanced insights tabs
         const isSubject = currentUser?.id === selectedSurvey?.employee_id;
         const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
@@ -4379,6 +4390,17 @@ export default function Feedback360Dashboard({
         </div>
         );
       })()}
+
+      {/* Results Modal Mismatch Recovery - shows loading while refetching correct data */}
+      {isResultsModalOpen && surveyResults && selectedSurvey &&
+       surveyResults.survey_id !== selectedSurvey.id && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-8">
+            <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">Loading report...</p>
+          </div>
+        </div>
+      )}
 
       {/* Raw Data Modal */}
       {showRawData && rawSurveyData && (
