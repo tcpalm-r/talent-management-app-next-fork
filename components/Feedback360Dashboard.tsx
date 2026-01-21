@@ -3528,7 +3528,7 @@ export default function Feedback360Dashboard({
                       className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-md hover:from-purple-700 hover:to-blue-700 transition-colors font-medium flex items-center"
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
-                      View Review Results
+                      Open 360° Report
                     </button>
                   )}
                 </div>
