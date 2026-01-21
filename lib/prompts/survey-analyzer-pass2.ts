@@ -107,6 +107,11 @@ ${questionSummariesFormatted}
 - Note when the same strength/gap shows up across different questions
 - Recommendations should address patterns, not isolated comments
 
+## 6. Write Lean Prose
+- Remove filler adjectives that don't add meaning (genuine, considerable, exceptional, remarkable, tremendous, outstanding, unwavering, profound, significant)
+- Example: "considerable strategic expertise" → "strategic expertise"
+- If an adjective can be deleted without losing information, delete it
+
 ---
 
 # OUTPUT FORMAT

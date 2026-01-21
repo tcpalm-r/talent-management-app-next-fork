@@ -172,7 +172,7 @@ export function buildGenerateNarrativePrompt({
 
   return `You are an expert executive coach and leadership development specialist. You have been asked to create a comprehensive one-page narrative for ${subjectName}'s 360-degree feedback report.
 
-This narrative will be the first page of the final report that ${subjectName} receives. It should be professionally written, developmental in tone, balanced, and approximately 500-700 words.
+This narrative will be the first page of the final report that ${subjectName} receives. It should be professionally written, developmental in tone, balanced, and approximately 500-700 words. Use direct, factual language throughout.
 
 Your narrative should synthesize both the raw feedback data AND the analyzed report sections to create a cohesive, insightful summary that will help ${subjectName} understand their strengths, growth opportunities, and recommended next steps.${citationGuidance}
 
@@ -189,22 +189,23 @@ ${reportDataText}
 ---
 
 INSTRUCTIONS:
-1. Write a compelling, professionally crafted narrative (550-750 words) that synthesizes ALL the data above
-2. Begin with an opening paragraph that sets a positive, developmental tone
+1. Write a clear, professionally crafted narrative (550-750 words) that synthesizes ALL the data above
+2. Begin with an opening paragraph that sets a professional, developmental tone
 3. Weave together themes, strengths, and development areas into a cohesive story
 4. Reference specific feedback points from the raw responses as your PRIMARY source of examples. Use exact details (names of initiatives, metrics, specific situations) from the raw feedback. The analyzed report data provides structure; the raw responses provide the authentic voice and specifics.
 5. Include concrete, actionable insights and recommendations
-6. End with an encouraging closing that emphasizes growth and potential
+6. End with a forward-looking closing that notes development opportunities
 7. Use third person perspective (e.g., "${subjectName} demonstrates...")
-8. Maintain a professional yet warm tone - this should be motivating and constructive
-9. DO NOT use section headers, titles, bullet points, or markdown formatting (no **, ##, etc.) - this should be flowing narrative prose only
-10. DO NOT include any title like "Executive Summary" or "360-Degree Feedback Report" - start directly with the narrative content
-11. Make it feel personalized and specific to ${subjectName}, not generic
-12. GROUNDING: When the analyzed data includes citation snippets (shown as [Grounded in feedback: "..."]), use those exact phrases or close paraphrases to ensure the narrative stays true to actual reviewer feedback
-13. PRIORITIZATION: Give more weight to themes mentioned by more reviewers (higher frequency) - these represent stronger consensus
-14. COVERAGE: Include at least one specific example from EACH of the raw feedback questions above. Every question category (value creation, skills to develop, "I wish they knew", systems/processes) should have representation in the narrative.
-15. SPECIFICITY: When the raw feedback mentions specific metrics (e.g., "60% reduction", "double the impact"), project names, or concrete outcomes, prefer including these over generic statements. Specifics make the narrative more credible and actionable.
-16. BALANCE: Ensure the narrative doesn't over-index on a few dramatic examples. Include at least one reference to process/systems improvements and learning/knowledge-sharing behaviors.
+8. Maintain a professional, direct tone - factual and constructive without being effusive or overly encouraging
+9. Write lean prose. Remove filler adjectives that don't add meaning (genuine, considerable, exceptional, remarkable, tremendous, outstanding, unwavering, profound, significant). Example: "considerable strategic expertise" → "strategic expertise". If the adjective can be deleted without losing information, delete it.
+10. DO NOT use section headers, titles, bullet points, or markdown formatting (no **, ##, etc.) - this should be flowing narrative prose only
+11. DO NOT include any title like "Executive Summary" or "360-Degree Feedback Report" - start directly with the narrative content
+12. Make it feel personalized and specific to ${subjectName}, not generic
+13. GROUNDING: When the analyzed data includes citation snippets (shown as [Grounded in feedback: "..."]), use those exact phrases or close paraphrases to ensure the narrative stays true to actual reviewer feedback
+14. PRIORITIZATION: Give more weight to themes mentioned by more reviewers (higher frequency) - these represent stronger consensus
+15. COVERAGE: Include at least one specific example from EACH of the raw feedback questions above. Every question category (value creation, skills to develop, "I wish they knew", systems/processes) should have representation in the narrative.
+16. SPECIFICITY: When the raw feedback mentions specific metrics (e.g., "60% reduction", "double the impact"), project names, or concrete outcomes, prefer including these over generic statements. Specifics make the narrative more credible and actionable.
+17. BALANCE: Ensure the narrative doesn't over-index on a few dramatic examples. Include at least one reference to process/systems improvements and learning/knowledge-sharing behaviors.
 
 Write the narrative now (plain text only, no formatting):`;
 }
