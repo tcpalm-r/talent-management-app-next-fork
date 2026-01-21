@@ -8,6 +8,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { createDebugSession } from '@/lib/debug-logger';
 
 // ==================== Cancellation Registry ====================
 // In-memory registry to track cancelled survey generations
@@ -104,6 +105,9 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   const { survey, responses, participants, questions, tone = 'standard' } = input;
   const surveyId = survey.id;
 
+  // Create debug session for this analysis run
+  const debug = createDebugSession(surveyId);
+
   // Clear any stale cancellation flag from previous attempts
   clearSurveyCancellation(surveyId);
 
@@ -111,6 +115,16 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   console.log(`[surveyAnalyzerService] Survey: ${survey.survey_name || survey.survey_title}`);
   console.log(`[surveyAnalyzerService] Employee: ${survey.employee_name}`);
   console.log(`[surveyAnalyzerService] Responses: ${responses.length}, Questions: ${questions.length}`);
+
+  // Debug log: Analysis started
+  await debug.info('analysis_start', `Starting two-pass analysis for ${survey.employee_name}`, {
+    surveyName: survey.survey_name || survey.survey_title,
+    employeeName: survey.employee_name,
+    participantCount: participants.length,
+    responseCount: responses.length,
+    questionCount: questions.length,
+    tone,
+  });
 
   // Validate API key before proceeding
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -135,6 +149,11 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   console.log('[surveyAnalyzerService] Pass 1: Extracting question-level summaries...');
   const pass1Start = Date.now();
 
+  await debug.info('pass1_start', 'Starting Pass 1: Question-level extraction', {
+    questionCount: questions.length,
+    responseCount: responses.length,
+  });
+
   const pass1Result = await runPass1(anthropic, {
     survey,
     responses,
@@ -145,6 +164,12 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   const pass1Duration = Date.now() - pass1Start;
   console.log(`[surveyAnalyzerService] Pass 1 complete: ${questionSummaries.length} question summaries in ${pass1Duration}ms`);
   console.log(`[surveyAnalyzerService] Pass 1 output tokens: ${pass1OutputTokens}`);
+
+  await debug.info('pass1_complete', `Pass 1 complete: ${questionSummaries.length} summaries`, {
+    durationMs: pass1Duration,
+    outputTokens: pass1OutputTokens,
+    summaryCount: questionSummaries.length,
+  });
 
   // Check for cancellation after Pass 1
   if (isSurveyCancelled(surveyId)) {
@@ -164,6 +189,12 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   console.log(`[surveyAnalyzerService] Rate limit management: waiting ${delaySeconds}s before Pass 2...`);
   console.log(`[surveyAnalyzerService] (Pass 1 used ${pass1OutputTokens} tokens, limit is ${RATE_LIMIT_TOKENS_PER_MINUTE}/min)`);
 
+  await debug.info('rate_limit_wait_start', `Waiting ${delaySeconds}s for rate limit`, {
+    delaySeconds,
+    pass1OutputTokens,
+    rateLimitPerMinute: RATE_LIMIT_TOKENS_PER_MINUTE,
+  });
+
   // Check for cancellation during rate limit wait
   const checkInterval = 5000; // Check every 5 seconds
   let waited = 0;
@@ -179,9 +210,16 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   }
   console.log(`[surveyAnalyzerService] Rate limit wait complete, proceeding to Pass 2`);
 
+  await debug.info('rate_limit_wait_complete', 'Rate limit wait complete, proceeding to Pass 2');
+
   // ========== PASS 2: Global Synthesis ==========
   console.log('[surveyAnalyzerService] Pass 2: Synthesizing global report...');
   const pass2Start = Date.now();
+
+  await debug.info('pass2_start', 'Starting Pass 2: Global synthesis', {
+    questionSummaryCount: questionSummaries.length,
+    relationshipsWithResponses,
+  });
 
   const analysis = await runPass2(anthropic, {
     survey,
@@ -192,6 +230,13 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
 
   const pass2Duration = Date.now() - pass2Start;
   console.log(`[surveyAnalyzerService] Pass 2 complete in ${pass2Duration}ms`);
+
+  await debug.info('pass2_complete', `Pass 2 complete`, {
+    durationMs: pass2Duration,
+    themesCount: Array.isArray(analysis.themes) ? analysis.themes.length : 0,
+    strengthsCount: Array.isArray(analysis.overall_strengths) ? analysis.overall_strengths.length : 0,
+    developmentAreasCount: Array.isArray(analysis.development_areas) ? analysis.development_areas.length : 0,
+  });
 
   // Check for cancellation after Pass 2 (before saving)
   if (isSurveyCancelled(surveyId)) {
@@ -219,6 +264,15 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   const totalDuration = Date.now() - startTime;
   console.log(`[surveyAnalyzerService] Two-pass analysis complete: ${flattenedCitations.length} citations, ${citationCoverage}% coverage`);
   console.log(`[surveyAnalyzerService] Total time: ${totalDuration}ms (Pass 1: ${pass1Duration}ms, Pass 2: ${pass2Duration}ms)`);
+
+  await debug.info('analysis_complete', 'Two-pass analysis complete', {
+    totalDurationMs: totalDuration,
+    pass1DurationMs: pass1Duration,
+    pass2DurationMs: pass2Duration,
+    totalCitations: flattenedCitations.length,
+    citationCoverage,
+    themesCount: themesWithFrequency.length,
+  });
 
   return {
     report: {
