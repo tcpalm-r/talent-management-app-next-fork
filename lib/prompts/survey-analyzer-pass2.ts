@@ -80,8 +80,11 @@ ${questionSummariesFormatted}
 - Every theme/strength/area must trace back to Pass 1 summaries
 - If it's not in the summaries above, it doesn't exist
 
-## 2. Prioritize by Support Count
-- Themes with higher \`support_count\` across questions = stronger consensus
+## 2. Aggregate and Prioritize by Support Count
+- When similar themes appear across multiple questions, MERGE them into one cross-cutting theme
+- Sum the support_counts from each question to get total frequency
+- Count UNIQUE response_ids across all citations - this is the true reviewer count
+- Themes with higher total frequency = stronger consensus = more prominent in report
 - Use language that reflects evidence strength:
   - 1-2 sources: "noted", "mentioned", "observed"
   - 3-4 sources: "several noted", "multiple reviewers observed"
@@ -124,6 +127,7 @@ Return a JSON object matching this exact structure:
     {
       "theme": "Brief Theme Title (3-6 words)",
       "sentiment": "positive" | "needs_work" | "mixed",
+      "frequency": 12,
       "supporting_evidence": [
         {
           "text": "Synthesized observation from question summaries",
@@ -208,6 +212,8 @@ Return a JSON object matching this exact structure:
 
 ## Themes (5-8)
 - Cross-cutting patterns that appear in MULTIPLE question summaries
+- MERGE similar themes from different questions into one (e.g., "strategic thinking" from Q1 and "big picture vision" from Q3 become one theme)
+- \`frequency\` = count of UNIQUE response_ids across all merged citations (not sum of support_counts, which may double-count)
 - Mark sentiment based on whether theme is strength or concern
 - Include ALL evidence from relevant question summaries
 
