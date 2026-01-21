@@ -341,6 +341,7 @@ export default function Feedback360Dashboard({
     message: string;
     successMessage: string;
   } | null>(null);
+  const [finalizeConfirmOpen, setFinalizeConfirmOpen] = useState(false);
 
   // Ref for selected reviewer display to enable auto-focus
   const selectedReviewerDisplayRef = useRef<HTMLDivElement>(null);
@@ -1608,6 +1609,14 @@ export default function Feedback360Dashboard({
         description: error.message || 'Failed to send review backward',
         variant: 'error',
       });
+    }
+  };
+
+  // Handler for confirmed finalize
+  const handleConfirmFinalize = async () => {
+    setFinalizeConfirmOpen(false);
+    if (selectedSurvey) {
+      await finalizeSurvey(selectedSurvey.id);
     }
   };
 
@@ -4348,7 +4357,7 @@ export default function Feedback360Dashboard({
                         )}
                         {selectedSurvey.status !== 'finalized' && (
                           <button
-                            onClick={() => finalizeSurvey(selectedSurvey.id)}
+                            onClick={() => setFinalizeConfirmOpen(true)}
                             disabled={!!selectedSurvey.flagged_for_reanalysis}
                             className={`px-6 py-3 bg-blue-600 text-white rounded-md font-medium flex items-center ${
                               selectedSurvey.flagged_for_reanalysis
@@ -4685,6 +4694,18 @@ Are you sure you want to export the full report?"
         title="Send Review Backward"
         message={revertConfirmData?.message || ''}
         confirmText="Confirm"
+        cancelText="Cancel"
+        variant="warning"
+      />
+
+      {/* Confirm Dialog for Finalize (Teams iframe compatible) */}
+      <ConfirmDialog
+        isOpen={finalizeConfirmOpen}
+        onClose={() => setFinalizeConfirmOpen(false)}
+        onConfirm={handleConfirmFinalize}
+        title="Finalize Review"
+        message={`Finalizing this 360 will send it to ${selectedSurvey?.employee?.name?.split(' ')[0] || selectedSurvey?.employee_name?.split(' ')[0] || 'the subject'}. It will no longer be revisable. Are you sure you want to continue?`}
+        confirmText="Finalize"
         cancelText="Cancel"
         variant="warning"
       />
