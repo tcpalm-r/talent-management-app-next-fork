@@ -3803,12 +3803,14 @@ export default function Feedback360Dashboard({
                            theme.sentiment}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                        Mentioned by {theme.frequency} reviewer{theme.frequency !== 1 ? 's' : ''}
-                        {theme.relationships_mentioned && theme.relationships_mentioned.length > 0 && (
-                          <span> ({theme.relationships_mentioned.join(', ')})</span>
-                        )}
-                      </p>
+                      {currentUser?.app_role === 'admin' && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                          Mentioned by {theme.frequency} reviewer{theme.frequency !== 1 ? 's' : ''}
+                          {theme.relationships_mentioned && theme.relationships_mentioned.length > 0 && (
+                            <span> ({theme.relationships_mentioned.join(', ')})</span>
+                          )}
+                        </p>
+                      )}
                       {theme.supporting_evidence && theme.supporting_evidence.length > 0 && (
                         <div className="mt-2 space-y-1">
                           {theme.supporting_evidence.map((evidence: string | { text: string; citations?: any[] }, qIdx: number) => (
