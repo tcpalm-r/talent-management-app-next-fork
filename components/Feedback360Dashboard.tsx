@@ -845,7 +845,7 @@ export default function Feedback360Dashboard({
     }
   };
 
-  const sendToHRForReanalysis = async (surveyId: string) => {
+  const sendToAdminForReanalysis = async (surveyId: string) => {
     try {
       const response = await fetch(`/api/surveys/${surveyId}`, {
         method: 'PATCH',
@@ -855,7 +855,7 @@ export default function Feedback360Dashboard({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send review to HR for reanalysis');
+        throw new Error(errorData.error || 'Failed to send review to admin for reanalysis');
       }
 
       console.log('✅ Successfully flagged survey for reanalysis');
@@ -873,18 +873,18 @@ export default function Feedback360Dashboard({
       }
 
       notify({
-        title: 'Sent to HR for Reanalysis',
-        description: 'Review has been sent to HR for Reanalysis.',
+        title: 'Sent to Admin for Reanalysis',
+        description: 'Review has been sent to admin for reanalysis.',
         variant: 'success',
       });
 
       // Reload surveys to update all views
       await loadSurveys();
     } catch (error: any) {
-      console.error('Error sending review to HR for Reanalysis:', error);
+      console.error('Error sending review to admin for reanalysis:', error);
       notify({
         title: 'Error',
-        description: error.message || 'Failed to send review to HR for Reanalysis',
+        description: error.message || 'Failed to send review to admin for reanalysis',
         variant: 'error',
       });
     }
@@ -1340,7 +1340,7 @@ export default function Feedback360Dashboard({
     }
   };
 
-  const sendToHR = async (surveyId: string) => {
+  const sendToAdmin = async (surveyId: string) => {
     try {
       const response = await fetch(`/api/surveys/${surveyId}`, {
         method: 'PATCH',
@@ -4344,7 +4344,7 @@ export default function Feedback360Dashboard({
                       <>
                         {selectedSurvey.status === 'completed' && (
                           <button
-                            onClick={() => sendToHRForReanalysis(selectedSurvey.id)}
+                            onClick={() => sendToAdminForReanalysis(selectedSurvey.id)}
                             disabled={!!selectedSurvey.flagged_for_reanalysis}
                             className={`font-medium transition-colors ${
                               selectedSurvey.flagged_for_reanalysis
@@ -4352,7 +4352,7 @@ export default function Feedback360Dashboard({
                                 : 'text-red-600 hover:text-red-800'
                             }`}
                           >
-                            {selectedSurvey.flagged_for_reanalysis ? 'Sent to HR' : 'Send to HR for Reanalysis'}
+                            {selectedSurvey.flagged_for_reanalysis ? 'Sent to Admin' : 'Send to Admin for Reanalysis'}
                           </button>
                         )}
                         {selectedSurvey.status !== 'finalized' && (

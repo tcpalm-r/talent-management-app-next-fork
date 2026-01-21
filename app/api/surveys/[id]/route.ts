@@ -5,9 +5,9 @@
  * DELETE: Delete survey with cascade (responses, reviewers, questions)
  *
  * Replaces multiple update operations in Feedback360Dashboard:
- * - sendToHRForReanalysis (status: 'needs_review')
+ * - sendToAdminForReanalysis (status: 'needs_review')
  * - finalizeSurvey (status: 'finalized', flagged_for_admin: false)
- * - sendToHR (flagged_for_admin: true)
+ * - sendToAdmin (flagged_for_admin: true)
  * - resolveNeedsReview (flagged_for_reanalysis: false)
  * - sendBackward (status changes and flag clearing)
  * - deleteDraftSurvey, deleteInProgressSurvey
