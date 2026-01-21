@@ -237,21 +237,24 @@ Return a JSON object matching this exact structure:
 - Only include relationships from: ${relationshipsWithResponses.join(', ')}
 - Keys must be lowercase: "manager", "slt", "direct_report", "cross_functional"
 
-## Consensus Areas (2-4)
+## Consensus Areas
 - Topics where 2+ different relationship groups express similar views
 - Must show genuine agreement, not just absence of disagreement
 - List agreeing groups in \`groups_agreeing\` array
+- Include all that genuinely exist in the data - no artificial limits
 
-## Varied by Relationship (0-4)
+## Varied by Relationship
 - Topics where different groups perceive differently
 - Only include GENUINE divergence (not just different wording)
 - Show the contrast clearly - this is valuable insight
 - Can be empty if no significant differences exist
+- Include all that genuinely exist - no artificial limits
 
-## Outliers (0-3)
+## Outliers
 - Truly unique perspectives mentioned by only ONE reviewer
 - Must be substantive and noteworthy
 - Can be empty if no significant outliers exist
+- Include all that are genuinely noteworthy - no artificial limits
 
 ---
 
