@@ -202,11 +202,10 @@ INSTRUCTIONS:
 11. DO NOT use section headers, titles, bullet points, or markdown formatting (no **, ##, etc.) - this should be flowing narrative prose only
 12. DO NOT include any title like "Executive Summary" or "360-Degree Feedback Report" - start directly with the narrative content
 13. Make it feel personalized and specific to ${subjectName}, not generic
-14. GROUNDING: When the analyzed data includes citation snippets (shown as [Grounded in feedback: "..."]), use those exact phrases or close paraphrases to ensure the narrative stays true to actual reviewer feedback
-15. PRIORITIZATION: Give more weight to themes mentioned by more reviewers (higher frequency) - these represent stronger consensus
-16. COVERAGE: Include at least one specific example from EACH of the raw feedback questions above. Every question category (value creation, skills to develop, "I wish they knew", systems/processes) should have representation in the narrative.
-17. SPECIFICITY: When the raw feedback mentions specific metrics (e.g., "60% reduction", "double the impact"), project names, or concrete outcomes, prefer including these over generic statements. Specifics make the narrative more credible and actionable.
-18. BALANCE: Ensure the narrative doesn't over-index on a few dramatic examples. Include at least one reference to process/systems improvements and learning/knowledge-sharing behaviors.
+14. PRIORITIZATION: Give more weight to themes mentioned by more reviewers (higher frequency) - these represent stronger consensus
+15. COVERAGE: Include at least one specific example from EACH of the raw feedback questions above. Every question category (value creation, skills to develop, "I wish they knew", systems/processes) should have representation in the narrative.
+16. SPECIFICITY: When the raw feedback mentions specific metrics (e.g., "60% reduction", "double the impact"), project names, or concrete outcomes, prefer including these over generic statements. Specifics make the narrative more credible and actionable.
+17. BALANCE: Ensure the narrative doesn't over-index on a few dramatic examples. Include at least one reference to process/systems improvements and learning/knowledge-sharing behaviors.
 
 Write the narrative now (plain text only, no formatting):`;
 }
