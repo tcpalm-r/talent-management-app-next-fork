@@ -83,6 +83,9 @@ Review these themes and produce a FINAL consolidated list. You MUST:
 - Same topic, opposite sentiments → Merge with "mixed" sentiment
 - Same topic, same sentiment → Merge into single stronger theme
 - Overlapping topics → Merge if combining creates clearer picture
+- Same underlying dynamic, different vocabulary → Merge even if titles use different words
+  - Example: "Team Support" (positive, what they DO) + "Lacks Empathy" (negative, HOW they do it)
+  - These describe actions vs manner/delivery - merge into one theme about interpersonal effectiveness
 
 ## When NOT to Merge:
 - Distinct topics that happen to share a word
