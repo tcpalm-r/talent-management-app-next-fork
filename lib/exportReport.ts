@@ -482,7 +482,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
       if (theme.supporting_evidence && theme.supporting_evidence.length > 0) {
         pdf.setFont(fontFamily, 'normal');
         pdf.setFontSize(9);
-        theme.supporting_evidence.slice(0, 2).forEach(evidence => {
+        theme.supporting_evidence.forEach(evidence => {
           checkPageBreak(15);
           const height = addWrappedText(getStatementText(evidence), margin + 8, yPosition, contentWidth - 8, 9);
           yPosition += height + 3;
