@@ -472,6 +472,8 @@ export async function generateReportForSurvey({
       outliers: analysisResult.outliers || [],
       // Keep outlier_opinions for backward compatibility with old reports
       outlier_opinions: analysisResult.outlier_opinions || [],
+      // Theme coherence analysis from Pass 3
+      theme_coherence: analysisResult.theme_coherence || null,
       generated_by: analysisResult.generated_by || 'claude-sonnet-4',
       generated_at: analysisResult.generated_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),

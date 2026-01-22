@@ -398,9 +398,12 @@ export interface CitedStatement {
 export interface CitedThemeAnalysis {
   theme: string;
   sentiment: SentimentType;
-  frequency: number;
+  frequency?: number;  // Optional for consolidated themes
   supporting_evidence: CitedStatement[];  // Now CitedStatement[] instead of string[]
-  relationships_mentioned: ParticipantRelationship[];
+  relationships_mentioned?: ParticipantRelationship[];  // Optional for consolidated themes
+  // Fields for merged themes (Pass 3 consolidation)
+  merged_from?: string[];  // Original theme names if this is a merged theme
+  nuance_note?: string;    // Explains how both aspects coexist for mixed themes
 }
 
 /**
@@ -441,6 +444,38 @@ export interface Outlier {
  * Extended Survey360Report with full citation support.
  * All text arrays are now CitedStatement arrays for auditability.
  */
+// Theme consolidation from Pass 3
+export interface MergeDecision {
+  merged_themes: string[];
+  rationale: string;
+  new_theme_title: string;
+}
+
+export interface ThemeCoherenceAnalysis {
+  consolidated_themes: CitedThemeAnalysis[];
+  merge_decisions: MergeDecision[];
+  coherence_summary: string;
+}
+
+// Legacy types for backward compatibility with old reports
+export interface ThemeContradiction {
+  theme_a: string;
+  theme_b: string;
+  nature: string;
+  resolution: string;
+}
+
+export interface ThemeRelationship {
+  themes: string[];
+  relationship: string;
+}
+
+export interface ThemeAnnotation {
+  related_to?: string[];
+  tension_with?: string;
+  context_note?: string;
+}
+
 export interface Survey360ReportWithCitations extends Omit<Survey360Report,
   'themes' | 'overall_strengths' | 'development_areas' | 'recommendations' |
   'consensus_areas' | 'outlier_opinions'> {
@@ -454,6 +489,9 @@ export interface Survey360ReportWithCitations extends Omit<Survey360Report,
   // New group-level analysis (v2/v3)
   varied_by_relationship?: VariedByRelationship[];
   outliers?: Outlier[];
+
+  // Theme coherence analysis (v4 - three-pass pipeline)
+  theme_coherence?: ThemeCoherenceAnalysis;
 
   // Citation metadata
   has_citations: boolean;

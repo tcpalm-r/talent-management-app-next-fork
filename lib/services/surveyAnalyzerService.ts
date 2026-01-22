@@ -9,6 +9,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { createDebugSession } from '@/lib/debug-logger';
+import { extractVerbatimSnippet } from './snippetExtractionService';
 
 // ==================== Cancellation Registry ====================
 // In-memory registry to track cancelled survey generations
@@ -64,6 +65,9 @@ import {
   pass2Config,
   buildPass2Prompt,
   formatQuestionSummaries,
+  pass3Config,
+  buildPass3Prompt,
+  type Pass3Result,
 } from '../prompts';
 
 export interface AnalysisInput {
@@ -86,12 +90,13 @@ export interface AnalysisResultWithCitations {
     relevance_score?: number;
   }>;
   meta: {
-    version: 'v1-citations' | 'v2-two-pass';
+    version: 'v1-citations' | 'v2-two-pass' | 'v3-three-pass';
     elapsedMs: number;
     totalCitations: number;
     citationCoverage: number; // 0-100, percentage of statements with citations
     pass1DurationMs?: number;
     pass2DurationMs?: number;
+    pass3DurationMs?: number;
   };
 }
 
@@ -182,6 +187,29 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   const pass1Coverage = validatePass1Coverage(responses, questions, questionSummaries);
   console.log(`[surveyAnalyzerService] Pass 1 citation coverage: ${pass1Coverage.toFixed(1)}%`);
 
+  // ========== VERBATIM SNIPPET EXTRACTION ==========
+  // Extract actual verbatim snippets using key_phrases from Pass 1
+  console.log('[surveyAnalyzerService] Extracting verbatim snippets from source responses...');
+  const responseTextMap = buildResponseTextMap(responses, questions);
+  const { summaries: processedSummaries, extractionStats } = extractVerbatimSnippetsFromPass1(
+    questionSummaries,
+    responseTextMap
+  );
+
+  const exactMatchRate = extractionStats.total > 0
+    ? ((extractionStats.exact + extractionStats.caseInsensitive) / extractionStats.total * 100).toFixed(1)
+    : '0';
+  console.log(`[surveyAnalyzerService] Verbatim extraction complete: ${extractionStats.total} citations processed`);
+  console.log(`[surveyAnalyzerService] Match quality: ${extractionStats.exact} exact, ${extractionStats.caseInsensitive} case-insensitive, ${extractionStats.fallback} fallback (${exactMatchRate}% match rate)`);
+
+  await debug.info('verbatim_extraction_complete', 'Verbatim snippet extraction complete', {
+    totalCitations: extractionStats.total,
+    exactMatches: extractionStats.exact,
+    caseInsensitiveMatches: extractionStats.caseInsensitive,
+    fallbackMatches: extractionStats.fallback,
+    matchRatePercent: parseFloat(exactMatchRate),
+  });
+
   // ========== RATE LIMIT DELAY ==========
   // Calculate and apply delay to avoid hitting rate limit on Pass 2
   const rateLimitDelay = calculateRateLimitDelay(pass1OutputTokens);
@@ -217,13 +245,13 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   const pass2Start = Date.now();
 
   await debug.info('pass2_start', 'Starting Pass 2: Global synthesis', {
-    questionSummaryCount: questionSummaries.length,
+    questionSummaryCount: processedSummaries.length,
     relationshipsWithResponses,
   });
 
   const analysis = await runPass2(anthropic, {
     survey,
-    questionSummaries,
+    questionSummaries: processedSummaries,
     relationshipsWithResponses,
     tone,
   });
@@ -245,6 +273,39 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
     throw new GenerationCancelledError(surveyId);
   }
 
+  // ========== PASS 3: Theme Coherence Analysis ==========
+  console.log('[surveyAnalyzerService] Pass 3: Analyzing theme coherence and contradictions...');
+  const pass3Start = Date.now();
+
+  await debug.info('pass3_start', 'Starting Pass 3: Theme coherence analysis', {
+    themesCount: Array.isArray(analysis.themes) ? analysis.themes.length : 0,
+  });
+
+  const coherenceAnalysis = await runPass3(anthropic, {
+    employeeName: survey.employee_name || 'the employee',
+    themes: analysis.themes as Array<{ theme: string; sentiment: string; frequency: number; supporting_evidence?: Array<{ text: string }> }>,
+  });
+
+  const pass3Duration = Date.now() - pass3Start;
+  const mergeCount = coherenceAnalysis.merge_decisions?.length || 0;
+  const consolidatedCount = coherenceAnalysis.consolidated_themes?.length || 0;
+  console.log(`[surveyAnalyzerService] Pass 3 complete in ${pass3Duration}ms`);
+  console.log(`[surveyAnalyzerService] Merged ${mergeCount} theme pairs, resulting in ${consolidatedCount} consolidated themes`);
+
+  await debug.info('pass3_complete', `Pass 3 complete`, {
+    durationMs: pass3Duration,
+    mergeCount,
+    consolidatedThemesCount: consolidatedCount,
+    originalThemesCount: Array.isArray(analysis.themes) ? analysis.themes.length : 0,
+  });
+
+  // Check for cancellation after Pass 3
+  if (isSurveyCancelled(surveyId)) {
+    console.log(`[surveyAnalyzerService] Generation cancelled after Pass 3 for survey ${surveyId}`);
+    clearSurveyCancellation(surveyId);
+    throw new GenerationCancelledError(surveyId);
+  }
+
   // Log what the AI returned for group-level fields
   console.log('[surveyAnalyzerService] AI returned consensus_areas:', JSON.stringify(analysis.consensus_areas, null, 2).slice(0, 500));
   console.log('[surveyAnalyzerService] AI returned varied_by_relationship:', JSON.stringify(analysis.varied_by_relationship, null, 2).slice(0, 500));
@@ -258,26 +319,34 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   const statementsWithCitations = countStatementsWithCitations(analysis);
   const citationCoverage = totalStatements > 0 ? Math.round((statementsWithCitations / totalStatements) * 100) : 0;
 
-  // Compute frequency for themes from citations (not AI-estimated)
-  const themesWithFrequency = computeThemeFrequencies(analysis.themes);
+  // Use consolidated themes from Pass 3 (or fallback to Pass 2 themes)
+  const hasConsolidatedThemes = coherenceAnalysis.consolidated_themes && coherenceAnalysis.consolidated_themes.length > 0;
+  const finalThemes = hasConsolidatedThemes
+    ? coherenceAnalysis.consolidated_themes
+    : computeThemeFrequencies(analysis.themes);
+
+  console.log(`[surveyAnalyzerService] Using ${hasConsolidatedThemes ? 'consolidated' : 'original'} themes: ${finalThemes.length} themes`);
 
   const totalDuration = Date.now() - startTime;
-  console.log(`[surveyAnalyzerService] Two-pass analysis complete: ${flattenedCitations.length} citations, ${citationCoverage}% coverage`);
-  console.log(`[surveyAnalyzerService] Total time: ${totalDuration}ms (Pass 1: ${pass1Duration}ms, Pass 2: ${pass2Duration}ms)`);
+  console.log(`[surveyAnalyzerService] Three-pass analysis complete: ${flattenedCitations.length} citations, ${citationCoverage}% coverage`);
+  console.log(`[surveyAnalyzerService] Total time: ${totalDuration}ms (Pass 1: ${pass1Duration}ms, Pass 2: ${pass2Duration}ms, Pass 3: ${pass3Duration}ms)`);
 
-  await debug.info('analysis_complete', 'Two-pass analysis complete', {
+  await debug.info('analysis_complete', 'Three-pass analysis complete', {
     totalDurationMs: totalDuration,
     pass1DurationMs: pass1Duration,
     pass2DurationMs: pass2Duration,
+    pass3DurationMs: pass3Duration,
     totalCitations: flattenedCitations.length,
     citationCoverage,
-    themesCount: themesWithFrequency.length,
+    themesCount: finalThemes.length,
+    usedConsolidatedThemes: hasConsolidatedThemes,
+    mergeCount: coherenceAnalysis.merge_decisions?.length || 0,
   });
 
   return {
     report: {
       survey_id: survey.id,
-      themes: themesWithFrequency as Survey360ReportWithCitations['themes'] || [],
+      themes: finalThemes as Survey360ReportWithCitations['themes'] || [],
       overall_strengths: analysis.overall_strengths as Survey360ReportWithCitations['overall_strengths'] || [],
       development_areas: analysis.development_areas as Survey360ReportWithCitations['development_areas'] || [],
       recommendations: analysis.recommendations as Survey360ReportWithCitations['recommendations'] || [],
@@ -287,21 +356,24 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
       varied_by_relationship: (analysis.varied_by_relationship as Survey360ReportWithCitations['varied_by_relationship']) || [],
       outliers: (analysis.outliers as Survey360ReportWithCitations['outliers']) || [],
       outlier_opinions: analysis.outlier_opinions as Survey360ReportWithCitations['outlier_opinions'] || [], // Keep for backward compat
+      // Theme coherence analysis from Pass 3
+      theme_coherence: coherenceAnalysis as unknown as Survey360ReportWithCitations['theme_coherence'],
       generated_at: new Date().toISOString(),
-      generated_by: `${pass1Config.model} (two-pass)`,
+      generated_by: `${pass1Config.model} (three-pass)`,
       has_citations: true,
-      citation_version: '3.0', // New version for two-pass pipeline
+      citation_version: '4.0', // New version for three-pass pipeline with coherence analysis
       total_citations: flattenedCitations.length,
       citation_coverage: citationCoverage,
     },
     citations: flattenedCitations,
     meta: {
-      version: 'v2-two-pass',
+      version: 'v3-three-pass',
       elapsedMs: totalDuration,
       totalCitations: flattenedCitations.length,
       citationCoverage,
       pass1DurationMs: pass1Duration,
       pass2DurationMs: pass2Duration,
+      pass3DurationMs: pass3Duration,
     },
   };
 }
@@ -565,6 +637,101 @@ async function runPass2(
   return analysis;
 }
 
+// ==================== Pass 3: Theme Coherence ====================
+
+interface Pass3Input {
+  employeeName: string;
+  themes: Array<{
+    theme: string;
+    sentiment: string;
+    frequency: number;
+    supporting_evidence?: Array<{ text: string }>;
+  }>;
+}
+
+/**
+ * Run Pass 3: Analyze themes for coherence, contradictions, and relationships.
+ */
+async function runPass3(
+  anthropic: Anthropic,
+  input: Pass3Input
+): Promise<Pass3Result> {
+  const { employeeName, themes } = input;
+
+  // Skip if no themes to analyze
+  if (!themes || themes.length === 0) {
+    console.log('[Pass3] No themes to analyze, returning empty result');
+    return {
+      consolidated_themes: [],
+      merge_decisions: [],
+      coherence_summary: 'No themes were generated for analysis.',
+    };
+  }
+
+  const prompt = buildPass3Prompt({ employeeName, themes });
+
+  console.log(`[Pass3] Prompt built, ${prompt.length} chars. Calling Claude API...`);
+  console.log(`[Pass3] Model: ${pass3Config.model}, maxTokens: ${pass3Config.maxTokens}`);
+
+  const apiCallStart = Date.now();
+  let responseText = '';
+
+  try {
+    const stream = anthropic.messages.stream({
+      model: pass3Config.model,
+      max_tokens: pass3Config.maxTokens,
+      temperature: pass3Config.temperature,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    stream.on('text', (text) => {
+      responseText += text;
+    });
+
+    const finalMessage = await stream.finalMessage();
+    console.log(`[Pass3] API call completed after ${Date.now() - apiCallStart}ms`);
+    console.log(`[Pass3] Claude API response received. Usage: ${JSON.stringify(finalMessage.usage)}`);
+  } catch (apiError: any) {
+    console.error(`[Pass3] API call FAILED after ${Date.now() - apiCallStart}ms`);
+    console.error(`[Pass3] Error: ${apiError.name} - ${apiError.message}`);
+    // Return empty result on error - will fallback to Pass 2 themes
+    return {
+      consolidated_themes: [],
+      merge_decisions: [],
+      coherence_summary: 'Theme consolidation failed - using original themes.',
+    };
+  }
+
+  if (!responseText || responseText.length === 0) {
+    console.error('[Pass3] Empty response received from Claude API');
+    return {
+      consolidated_themes: [],
+      merge_decisions: [],
+      coherence_summary: 'Theme consolidation returned empty response - using original themes.',
+    };
+  }
+
+  // Parse the JSON response
+  try {
+    const result = extractJsonFromResponse(responseText) as unknown as Pass3Result;
+
+    // Validate structure and provide defaults
+    return {
+      consolidated_themes: result.consolidated_themes || [],
+      merge_decisions: result.merge_decisions || [],
+      coherence_summary: result.coherence_summary || 'Theme consolidation complete.',
+    };
+  } catch (parseError: any) {
+    console.error(`[Pass3] JSON parse failed: ${parseError.message}`);
+    console.error(`[Pass3] Response preview: ${responseText.slice(0, 500)}...`);
+    return {
+      consolidated_themes: [],
+      merge_decisions: [],
+      coherence_summary: 'Theme consolidation failed to parse - using original themes.',
+    };
+  }
+}
+
 // ==================== Validation ====================
 
 /**
@@ -614,6 +781,152 @@ function validatePass1Coverage(
 
   if (allResponseIds.size === 0) return 100;
   return (citedIds.size / allResponseIds.size) * 100;
+}
+
+// ==================== Verbatim Snippet Extraction ====================
+
+/**
+ * Build a map from response_id to response_text for verbatim snippet extraction.
+ */
+function buildResponseTextMap(
+  responses: Survey360Response[],
+  questions: SurveyQuestion[]
+): Map<string, string> {
+  const responseTextMap = new Map<string, string>();
+
+  responses.forEach((r) => {
+    questions.forEach((q) => {
+      const answer = r.responses[q.id];
+      if (answer !== undefined && answer !== null && answer !== '') {
+        const responseId = r.response_ids?.[q.id] || r.participant_id;
+        const answerText = typeof answer === 'string' ? answer : String(answer);
+        responseTextMap.set(responseId, answerText);
+      }
+    });
+  });
+
+  return responseTextMap;
+}
+
+/**
+ * Process Pass 1 summaries to extract verbatim snippets using key_phrases.
+ * Replaces AI-generated key_phrases with actual verbatim text from source responses.
+ */
+function extractVerbatimSnippetsFromPass1(
+  summaries: QuestionSummary[],
+  responseTextMap: Map<string, string>
+): { summaries: QuestionSummary[]; extractionStats: { total: number; exact: number; caseInsensitive: number; fallback: number } } {
+  const stats = { total: 0, exact: 0, caseInsensitive: 0, fallback: 0 };
+
+  const processedSummaries = summaries.map((summary) => {
+    // Process themes
+    const processedThemes = summary.themes?.map((theme) => {
+      const processedEvidence = theme.evidence?.map((ev) => {
+        const processedCitations = ev.citations?.map((citation) => {
+          stats.total++;
+          const sourceText = responseTextMap.get(citation.response_id) || '';
+
+          // Get key_phrases - handle both old (snippet) and new (key_phrases) formats
+          const keyPhrases: string[] = (citation as any).key_phrases ||
+            (citation.snippet ? [citation.snippet] : []);
+
+          if (!sourceText) {
+            console.warn(`[VerbatimExtraction] No source text found for response_id: ${citation.response_id}`);
+            stats.fallback++;
+            return {
+              response_id: citation.response_id,
+              snippet: keyPhrases[0] || '',
+            };
+          }
+
+          const result = extractVerbatimSnippet(sourceText, keyPhrases);
+
+          // Track match quality
+          if (result.matchType === 'exact') stats.exact++;
+          else if (result.matchType === 'case_insensitive') stats.caseInsensitive++;
+          else stats.fallback++;
+
+          return {
+            response_id: citation.response_id,
+            snippet: result.snippet,
+          };
+        });
+
+        return { ...ev, citations: processedCitations };
+      });
+
+      return { ...theme, evidence: processedEvidence };
+    });
+
+    // Process strengths
+    const processedStrengths = summary.strengths?.map((strength) => {
+      const processedCitations = strength.citations?.map((citation) => {
+        stats.total++;
+        const sourceText = responseTextMap.get(citation.response_id) || '';
+        const keyPhrases: string[] = (citation as any).key_phrases ||
+          (citation.snippet ? [citation.snippet] : []);
+
+        if (!sourceText) {
+          stats.fallback++;
+          return {
+            response_id: citation.response_id,
+            snippet: keyPhrases[0] || '',
+          };
+        }
+
+        const result = extractVerbatimSnippet(sourceText, keyPhrases);
+        if (result.matchType === 'exact') stats.exact++;
+        else if (result.matchType === 'case_insensitive') stats.caseInsensitive++;
+        else stats.fallback++;
+
+        return {
+          response_id: citation.response_id,
+          snippet: result.snippet,
+        };
+      });
+
+      return { ...strength, citations: processedCitations };
+    });
+
+    // Process gaps
+    const processedGaps = summary.gaps?.map((gap) => {
+      const processedCitations = gap.citations?.map((citation) => {
+        stats.total++;
+        const sourceText = responseTextMap.get(citation.response_id) || '';
+        const keyPhrases: string[] = (citation as any).key_phrases ||
+          (citation.snippet ? [citation.snippet] : []);
+
+        if (!sourceText) {
+          stats.fallback++;
+          return {
+            response_id: citation.response_id,
+            snippet: keyPhrases[0] || '',
+          };
+        }
+
+        const result = extractVerbatimSnippet(sourceText, keyPhrases);
+        if (result.matchType === 'exact') stats.exact++;
+        else if (result.matchType === 'case_insensitive') stats.caseInsensitive++;
+        else stats.fallback++;
+
+        return {
+          response_id: citation.response_id,
+          snippet: result.snippet,
+        };
+      });
+
+      return { ...gap, citations: processedCitations };
+    });
+
+    return {
+      ...summary,
+      themes: processedThemes,
+      strengths: processedStrengths,
+      gaps: processedGaps,
+    };
+  });
+
+  return { summaries: processedSummaries, extractionStats: stats };
 }
 
 // ==================== Existing Helper Functions ====================

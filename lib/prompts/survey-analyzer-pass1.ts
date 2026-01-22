@@ -69,7 +69,8 @@ ${questionBlocks}
 
 ## 2. Citation Requirements
 - Every theme/strength/gap MUST have citations with exact response_ids from input
-- Use verbatim 10-40 word snippets from the source response
+- For each citation, list 2-4 KEY PHRASES (exact words from the response that support this theme)
+- Key phrases help us locate the relevant section - we extract verbatim quotes programmatically
 - **100% Coverage**: Every response_id must appear at least once across all your citations
 - Before submitting, verify you haven't silently ignored any response
 
@@ -122,11 +123,11 @@ Return a JSON array with one object per question:
             "citations": [
               {
                 "response_id": "uuid-1",
-                "snippet": "verbatim excerpt 10-40 words from this response"
+                "key_phrases": ["exact phrase from response", "another exact phrase"]
               },
               {
                 "response_id": "uuid-2",
-                "snippet": "verbatim excerpt from another response"
+                "key_phrases": ["phrase that appears verbatim in this response"]
               }
             ]
           }
@@ -137,7 +138,7 @@ Return a JSON array with one object per question:
       {
         "text": "Specific strength observation",
         "citations": [
-          { "response_id": "uuid", "snippet": "supporting excerpt" }
+          { "response_id": "uuid", "key_phrases": ["exact phrase from response"] }
         ]
       }
     ],
@@ -145,7 +146,7 @@ Return a JSON array with one object per question:
       {
         "text": "Specific area for improvement",
         "citations": [
-          { "response_id": "uuid", "snippet": "supporting excerpt" }
+          { "response_id": "uuid", "key_phrases": ["exact phrase from response"] }
         ]
       }
     ],
@@ -157,6 +158,12 @@ Return a JSON array with one object per question:
   }
 ]
 \`\`\`
+
+## Key Phrases Rules
+- Each \`key_phrases\` array must contain 2-4 phrases that appear VERBATIM in the source response
+- Phrases should be 3-8 words each - enough to uniquely locate the relevant section
+- We programmatically extract the actual quote using these phrases as anchors
+- If you can't find exact phrases, use the most distinctive words from the response
 
 ## Sentiment Values
 - \`"positive"\` - Strength or positive pattern
@@ -178,7 +185,7 @@ Before submitting, verify:
 1. ✓ Every question from input has a corresponding object in output
 2. ✓ Every response_id from input appears at least once in citations (100% coverage)
 3. ✓ All response_ids are exact UUIDs from input (no invented IDs)
-4. ✓ All snippets are verbatim excerpts from source responses
+4. ✓ All key_phrases contain words that appear VERBATIM in the source response
 5. ✓ support_count accurately reflects unique response_ids per theme
 6. ✓ No relationship types mentioned in any text fields
 7. ✓ Concrete examples extracted when present in responses
