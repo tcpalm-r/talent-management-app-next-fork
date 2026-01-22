@@ -423,12 +423,7 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     report.themes.forEach((theme, idx) => {
       checkPageBreak(25);
 
-      // Theme title and sentiment
-      pdf.setFont(fontFamily, 'bold');
-      pdf.setTextColor(0, 0, 0); // Reset to black for theme title
-      pdf.text(`${idx + 1}. ${theme.theme}`, margin + 5, yPosition);
-
-      // Sentiment badge with constructive language
+      // Sentiment badge configuration
       const sentimentColors: Record<string, [number, number, number]> = {
         very_positive: [16, 185, 129], // emerald-500
         positive: [34, 197, 94],        // green-500
@@ -445,11 +440,43 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
       };
       const color = sentimentColors[theme.sentiment] || [156, 163, 175];
       const label = sentimentLabels[theme.sentiment] || theme.sentiment.toUpperCase();
-      pdf.setTextColor(color[0], color[1], color[2]);
-      pdf.text(label, pageWidth - margin - 30, yPosition);
+
+      // Fixed position where all sentiment badges start (left-aligned)
+      const badgeStartX = pageWidth - margin - 30;
+      const titleStartX = margin + 5;
+      const gapBetweenTitleAndBadge = 5;
+
+      // Theme title with hanging indent for wrapped lines
+      pdf.setFont(fontFamily, 'bold');
+      pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
 
-      yPosition += 6;
+      // Render the number prefix and calculate its width for hanging indent
+      const numberPrefix = `${idx + 1}. `;
+      const numberWidth = pdf.getTextWidth(numberPrefix);
+      const textStartX = titleStartX + numberWidth; // Where theme text begins (after number)
+      const maxThemeWidth = badgeStartX - textStartX - gapBetweenTitleAndBadge;
+
+      // Wrap the theme name (without number) to fit within available space
+      const themeLines = pdf.splitTextToSize(theme.theme, maxThemeWidth);
+      const titleLineHeight = 10 * 0.35 * 1.4; // fontSize * factor * line spacing
+
+      // Render number prefix on first line
+      pdf.text(numberPrefix, titleStartX, yPosition);
+
+      // Render theme text lines with hanging indent
+      themeLines.forEach((line: string, lineIdx: number) => {
+        pdf.text(line, textStartX, yPosition + (lineIdx * titleLineHeight));
+      });
+
+      // Sentiment badge on first line at fixed position
+      pdf.setTextColor(color[0], color[1], color[2]);
+      pdf.text(label, badgeStartX, yPosition);
+      pdf.setTextColor(0, 0, 0);
+
+      // Move yPosition past title lines with consistent 6mm gap before evidence
+      // (numLines - 1) accounts for lines after the first, then +6 for the standard gap
+      yPosition += ((themeLines.length - 1) * titleLineHeight) + 6;
 
       // Supporting evidence (first 2)
       if (theme.supporting_evidence && theme.supporting_evidence.length > 0) {
