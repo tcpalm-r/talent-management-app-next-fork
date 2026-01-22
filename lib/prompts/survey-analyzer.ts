@@ -157,7 +157,9 @@ You must respond with ONLY valid JSON. No markdown, no commentary, just the JSON
 Every statement in your analysis must be grounded in actual feedback:
 
 - **Response IDs**: Use exact UUIDs from the input data. Never invent or modify IDs.
-- **Snippets**: Copy 10-40 word verbatim excerpts from source responses. Match exact wording.
+- **Key Phrases**: For each citation, list 2-4 exact phrases from the source response that support this theme
+  - These phrases help us locate the relevant section - we extract verbatim quotes programmatically
+  - Use exact words from the response, not paraphrases
 - **100% Coverage Requirement**: EVERY response_id from the input MUST appear at least once across all your citations
   - Before finalizing, verify: "Have I cited every response_id at least once?"
   - If a response doesn't fit existing themes, either create an appropriate theme or include it in outliers
