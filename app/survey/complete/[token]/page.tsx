@@ -493,6 +493,7 @@ export default function SurveyCompletionPage() {
                   {/* Response */}
                   <div className="ml-11">
                     <textarea
+                      spellCheck={true}
                       value={responses[question.id] || ''}
                       onChange={(e) => updateResponse(question.id, e.target.value)}
                       rows={4}

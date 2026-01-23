@@ -1579,6 +1579,7 @@ export default function Survey360Wizard({
                 <div className="space-y-2">
                   <textarea
                     ref={customQuestionTextareaRef}
+                    spellCheck={true}
                     value={newCustomQuestion}
                     onChange={(e) => setNewCustomQuestion(e.target.value)}
                     onKeyDown={(e) => {
