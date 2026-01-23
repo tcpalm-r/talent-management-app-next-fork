@@ -1,8 +1,8 @@
 'use client';
 
-import { Settings, Pencil, Save, X, User, Shield, HelpCircle, Search, Trash2, GripVertical, EyeOff, Eye } from 'lucide-react';
+import { Settings, Pencil, Save, X, User, Shield, HelpCircle, Search, Trash2, GripVertical } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { getActiveUsers, updateUserProfile, UserProfile, supabase } from '@/lib/supabase';
+import { updateUserProfile, UserProfile } from '@/lib/supabase';
 import ConfirmDialog from './ConfirmDialog';
 import { useToast } from './unified';
 import {
@@ -410,42 +410,30 @@ export default function AdminSettings() {
   const [editValues, setEditValues] = useState<Record<string, Partial<UserProfile>>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [hiding, setHiding] = useState<string | null>(null);
-  const [showHiddenUsers, setShowHiddenUsers] = useState(false);
 
   // Confirm dialog state (Teams iframe compatible)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<EditableEmployee | null>(null);
-  const [hideConfirmOpen, setHideConfirmOpen] = useState(false);
-  const [employeeToHide, setEmployeeToHide] = useState<EditableEmployee | null>(null);
 
   useEffect(() => {
     loadEmployees();
-  }, [showHiddenUsers]);
+  }, []);
 
   const loadEmployees = async () => {
     setLoading(true);
-
-    if (showHiddenUsers) {
-      // Fetch all active users including hidden ones
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('is_active', true)
-        .order('full_name');
-
-      if (error) {
-        console.error('Error fetching users:', error);
-        setAllEmployees([]);
+    try {
+      const response = await fetch('/api/admin/employees');
+      if (response.ok) {
+        const data = await response.json();
+        setAllEmployees((data.employees || []).map((u: UserProfile) => ({ ...u, isEditing: false })));
       } else {
-        setAllEmployees((data || []).map(u => ({ ...u, isEditing: false })));
+        console.error('Failed to fetch employees:', response.status);
+        setAllEmployees([]);
       }
-    } else {
-      // Fetch only non-hidden active users
-      const users = await getActiveUsers();
-      setAllEmployees(users.map(u => ({ ...u, isEditing: false })));
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      setAllEmployees([]);
     }
-
     setLoading(false);
   };
 
@@ -582,69 +570,6 @@ export default function AdminSettings() {
     setEmployeeToDelete(null);
   };
 
-  const hideEmployee = (employee: EditableEmployee) => {
-    // Show confirm dialog for hiding
-    setEmployeeToHide(employee);
-    setHideConfirmOpen(true);
-  };
-
-  // Handler for confirmed employee hide/unhide
-  const handleConfirmHideEmployee = async () => {
-    if (!employeeToHide) return;
-
-    setHideConfirmOpen(false);
-    setHiding(employeeToHide.id);
-
-    const newHiddenState = !employeeToHide.is_hidden;
-
-    try {
-      const result = await updateUserProfile(employeeToHide.id, { is_hidden: newHiddenState });
-
-      if (result) {
-        if (newHiddenState && !showHiddenUsers) {
-          // If hiding and not showing hidden users, remove from lists
-          setFilteredEmployees(prev => prev.filter(emp => emp.id !== employeeToHide.id));
-          setAllEmployees(prev => prev.filter(emp => emp.id !== employeeToHide.id));
-        } else {
-          // Update the employee's is_hidden status in lists
-          setFilteredEmployees(prev =>
-            prev.map(emp =>
-              emp.id === employeeToHide.id ? { ...emp, is_hidden: newHiddenState } : emp
-            )
-          );
-          setAllEmployees(prev =>
-            prev.map(emp =>
-              emp.id === employeeToHide.id ? { ...emp, is_hidden: newHiddenState } : emp
-            )
-          );
-        }
-        notify({
-          title: newHiddenState ? 'User hidden' : 'User unhidden',
-          description: newHiddenState
-            ? `${employeeToHide.full_name} will no longer appear in selection UIs.`
-            : `${employeeToHide.full_name} is now visible in selection UIs.`,
-          variant: 'success',
-        });
-      } else {
-        notify({
-          title: 'Error',
-          description: 'Failed to update user visibility',
-          variant: 'error',
-        });
-      }
-    } catch (error) {
-      console.error('Error updating user visibility:', error);
-      notify({
-        title: 'Error',
-        description: 'Failed to update user visibility',
-        variant: 'error',
-      });
-    }
-
-    setHiding(null);
-    setEmployeeToHide(null);
-  };
-
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'admin':
@@ -696,23 +621,11 @@ export default function AdminSettings() {
             />
           </div>
           <div className="flex items-center justify-between mt-2">
-            {searchQuery ? (
+            {searchQuery && (
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Found {filteredEmployees.length} matching {filteredEmployees.length === 1 ? 'employee' : 'employees'}
               </p>
-            ) : (
-              <div />
             )}
-            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showHiddenUsers}
-                onChange={(e) => setShowHiddenUsers(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
-              />
-              <EyeOff className="w-4 h-4" />
-              Show hidden users
-            </label>
           </div>
         </div>
 
@@ -823,15 +736,7 @@ export default function AdminSettings() {
                     ) : (
                       <>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                          <div className="flex items-center gap-2">
-                            {employee.full_name}
-                            {employee.is_hidden && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700">
-                                <EyeOff className="w-3 h-3" />
-                                Hidden
-                              </span>
-                            )}
-                          </div>
+                          {employee.full_name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {employee.email}
@@ -859,18 +764,6 @@ export default function AdminSettings() {
                               title="Edit"
                             >
                               <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => hideEmployee(employee)}
-                              disabled={hiding === employee.id}
-                              className={`p-1 rounded disabled:opacity-50 ${
-                                employee.is_hidden
-                                  ? 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30'
-                                  : 'text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/30'
-                              }`}
-                              title={employee.is_hidden ? 'Unhide (show in selection UIs)' : 'Hide (remove from selection UIs)'}
-                            >
-                              {employee.is_hidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                             </button>
                             <button
                               onClick={() => deleteEmployee(employee)}
@@ -909,24 +802,6 @@ export default function AdminSettings() {
         variant="danger"
       />
 
-      {/* Confirm Dialog for Hide/Unhide Employee */}
-      <ConfirmDialog
-        isOpen={hideConfirmOpen}
-        onClose={() => {
-          setHideConfirmOpen(false);
-          setEmployeeToHide(null);
-        }}
-        onConfirm={handleConfirmHideEmployee}
-        title={employeeToHide?.is_hidden ? 'Unhide User' : 'Hide User'}
-        message={employeeToHide
-          ? employeeToHide.is_hidden
-            ? `Are you sure you want to unhide ${employeeToHide.full_name}?\n\nThey will appear again in reviewer and subject selection UIs.`
-            : `Are you sure you want to hide ${employeeToHide.full_name}?\n\nThey will no longer appear when selecting reviewers or survey subjects. Use this for duplicate accounts or inactive users that shouldn't be selectable.`
-          : ''}
-        confirmText={employeeToHide?.is_hidden ? 'Unhide' : 'Hide'}
-        cancelText="Cancel"
-        variant={employeeToHide?.is_hidden ? 'info' : 'warning'}
-      />
     </div>
   );
 }
