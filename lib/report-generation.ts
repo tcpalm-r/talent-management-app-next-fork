@@ -446,9 +446,9 @@ export async function generateReportForSurvey({
     // ========================================================================
 
     // Check for cancellation before saving (race condition protection)
-    if (isSurveyCancelled(surveyId)) {
+    if (await isSurveyCancelled(surveyId)) {
       console.log(`📊 Survey ${surveyId} was cancelled before saving - aborting`);
-      clearSurveyCancellation(surveyId);
+      await clearSurveyCancellation(surveyId);
       return NextResponse.json({
         success: false,
         cancelled: true,
@@ -554,9 +554,9 @@ export async function generateReportForSurvey({
     // Check if survey was cancelled during processing (race condition protection)
     // If cancelled, don't update status to 'completed' - the cancel-generation API
     // already set it to 'in_progress'
-    if (isSurveyCancelled(surveyId)) {
+    if (await isSurveyCancelled(surveyId)) {
       console.log(`📊 Survey ${surveyId} was cancelled during generation - not updating to completed`);
-      clearSurveyCancellation(surveyId);
+      await clearSurveyCancellation(surveyId);
       return NextResponse.json({
         success: false,
         cancelled: true,

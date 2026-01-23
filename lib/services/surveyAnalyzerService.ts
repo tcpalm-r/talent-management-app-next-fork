@@ -10,34 +10,66 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createDebugSession } from '@/lib/debug-logger';
 import { extractVerbatimSnippet } from './snippetExtractionService';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 // ==================== Cancellation Registry ====================
-// In-memory registry to track cancelled survey generations
-// This allows us to stop processing between passes or before saving
-const cancelledSurveys = new Set<string>();
+// Database-backed cancellation tracking for serverless compatibility
+// Uses feedback_360_cancelled_generations table
 
 /**
  * Mark a survey generation as cancelled.
  * Call this from the cancel-generation API route.
  */
-export function markSurveyCancelled(surveyId: string): void {
-  cancelledSurveys.add(surveyId);
-  console.log(`[surveyAnalyzerService] Survey ${surveyId} marked for cancellation`);
+export async function markSurveyCancelled(surveyId: string, cancelledBy?: string): Promise<void> {
+  // Table created via migration - type assertion needed until types are regenerated
+  const { error } = await (supabaseAdmin as any)
+    .from('feedback_360_cancelled_generations')
+    .upsert({
+      survey_id: surveyId,
+      cancelled_at: new Date().toISOString(),
+      cancelled_by: cancelledBy || null,
+    });
+
+  if (error) {
+    console.error(`[surveyAnalyzerService] Failed to mark survey ${surveyId} as cancelled:`, error);
+  } else {
+    console.log(`[surveyAnalyzerService] Survey ${surveyId} marked for cancellation in database`);
+  }
 }
 
 /**
  * Check if a survey generation has been cancelled.
  */
-export function isSurveyCancelled(surveyId: string): boolean {
-  return cancelledSurveys.has(surveyId);
+export async function isSurveyCancelled(surveyId: string): Promise<boolean> {
+  // Table created via migration - type assertion needed until types are regenerated
+  const { data, error } = await (supabaseAdmin as any)
+    .from('feedback_360_cancelled_generations')
+    .select('survey_id')
+    .eq('survey_id', surveyId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`[surveyAnalyzerService] Error checking cancellation for ${surveyId}:`, error);
+    return false; // Don't cancel on error - safer to continue
+  }
+
+  return data !== null;
 }
 
 /**
  * Clear the cancellation flag for a survey.
  * Call this when starting a new generation or after handling cancellation.
  */
-export function clearSurveyCancellation(surveyId: string): void {
-  cancelledSurveys.delete(surveyId);
+export async function clearSurveyCancellation(surveyId: string): Promise<void> {
+  // Table created via migration - type assertion needed until types are regenerated
+  const { error } = await (supabaseAdmin as any)
+    .from('feedback_360_cancelled_generations')
+    .delete()
+    .eq('survey_id', surveyId);
+
+  if (error) {
+    console.error(`[surveyAnalyzerService] Failed to clear cancellation for ${surveyId}:`, error);
+  }
 }
 
 /**
@@ -177,9 +209,9 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   });
 
   // Check for cancellation after Pass 1
-  if (isSurveyCancelled(surveyId)) {
+  if (await isSurveyCancelled(surveyId)) {
     console.log(`[surveyAnalyzerService] Generation cancelled after Pass 1 for survey ${surveyId}`);
-    clearSurveyCancellation(surveyId);
+    await clearSurveyCancellation(surveyId);
     throw new GenerationCancelledError(surveyId);
   }
 
@@ -227,9 +259,9 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   const checkInterval = 5000; // Check every 5 seconds
   let waited = 0;
   while (waited < rateLimitDelay) {
-    if (isSurveyCancelled(surveyId)) {
+    if (await isSurveyCancelled(surveyId)) {
       console.log(`[surveyAnalyzerService] Generation cancelled during rate limit wait for survey ${surveyId}`);
-      clearSurveyCancellation(surveyId);
+      await clearSurveyCancellation(surveyId);
       throw new GenerationCancelledError(surveyId);
     }
     const sleepTime = Math.min(checkInterval, rateLimitDelay - waited);
@@ -267,9 +299,9 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   });
 
   // Check for cancellation after Pass 2 (before saving)
-  if (isSurveyCancelled(surveyId)) {
+  if (await isSurveyCancelled(surveyId)) {
     console.log(`[surveyAnalyzerService] Generation cancelled after Pass 2 for survey ${surveyId}`);
-    clearSurveyCancellation(surveyId);
+    await clearSurveyCancellation(surveyId);
     throw new GenerationCancelledError(surveyId);
   }
 
@@ -300,9 +332,9 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   });
 
   // Check for cancellation after Pass 3
-  if (isSurveyCancelled(surveyId)) {
+  if (await isSurveyCancelled(surveyId)) {
     console.log(`[surveyAnalyzerService] Generation cancelled after Pass 3 for survey ${surveyId}`);
-    clearSurveyCancellation(surveyId);
+    await clearSurveyCancellation(surveyId);
     throw new GenerationCancelledError(surveyId);
   }
 

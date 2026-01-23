@@ -63,9 +63,9 @@ export async function POST(
     }
 
     if (survey.status === 'generating') {
-      // Mark the survey as cancelled in the in-memory registry
+      // Mark the survey as cancelled in the database
       // This will cause the analyzer service to stop between passes
-      markSurveyCancelled(surveyId);
+      await markSurveyCancelled(surveyId, authData.profile.email || undefined);
     }
 
     // Reset status to 'in_progress'
