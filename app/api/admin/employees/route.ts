@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getActiveUsers } from '@/lib/database';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,55 @@ export async function GET() {
     console.error('[API] Error fetching employees:', error);
     return NextResponse.json(
       { error: 'Failed to fetch employees' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/admin/employees
+ *
+ * Update an employee's profile.
+ * Body: { id: string, updates: Partial<UserProfile> }
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, updates } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Employee ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('user_profiles')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[API] Error updating employee:', error);
+      return NextResponse.json(
+        { error: 'Failed to update employee' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      employee: data,
+    });
+  } catch (error) {
+    console.error('[API] Error updating employee:', error);
+    return NextResponse.json(
+      { error: 'Failed to update employee' },
       { status: 500 }
     );
   }

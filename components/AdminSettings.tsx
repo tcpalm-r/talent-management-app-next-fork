@@ -2,7 +2,7 @@
 
 import { Settings, Pencil, Save, X, User, Shield, HelpCircle, Search, Trash2, GripVertical } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { updateUserProfile, UserProfile } from '@/lib/supabase';
+import { UserProfile } from '@/lib/supabase';
 import ConfirmDialog from './ConfirmDialog';
 import { useToast } from './unified';
 import {
@@ -491,24 +491,50 @@ export default function AdminSettings() {
     if (!updates) return;
 
     setSaving(employee.id);
-    const result = await updateUserProfile(employee.id, updates);
+    try {
+      const response = await fetch('/api/admin/employees', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: employee.id, updates }),
+      });
 
-    if (result) {
-      // Update both filtered and all employees
-      setFilteredEmployees(prev =>
-        prev.map(emp =>
-          emp.id === employee.id ? { ...result, isEditing: false } : emp
-        )
-      );
-      setAllEmployees(prev =>
-        prev.map(emp =>
-          emp.id === employee.id ? { ...result, isEditing: false } : emp
-        )
-      );
-      setEditValues(prev => {
-        const newValues = { ...prev };
-        delete newValues[employee.id];
-        return newValues;
+      if (response.ok) {
+        const data = await response.json();
+        const result = data.employee;
+        // Update both filtered and all employees
+        setFilteredEmployees(prev =>
+          prev.map(emp =>
+            emp.id === employee.id ? { ...result, isEditing: false } : emp
+          )
+        );
+        setAllEmployees(prev =>
+          prev.map(emp =>
+            emp.id === employee.id ? { ...result, isEditing: false } : emp
+          )
+        );
+        setEditValues(prev => {
+          const newValues = { ...prev };
+          delete newValues[employee.id];
+          return newValues;
+        });
+        notify({
+          title: 'Success',
+          description: 'Employee updated successfully',
+          variant: 'success',
+        });
+      } else {
+        notify({
+          title: 'Error',
+          description: 'Failed to update employee',
+          variant: 'error',
+        });
+      }
+    } catch (error) {
+      console.error('Error saving employee:', error);
+      notify({
+        title: 'Error',
+        description: 'Failed to update employee',
+        variant: 'error',
       });
     }
     setSaving(null);
@@ -539,9 +565,13 @@ export default function AdminSettings() {
 
     try {
       // Soft delete by setting is_active to false
-      const result = await updateUserProfile(employeeToDelete.id, { is_active: false });
+      const response = await fetch('/api/admin/employees', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: employeeToDelete.id, updates: { is_active: false } }),
+      });
 
-      if (result) {
+      if (response.ok) {
         // Remove from both filtered and all employees lists
         setFilteredEmployees(prev => prev.filter(emp => emp.id !== employeeToDelete.id));
         setAllEmployees(prev => prev.filter(emp => emp.id !== employeeToDelete.id));
