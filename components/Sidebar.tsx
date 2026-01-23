@@ -42,12 +42,13 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
     // { id: 'directory', label: 'Talent', icon: Users }, // Hidden for now
     { id: '360-feedback', label: '360°', icon: RotateCw },
     // { id: 'itp', label: 'ITP', icon: VennDiagramIcon }, // Moved to standalone app
-    { id: 'my-report', label: 'Review', icon: FileText },
+    // { id: 'my-report', label: 'Review', icon: FileText }, // Hidden for now
   ] as const;
 
   const leaderNavItems = [] as const;
 
   const adminNavItems = [
+    { id: 'my-report', label: 'Review', icon: FileText },
     { id: 'admin-settings', label: 'Admin', icon: Settings },
   ] as const;
 
