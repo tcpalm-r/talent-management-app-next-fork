@@ -100,6 +100,20 @@ export async function PATCH(
 
     // Special handling for status changes
     if (body.status) {
+      // GUARD: Prevent setting status to 'completed' via PATCH
+      // The 'completed' status should ONLY be set by the report generation process
+      // which also creates the report record. Setting it here would create an
+      // inconsistent state where status is 'completed' but no report exists.
+      if (body.status === 'completed') {
+        return NextResponse.json(
+          {
+            error: 'Invalid status change',
+            message: 'Cannot set status to "completed" directly. Use "Complete 360° with AI Analysis" to generate the report and set the status.'
+          },
+          { status: 400 }
+        );
+      }
+
       // If moving to 'finalized', clear certain flags
       if (body.status === 'finalized') {
         updates.flagged_for_admin = false;

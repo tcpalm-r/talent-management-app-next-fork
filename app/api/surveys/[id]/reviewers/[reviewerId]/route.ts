@@ -234,16 +234,18 @@ export async function DELETE(
     }
 
     const totalReviewers = remainingReviewers?.length || 0;
-    const completedReviewers = remainingReviewers?.filter(r => r.status === 'completed').length || 0;
 
+    // Determine new survey status based on reviewer count
+    // IMPORTANT: Never auto-set to 'completed' here - that status should ONLY come
+    // from successful report generation (which creates the report record).
+    // Setting 'completed' without a report creates an inconsistent state.
     let newSurveyStatus = survey.status;
     if (totalReviewers === 0) {
       newSurveyStatus = 'draft';
-    } else if (completedReviewers === 0) {
-      newSurveyStatus = 'in_progress';
-    } else if (completedReviewers === totalReviewers) {
-      newSurveyStatus = 'completed';
-    } else {
+    } else if (survey.status !== 'completed' && survey.status !== 'finalized') {
+      // Only change status if not already completed/finalized
+      // Keep as 'in_progress' even if all reviewers are done - sponsor must
+      // explicitly generate the report to move to 'completed'
       newSurveyStatus = 'in_progress';
     }
 
