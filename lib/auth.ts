@@ -334,6 +334,26 @@ export const TEST_USERS: SessionUser[] = [
     department: 'Services',
     title: 'Technical Support Supervisor',
   },
+  {
+    id: '0c0eb6d1-8b41-4427-81e3-7360b5ce8a76',
+    auth0_id: 'juanr@sonance.com',
+    email: 'juanr@sonance.com',
+    full_name: 'Juan Rincon',
+    given_name: 'Juan',
+    family_name: 'Rincon',
+    picture: null,
+    app_role: 'leader',
+    app_permissions: {
+      read: true,
+      admin: false,
+      write: true,
+    },
+    global_role: 'user',
+    capabilities: [],
+    app_access: true,
+    department: 'Sales Operations',
+    title: 'Inside Sales Manager - Domestic',
+  },
 ];
 
 /**
