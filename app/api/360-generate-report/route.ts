@@ -5,6 +5,49 @@ import { getAuthenticatedUser } from '@/lib/auth-wrapper';
 import { determineViewerRole, generateReportForSurvey } from '@/lib/report-generation';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * Compute frequency for each theme based on unique response_ids in citations.
+ * This ensures existing reports (generated before frequency was added) display correctly.
+ */
+function ensureThemeFrequencies(themes: unknown): unknown[] {
+  if (!Array.isArray(themes)) return [];
+
+  return themes.map((theme) => {
+    if (typeof theme !== 'object' || theme === null) return theme;
+
+    const themeObj = theme as Record<string, unknown>;
+
+    // If frequency already exists and is valid, keep it
+    if (typeof themeObj.frequency === 'number' && themeObj.frequency > 0) {
+      return themeObj;
+    }
+
+    const supportingEvidence = themeObj.supporting_evidence;
+
+    if (!Array.isArray(supportingEvidence)) {
+      return { ...themeObj, frequency: 0 };
+    }
+
+    // Collect all unique response_ids from citations
+    const uniqueResponseIds = new Set<string>();
+
+    supportingEvidence.forEach((evidence) => {
+      if (typeof evidence === 'object' && evidence !== null && 'citations' in evidence) {
+        const evidenceObj = evidence as { citations?: Array<{ response_id?: string }> };
+        if (Array.isArray(evidenceObj.citations)) {
+          evidenceObj.citations.forEach((citation) => {
+            if (citation.response_id) {
+              uniqueResponseIds.add(citation.response_id);
+            }
+          });
+        }
+      }
+    });
+
+    return { ...themeObj, frequency: uniqueResponseIds.size };
+  });
+}
 export const maxDuration = 800; // Max allowed on Pro with Fluid Compute - needed for two-pass Claude API calls
 
 /**
@@ -152,6 +195,11 @@ export async function GET(req: NextRequest) {
     }
 
     // Sponsors and admins see full report (no filtering needed)
+
+    // Ensure theme frequencies are computed (for retroactive support of older reports)
+    if (filteredReport.themes) {
+      filteredReport.themes = ensureThemeFrequencies(filteredReport.themes);
+    }
 
     return NextResponse.json({
       success: true,

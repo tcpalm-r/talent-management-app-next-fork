@@ -352,10 +352,12 @@ export async function analyzeWithCitations(input: AnalysisInput): Promise<Analys
   const citationCoverage = totalStatements > 0 ? Math.round((statementsWithCitations / totalStatements) * 100) : 0;
 
   // Use consolidated themes from Pass 3 (or fallback to Pass 2 themes)
+  // Always compute frequencies from citations to ensure theme.frequency is populated
   const hasConsolidatedThemes = coherenceAnalysis.consolidated_themes && coherenceAnalysis.consolidated_themes.length > 0;
-  const finalThemes = hasConsolidatedThemes
+  const themesToProcess = hasConsolidatedThemes
     ? coherenceAnalysis.consolidated_themes
-    : computeThemeFrequencies(analysis.themes);
+    : analysis.themes;
+  const finalThemes = computeThemeFrequencies(themesToProcess);
 
   console.log(`[surveyAnalyzerService] Using ${hasConsolidatedThemes ? 'consolidated' : 'original'} themes: ${finalThemes.length} themes`);
 
