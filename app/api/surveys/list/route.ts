@@ -129,6 +129,7 @@ export async function GET(request: NextRequest) {
         creatorEmailIds.forEach(id => allowedIds.add(id));
       }
 
+      // Subject finalized surveys - try ID match first
       const subjectFinalIds = await fetchSurveyIds(
         baseSurveyIdQuery()
           .eq('employee_id', profile.id)
@@ -136,6 +137,27 @@ export async function GET(request: NextRequest) {
         'subject-finalized'
       );
       subjectFinalIds.forEach(id => allowedIds.add(id));
+
+      // Fallback: Also find finalized surveys by email match (handles OAuth ID mismatches)
+      if (profile.email) {
+        // Find user_profiles ID by email, then find surveys with that employee_id
+        const { data: emailMatchProfile } = await supabaseAdmin
+          .from('user_profiles')
+          .select('id')
+          .ilike('email', profile.email)
+          .neq('id', profile.id) // Don't re-query if same ID
+          .maybeSingle();
+
+        if (emailMatchProfile?.id) {
+          const subjectFinalByEmailIds = await fetchSurveyIds(
+            baseSurveyIdQuery()
+              .eq('employee_id', emailMatchProfile.id)
+              .eq('status', 'finalized'),
+            'subject-finalized-by-email'
+          );
+          subjectFinalByEmailIds.forEach(id => allowedIds.add(id));
+        }
+      }
 
       if (role === 'slt') {
         const inProgressIds = await fetchSurveyIds(

@@ -99,7 +99,10 @@ const canUserViewResults = (
 
   const isSponsor = isUserSponsor(survey, user, userDbId);
   const isAdmin = user.app_role === 'admin';
-  const isSubject = survey.employee_id === user.id;
+  // Check both ID and email for subject match (handles OAuth ID mismatches)
+  const idMatch = survey.employee_id === user.id;
+  const emailMatch = user.email && survey.employee?.email?.toLowerCase() === user.email.toLowerCase();
+  const isSubject = idMatch || emailMatch;
   const isLeader = user.app_role === 'leader';
   const isReviewer = survey.reviewers?.some((r: any) => r.reviewer_email === user.email);
 
@@ -284,7 +287,7 @@ export default function Feedback360Dashboard({
 
   // Only Admin and SLT can sponsor surveys, everyone else defaults to 'reviewer'
   // EAs with delegation default to 'delegated_sponsor'
-  const [filterRole, setFilterRole] = useState<'all' | 'sponsor' | 'reviewer' | 'needs_reanalysis' | 'delegated_sponsor'>(
+  const [filterRole, setFilterRole] = useState<'all' | 'sponsor' | 'reviewer' | 'my_feedback' | 'needs_reanalysis' | 'delegated_sponsor'>(
     currentUser?.app_role === 'admin' ? 'all' :
     (currentUser?.app_role === 'slt') ? 'sponsor' :
     getEASponsorMapping(currentUser?.email) ? 'delegated_sponsor' : 'reviewer'
@@ -565,7 +568,10 @@ export default function Feedback360Dashboard({
     }
 
     try {
-      const isSubject = currentUser?.id === selectedSurvey?.employee_id;
+      // Check both ID and email for subject match (handles OAuth ID mismatches)
+      const subjectIdMatch = currentUser?.id === selectedSurvey?.employee_id;
+      const subjectEmailMatch = currentUser?.email && selectedSurvey?.employee?.email?.toLowerCase() === currentUser.email.toLowerCase();
+      const isSubject = subjectIdMatch || subjectEmailMatch;
       const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
       const isAdmin = currentUser?.app_role === 'admin';
       const isPureSubject = isSubject && !isAdmin && !isSponsor;
@@ -1851,14 +1857,18 @@ export default function Feedback360Dashboard({
   // For Reviewer and Subject tabs, automatically apply status filters
   const roleFilteredSurveys = surveys.filter(survey => {
     const isSponsor = isUserSponsor(survey, currentUser, currentUserDbId);
-    const isSubject = survey.employee_id === currentUser?.id;
+    // Check both ID and email for subject match (handles OAuth ID mismatches)
+    const subjectIdMatch = survey.employee_id === currentUser?.id;
+    const subjectEmailMatch = currentUser?.email && survey.employee?.email?.toLowerCase() === currentUser.email.toLowerCase();
+    const isSubject = subjectIdMatch || subjectEmailMatch;
     const isReviewer = survey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
     const isSLT = currentUser?.app_role === 'slt';
     const isAdmin = currentUser?.app_role === 'admin';
 
-    // Reviewer tab: show in_progress surveys where user is a reviewer
+    // Reviewer tab: show in_progress, completed, and finalized surveys where user is a reviewer
     // For SLT and Admin: also show in_progress surveys where they can opt in (not yet a reviewer)
     // BUT exclude surveys where they are the subject (cannot review themselves)
+    // Completed/finalized surveys are shown so reviewers can see their feedback is complete
     if (filterRole === 'reviewer') {
       if (isSLT || isAdmin) {
         // SLT/Admin sees in_progress surveys where they can participate as reviewer (not the subject)
@@ -1866,12 +1876,24 @@ export default function Feedback360Dashboard({
         if (isAdmin && isReviewer && survey.flagged_for_reanalysis) {
           return !isSubject;
         }
+        // Show in_progress (can participate) or completed/finalized (if they were a reviewer)
+        if (survey.status === 'completed' || survey.status === 'finalized') {
+          return isReviewer && !isSubject;
+        }
         return survey.status === 'in_progress' && !isSubject;
       }
-      return isReviewer && survey.status === 'in_progress';
+      // Regular reviewers: show in_progress, completed, or finalized surveys they're assigned to
+      return isReviewer && (survey.status === 'in_progress' || survey.status === 'completed' || survey.status === 'finalized');
     }
 
-    // Subject tab removed - users can view their finalized reports in the "My Report" page
+    // My 360 Feedback tab: show finalized surveys where user is the subject
+    // Use email as fallback to handle ID mismatches (OAuth ID vs database ID)
+    if (filterRole === 'my_feedback') {
+      const idMatch = survey.employee_id === currentUser?.id;
+      const emailMatch = currentUser?.email && survey.employee?.email?.toLowerCase() === currentUser.email.toLowerCase();
+      const isSubject = idMatch || emailMatch;
+      return survey.status === 'finalized' && isSubject;
+    }
 
     // Sponsor tab:
     // - All users (including admins) see only surveys they created
@@ -1912,7 +1934,10 @@ export default function Feedback360Dashboard({
     const isReviewer = s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
     const isSLT = currentUser?.app_role === 'slt';
     const isAdmin = currentUser?.app_role === 'admin';
-    const isSubject = s.employee_id === currentUser?.id;
+    // Check both ID and email for subject match (handles OAuth ID mismatches)
+    const subjectIdMatch = s.employee_id === currentUser?.id;
+    const subjectEmailMatch = currentUser?.email && s.employee?.email?.toLowerCase() === currentUser.email.toLowerCase();
+    const isSubject = subjectIdMatch || subjectEmailMatch;
 
     // SLT/Admin sees all in_progress (can opt in), but NOT surveys where they are the subject
     // ALSO: If admin is explicitly a reviewer on a flagged survey, count it
@@ -1925,10 +1950,13 @@ export default function Feedback360Dashboard({
     return s.status === 'in_progress' && isReviewer;
   }).length;
 
-  const subjectCount = surveys.filter(s =>
-    s.status === 'finalized' &&
-    s.employee_id === currentUser?.id
-  ).length;
+  // My 360 Feedback count - use email as fallback for ID mismatches
+  const myFeedbackCount = surveys.filter(s => {
+    if (s.status !== 'finalized') return false;
+    const idMatch = s.employee_id === currentUser?.id;
+    const emailMatch = currentUser?.email && s.employee?.email?.toLowerCase() === currentUser.email.toLowerCase();
+    return idMatch || emailMatch;
+  }).length;
 
   // Count for Needs Reanalysis tab (Admin only) - ALL flagged surveys
   const needsReanalysisCount = surveys.filter(s =>
@@ -2258,6 +2286,13 @@ export default function Feedback360Dashboard({
               tooltip: 'Active 360 feedback sessions awaiting your input. Provide anonymous feedback, aggregated with AI',
               count: reviewerCount
             },
+            // My 360 Feedback tab - visible to all users
+            {
+              id: 'my_feedback',
+              label: 'My 360 Feedback',
+              tooltip: 'View your finalized 360 feedback reports',
+              count: myFeedbackCount
+            },
             // Show Delegated Sponsor tab for EAs - positioned after Give Feedback
             ...(eaSponsorMapping ? [{
               id: 'delegated_sponsor',
@@ -2275,7 +2310,7 @@ export default function Feedback360Dashboard({
           ]}
           activeTab={filterRole}
           onTabChange={(tabId) => {
-            setFilterRole(tabId as 'all' | 'sponsor' | 'reviewer' | 'needs_reanalysis' | 'delegated_sponsor');
+            setFilterRole(tabId as 'all' | 'sponsor' | 'reviewer' | 'my_feedback' | 'needs_reanalysis' | 'delegated_sponsor');
             setFilterStatus('all'); // Reset status filter when switching tabs
             setReviewerFilterStatus('all'); // Reset reviewer filter when switching tabs
             setReviewerSearchQuery(''); // Clear reviewer search when switching tabs
@@ -2651,6 +2686,8 @@ export default function Feedback360Dashboard({
             <h3 className="text-lg font-normal text-gray-500 dark:text-gray-400 mb-2">
               {filterRole === 'reviewer'
                 ? 'No 360°s require your input'
+                : filterRole === 'my_feedback'
+                ? 'No finalized 360 feedback reports yet'
                 : filterRole === 'needs_reanalysis'
                 ? 'No surveys need reanalysis'
                 : filterRole === 'all'
@@ -2712,7 +2749,10 @@ export default function Feedback360Dashboard({
             //   console.log('  => isSponsor:', isSponsor);
             // }
 
-            const isReviewee = survey.employee_id === currentUser?.id;
+            // Check both ID and email for subject/reviewee match (handles OAuth ID mismatches)
+            const idMatch = survey.employee_id === currentUser?.id;
+            const emailMatch = currentUser?.email && survey.employee?.email?.toLowerCase() === currentUser.email.toLowerCase();
+            const isReviewee = idMatch || emailMatch;
             const isReviewer = survey.reviewers?.some((r: any) =>
               r.reviewer_email === currentUser?.email
             );
@@ -2972,7 +3012,10 @@ export default function Feedback360Dashboard({
         const isAdmin = currentUser?.app_role === 'admin';
         const isSLT = currentUser?.app_role === 'slt';
         const isLeader = currentUser?.app_role === 'leader';
-        const isSubject = selectedSurvey.employee_id === currentUser?.id;
+        // Check both ID and email for subject match (handles OAuth ID mismatches)
+        const subjectIdMatch = selectedSurvey.employee_id === currentUser?.id;
+        const subjectEmailMatch = currentUser?.email && selectedSurvey.employee?.email?.toLowerCase() === currentUser.email.toLowerCase();
+        const isSubject = subjectIdMatch || subjectEmailMatch;
         const isReviewer = selectedSurvey.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email);
         const userCompletedReview = isReviewer && selectedSurvey.reviewers?.find((r: any) => r.reviewer_email === currentUser?.email)?.status === 'completed';
 
@@ -3656,7 +3699,10 @@ export default function Feedback360Dashboard({
       {isResultsModalOpen && surveyResults && selectedSurvey &&
        surveyResults.survey_id === selectedSurvey.id && (() => {
         // Check permissions for advanced insights tabs
-        const isSubject = currentUser?.id === selectedSurvey?.employee_id;
+        // Check both ID and email for subject match (handles OAuth ID mismatches)
+        const subjectIdMatch = currentUser?.id === selectedSurvey?.employee_id;
+        const subjectEmailMatch = currentUser?.email && selectedSurvey?.employee?.email?.toLowerCase() === currentUser.email.toLowerCase();
+        const isSubject = subjectIdMatch || subjectEmailMatch;
         const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
         const isAdmin = currentUser?.app_role === 'admin';
         const isSLT = currentUser?.app_role === 'slt';
@@ -3755,7 +3801,10 @@ export default function Feedback360Dashboard({
                   />
                   {/* Export Button - Conditional: Dropdown for sponsors/admins, simple button for others */}
                   {(() => {
-                    const isSubject = currentUser?.id === selectedSurvey?.employee_id;
+                    // Check both ID and email for subject match (handles OAuth ID mismatches)
+                    const subjectIdMatch = currentUser?.id === selectedSurvey?.employee_id;
+                    const subjectEmailMatch = currentUser?.email && selectedSurvey?.employee?.email?.toLowerCase() === currentUser.email.toLowerCase();
+                    const isSubject = subjectIdMatch || subjectEmailMatch;
                     const isSponsor = isUserSponsor(selectedSurvey, currentUser, currentUserDbId);
                     const isAdmin = currentUser?.app_role === 'admin';
                     const canSeeDropdown = (isSponsor || isAdmin) && !isSubject;

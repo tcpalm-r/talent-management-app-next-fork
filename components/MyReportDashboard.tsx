@@ -1,3 +1,8 @@
+/**
+ * @deprecated This component is no longer used in the main navigation.
+ * Subject report viewing is now handled by the "My 360 Feedback" tab in Feedback360Dashboard.
+ * This file is kept for reference and potential future use.
+ */
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { FileText, Download, Eye, Calendar, X } from 'lucide-react';

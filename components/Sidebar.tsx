@@ -1,6 +1,6 @@
 'use client';
 
-import { RotateCw, Users, Settings, FileText } from 'lucide-react';
+import { RotateCw, Users, Settings } from 'lucide-react';
 import { VennDiagramIcon } from './icons/VennDiagramIcon';
 import { useMemo, useState, useRef, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
@@ -9,7 +9,7 @@ import { useTeams } from '@/context/TeamsContext';
 import { AUTH_DISABLED } from '@/lib/auth';
 import { ThemeToggle, useToast } from './unified';
 
-type View = '360-feedback' | 'my-report' | 'itp' | 'directory' | 'admin-settings';
+type View = '360-feedback' | 'itp' | 'directory' | 'admin-settings';
 
 interface TestUser {
   id: string;
@@ -42,13 +42,11 @@ export default function Sidebar({ currentView, onViewChange, userRole, userProfi
     // { id: 'directory', label: 'Talent', icon: Users }, // Hidden for now
     { id: '360-feedback', label: '360°', icon: RotateCw },
     // { id: 'itp', label: 'ITP', icon: VennDiagramIcon }, // Moved to standalone app
-    // { id: 'my-report', label: 'Review', icon: FileText }, // Hidden for now
   ] as const;
 
   const leaderNavItems = [] as const;
 
   const adminNavItems = [
-    { id: 'my-report', label: 'Review', icon: FileText },
     { id: 'admin-settings', label: 'Admin', icon: Settings },
   ] as const;
 

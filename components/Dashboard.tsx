@@ -4,7 +4,6 @@ import { useToast } from './unified';
 import type { User, Organization, Employee, Department } from '../types';
 import PeopleDashboard from './PeopleDashboard';
 import Feedback360Dashboard from './Feedback360Dashboard';
-import MyReportDashboard from './MyReportDashboard';
 import ITPDashboard from './ITPDashboard';
 import AdminSettings from './AdminSettings';
 import Sidebar from './Sidebar';
@@ -21,7 +20,7 @@ interface DashboardProps {
   onRegisterNavigate?: (fn: ((view: string) => void) | null) => void;
 }
 
-type View = '360-feedback' | 'my-report' | 'itp' | 'directory' | 'admin-settings';
+type View = '360-feedback' | 'itp' | 'directory' | 'admin-settings';
 
 export default function Dashboard({
   user: _user,
@@ -265,13 +264,6 @@ export default function Dashboard({
                   simpleMode={true}
                   currentUser={currentUserEmployee}
                   finalizedSurveys={finalizedSurveys}
-                />
-              )}
-
-              {currentView === 'my-report' && (
-                <MyReportDashboard
-                  currentUser={currentUserEmployee}
-                  organizationId={organization.id}
                 />
               )}
 
