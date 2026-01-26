@@ -276,6 +276,7 @@ export default function Feedback360Dashboard({
   const [editingDraftSurvey, setEditingDraftSurvey] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'in_progress' | 'completed' | 'needs_review' | 'needs_reanalysis' | 'finalized'>('all');
   const [reviewerFilterStatus, setReviewerFilterStatus] = useState<'all' | 'required' | 'optional'>('all');
+  const [allSurveysFilterStatus, setAllSurveysFilterStatus] = useState<'all' | 'in_progress' | 'completed' | 'finalized'>('all');
   // Check if current user is an EA with delegation privileges
   const eaSponsorMapping = useMemo(() => {
     return getEASponsorMapping(currentUser?.email);
@@ -1937,6 +1938,14 @@ export default function Feedback360Dashboard({
   // Count for All 360°s tab (Admin only) - ALL surveys except drafts
   const allSurveysCount = surveys.filter(s => s.status !== 'draft').length;
 
+  // Stats for All 360°s tab filter buttons (Admin only) - ALL surveys except drafts
+  const allSurveysStats = {
+    total: surveys.filter(s => s.status !== 'draft').length,
+    in_progress: surveys.filter(s => s.status === 'in_progress').length,
+    completed: surveys.filter(s => s.status === 'completed').length,
+    finalized: surveys.filter(s => s.status === 'finalized').length,
+  };
+
   // Count for Delegated Sponsor tab (EA only) - in_progress surveys where delegated SLT is sponsor
   const delegatedSponsorCount = useMemo(() => {
     if (!eaSponsorMapping) return 0;
@@ -1968,6 +1977,13 @@ export default function Feedback360Dashboard({
       : reviewerFilterStatus === 'required'
       ? roleFilteredSurveys.filter(s => s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email))
       : roleFilteredSurveys.filter(s => !s.reviewers?.some((r: any) => r.reviewer_email === currentUser?.email));
+  }
+
+  // Apply status filter on All 360°s tab (Admin only)
+  if (filterRole === 'all' && currentUser?.app_role === 'admin') {
+    filteredSurveys = allSurveysFilterStatus === 'all'
+      ? roleFilteredSurveys
+      : roleFilteredSurveys.filter(s => s.status === allSurveysFilterStatus);
   }
 
   // Apply search filter on Reviewer tab
@@ -2510,8 +2526,87 @@ export default function Feedback360Dashboard({
         </div>
       )}
 
-      {/* All 360°s Tab - Search Only (Admin Only) */}
+      {/* All 360°s Tab - Filter Buttons and Search (Admin Only) */}
       {filterRole === 'all' && currentUser?.app_role === 'admin' && (
+      <>
+        <div className="grid gap-4 mt-6 grid-cols-2 lg:grid-cols-4">
+          {/* Total */}
+          <button
+            onClick={() => setAllSurveysFilterStatus('all')}
+            className={`bg-white dark:bg-gray-800 rounded-md shadow p-3 border-2 transition-all text-left ${
+              allSurveysFilterStatus === 'all' ? 'border-blue-500 dark:border-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{allSurveysStats.total}</p>
+              </div>
+            </div>
+          </button>
+
+          {/* In Progress */}
+          <Tooltip content="Surveys awaiting responses from reviewers">
+            <button
+              onClick={() => setAllSurveysFilterStatus('in_progress')}
+              className={`rounded-md shadow p-3 border-2 transition-all text-left ${
+                allSurveysFilterStatus === 'in_progress'
+                  ? 'border-yellow-500 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                  : 'bg-white dark:bg-gray-800 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-400">In Progress</p>
+                  <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-300">{allSurveysStats.in_progress}</p>
+                </div>
+                <MessageSquare className="w-8 h-8 text-yellow-400 dark:text-yellow-500" />
+              </div>
+            </button>
+          </Tooltip>
+
+          {/* Completed */}
+          <Tooltip content="Surveys with all responses received and analyzed">
+            <button
+              onClick={() => setAllSurveysFilterStatus('completed')}
+              className={`rounded-md shadow p-3 border-2 transition-all text-left ${
+                allSurveysFilterStatus === 'completed'
+                  ? 'border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
+                  : 'bg-white dark:bg-gray-800 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-green-700 dark:text-green-400">Completed</p>
+                  <p className="text-2xl font-bold text-green-900 dark:text-green-300">{allSurveysStats.completed}</p>
+                </div>
+                <CheckCircle className="w-8 h-8 text-green-400 dark:text-green-500" />
+              </div>
+            </button>
+          </Tooltip>
+
+          {/* Finalized */}
+          <Tooltip content="Surveys marked as final and archived">
+            <button
+              onClick={() => setAllSurveysFilterStatus('finalized')}
+              className={`rounded-md shadow p-3 border-2 transition-all text-left ${
+                allSurveysFilterStatus === 'finalized'
+                  ? 'border-purple-500 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20'
+                  : 'bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-purple-700 dark:text-purple-400">Finalized</p>
+                  <p className="text-2xl font-bold text-purple-900 dark:text-purple-300">{allSurveysStats.finalized}</p>
+                </div>
+                <ArrowDownCircle className="w-8 h-8 text-purple-400 dark:text-purple-500" />
+              </div>
+            </button>
+          </Tooltip>
+        </div>
+
+        {/* Search Bar */}
         <div className="mt-6 mb-6">
           <div className="relative w-[675px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -2524,6 +2619,7 @@ export default function Feedback360Dashboard({
             />
           </div>
         </div>
+      </>
       )}
 
       {/* Delegated Sponsor Tab - Search Only (EA Only) */}
@@ -2558,7 +2654,13 @@ export default function Feedback360Dashboard({
                 : filterRole === 'needs_reanalysis'
                 ? 'No surveys need reanalysis'
                 : filterRole === 'all'
-                ? 'No 360°s in the system yet'
+                ? allSurveysFilterStatus === 'all'
+                  ? 'No 360°s in the system yet'
+                  : allSurveysFilterStatus === 'in_progress'
+                  ? 'No in-progress 360°s'
+                  : allSurveysFilterStatus === 'completed'
+                  ? 'No completed 360°s'
+                  : 'No finalized 360°s'
                 : filterRole === 'delegated_sponsor'
                 ? `No in-progress 360°s for ${eaSponsorMapping?.sltDisplayName || 'your SLT'}`
                 : filterStatus === 'all'
