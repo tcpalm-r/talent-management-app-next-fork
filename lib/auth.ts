@@ -354,6 +354,26 @@ export const TEST_USERS: SessionUser[] = [
     department: 'Sales Operations',
     title: 'Inside Sales Manager - Domestic',
   },
+  {
+    id: 'af65ab1a-109c-4bc8-9413-5cfba87732ab',
+    auth0_id: 'jax.anderson@sonance.com',
+    email: 'jax.anderson@sonance.com',
+    full_name: 'Jax Anderson',
+    given_name: 'Jax',
+    family_name: 'Anderson',
+    picture: null,
+    app_role: 'user',
+    app_permissions: {
+      read: true,
+      admin: false,
+      write: false,
+    },
+    global_role: 'user',
+    capabilities: [],
+    app_access: true,
+    department: 'Sales',
+    title: 'Studio Coordinator',
+  },
 ];
 
 /**

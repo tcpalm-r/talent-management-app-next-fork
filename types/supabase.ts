@@ -560,6 +560,7 @@ export type Database = {
           narrative_generated_at: string | null
           narrative_version: number | null
           organization_id: string | null
+          released_to_subject_at: string | null
           resolved_by_admin: boolean | null
           sent_at: string | null
           status: string | null
@@ -584,6 +585,7 @@ export type Database = {
           narrative_generated_at?: string | null
           narrative_version?: number | null
           organization_id?: string | null
+          released_to_subject_at?: string | null
           resolved_by_admin?: boolean | null
           sent_at?: string | null
           status?: string | null
@@ -608,6 +610,7 @@ export type Database = {
           narrative_generated_at?: string | null
           narrative_version?: number | null
           organization_id?: string | null
+          released_to_subject_at?: string | null
           resolved_by_admin?: boolean | null
           sent_at?: string | null
           status?: string | null

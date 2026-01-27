@@ -130,6 +130,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Subject finalized surveys - try ID match first
+      // Note: released_to_subject_at filtering is done client-side after migration
       const subjectFinalIds = await fetchSurveyIds(
         baseSurveyIdQuery()
           .eq('employee_id', profile.id)

@@ -50,6 +50,7 @@ interface Survey {
   sent_at?: string | null;
   completed_at?: string | null;
   updated_at?: string | null;
+  released_to_subject_at?: string | null;
 }
 
 interface Reviewer {
@@ -346,6 +347,7 @@ export default function Feedback360Dashboard({
     successMessage: string;
   } | null>(null);
   const [finalizeConfirmOpen, setFinalizeConfirmOpen] = useState(false);
+  const [isReleasingToSubject, setIsReleasingToSubject] = useState(false);
 
   // Ref for selected reviewer display to enable auto-focus
   const selectedReviewerDisplayRef = useRef<HTMLDivElement>(null);
@@ -603,7 +605,16 @@ export default function Feedback360Dashboard({
       let fullSurvey = survey;
       if (detailsResponse.ok) {
         const detailsData = await detailsResponse.json();
-        fullSurvey = detailsData.survey || survey;
+        // Merge employee data into survey, mapping full_name to name
+        const employeeData = detailsData.employee ? {
+          ...detailsData.employee,
+          name: detailsData.employee.full_name || detailsData.employee.name
+        } : null;
+        fullSurvey = {
+          ...(detailsData.survey || survey),
+          employee: employeeData,
+          employee_name: employeeData?.name || detailsData.survey?.employee_name || survey.employee_name
+        };
       }
 
       setSelectedSurvey(fullSurvey);
@@ -1637,6 +1648,47 @@ export default function Feedback360Dashboard({
     }
   };
 
+  // Handler for releasing survey to subject
+  const releaseToSubject = async (surveyId: string) => {
+    setIsReleasingToSubject(true);
+    try {
+      const response = await fetch(`/api/surveys/${surveyId}/release-to-subject`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to release survey');
+      }
+
+      const data = await response.json();
+
+      // Update local state
+      setSurveys(prev => prev.map(s =>
+        s.id === surveyId ? { ...s, released_to_subject_at: data.survey.released_to_subject_at } : s
+      ));
+
+      if (selectedSurvey?.id === surveyId) {
+        setSelectedSurvey(prev => prev ? { ...prev, released_to_subject_at: data.survey.released_to_subject_at } : null);
+      }
+
+      notify({
+        title: 'Success',
+        description: 'Survey has been released to the subject',
+        variant: 'success',
+      });
+    } catch (error: any) {
+      console.error('Error releasing survey to subject:', error);
+      notify({
+        title: 'Error',
+        description: error.message || 'Failed to release survey',
+        variant: 'error',
+      });
+    } finally {
+      setIsReleasingToSubject(false);
+    }
+  };
+
   const loadReviewers = async (surveyId: string) => {
     try {
       const response = await fetch(`/api/surveys/${surveyId}/reviewers`);
@@ -1886,13 +1938,14 @@ export default function Feedback360Dashboard({
       return isReviewer && (survey.status === 'in_progress' || survey.status === 'completed' || survey.status === 'finalized');
     }
 
-    // My 360 Feedback tab: show finalized surveys where user is the subject
+    // My 360 Feedback tab: show finalized AND released surveys where user is the subject
     // Use email as fallback to handle ID mismatches (OAuth ID vs database ID)
+    // Subjects can only see surveys that have been explicitly released by the sponsor
     if (filterRole === 'my_feedback') {
       const idMatch = survey.employee_id === currentUser?.id;
       const emailMatch = currentUser?.email && survey.employee?.email?.toLowerCase() === currentUser.email.toLowerCase();
       const isSubject = idMatch || emailMatch;
-      return survey.status === 'finalized' && isSubject;
+      return survey.status === 'finalized' && survey.released_to_subject_at && isSubject;
     }
 
     // Sponsor tab:
@@ -1950,9 +2003,10 @@ export default function Feedback360Dashboard({
     return s.status === 'in_progress' && isReviewer;
   }).length;
 
-  // My 360 Feedback count - use email as fallback for ID mismatches
+  // My 360 Feedback count - finalized AND released surveys where user is subject
+  // Use email as fallback for ID mismatches
   const myFeedbackCount = surveys.filter(s => {
-    if (s.status !== 'finalized') return false;
+    if (s.status !== 'finalized' || !s.released_to_subject_at) return false;
     const idMatch = s.employee_id === currentUser?.id;
     const emailMatch = currentUser?.email && s.employee?.email?.toLowerCase() === currentUser.email.toLowerCase();
     return idMatch || emailMatch;
@@ -4532,6 +4586,29 @@ export default function Feedback360Dashboard({
                           >
                             <ArrowDownCircle className="w-4 h-4 mr-2" />
                             Finalize
+                          </button>
+                        )}
+                        {/* Release to Subject button - only for finalized surveys */}
+                        {selectedSurvey.status === 'finalized' && (
+                          <button
+                            onClick={() => !selectedSurvey.released_to_subject_at && releaseToSubject(selectedSurvey.id)}
+                            disabled={isReleasingToSubject || !!selectedSurvey.released_to_subject_at}
+                            className={`px-6 py-3 text-white rounded-md font-medium flex items-center ${
+                              selectedSurvey.released_to_subject_at
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : isReleasingToSubject
+                                  ? 'bg-blue-600 opacity-50 cursor-not-allowed'
+                                  : 'bg-blue-600 hover:bg-blue-700 transition-colors'
+                            }`}
+                          >
+                            {isReleasingToSubject ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <Eye className="w-4 h-4 mr-2" />
+                            )}
+                            {selectedSurvey.released_to_subject_at
+                              ? `Released to ${(selectedSurvey.employee?.name || selectedSurvey.employee_name || 'Subject').split(' ')[0]}`
+                              : `Release to ${(selectedSurvey.employee?.name || selectedSurvey.employee_name || 'Subject').split(' ')[0]}`}
                           </button>
                         )}
                       </>
