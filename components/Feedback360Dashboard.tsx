@@ -4408,13 +4408,15 @@ export default function Feedback360Dashboard({
                   {finalNarrative ? (
                     <>
                       <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 border border-purple-200 dark:border-purple-700 rounded-md p-8">
-                        <div className="mb-6">
-                          <h4 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Final Narrative</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            This will be the first page of the final 360 report that{' '}
-                            {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'} sees.
-                          </p>
-                        </div>
+                        {canSeeAdvanced && (
+                          <div className="mb-6">
+                            <h4 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Final Narrative</h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              This will be the first page of the final 360 report that{' '}
+                              {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'} sees.
+                            </p>
+                          </div>
+                        )}
                         <div className="prose prose-sm dark:prose-invert max-w-none">
                           <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                             {finalNarrative.replace(/^\*\*360-Degree Feedback Report:.*?\*\*\s*/i, '').trim()}
