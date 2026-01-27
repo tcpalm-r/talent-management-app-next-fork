@@ -4089,14 +4089,16 @@ export default function Feedback360Dashboard({
 
                 return (
                   <div>
-                    <div className="mb-4">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                        Recommended Actions
-                        {canEdit && (
-                          <span className="text-xs text-gray-600 dark:text-gray-400 font-semibold ml-2">(Click to edit)</span>
-                        )}
-                      </h4>
-                    </div>
+                    {canSeeAdvanced && (
+                      <div className="mb-4">
+                        <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          Recommended Actions for {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'}
+                          {canEdit && (
+                            <span className="text-xs text-gray-600 dark:text-gray-400 font-semibold ml-2">(Click to edit)</span>
+                          )}
+                        </h4>
+                      </div>
+                    )}
                     <ul className="space-y-3">
                       {surveyResults.recommendations && surveyResults.recommendations.length > 0 && surveyResults.recommendations.map((rec: string | { text: string; citations?: any[] }, idx: number) => {
                         const recText = getStatementText(rec);
