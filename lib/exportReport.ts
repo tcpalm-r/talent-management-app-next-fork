@@ -415,13 +415,6 @@ export async function exportReportAsPDF(report: Report360Data, suffix?: string) 
     pdf.setFont(fontFamily, 'normal');
     pdf.setTextColor(0, 163, 225); // Sonance Blue "The Beam"
     pdf.text('Themes', pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 6;
-
-    // Subtitle explaining theme ordering
-    pdf.setFontSize(9);
-    pdf.setFont(fontFamily, 'italic');
-    pdf.setTextColor(128, 128, 128); // Gray
-    pdf.text('Themes are ordered by prevalence in the feedback', pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 8;
 
     pdf.setFontSize(10);

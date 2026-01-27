@@ -3985,7 +3985,7 @@ export default function Feedback360Dashboard({
               {/* Key Themes Tab */}
               {activeReportTab === 'themes' && surveyResults.themes && surveyResults.themes.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 italic">Themes are ordered by prevalence in the feedback</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 italic">Themes are ordered by their prevalence</p>
                   {surveyResults.themes.map((theme: any, idx: number) => (
                     <div
                       key={idx}
