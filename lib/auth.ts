@@ -374,6 +374,26 @@ export const TEST_USERS: SessionUser[] = [
     department: 'Sales',
     title: 'Studio Coordinator',
   },
+  {
+    id: '27db58a9-2d9d-414c-8310-4cc05c8a5fe9',
+    auth0_id: 'julie.horn@sonance.com',
+    email: 'julie.horn@sonance.com',
+    full_name: 'Julie Horn',
+    given_name: 'Julie',
+    family_name: 'Horn',
+    picture: null,
+    app_role: 'user',
+    app_permissions: {
+      read: true,
+      admin: false,
+      write: false,
+    },
+    global_role: 'user',
+    capabilities: [],
+    app_access: true,
+    department: 'Administration',
+    title: null,
+  },
 ];
 
 /**
