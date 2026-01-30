@@ -13,6 +13,7 @@ export * from './survey-analyzer-pass1';
 export * from './survey-analyzer-pass2';
 export * from './survey-analyzer-pass3';
 export * from './generate-narrative';
+export * from './identify-harsh-feedback';
 
 // Shared model configuration
 export const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';

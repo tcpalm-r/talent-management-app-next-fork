@@ -1,0 +1,64 @@
+{
+  "backup_date": "2026-01-28",
+  "backup_reason": "Pre-cleanup backup of unused tables",
+  "tables": {
+    "ideal_team_player_matrix": {
+      "row_count": 18,
+      "data": [
+        {"id":1,"virtue":"HUMBLE","attribute":"Recognition","not_living":"Mostly concerned with personal accomplishments rather than team accomplishments","living":"Proactively recognizes team accomplishments vs individual accomplishments","role_modeling":"Encourages others to recognize team accomplishments and always refers to \"we\" rather than \"I\" when we fall"},
+        {"id":2,"virtue":"HUMBLE","attribute":"Intellectual Honesty","not_living":"Doesn't share thoughts and opinions, often thinks, \"I know that wouldn't work\" or says, \"Well I could have told you that\"","living":"Shares thoughts clearly and within a reasonable time frame","role_modeling":"Makes sure everyone in a meeting has been heard and that the group has converged onto a plan that everyone believes will ensure clarity and addresses any potential misalignment"},
+        {"id":3,"virtue":"HUMBLE","attribute":"Collaboration","not_living":"Resists collaboration out of arrogance, fear, or insecurity","living":"Collaborates, asks others for input, and is comfortable being challenged","role_modeling":"Creates an environment where everyone feels comfortable to contribute and share their ideas"},
+        {"id":4,"virtue":"HUMBLE","attribute":"Accountability","not_living":"When things go poorly, I blame others","living":"When things go poorly, I shoulder the blame","role_modeling":"When things go poorly, I am enthusiastic to talk about my role and what I can do to improve"},
+        {"id":5,"virtue":"HUMBLE","attribute":"Handling Mistakes","not_living":"Does not easily admit mistakes, quick to make excuses, and is rarely genuinely apologetic","living":"Easily admits mistakes and learns from each of them","role_modeling":"Proactively owns mistakes and demonstrates to others how admitting and \"owning\" mistakes can build people trust"},
+        {"id":6,"virtue":"HUMBLE","attribute":"Communication","not_living":"Uses absolute terms like: Always, Never, Certainly, or Undoubtedly","living":"Uses words like: Perhaps, I think, and My gut says that","role_modeling":"Is very comfortable saying: I don't know or I could use your input"},
+        {"id":7,"virtue":"HUNGRY","attribute":"Team Commitment","not_living":"Is not passionate about the mission of the Team","living":"Feels a sense of personal responsibility for the mission of the Team","role_modeling":"Inspires others to have a sense of personal responsibility for the mission of the Team"},
+        {"id":8,"virtue":"HUNGRY","attribute":"Initiative","not_living":"Does the bare minimum to get by","living":"Quick to jump in to the next initiative or opportunity with enthusiasm and passion","role_modeling":"My passion for my work and the Team could be described as \"contagious\""},
+        {"id":9,"virtue":"HUNGRY","attribute":"Balance","not_living":"All consumed with work & no life balance","living":"Healthy life balance with positive energy and demonstrates sustainable commitments","role_modeling":"Works hard and contributes so much that I feel confident taking time off"},
+        {"id":10,"virtue":"HUNGRY","attribute":"Passion","not_living":"Is indifferent about our products, customers, and our team. Avoids interactions whenever possible","living":"Is passionate about what we do, our customer's businesses, and team member's lives","role_modeling":"Engages with our customers and employees and displays passion for our products, our customers, our employees"},
+        {"id":11,"virtue":"HUNGRY","attribute":"Drive","not_living":"Has a \"That's not my job\" attitude","living":"Willing to take on tedious or challenging tasks whenever necessary","role_modeling":"Looks for opportunities to do both high level and low level tasks - coaches others to do the same"},
+        {"id":12,"virtue":"HUNGRY","attribute":"Connects To Company Goals","not_living":"Struggles to tie individual responsibilities to company goals - eager for advancement but may struggle understanding the bigger picture","living":"Easily connects the work of self and others to the company's goals","role_modeling":"Helps others find ways to contribute to the team and actively looks for next progressiveness to tackle"},
+        {"id":13,"virtue":"PEOPLE SMART","attribute":"Adaptability","not_living":"Often offends others, unable to \"read the room\"","living":"Can quickly assess the room and alter delivery on the spot to appeal to the audience","role_modeling":"Helps others learn to adapt to different personality styles and situations"},
+        {"id":14,"virtue":"PEOPLE SMART","attribute":"Focus","not_living":"Too focused on office politics and gossip","living":"Focuses on the important things and ignores office politics and gossip","role_modeling":"Gets it out when people are focusing on office politics or gossip and draws people's focus back to important work/thinking"},
+        {"id":15,"virtue":"PEOPLE SMART","attribute":"Conflict Resolution","not_living":"Hesitates to address conflict and/or avoids uncomfortable situations","living":"Participates in constructive conflict to drive for resolution","role_modeling":"Drives constructive conflict and productive debate to help produce the best outcome"},
+        {"id":16,"virtue":"PEOPLE SMART","attribute":"Empathetic","not_living":"Offends others without realizing it","living":"Understands the impact of my words and actions","role_modeling":"Puts others at ease, even when disagreeing. Sets a tone of collaboration"},
+        {"id":17,"virtue":"PEOPLE SMART","attribute":"Skill Identification","not_living":"Fails to recognize and promote others skills and experiences","living":"Values the skills and experience of others and asks them to weigh in on areas of expertise","role_modeling":"Seeks to learn more about others skills/experiences and helps them find opportunities to apply and develop them"},
+        {"id":18,"virtue":"PEOPLE SMART","attribute":"Listening Skills","not_living":"Talks more than listens","living":"Listens more than speaks","role_modeling":"Makes sure everyone in the room has been heard and that they have converged onto a plan that everyone believes in"}
+      ]
+    },
+    "departments": {
+      "row_count": 5,
+      "data": [
+        {"id":"d1d1d1d1-d1d1-d1d1-d1d1-d1d1d1d1d1d1","name":"Engineering","color":"#3B82F6"},
+        {"id":"d2d2d2d2-d2d2-d2d2-d2d2-d2d2d2d2d2d2","name":"Sales","color":"#10B981"},
+        {"id":"d3d3d3d3-d3d3-d3d3-d3d3-d3d3d3d3d3d3","name":"Marketing","color":"#F59E0B"},
+        {"id":"d4d4d4d4-d4d4-d4d4-d4d4-d4d4d4d4d4d4","name":"HR","color":"#EF4444"},
+        {"id":"d5d5d5d5-d5d5-d5d5-d5d5-d5d5d5d5d5d5","name":"Finance","color":"#8B5CF6"}
+      ]
+    },
+    "box_definitions": {
+      "row_count": 9,
+      "note": "9-box talent grid definitions",
+      "data": [
+        {"key":"1-1","label":"Realign & Redirect","description":"Not delivering results, cannot adapt","action_hint":"Realign or exit within 3-6 months","color":"#EF4444","grid_x":1,"grid_y":1},
+        {"key":"1-2","label":"Evaluate Further","description":"Some potential but not meeting standards","action_hint":"Improve or move within 6 months","color":"#FB923C","grid_x":1,"grid_y":2},
+        {"key":"1-3","label":"Rising Talent","description":"High potential but underperforming","action_hint":"Needs coaching to reach full performance","color":"#FBBF24","grid_x":1,"grid_y":3},
+        {"key":"2-1","label":"Core Foundation","description":"Solid at current level, limited advancement potential","action_hint":"Valuable team member, maintain at current level","color":"#F59E0B","grid_x":2,"grid_y":1},
+        {"key":"2-2","label":"Steady Contributor","description":"Reliable performer, meets expectations","action_hint":"Potential for one level advancement","color":"#3B82F6","grid_x":2,"grid_y":2},
+        {"key":"2-3","label":"Emerging Leader","description":"Meets/exceeds expectations, high capacity for growth","action_hint":"Ready for stretch assignments and challenges","color":"#8B5CF6","grid_x":2,"grid_y":3},
+        {"key":"3-1","label":"Master Craftsperson","description":"Expert in specific area, at appropriate level","action_hint":"Valuable for knowledge transfer and mentoring","color":"#10B981","grid_x":3,"grid_y":1},
+        {"key":"3-2","label":"Performance Leader","description":"Exceptional results in current role","action_hint":"Ready for next level within 24 months","color":"#06B6D4","grid_x":3,"grid_y":2},
+        {"key":"3-3","label":"Star/Top Talent","description":"Consistently exceeds standards, learns fast","action_hint":"Ready for multiple level advancement, succession planning","color":"#10B981","grid_x":3,"grid_y":3}
+      ]
+    },
+    "talent_grid_assessments": {
+      "row_count": 1,
+      "data": [
+        {"id":"729a017d-32a1-4747-9f1b-ede547bcf512","employee_id":"466142ab-fa6c-4c14-b4f4-f074ee762e6e","performance":"low","potential":"low","box_key":"1-1"}
+      ]
+    },
+    "sync_history": {
+      "row_count": 12,
+      "note": "Data saved separately due to size - see sync_history_backup.json or query from database if needed before deletion"
+    }
+  }
+}

@@ -394,6 +394,26 @@ export const TEST_USERS: SessionUser[] = [
     department: 'Administration',
     title: null,
   },
+  {
+    id: '8f8a22b2-6215-4c33-bbfc-634af796ce2f',
+    auth0_id: 'samanthah@sonance.com',
+    email: 'samanthah@sonance.com',
+    full_name: 'Samantha Hanner',
+    given_name: 'Samantha',
+    family_name: 'Hanner',
+    picture: null,
+    app_role: 'admin',
+    app_permissions: {
+      read: true,
+      admin: true,
+      write: true,
+    },
+    global_role: 'user',
+    capabilities: [],
+    app_access: true,
+    department: 'Human Resources',
+    title: 'Employee Development Manager',
+  },
 ];
 
 /**

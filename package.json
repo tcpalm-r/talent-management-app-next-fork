@@ -44,6 +44,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@supabase/supabase-js": "^2.76.1",
     "html2canvas": "^1.4.1",
+    "jsonrepair": "^3.13.2",
     "jspdf": "^3.0.3",
     "jszip": "^3.10.1",
     "lucide-react": "^0.546.0",

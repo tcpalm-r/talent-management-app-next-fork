@@ -3655,22 +3655,7 @@ export default function Feedback360Dashboard({
               {(isSponsor || isAdmin || isDelegatedSponsor) && (
               <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div>
-                  {/* Send Backward - Admins only (not delegated sponsors) */}
-                  {isAdmin && !isDelegatedSponsor && (selectedSurvey.status === 'in_progress' || selectedSurvey.status === 'completed' || selectedSurvey.status === 'finalized') && (() => {
-                    const targetStatus = selectedSurvey.status === 'finalized' ? 'Completed' :
-                                        selectedSurvey.status === 'completed' ? 'In Progress' : 'Draft';
-                    return (
-                      <Tooltip content={`Move 360° to ${targetStatus} status`}>
-                        <button
-                          onClick={() => sendBackward(selectedSurvey.id, selectedSurvey.status ?? undefined)}
-                          className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors font-medium flex items-center"
-                        >
-                          <ChevronLeft className="w-4 h-4 mr-2" />
-                          Send Backward
-                        </button>
-                      </Tooltip>
-                    );
-                  })()}
+                  {/* Send Backward - Hidden (experimental feature disabled) */}
                 </div>
                 <div className="flex items-center gap-3">
                   {/* Complete with AI for in_progress - disabled if below 70% completion threshold */}
@@ -3848,13 +3833,7 @@ export default function Feedback360Dashboard({
                     )}
                   </div>
                   <div className="flex items-center gap-6">
-                  {/* Audit Mode Toggle - Admin only (sponsors see normal report view) */}
-                  {/* Citations are now always generated with reports - no validation needed */}
-                  <AuditModeToggle
-                    enabled={auditModeEnabled}
-                    onToggle={setAuditModeEnabled}
-                    isAdmin={currentUser?.app_role === 'admin'}
-                  />
+                  {/* Audit Mode Toggle - Hidden (experimental feature disabled) */}
                   {/* Export Button - Conditional: Dropdown for sponsors/admins, simple button for others */}
                   {(() => {
                     // Check both ID and email for subject match (handles OAuth ID mismatches)
@@ -4546,22 +4525,7 @@ export default function Feedback360Dashboard({
               ) : (
                 /* Normal footer for non-admin or non-flagged surveys */
                 <div className="flex items-center justify-between">
-                  {/* Send Backward - Only visible to admins */}
-                  {(currentUser?.app_role === 'admin') && (() => {
-                    const targetStatus = selectedSurvey.status === 'finalized' ? 'Completed' :
-                                        selectedSurvey.status === 'completed' ? 'In Progress' : 'Draft';
-                    return (
-                      <Tooltip content={`Move 360° to ${targetStatus} status`}>
-                        <button
-                          onClick={() => sendBackward(selectedSurvey.id)}
-                          className="text-gray-600 hover:text-gray-800 transition-colors font-medium flex items-center"
-                        >
-                          <ChevronLeft className="w-4 h-4 mr-2" />
-                          Send Backward
-                        </button>
-                      </Tooltip>
-                    );
-                  })()}
+                  {/* Send Backward - Hidden (experimental feature disabled) */}
 
                   <div className={`flex items-center gap-6 ${currentUser?.app_role !== 'admin' ? 'ml-auto' : ''}`}>
                     {/* Workflow controls - Only visible to sponsor or admin */}

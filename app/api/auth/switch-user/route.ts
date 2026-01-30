@@ -5,6 +5,8 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 // List of test user IDs that are allowed in the user switcher
 const TEST_USER_IDS = TEST_USERS.map(u => u.id);
 
+console.log('[User Switcher] TEST_USERS loaded:', TEST_USERS.map(u => ({ email: u.email, app_role: u.app_role })));
+
 /**
  * Switch User API - Local Development Only
  *
@@ -143,14 +145,18 @@ export async function GET(request: NextRequest) {
 
     // Merge: prefer database values for app_role, fall back to hardcoded
     // Maintain the order from TEST_USERS
+    console.log('[User Switcher] DB users found:', dbUsers?.map(u => ({ id: u.id, email: u.email, app_role: u.app_role })));
+
     const users = TEST_USERS.map(baseUser => {
       const dbUser = dbUserMap.get(baseUser.id);
+      const mergedRole = dbUser?.app_role || baseUser.app_role;
+      console.log(`[User Switcher] Merging ${baseUser.email}: db=${dbUser?.app_role}, hardcoded=${baseUser.app_role}, result=${mergedRole}`);
       return {
         id: baseUser.id,
         // Use database role to reflect actual permissions
         email: baseUser.email,
         full_name: baseUser.full_name,
-        app_role: dbUser?.app_role || baseUser.app_role,
+        app_role: mergedRole,
         department: baseUser.department || dbUser?.department,
         title: baseUser.title || dbUser?.title,
       };
