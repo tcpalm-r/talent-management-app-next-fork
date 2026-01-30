@@ -3653,10 +3653,7 @@ export default function Feedback360Dashboard({
 
               {/* Actions - Visible to sponsor, admins, and delegated sponsors */}
               {(isSponsor || isAdmin || isDelegatedSponsor) && (
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-                <div>
-                  {/* Send Backward - Hidden (experimental feature disabled) */}
-                </div>
+              <div className="flex items-center justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-3">
                   {/* Complete with AI for in_progress - disabled if below 70% completion threshold */}
                   {/* Hide for delegated sponsors (EAs) - they can only manage, not complete */}
@@ -4524,10 +4521,8 @@ export default function Feedback360Dashboard({
                 </div>
               ) : (
                 /* Normal footer for non-admin or non-flagged surveys */
-                <div className="flex items-center justify-between">
-                  {/* Send Backward - Hidden (experimental feature disabled) */}
-
-                  <div className={`flex items-center gap-6 ${currentUser?.app_role !== 'admin' ? 'ml-auto' : ''}`}>
+                <div className="flex items-center justify-end">
+                  <div className="flex items-center gap-6">
                     {/* Workflow controls - Only visible to sponsor or admin */}
                     {(currentUser?.app_role === 'admin' || isUserSponsor(selectedSurvey, currentUser, currentUserDbId)) && (
                       <>
