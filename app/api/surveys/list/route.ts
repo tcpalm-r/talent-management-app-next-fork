@@ -15,7 +15,7 @@
  *
  * Role-Based Access:
  * - Admin: See all surveys
- * - SLT: See own surveys (all statuses), direct report surveys, surveys where they're reviewer, surveys where they're subject (finalized only)
+ * - SLT: See own surveys (all statuses), all in_progress surveys, all finalized surveys, surveys where they're reviewer, surveys where they're subject (finalized only)
  * - Leader: See own surveys (all statuses), direct report surveys, surveys where they're reviewer, surveys where they're subject (finalized only)
  * - User: See own surveys (all statuses), surveys where they're reviewer, surveys where they're subject (finalized only)
  * - EA (User with delegation): Also see in_progress surveys where their assigned SLT is the sponsor
@@ -166,6 +166,13 @@ export async function GET(request: NextRequest) {
           'slt-in-progress'
         );
         inProgressIds.forEach(id => allowedIds.add(id));
+
+        // SLT can see all finalized surveys
+        const finalizedIds = await fetchSurveyIds(
+          baseSurveyIdQuery().eq('status', 'finalized'),
+          'slt-finalized'
+        );
+        finalizedIds.forEach(id => allowedIds.add(id));
       }
 
       if (role === 'leader') {

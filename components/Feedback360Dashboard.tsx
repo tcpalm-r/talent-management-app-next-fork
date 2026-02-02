@@ -100,6 +100,7 @@ const canUserViewResults = (
 
   const isSponsor = isUserSponsor(survey, user, userDbId);
   const isAdmin = user.app_role === 'admin';
+  const isSLT = user.app_role === 'slt';
   // Check both ID and email for subject match (handles OAuth ID mismatches)
   const idMatch = survey.employee_id === user.id;
   const emailMatch = user.email && survey.employee?.email?.toLowerCase() === user.email.toLowerCase();
@@ -110,7 +111,10 @@ const canUserViewResults = (
   // Leader reviewers who are NOT sponsor and NOT subject cannot view results
   const isLeaderReviewerOnly = isLeader && isReviewer && !isSponsor && !isSubject;
 
-  return (isSponsor || isAdmin || isSubject) && !isLeaderReviewerOnly;
+  // SLT can view finalized surveys
+  const sltCanView = isSLT && survey.status === 'finalized';
+
+  return (isSponsor || isAdmin || isSubject || sltCanView) && !isLeaderReviewerOnly;
 };
 
 // Helper function to extract text from either a plain string or CitedStatement object
@@ -288,7 +292,7 @@ export default function Feedback360Dashboard({
 
   // Only Admin and SLT can sponsor surveys, everyone else defaults to 'reviewer'
   // EAs with delegation default to 'delegated_sponsor'
-  const [filterRole, setFilterRole] = useState<'all' | 'sponsor' | 'reviewer' | 'my_feedback' | 'needs_reanalysis' | 'delegated_sponsor'>(
+  const [filterRole, setFilterRole] = useState<'all' | 'sponsor' | 'reviewer' | 'my_feedback' | 'needs_reanalysis' | 'delegated_sponsor' | 'all_finalized'>(
     currentUser?.app_role === 'admin' ? 'all' :
     (currentUser?.app_role === 'slt') ? 'sponsor' :
     getEASponsorMapping(currentUser?.email) ? 'delegated_sponsor' : 'reviewer'
@@ -297,6 +301,7 @@ export default function Feedback360Dashboard({
   const [sponsorSearchQuery, setSponsorSearchQuery] = useState('');
   const [allSurveysSearchQuery, setAllSurveysSearchQuery] = useState('');
   const [delegatedSponsorSearchQuery, setDelegatedSponsorSearchQuery] = useState('');
+  const [allFinalizedSearchQuery, setAllFinalizedSearchQuery] = useState('');
   const [preselectedEmployee, setPreselectedEmployee] = useState<Employee | undefined>(undefined);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -1968,6 +1973,11 @@ export default function Feedback360Dashboard({
       return survey.flagged_for_reanalysis === true;
     }
 
+    // All Finalized 360s tab (SLT only): Show all finalized surveys
+    if (filterRole === 'all_finalized') {
+      return survey.status === 'finalized';
+    }
+
     // All 360°s tab (Admin only): Show ALL surveys EXCEPT drafts
     if (filterRole === 'all') {
       return survey.status !== 'draft';
@@ -2037,6 +2047,9 @@ export default function Feedback360Dashboard({
       s.status === 'in_progress'
     ).length;
   }, [surveys, eaSponsorMapping]);
+
+  // Count for All Finalized 360s tab (SLT only) - all finalized surveys
+  const allFinalizedCount = surveys.filter(s => s.status === 'finalized').length;
 
   // Then filter by status (only applies to Sponsor tab now)
   // Reviewer and Subject tabs ignore manual status filter (automatic filtering above)
@@ -2115,6 +2128,16 @@ export default function Feedback360Dashboard({
   // Apply search filter on Delegated Sponsor tab (EA)
   if (filterRole === 'delegated_sponsor' && delegatedSponsorSearchQuery.trim()) {
     const query = delegatedSponsorSearchQuery.toLowerCase().trim();
+    filteredSurveys = filteredSurveys.filter(survey => {
+      const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || survey.employee_name?.toLowerCase() || '';
+      const nameParts = employeeName.split(/\s+/).filter(part => part.length > 0);
+      return nameParts.some(part => part.startsWith(query));
+    });
+  }
+
+  // Apply search filter on All Finalized 360s tab (SLT)
+  if (filterRole === 'all_finalized' && allFinalizedSearchQuery.trim()) {
+    const query = allFinalizedSearchQuery.toLowerCase().trim();
     filteredSurveys = filteredSurveys.filter(survey => {
       const employeeName = survey.employee?.name?.toLowerCase() || survey.employee?.full_name?.toLowerCase() || survey.employee_name?.toLowerCase() || '';
       const nameParts = employeeName.split(/\s+/).filter(part => part.length > 0);
@@ -2334,6 +2357,13 @@ export default function Feedback360Dashboard({
               tooltip: '360 feedback you created. Launch feedback sessions, manage reviewers, track progress, and finalize the report',
               count: sponsorCount
             }] : []),
+            // Only show All Finalized 360s tab for SLT role
+            ...(currentUser?.app_role === 'slt' ? [{
+              id: 'all_finalized',
+              label: 'All Finalized 360s',
+              tooltip: 'View all finalized 360 feedback reports across the organization',
+              count: allFinalizedCount
+            }] : []),
             {
               id: 'reviewer',
               label: 'Give Feedback',
@@ -2364,13 +2394,14 @@ export default function Feedback360Dashboard({
           ]}
           activeTab={filterRole}
           onTabChange={(tabId) => {
-            setFilterRole(tabId as 'all' | 'sponsor' | 'reviewer' | 'my_feedback' | 'needs_reanalysis' | 'delegated_sponsor');
+            setFilterRole(tabId as 'all' | 'sponsor' | 'reviewer' | 'my_feedback' | 'needs_reanalysis' | 'delegated_sponsor' | 'all_finalized');
             setFilterStatus('all'); // Reset status filter when switching tabs
             setReviewerFilterStatus('all'); // Reset reviewer filter when switching tabs
             setReviewerSearchQuery(''); // Clear reviewer search when switching tabs
             setSponsorSearchQuery(''); // Clear sponsor search when switching tabs
             setAllSurveysSearchQuery(''); // Clear all surveys search when switching tabs
             setDelegatedSponsorSearchQuery(''); // Clear delegated sponsor search when switching tabs
+            setAllFinalizedSearchQuery(''); // Clear all finalized search when switching tabs
           }}
           variant="underline"
         />
@@ -2727,6 +2758,22 @@ export default function Feedback360Dashboard({
         </div>
       )}
 
+      {/* All Finalized 360s Tab - Search Only (SLT Only) */}
+      {filterRole === 'all_finalized' && currentUser?.app_role === 'slt' && (
+        <div className="mt-6 mb-6">
+          <div className="relative w-[675px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by employee name..."
+              value={allFinalizedSearchQuery}
+              onChange={(e) => setAllFinalizedSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Reviews List */}
       {loading ? (
         <div className="text-center py-12 mt-6">
@@ -2754,6 +2801,8 @@ export default function Feedback360Dashboard({
                   : 'No finalized 360°s'
                 : filterRole === 'delegated_sponsor'
                 ? `No in-progress 360°s for ${eaSponsorMapping?.sltDisplayName || 'your SLT'}`
+                : filterRole === 'all_finalized'
+                ? 'No finalized 360°s in the system yet'
                 : filterStatus === 'all'
                 ? 'Launch a 360° Review and it will show up here.'
                 : filterStatus === 'draft'

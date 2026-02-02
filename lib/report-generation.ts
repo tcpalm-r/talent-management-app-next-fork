@@ -31,6 +31,11 @@ export function determineViewerRole(
     return 'admin';
   }
 
+  // SLT can view finalized surveys with sponsor-level access (full report without citations)
+  if (user.app_role === 'slt' && survey.status === 'finalized') {
+    return 'sponsor';
+  }
+
   // Check if user is the survey sponsor (creator)
   const isSponsor =
     user.id === survey.created_by ||

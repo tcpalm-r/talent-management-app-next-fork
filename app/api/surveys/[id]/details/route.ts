@@ -142,6 +142,9 @@ async function checkSurveyAccess(
   // Admins have full access
   if (role === 'admin') return true;
 
+  // SLT can view finalized surveys
+  if (role === 'slt' && survey.status === 'finalized') return true;
+
   // Check if user created the survey
   const isSponsor =
     survey.created_by === profile.id ||

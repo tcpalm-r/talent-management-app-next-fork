@@ -171,6 +171,11 @@ export function canViewFullReport(
     return true;
   }
 
+  // SLT members see full reports
+  if (userRole === 'slt') {
+    return true;
+  }
+
   // Survey sponsors (creators) see full reports
   if (surveyCreatedBy === currentUserId) {
     return true;
