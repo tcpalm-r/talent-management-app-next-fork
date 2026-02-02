@@ -2370,13 +2370,13 @@ export default function Feedback360Dashboard({
               tooltip: 'Active 360 feedback sessions awaiting your input. Provide anonymous feedback, aggregated with AI',
               count: reviewerCount
             },
-            // My 360 Feedback tab - visible to all users
-            {
+            // My 360 Feedback tab - only visible when user has feedback
+            ...(myFeedbackCount > 0 ? [{
               id: 'my_feedback',
               label: 'My 360 Feedback',
               tooltip: 'View your finalized 360 feedback reports',
               count: myFeedbackCount
-            },
+            }] : []),
             // Show Delegated Sponsor tab for EAs - positioned after Give Feedback
             ...(eaSponsorMapping ? [{
               id: 'delegated_sponsor',
