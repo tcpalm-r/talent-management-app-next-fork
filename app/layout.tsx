@@ -9,23 +9,14 @@ const montserrat = Montserrat({
   subsets: ["latin"],
   variable: "--font-montserrat",
   display: "swap",
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
   title: "Sonance 360° Reviews",
-  description: "Talent Management and 360° Feedback Review Platform",
+  description: "360° Feedback Review Platform by Sonance",
   icons: {
-    icon: [
-      {
-        url: '/favicon-dark.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/favicon-light.png',
-        media: '(prefers-color-scheme: light)',
-      },
-    ],
+    icon: '/favicon.svg',
   },
 };
 
@@ -44,5 +35,3 @@ export default function RootLayout({
     </html>
   );
 }
-// Test commit to verify CI
-// Updated with comprehensive testing

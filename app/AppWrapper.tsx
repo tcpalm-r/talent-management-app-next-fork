@@ -102,37 +102,27 @@ export default function AppWrapper() {
   // Show loading while auth is initializing or organization is loading
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Header Skeleton */}
-        <header className="bg-white border-b border-gray-200" aria-label="Sonance Talent Management is loading">
-          <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="min-h-screen bg-[#F8FAFB]">
+        {/* Top Nav Skeleton */}
+        <header className="bg-[#333F48] shadow-md" aria-label="Sonance 360° Reviews is loading">
+          <div className="max-w-6xl mx-auto px-4 py-3">
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <span className="sr-only">Sonance Talent Management</span>
-                <div className="skeleton-text w-48 h-6" aria-hidden></div>
-                <div className="skeleton-text w-24 h-5" aria-hidden></div>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg bg-white/20" aria-hidden></div>
+                <div className="skeleton-text w-36 h-5 !bg-white/10" aria-hidden></div>
               </div>
-              <div className="skeleton-text w-32 h-10 rounded-md" aria-hidden></div>
+              <div className="flex items-center gap-2">
+                <div className="skeleton-text w-20 h-9 rounded-lg !bg-white/10" aria-hidden></div>
+              </div>
             </div>
           </div>
         </header>
 
-        {/* Nav Skeleton */}
-        <nav className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex gap-4">
-              {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="skeleton-text w-24 h-12"></div>
-              ))}
-            </div>
-          </div>
-        </nav>
-
         {/* Content Skeleton */}
-        <main className="max-w-[1800px] mx-auto px-6 py-8">
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
-              <div key={i} className="skeleton-box h-48 rounded-md"></div>
+        <main className="max-w-6xl mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="skeleton-box h-48 rounded-xl"></div>
             ))}
           </div>
         </main>
@@ -143,15 +133,15 @@ export default function AppWrapper() {
   // Handle authentication errors
   if (authError) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-8 max-w-lg w-full">
+      <div className="min-h-screen bg-[#F8FAFB] flex items-center justify-center p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-[#E3E8EB] p-8 max-w-lg w-full">
           <div className="text-red-500 text-center mb-6">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h2 className="text-lg font-semibold text-center mb-3 text-gray-900">Authentication Error</h2>
-          <p className="text-sm text-gray-600 text-center mb-6">{authError}</p>
+          <h2 className="text-lg font-semibold text-center mb-3 text-[#333F48]">Authentication Error</h2>
+          <p className="text-sm text-[#6B7780] text-center mb-6">{authError}</p>
           <div className="flex justify-center">
             <button onClick={() => window.location.reload()} className="btn-primary">
               Retry
@@ -167,10 +157,10 @@ export default function AppWrapper() {
   if (!user && !authLoading) {
     console.error('[AppWrapper] No authenticated user found - authentication required');
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
-          <h2 className="text-lg font-semibold mb-2 text-gray-900">Authentication Required</h2>
-          <p className="text-sm text-gray-600 mb-6">Please sign in to access Sonance Talent Management.</p>
+      <div className="min-h-screen bg-[#F8FAFB] flex items-center justify-center p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-[#E3E8EB] p-8 max-w-md w-full text-center">
+          <h2 className="text-lg font-semibold mb-2 text-[#333F48]">Authentication Required</h2>
+          <p className="text-sm text-[#6B7780] mb-6">Please sign in to access Sonance Talent Management.</p>
           <a href="/api/auth/login" className="btn-primary">
             Sign In
           </a>
@@ -181,15 +171,15 @@ export default function AppWrapper() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-8 max-w-lg w-full">
+      <div className="min-h-screen bg-[#F8FAFB] flex items-center justify-center p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-[#E3E8EB] p-8 max-w-lg w-full">
           <div className="text-red-500 text-center mb-6">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h2 className="text-lg font-semibold text-center mb-3 text-gray-900">Sonance workspace unavailable</h2>
-          <p className="text-sm text-gray-600 text-center mb-6">{error}</p>
+          <h2 className="text-lg font-semibold text-center mb-3 text-[#333F48]">Sonance workspace unavailable</h2>
+          <p className="text-sm text-[#6B7780] text-center mb-6">{error}</p>
 
           <div className="flex justify-center mb-6">
             <button
@@ -216,10 +206,10 @@ export default function AppWrapper() {
 
   if (!organization) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
-          <h2 className="text-lg font-semibold mb-2 text-gray-900">Sonance workspace not found</h2>
-          <p className="text-sm text-gray-600 mb-6">We couldn’t load the sample organization for Sonance Talent Management.</p>
+      <div className="min-h-screen bg-[#F8FAFB] flex items-center justify-center p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-[#E3E8EB] p-8 max-w-md w-full text-center">
+          <h2 className="text-lg font-semibold mb-2 text-[#333F48]">Sonance workspace not found</h2>
+          <p className="text-sm text-[#6B7780] mb-6">We couldn’t load the sample organization for Sonance Talent Management.</p>
           <button
             onClick={loadOrganization}
             className="btn-primary"
@@ -240,7 +230,7 @@ export default function AppWrapper() {
       performanceReviews={performanceReviews}
       onNavigateToView={handleNavigateToView}
     >
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <Dashboard
           user={user as any}
           userProfile={userProfile!}

@@ -3,7 +3,7 @@
 import { Settings, Pencil, Save, X, User, Shield, HelpCircle, Search, Trash2, GripVertical } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { UserProfile } from '@/lib/supabase';
-import ConfirmDialog from './ConfirmDialog';
+
 import { useToast } from './unified';
 import {
   DndContext,
@@ -409,11 +409,6 @@ export default function AdminSettings() {
   const [loading, setLoading] = useState(false);
   const [editValues, setEditValues] = useState<Record<string, Partial<UserProfile>>>({});
   const [saving, setSaving] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
-
-  // Confirm dialog state (Teams iframe compatible)
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [employeeToDelete, setEmployeeToDelete] = useState<EditableEmployee | null>(null);
 
   useEffect(() => {
     loadEmployees();
@@ -550,55 +545,6 @@ export default function AdminSettings() {
     }));
   };
 
-  const deleteEmployee = (employee: EditableEmployee) => {
-    // Show confirm dialog instead of native confirm (Teams iframe compatible)
-    setEmployeeToDelete(employee);
-    setDeleteConfirmOpen(true);
-  };
-
-  // Handler for confirmed employee deletion
-  const handleConfirmDeleteEmployee = async () => {
-    if (!employeeToDelete) return;
-
-    setDeleteConfirmOpen(false);
-    setDeleting(employeeToDelete.id);
-
-    try {
-      // Soft delete by setting is_active to false
-      const response = await fetch('/api/admin/employees', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: employeeToDelete.id, updates: { is_active: false } }),
-      });
-
-      if (response.ok) {
-        // Remove from both filtered and all employees lists
-        setFilteredEmployees(prev => prev.filter(emp => emp.id !== employeeToDelete.id));
-        setAllEmployees(prev => prev.filter(emp => emp.id !== employeeToDelete.id));
-        notify({
-          title: 'User deactivated',
-          description: `${employeeToDelete.full_name} has been deactivated successfully.`,
-          variant: 'success',
-        });
-      } else {
-        notify({
-          title: 'Error',
-          description: 'Failed to delete user',
-          variant: 'error',
-        });
-      }
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      notify({
-        title: 'Error',
-        description: 'Failed to delete user',
-        variant: 'error',
-      });
-    }
-
-    setDeleting(null);
-    setEmployeeToDelete(null);
-  };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
@@ -795,14 +741,6 @@ export default function AdminSettings() {
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => deleteEmployee(employee)}
-                              disabled={deleting === employee.id}
-                              className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-50"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
                           </div>
                         </td>
                       </>
@@ -815,22 +753,6 @@ export default function AdminSettings() {
         </div>
       </div>
 
-      {/* Confirm Dialog for Delete Employee (Teams iframe compatible) */}
-      <ConfirmDialog
-        isOpen={deleteConfirmOpen}
-        onClose={() => {
-          setDeleteConfirmOpen(false);
-          setEmployeeToDelete(null);
-        }}
-        onConfirm={handleConfirmDeleteEmployee}
-        title="Delete User"
-        message={employeeToDelete
-          ? `Are you sure you want to delete ${employeeToDelete.full_name}?\n\nThis will deactivate their account and they will no longer appear in the system.`
-          : ''}
-        confirmText="Delete"
-        cancelText="Cancel"
-        variant="danger"
-      />
 
     </div>
   );

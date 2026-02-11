@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: 'class',
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -13,34 +12,61 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-montserrat)', 'system-ui', 'sans-serif'],
+        sans: ['Montserrat', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       colors: {
-        // Sonance Beam Blue palette based on #00A3E1
-        primary: {
-          50: '#e6f7fc',
-          100: '#b3e8f7',
-          200: '#80d9f2',
-          300: '#4dcaed',
-          400: '#26bee8',
-          500: '#00A3E1',  // Sonance "The Beam" blue
-          600: '#0092ca',
-          700: '#007eb0',
-          800: '#006994',
-          900: '#004d6e',
-        },
-        // Sonance brand colors
+        // Sonance Brand Colors
         sonance: {
-          charcoal: '#333F48',
-          beam: '#00A3E1',
-          'light-gray': '#D9D9D6',
+          charcoal: {
+            DEFAULT: '#333F48',
+            light: '#4A5A66',
+            dark: '#1F2A33',
+          },
+          cyan: {
+            DEFAULT: '#00A3E1',
+            light: '#33B5E7',
+            dark: '#0082B4',
+          },
+        },
+        // Semantic Colors
+        primary: {
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
+        },
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
+        },
+        border: 'var(--border)',
+        ring: 'var(--ring)',
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
         },
       },
-      gridTemplateColumns: {
-        '3': 'repeat(3, minmax(0, 1fr))',
+      borderRadius: {
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
+        xl: 'var(--radius-xl)',
       },
-      gridTemplateRows: {
-        '3': 'repeat(3, minmax(0, 1fr))',
+      boxShadow: {
+        'xs': 'var(--shadow-xs)',
+        'sm': 'var(--shadow-sm)',
+        'md': 'var(--shadow-md)',
+        'lg': 'var(--shadow-lg)',
+        'xl': 'var(--shadow-xl)',
+        'cyan-glow': '0 0 20px rgba(0, 163, 225, 0.15), 0 0 40px rgba(0, 163, 225, 0.1)',
+      },
+      animation: {
+        'fade-in': 'fade-in 0.3s ease-out',
+        'slide-up': 'slide-up 0.4s ease-out',
       },
     },
   },

@@ -2,11 +2,9 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useToast } from './unified';
 import type { User, Organization, Employee, Department } from '../types';
-import PeopleDashboard from './PeopleDashboard';
 import Feedback360Dashboard from './Feedback360Dashboard';
-import ITPDashboard from './ITPDashboard';
 import AdminSettings from './AdminSettings';
-import Sidebar from './Sidebar';
+import TopNavBar from './TopNavBar';
 
 interface DashboardProps {
   user: SupabaseUser;
@@ -20,7 +18,7 @@ interface DashboardProps {
   onRegisterNavigate?: (fn: ((view: string) => void) | null) => void;
 }
 
-type View = '360-feedback' | 'itp' | 'directory' | 'admin-settings';
+type View = '360-feedback' | 'admin-settings';
 
 export default function Dashboard({
   user: _user,
@@ -35,33 +33,30 @@ export default function Dashboard({
 }: DashboardProps) {
   const { notify } = useToast();
 
-  const shellClass = 'mx-auto w-full px-4 lg:px-6 xl:px-8 max-w-screen-2xl 2xl:px-10 2xl:max-w-[1700px]';
+  const shellClass = 'mx-auto w-full px-4 max-w-6xl';
 
   const [currentView, setCurrentView] = useState<View>('360-feedback');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [employeePlans, setEmployeePlans] = useState<Record<string, any>>({});
   const [performanceReviews, setPerformanceReviews] = useState<Record<string, any>>({});
   const [finalizedSurveys, setFinalizedSurveys] = useState<Record<string, number>>({});
 
+  const isAdmin = userProfile.app_role?.toLowerCase() === 'admin';
 
   // Find current user's employee record for 360 dashboard filtering
   const currentUserEmployee = useMemo(() => {
-    // Try to find the user in the employees list by email (case-insensitive)
     const matched = employees.find(e => e.email?.toLowerCase() === userProfile.email?.toLowerCase());
 
-    // If found, return the employee record with authenticated user's role
     if (matched) {
       return {
         ...matched,
-        id: userProfile.id, // Use authenticated user's ID (source of truth)
-        app_role: userProfile.app_role, // Always use authenticated user's role from session
+        id: userProfile.id,
+        app_role: userProfile.app_role,
       };
     }
 
-    // Fallback: Create an employee record from userProfile so drafts can be saved with sponsor info
     if (userProfile.id && userProfile.email) {
       return {
         id: userProfile.id,
@@ -84,12 +79,10 @@ export default function Dashboard({
 
   // Redirect from restricted views if user no longer has access
   useEffect(() => {
-    const currentRole = userProfile.app_role?.toLowerCase();
-
-    if (currentView === 'admin-settings' && currentRole !== 'admin') {
+    if (currentView === 'admin-settings' && !isAdmin) {
       setCurrentView('360-feedback');
     }
-  }, [userProfile.app_role, currentView]);
+  }, [userProfile.app_role, currentView, isAdmin]);
 
   const changeView = useCallback((view: View) => {
     setCurrentView(view);
@@ -101,10 +94,6 @@ export default function Dashboard({
       case '360':
       case 'feedback360':
         changeView('360-feedback');
-        break;
-      case 'people':
-      case 'directory':
-        changeView('directory');
         break;
       default:
         break;
@@ -215,29 +204,29 @@ export default function Dashboard({
   };
 
   return (
-    <div className="h-screen flex bg-white dark:bg-gray-900">
-      {/* Sidebar */}
-      <Sidebar
-        currentView={currentView}
-        onViewChange={changeView}
-        userRole={userProfile.app_role}
+    <div className="min-h-screen">
+      {/* Top Navigation Bar */}
+      <TopNavBar
         userProfile={userProfile}
+        userRole={userProfile.app_role}
+        showAdminSettings={isAdmin}
+        onAdminClick={() => changeView(currentView === 'admin-settings' ? '360-feedback' : 'admin-settings')}
+        isAdminView={currentView === 'admin-settings'}
       />
 
-      {/* Main Content Area - overflow-y-scroll ensures consistent width with/without scrollbar */}
-      <main className="flex-1 overflow-y-scroll overflow-x-hidden">
+      {/* Main Content Area */}
+      <main>
           {loading && (
-            <div className="h-full flex items-center justify-center">
+            <div className="min-h-[60vh] flex items-center justify-center">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto"></div>
-                <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">Loading...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00A3E1] mx-auto"></div>
+                <p className="mt-3 text-sm text-[#6B7780]">Loading...</p>
               </div>
             </div>
           )}
 
           {!loading && (
-            <div className={`${shellClass} py-6`}>
-              {/* View Content */}
+            <div className={`${shellClass} py-8`}>
               {currentView === '360-feedback' && (
                 <Feedback360Dashboard
                   employees={employees}
@@ -248,38 +237,19 @@ export default function Dashboard({
                 />
               )}
 
-              {currentView === 'directory' && (
-                <PeopleDashboard
-                  employees={employees}
-                  departments={departments}
-                  employeePlans={employeePlans}
-                  onEmployeeUpdate={loadEmployees}
-                  userRole={userProfile.app_role}
-                  onPlansUpdate={setEmployeePlans}
-                  currentUserName={userProfile.full_name || userProfile.email || 'User'}
-                  performanceReviews={performanceReviews}
-                  onReviewSave={handleReviewSave}
-                  organizationId={organization.id}
-                  activeDepartmentIds={selectedDepartments}
-                  simpleMode={true}
-                  currentUser={currentUserEmployee}
-                  finalizedSurveys={finalizedSurveys}
-                />
-              )}
-
-              {currentView === 'itp' && (
-                <ITPDashboard
-                  currentUser={currentUserEmployee}
-                  organizationId={organization.id}
-                />
-              )}
-
               {currentView === 'admin-settings' && (
                 <AdminSettings />
               )}
             </div>
           )}
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-[#E3E8EB] mt-auto">
+        <div className={`${shellClass} py-4`}>
+          <p className="text-center text-xs text-[#6B7780]">Powered by Sonance</p>
+        </div>
+      </footer>
     </div>
   );
 }
