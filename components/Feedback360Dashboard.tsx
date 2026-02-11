@@ -2340,7 +2340,7 @@ export default function Feedback360Dashboard({
     <TooltipProvider>
     <div>
       {/* Role Navigation Tabs */}
-      <div className="mb-4">
+      <div className="mb-6">
         <NavigationTabs
           tabs={[
             // Only show All 360°s tab for Admin role (first position)
