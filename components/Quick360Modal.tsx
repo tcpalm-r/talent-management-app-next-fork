@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Send, Plus, Trash2, Edit2, Check, Mail, Sparkles } from 'lucide-react';
 import type { Employee } from '../types';
-import { useToast, EmployeeNameLink } from './unified';
+import { useToast, EmployeeNameLink, Tooltip, TooltipProvider } from './unified';
 import {
   QUESTION_LIBRARY,
   DEFAULT_QUESTION_IDS,
@@ -223,6 +223,7 @@ export default function Quick360Modal({
   if (!isOpen) return null;
 
   return (
+    <TooltipProvider>
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-md shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
@@ -373,7 +374,9 @@ export default function Quick360Modal({
           {/* Reviewers Section */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Reviewers</h3>
+              <Tooltip content="Add at least 3 reviewers for balanced feedback. Include a mix of manager, peers, and direct reports for a complete picture." side="right">
+                <h3 className="text-lg font-semibold text-gray-900 cursor-help">Reviewers</h3>
+              </Tooltip>
               <button
                 onClick={addReviewer}
                 className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-1"
@@ -435,9 +438,11 @@ export default function Quick360Modal({
 
           {/* Due Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Due Date (Optional)
-            </label>
+            <Tooltip content="Deadline for reviewers to submit feedback. If not set, reviewers will have 30 days from when the survey is sent." side="right">
+              <label className="block text-sm font-medium text-gray-700 mb-2 cursor-help w-fit">
+                Due Date (Optional)
+              </label>
+            </Tooltip>
             <input
               type="date"
               value={dueDate}
@@ -472,5 +477,6 @@ export default function Quick360Modal({
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 }

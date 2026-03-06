@@ -15,6 +15,20 @@ const config: Config = {
         sans: ['Montserrat', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       colors: {
+        // Override default blue with Sonance brand blue (#00A3E1)
+        blue: {
+          50: '#F0F9FE',
+          100: '#E0F2FD',
+          200: '#BAE5FB',
+          300: '#7DD3F8',
+          400: '#38BCF2',
+          500: '#10ADE8',
+          600: '#00A3E1',
+          700: '#0083B8',
+          800: '#006E96',
+          900: '#005B7C',
+          950: '#003A52',
+        },
         // Sonance Brand Colors
         sonance: {
           charcoal: {

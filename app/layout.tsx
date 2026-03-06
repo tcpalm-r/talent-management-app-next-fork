@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Sonance 360° Reviews",
   description: "360° Feedback Review Platform by Sonance",
   icons: {
-    icon: '/favicon.svg',
+    icon: '/favicon.png',
   },
 };
 

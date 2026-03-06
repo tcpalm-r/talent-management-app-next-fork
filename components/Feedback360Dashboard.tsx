@@ -2181,7 +2181,7 @@ export default function Feedback360Dashboard({
     // Show "Needs Reanalysis" badge for flagged surveys
     if ((flaggedForAdmin || flaggedForReanalysis) && currentUser?.app_role === 'admin') {
       return (
-        <Tooltip content="This survey has been flagged and requires admin review">
+        <Tooltip content="A sponsor flagged this report for reanalysis. Review the feedback and regenerate or resolve before it can be finalized.">
           <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300 cursor-help">
             <AlertTriangle className="w-3 h-3 mr-1" />
             Needs Reanalysis
@@ -2193,7 +2193,7 @@ export default function Feedback360Dashboard({
     // Show "Needs Reanalysis" for sponsors when flagged for reanalysis
     if (flaggedForReanalysis && (isUserSponsor(selectedSurvey, currentUser, currentUserDbId))) {
       return (
-        <Tooltip content="This survey has been flagged and requires admin review">
+        <Tooltip content="You flagged this report for reanalysis. An admin will review and regenerate the AI analysis before you can finalize.">
           <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-red-100 text-red-700 border-red-300 cursor-help">
             <AlertTriangle className="w-3 h-3 mr-1" />
             Needs Reanalysis
@@ -2240,11 +2240,11 @@ export default function Feedback360Dashboard({
     };
     const tooltips = {
       draft: 'Survey is not yet sent to reviewers',
-      in_progress: 'Survey is active and awaiting responses',
+      in_progress: 'Survey is active and awaiting reviewer responses',
       queued: 'Report generation is queued and will start soon',
       generating: 'AI is analyzing responses and generating the report',
-      completed: 'All responses received and analyzed',
-      finalized: 'Survey is archived and final'
+      completed: 'AI analysis is ready — review the report, edit recommendations, then finalize',
+      finalized: 'Report is locked and ready to share with the subject. No further changes can be made'
     };
     const Icon = icons[effectiveStatus as keyof typeof icons] || Clock;
     const tooltipText = tooltips[effectiveStatus as keyof typeof tooltips] || 'Survey status';
@@ -3052,7 +3052,7 @@ export default function Feedback360Dashboard({
                         <div
                           className="absolute top-0 bottom-0 w-0.5 bg-gray-400 dark:bg-gray-500 opacity-50"
                           style={{ left: '70%' }}
-                          title="70% completion required"
+                          title="70% of reviewers must complete feedback before you can generate an AI report"
                         />
                       </div>
                     </div>
@@ -3741,7 +3741,7 @@ export default function Feedback360Dashboard({
                             ? 'from-purple-600 to-indigo-700 text-white hover:from-purple-700 hover:to-indigo-800'
                             : 'from-gray-400 to-gray-500 text-gray-200 cursor-not-allowed'
                         } disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
-                        title={!canComplete && !canBypass ? 'At least 70% of reviewers must submit their feedback before completing the review.' : (canBypass ? 'Admin: Click to bypass threshold with confirmation' : '')}
+                        title={!canComplete && !canBypass ? 'At least 70% of reviewers must submit feedback before you can generate the AI report. This ensures the analysis is representative and reliable.' : (canBypass ? 'Admin: Click to bypass threshold with confirmation' : 'Generate an AI-synthesized report from all reviewer feedback')}
                       >
                         {generatingSurveyId === selectedSurvey?.id ? (
                           <>
@@ -3807,7 +3807,7 @@ export default function Feedback360Dashboard({
           { id: 'strengths', label: 'Strengths' },
           { id: 'development', label: 'Development Areas' },
           { id: 'recommendations', label: 'Recommended Actions' },
-          ...(canSeeAdvanced && hasConsensusData ? [{ id: 'consensus', label: 'Consensus & Outliers' }] : [])
+          ...(canSeeAdvanced && hasConsensusData ? [{ id: 'consensus', label: 'Consensus & Outliers', tooltip: 'Sponsor-only view showing where reviewers agree and where individual perspectives differ — not visible to the subject' }] : [])
         ];
 
         return (
@@ -4020,7 +4020,15 @@ export default function Feedback360Dashboard({
                     >
                       <div className="flex items-start justify-between mb-2">
                         <h5 className="font-medium text-gray-900 dark:text-gray-100">{theme.theme}</h5>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        <Tooltip content={
+                          theme.sentiment === 'very_positive' ? 'Reviewers are strongly aligned — this is a clear strength' :
+                          theme.sentiment === 'positive' ? 'Generally positive feedback from reviewers on this theme' :
+                          theme.sentiment === 'mixed' ? 'Reviewers have divided opinions — worth exploring in a coaching conversation' :
+                          theme.sentiment === 'needs_work' ? 'Reviewers see this as a development opportunity to address' :
+                          theme.sentiment === 'critical' ? 'Urgent focus area — multiple reviewers flagged significant concerns' :
+                          'Overall reviewer sentiment on this theme'
+                        }>
+                        <span className={`px-2 py-1 rounded text-xs font-medium cursor-help ${
                           theme.sentiment === 'very_positive' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' :
                           theme.sentiment === 'positive' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' :
                           theme.sentiment === 'mixed' ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300' :
@@ -4035,6 +4043,7 @@ export default function Feedback360Dashboard({
                            theme.sentiment === 'critical' ? 'Critical' :
                            theme.sentiment}
                         </span>
+                        </Tooltip>
                       </div>
                       {currentUser?.app_role === 'admin' && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
