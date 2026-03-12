@@ -62,7 +62,7 @@ export default function ConfigPage() {
   // Loading state
   if (!isInitialized && !error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
       </div>
     );
@@ -71,11 +71,11 @@ export default function ConfigPage() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900 p-6">
+      <div className="min-h-screen flex items-center justify-center bg-white p-6">
         <div className="text-center">
-          <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
-              className="w-6 h-6 text-red-600 dark:text-red-400"
+              className="w-6 h-6 text-red-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -88,7 +88,7 @@ export default function ConfigPage() {
               />
             </svg>
           </div>
-          <p className="text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-red-600">{error}</p>
           <p className="mt-2 text-sm text-gray-500">
             Please try again or contact support.
           </p>
@@ -99,7 +99,7 @@ export default function ConfigPage() {
 
   // Configuration UI
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 p-6">
+    <div className="min-h-screen bg-white p-6">
       <div className="max-w-lg mx-auto">
         {/* Header with logo */}
         <div className="flex items-center gap-3 mb-6">
@@ -107,21 +107,21 @@ export default function ConfigPage() {
             <span className="text-white text-xl font-bold">S</span>
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h1 className="text-xl font-semibold text-gray-900">
               Sonance 360 Reviews
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-500">
               Talent Management Platform
             </p>
           </div>
         </div>
 
         {/* Description card */}
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6">
-          <h2 className="font-medium text-gray-900 dark:text-white mb-2">
+        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <h2 className="font-medium text-gray-900 mb-2">
             About this tab
           </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
+          <p className="text-sm text-gray-600">
             Access your organization&apos;s 360-degree feedback reviews, talent insights,
             and employee management tools directly within Microsoft Teams.
           </p>
@@ -143,7 +143,7 @@ export default function ConfigPage() {
                 d="M5 13l4 4L19 7"
               />
             </svg>
-            <span className="text-sm text-gray-600 dark:text-gray-300">
+            <span className="text-sm text-gray-600">
               Create and manage 360 feedback surveys
             </span>
           </div>
@@ -161,7 +161,7 @@ export default function ConfigPage() {
                 d="M5 13l4 4L19 7"
               />
             </svg>
-            <span className="text-sm text-gray-600 dark:text-gray-300">
+            <span className="text-sm text-gray-600">
               View employee profiles and talent insights
             </span>
           </div>
@@ -179,7 +179,7 @@ export default function ConfigPage() {
                 d="M5 13l4 4L19 7"
               />
             </svg>
-            <span className="text-sm text-gray-600 dark:text-gray-300">
+            <span className="text-sm text-gray-600">
               AI-powered analysis and recommendations
             </span>
           </div>
@@ -197,14 +197,14 @@ export default function ConfigPage() {
                 d="M5 13l4 4L19 7"
               />
             </svg>
-            <span className="text-sm text-gray-600 dark:text-gray-300">
+            <span className="text-sm text-gray-600">
               Seamless integration with Teams SSO
             </span>
           </div>
         </div>
 
         {/* Footer note */}
-        <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+        <p className="text-xs text-gray-400 text-center">
           Click <strong>Save</strong> to add this tab to your channel.
         </p>
       </div>

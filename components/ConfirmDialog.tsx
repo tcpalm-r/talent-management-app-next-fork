@@ -63,19 +63,19 @@ export default function ConfirmDialog({
   const variantStyles = {
     danger: {
       icon: <Trash2 className="w-6 h-6 text-red-600" />,
-      iconBg: 'bg-red-100 dark:bg-red-900/30',
+      iconBg: 'bg-red-100',
       confirmButton:
         'bg-red-600 hover:bg-red-700 focus:ring-red-500 text-white',
     },
     warning: {
       icon: <AlertTriangle className="w-6 h-6 text-amber-600" />,
-      iconBg: 'bg-amber-100 dark:bg-amber-900/30',
+      iconBg: 'bg-amber-100',
       confirmButton:
         'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500 text-white',
     },
     info: {
       icon: <AlertTriangle className="w-6 h-6 text-blue-600" />,
-      iconBg: 'bg-blue-100 dark:bg-blue-900/30',
+      iconBg: 'bg-blue-100',
       confirmButton:
         'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 text-white',
     },
@@ -85,7 +85,7 @@ export default function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 dark:bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
@@ -93,7 +93,7 @@ export default function ConfirmDialog({
     >
       <div
         ref={modalRef}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden"
+        className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden"
       >
         {/* Header with icon */}
         <div className="p-6 pb-4">
@@ -106,17 +106,17 @@ export default function ConfirmDialog({
             <div className="flex-1 min-w-0">
               <h3
                 id="confirm-dialog-title"
-                className="text-lg font-semibold text-gray-900 dark:text-gray-100"
+                className="text-lg font-semibold text-gray-900"
               >
                 {title}
               </h3>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">
+              <p className="mt-2 text-sm text-gray-600 whitespace-pre-line">
                 {message}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded"
             >
               <X className="w-5 h-5" />
             </button>
@@ -124,11 +124,11 @@ export default function ConfirmDialog({
         </div>
 
         {/* Actions */}
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 flex justify-end space-x-3">
+        <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 transition-colors"
           >
             {cancelText}
           </button>

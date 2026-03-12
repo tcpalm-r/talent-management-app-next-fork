@@ -2418,14 +2418,14 @@ export default function Feedback360Dashboard({
       }`}>
         <button
           onClick={() => setFilterStatus('all')}
-          className={`bg-white dark:bg-gray-800 rounded-md shadow p-3 border-2 transition-all text-left ${
-            filterStatus === 'all' ? 'border-blue-500 dark:border-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+          className={`bg-white rounded-md shadow p-3 border-2 transition-all text-left ${
+            filterStatus === 'all' ? 'border-blue-500' : 'border-gray-200 hover:border-gray-300'
           }`}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{roleFilteredSurveys.length}</p>
+              <p className="text-sm text-gray-600">Total</p>
+              <p className="text-2xl font-bold text-gray-900">{roleFilteredSurveys.length}</p>
             </div>
           </div>
         </button>
@@ -2435,16 +2435,16 @@ export default function Feedback360Dashboard({
           <Tooltip content="Surveys not yet sent to reviewers">
             <button
               onClick={() => setFilterStatus('draft')}
-              className={`bg-white dark:bg-gray-800 rounded-md shadow p-3 border-2 transition-all text-left ${
-                filterStatus === 'draft' ? 'border-gray-500 dark:border-gray-400' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+              className={`bg-white rounded-md shadow p-3 border-2 transition-all text-left ${
+                filterStatus === 'draft' ? 'border-gray-500' : 'border-gray-200 hover:border-gray-300'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Drafts</p>
-                  <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{stats.draft}</p>
+                  <p className="text-sm text-gray-600">Drafts</p>
+                  <p className="text-2xl font-bold text-gray-700">{stats.draft}</p>
                 </div>
-                <Clock className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                <Clock className="w-8 h-8 text-gray-400" />
               </div>
             </button>
           </Tooltip>
@@ -2455,16 +2455,16 @@ export default function Feedback360Dashboard({
             onClick={() => setFilterStatus('in_progress')}
             className={`rounded-md shadow p-3 border-2 transition-all text-left ${
               filterStatus === 'in_progress'
-                ? 'border-yellow-500 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
-                : 'bg-white dark:bg-gray-800 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+                ? 'border-yellow-500 bg-yellow-50'
+                : 'bg-white border-yellow-200 hover:bg-yellow-50'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-yellow-700 dark:text-yellow-400">In Progress</p>
-                <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-300">{stats.in_progress}</p>
+                <p className="text-sm text-yellow-700">In Progress</p>
+                <p className="text-2xl font-bold text-yellow-900">{stats.in_progress}</p>
               </div>
-              <MessageSquare className="w-8 h-8 text-yellow-400 dark:text-yellow-500" />
+              <MessageSquare className="w-8 h-8 text-yellow-400" />
             </div>
           </button>
         </Tooltip>
@@ -2475,16 +2475,16 @@ export default function Feedback360Dashboard({
             onClick={() => setFilterStatus('completed')}
             className={`rounded-md shadow p-3 border-2 transition-all text-left ${
               filterStatus === 'completed'
-                ? 'border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
-                : 'bg-white dark:bg-gray-800 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20'
+                ? 'border-green-500 bg-green-50'
+                : 'bg-white border-green-200 hover:bg-green-50'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-700 dark:text-green-400">Completed</p>
-                <p className="text-2xl font-bold text-green-900 dark:text-green-300">{stats.completed}</p>
+                <p className="text-sm text-green-700">Completed</p>
+                <p className="text-2xl font-bold text-green-900">{stats.completed}</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-400 dark:text-green-500" />
+              <CheckCircle className="w-8 h-8 text-green-400" />
             </div>
           </button>
         </Tooltip>
@@ -2495,16 +2495,16 @@ export default function Feedback360Dashboard({
             onClick={() => setFilterStatus('finalized')}
             className={`rounded-md shadow p-3 border-2 transition-all text-left ${
               filterStatus === 'finalized'
-                ? 'border-purple-500 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20'
-                : 'bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+                ? 'border-purple-500 bg-purple-50'
+                : 'bg-white border-purple-200 hover:bg-purple-50'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-700 dark:text-purple-400">Finalized</p>
-                <p className="text-2xl font-bold text-purple-900 dark:text-purple-300">{stats.finalized}</p>
+                <p className="text-sm text-purple-700">Finalized</p>
+                <p className="text-2xl font-bold text-purple-900">{stats.finalized}</p>
               </div>
-              <ArrowDownCircle className="w-8 h-8 text-purple-400 dark:text-purple-500" />
+              <ArrowDownCircle className="w-8 h-8 text-purple-400" />
             </div>
           </button>
         </Tooltip>
@@ -2520,7 +2520,7 @@ export default function Feedback360Dashboard({
                 setPreselectedEmployee(undefined);
                 setIsWizardOpen(true);
               }}
-              className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors font-medium whitespace-nowrap"
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium whitespace-nowrap"
             >
               Launch 360° Review
             </button>
@@ -2533,7 +2533,7 @@ export default function Feedback360Dashboard({
                 placeholder="Search by employee name..."
                 value={sponsorSearchQuery}
                 onChange={(e) => setSponsorSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
               />
             </div>
             {/* AI-assisted review wizard button - disabled and hidden */}
@@ -2560,14 +2560,14 @@ export default function Feedback360Dashboard({
         {/* Total */}
         <button
           onClick={() => setReviewerFilterStatus('all')}
-          className={`bg-white dark:bg-gray-800 rounded-md shadow p-3 border-2 transition-all text-left ${
-            reviewerFilterStatus === 'all' ? 'border-blue-500 dark:border-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+          className={`bg-white rounded-md shadow p-3 border-2 transition-all text-left ${
+            reviewerFilterStatus === 'all' ? 'border-blue-500' : 'border-gray-200 hover:border-gray-300'
           }`}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{reviewerStats.total}</p>
+              <p className="text-sm text-gray-600">Total</p>
+              <p className="text-2xl font-bold text-gray-900">{reviewerStats.total}</p>
             </div>
           </div>
         </button>
@@ -2578,16 +2578,16 @@ export default function Feedback360Dashboard({
             onClick={() => setReviewerFilterStatus('required')}
             className={`rounded-md shadow p-3 border-2 transition-all text-left ${
               reviewerFilterStatus === 'required'
-                ? 'border-green-700 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
-                : 'bg-white dark:bg-gray-800 border-green-400 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20'
+                ? 'border-green-700 bg-green-50'
+                : 'bg-white border-green-400 hover:bg-green-50'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-800 dark:text-green-400">Required</p>
-                <p className="text-2xl font-bold text-green-900 dark:text-green-300">{reviewerStats.required}</p>
+                <p className="text-sm text-green-800">Required</p>
+                <p className="text-2xl font-bold text-green-900">{reviewerStats.required}</p>
               </div>
-              <Users className="w-8 h-8 text-green-600 dark:text-green-500" />
+              <Users className="w-8 h-8 text-green-600" />
             </div>
           </button>
         </Tooltip>
@@ -2598,16 +2598,16 @@ export default function Feedback360Dashboard({
             onClick={() => setReviewerFilterStatus('optional')}
             className={`rounded-md shadow p-3 border-2 transition-all text-left ${
               reviewerFilterStatus === 'optional'
-                ? 'border-lime-500 dark:border-lime-600 bg-lime-50 dark:bg-lime-900/20'
-                : 'bg-white dark:bg-gray-800 border-lime-200 dark:border-lime-800 hover:bg-lime-50 dark:hover:bg-lime-900/20'
+                ? 'border-lime-500 bg-lime-50'
+                : 'bg-white border-lime-200 hover:bg-lime-50'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-lime-700 dark:text-lime-400">Optional</p>
-                <p className="text-2xl font-bold text-lime-900 dark:text-lime-300">{reviewerStats.optional}</p>
+                <p className="text-sm text-lime-700">Optional</p>
+                <p className="text-2xl font-bold text-lime-900">{reviewerStats.optional}</p>
               </div>
-              <UserPlus className="w-8 h-8 text-lime-400 dark:text-lime-500" />
+              <UserPlus className="w-8 h-8 text-lime-400" />
             </div>
           </button>
         </Tooltip>
@@ -2624,7 +2624,7 @@ export default function Feedback360Dashboard({
               placeholder="Search by employee name..."
               value={reviewerSearchQuery}
               onChange={(e) => setReviewerSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
             />
           </div>
         </div>
@@ -2640,7 +2640,7 @@ export default function Feedback360Dashboard({
               placeholder="Search by employee name..."
               value={sponsorSearchQuery}
               onChange={(e) => setSponsorSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
             />
           </div>
         </div>
@@ -2653,14 +2653,14 @@ export default function Feedback360Dashboard({
           {/* Total */}
           <button
             onClick={() => setAllSurveysFilterStatus('all')}
-            className={`bg-white dark:bg-gray-800 rounded-md shadow p-3 border-2 transition-all text-left ${
-              allSurveysFilterStatus === 'all' ? 'border-blue-500 dark:border-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+            className={`bg-white rounded-md shadow p-3 border-2 transition-all text-left ${
+              allSurveysFilterStatus === 'all' ? 'border-blue-500' : 'border-gray-200 hover:border-gray-300'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{allSurveysStats.total}</p>
+                <p className="text-sm text-gray-600">Total</p>
+                <p className="text-2xl font-bold text-gray-900">{allSurveysStats.total}</p>
               </div>
             </div>
           </button>
@@ -2671,16 +2671,16 @@ export default function Feedback360Dashboard({
               onClick={() => setAllSurveysFilterStatus('in_progress')}
               className={`rounded-md shadow p-3 border-2 transition-all text-left ${
                 allSurveysFilterStatus === 'in_progress'
-                  ? 'border-yellow-500 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
-                  : 'bg-white dark:bg-gray-800 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+                  ? 'border-yellow-500 bg-yellow-50'
+                  : 'bg-white border-yellow-200 hover:bg-yellow-50'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-400">In Progress</p>
-                  <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-300">{allSurveysStats.in_progress}</p>
+                  <p className="text-sm text-yellow-700">In Progress</p>
+                  <p className="text-2xl font-bold text-yellow-900">{allSurveysStats.in_progress}</p>
                 </div>
-                <MessageSquare className="w-8 h-8 text-yellow-400 dark:text-yellow-500" />
+                <MessageSquare className="w-8 h-8 text-yellow-400" />
               </div>
             </button>
           </Tooltip>
@@ -2691,16 +2691,16 @@ export default function Feedback360Dashboard({
               onClick={() => setAllSurveysFilterStatus('completed')}
               className={`rounded-md shadow p-3 border-2 transition-all text-left ${
                 allSurveysFilterStatus === 'completed'
-                  ? 'border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
-                  : 'bg-white dark:bg-gray-800 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20'
+                  ? 'border-green-500 bg-green-50'
+                  : 'bg-white border-green-200 hover:bg-green-50'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-green-700 dark:text-green-400">Completed</p>
-                  <p className="text-2xl font-bold text-green-900 dark:text-green-300">{allSurveysStats.completed}</p>
+                  <p className="text-sm text-green-700">Completed</p>
+                  <p className="text-2xl font-bold text-green-900">{allSurveysStats.completed}</p>
                 </div>
-                <CheckCircle className="w-8 h-8 text-green-400 dark:text-green-500" />
+                <CheckCircle className="w-8 h-8 text-green-400" />
               </div>
             </button>
           </Tooltip>
@@ -2711,16 +2711,16 @@ export default function Feedback360Dashboard({
               onClick={() => setAllSurveysFilterStatus('finalized')}
               className={`rounded-md shadow p-3 border-2 transition-all text-left ${
                 allSurveysFilterStatus === 'finalized'
-                  ? 'border-purple-500 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20'
-                  : 'bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+                  ? 'border-purple-500 bg-purple-50'
+                  : 'bg-white border-purple-200 hover:bg-purple-50'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-purple-700 dark:text-purple-400">Finalized</p>
-                  <p className="text-2xl font-bold text-purple-900 dark:text-purple-300">{allSurveysStats.finalized}</p>
+                  <p className="text-sm text-purple-700">Finalized</p>
+                  <p className="text-2xl font-bold text-purple-900">{allSurveysStats.finalized}</p>
                 </div>
-                <ArrowDownCircle className="w-8 h-8 text-purple-400 dark:text-purple-500" />
+                <ArrowDownCircle className="w-8 h-8 text-purple-400" />
               </div>
             </button>
           </Tooltip>
@@ -2735,7 +2735,7 @@ export default function Feedback360Dashboard({
               placeholder="Search by employee name..."
               value={allSurveysSearchQuery}
               onChange={(e) => setAllSurveysSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
             />
           </div>
         </div>
@@ -2752,7 +2752,7 @@ export default function Feedback360Dashboard({
               placeholder="Search by employee name..."
               value={delegatedSponsorSearchQuery}
               onChange={(e) => setDelegatedSponsorSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
             />
           </div>
         </div>
@@ -2768,7 +2768,7 @@ export default function Feedback360Dashboard({
               placeholder="Search by employee name..."
               value={allFinalizedSearchQuery}
               onChange={(e) => setAllFinalizedSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
             />
           </div>
         </div>
@@ -2777,14 +2777,14 @@ export default function Feedback360Dashboard({
       {/* Reviews List */}
       {loading ? (
         <div className="text-center py-12 mt-6">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto"></div>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">Loading reviews...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading reviews...</p>
         </div>
       ) : filteredSurveys.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-md shadow border border-gray-200 dark:border-gray-700 p-12 mt-6">
+        <div className="bg-white rounded-md shadow border border-gray-200 p-12 mt-6">
           <div className="text-center mb-8">
-            <MessageSquare className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-normal text-gray-500 dark:text-gray-400 mb-2">
+            <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-normal text-gray-500 mb-2">
               {filterRole === 'reviewer'
                 ? 'No 360°s require your input'
                 : filterRole === 'my_feedback'
@@ -2863,7 +2863,7 @@ export default function Feedback360Dashboard({
             return (
               <div
                 key={survey.id}
-                className="bg-white dark:bg-gray-800 rounded-md shadow border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow cursor-pointer relative"
+                className="bg-white rounded-md shadow border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer relative"
                 onClick={() => {
                   // Draft surveys: Open wizard for editing/launching
                   // Completed/Finalized surveys: Go directly to results for authorized users
@@ -2922,7 +2922,7 @@ export default function Feedback360Dashboard({
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center flex-wrap gap-2 mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 leading-tight">
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 leading-tight">
                         360° Feedback -
                         <Avatar
                           name={survey.employee?.name || survey.employee_name}
@@ -2937,17 +2937,17 @@ export default function Feedback360Dashboard({
                     {/* Only show reviewer count to Admin, SLT, and survey sponsor */}
                     {(currentUser?.app_role === 'admin' || currentUser?.app_role === 'slt' || isSponsor) && (
                       <div className="flex items-center">
-                        <span className="text-gray-500 dark:text-gray-400">Reviewers:</span>
-                        <span className="ml-2 font-semibold text-gray-900 dark:text-gray-100">
+                        <span className="text-gray-500">Reviewers:</span>
+                        <span className="ml-2 font-semibold text-gray-900">
                           {survey.completed_count ?? 0}/{survey.reviewers_count ?? 0}
                         </span>
-                        <span className="ml-1 text-gray-500 dark:text-gray-400">completed</span>
+                        <span className="ml-1 text-gray-500">completed</span>
                       </div>
                     )}
                     {survey.due_date && (
                       <div className="flex items-center">
-                        <Clock className="w-4 h-4 mr-1 text-gray-400 dark:text-gray-500" />
-                        <span className="text-gray-500 dark:text-gray-400">Due: {new Date(survey.due_date).toLocaleDateString()}</span>
+                        <Clock className="w-4 h-4 mr-1 text-gray-400" />
+                        <span className="text-gray-500">Due: {new Date(survey.due_date).toLocaleDateString()}</span>
                       </div>
                     )}
                   </div>
@@ -2989,7 +2989,7 @@ export default function Feedback360Dashboard({
                                   e.stopPropagation();
                                   await handleSLTOptOut(survey.id);
                                 }}
-                                className="inline-flex items-center px-4 py-2 bg-red-800 dark:bg-red-900 text-white rounded-md hover:bg-red-900 dark:hover:bg-red-950 transition-all font-medium shadow-md hover:shadow-lg"
+                                className="inline-flex items-center px-4 py-2 bg-red-800 text-white rounded-md hover:bg-red-900 transition-all font-medium shadow-md hover:shadow-lg"
                               >
                                 <UserMinus className="w-4 h-4 mr-2" />
                                 Opt Out
@@ -3009,7 +3009,7 @@ export default function Feedback360Dashboard({
                               e.stopPropagation();
                               await handleSLTOptIn(survey.id);
                             }}
-                            className="inline-flex items-center px-4 py-2 bg-lime-500 dark:bg-lime-600 text-white rounded-md hover:bg-lime-600 dark:hover:bg-lime-700 transition-all font-medium shadow-md hover:shadow-lg mt-4"
+                            className="inline-flex items-center px-4 py-2 bg-lime-500 text-white rounded-md hover:bg-lime-600 transition-all font-medium shadow-md hover:shadow-lg mt-4"
                           >
                             <UserPlus className="w-4 h-4 mr-2" />
                             Opt In?
@@ -3023,7 +3023,7 @@ export default function Feedback360Dashboard({
                   {survey.status === 'active' && (survey.reviewers_count ?? 0) > 0 && (
                     <div className="mt-3">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                        <span className="text-xs text-gray-600">
                           Response Rate: {Math.round(((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) * 100)}% (50% required)
                         </span>
                         {(() => {
@@ -3034,23 +3034,23 @@ export default function Feedback360Dashboard({
                           const isAtRisk = responseRate < 0.5 && daysUntilDue <= 3 && daysUntilDue > 0;
 
                           return isAtRisk && (
-                            <span className="text-xs text-orange-600 dark:text-orange-400 font-semibold flex items-center gap-1">
+                            <span className="text-xs text-orange-600 font-semibold flex items-center gap-1">
                               <AlertTriangle className="w-3 h-3" />
                               At Risk
                             </span>
                           );
                         })()}
                       </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative">
+                      <div className="w-full bg-gray-200 rounded-full h-2 relative">
                         <div
                           className={`h-2 rounded-full transition-all ${
-                            ((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) < 0.5 ? 'bg-orange-500 dark:bg-orange-600' : 'bg-green-600 dark:bg-green-500'
+                            ((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) < 0.5 ? 'bg-orange-500' : 'bg-green-600'
                           }`}
                           style={{ width: `${((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) * 100}%` }}
                         />
                         {/* Show 50% requirement marker */}
                         <div
-                          className="absolute top-0 bottom-0 w-0.5 bg-gray-400 dark:bg-gray-500 opacity-50"
+                          className="absolute top-0 bottom-0 w-0.5 bg-gray-400 opacity-50"
                           style={{ left: '50%' }}
                           title="50% of reviewers must complete feedback before you can generate an AI report"
                         />
@@ -3075,7 +3075,7 @@ export default function Feedback360Dashboard({
                         e.stopPropagation();
                         deleteInProgressSurvey(survey.id);
                       }}
-                      className="absolute bottom-6 right-6 mt-4 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors text-sm font-medium"
+                      className="absolute bottom-6 right-6 mt-4 text-red-600 hover:text-red-700 transition-colors text-sm font-medium"
                     >
                       Delete
                     </button>
@@ -3147,18 +3147,18 @@ export default function Feedback360Dashboard({
           // If finalized, subject can see the complete review results
           const canSeeResults = isSubject && selectedSurvey.status === 'finalized';
           return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
-              <div className="bg-white dark:bg-gray-800 rounded-md max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 flex items-center justify-between">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-md max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6 border-b border-gray-200 sticky top-0 bg-white flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Employee:</span>
-                      <span className="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      <Users className="w-4 h-4 mr-2 text-gray-500" />
+                      <span className="text-sm text-gray-600">Employee:</span>
+                      <span className="ml-2 text-sm font-semibold text-gray-900">
                         {selectedSurvey.employee?.name || selectedSurvey.employee_name || 'Unknown'}
                       </span>
                       {selectedSurvey.employee?.title && (
-                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">• {selectedSurvey.employee.title}</span>
+                        <span className="ml-2 text-sm text-gray-600">• {selectedSurvey.employee.title}</span>
                       )}
                     </div>
                     <div className="mt-2">
@@ -3167,7 +3167,7 @@ export default function Feedback360Dashboard({
                   </div>
                   <button
                     onClick={() => setIsDetailsModalOpen(false)}
-                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 ml-4"
+                    className="text-gray-400 hover:text-gray-600 ml-4"
                   >
                     <X className="w-6 h-6" />
                   </button>
@@ -3178,16 +3178,16 @@ export default function Feedback360Dashboard({
                     <div className="flex items-center gap-6">
                       {selectedSurvey.due_date && (
                         <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" />
-                          <span className="text-sm text-gray-600 dark:text-gray-400">Due Date:</span>
-                          <span className="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                          <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                          <span className="text-sm text-gray-600">Due Date:</span>
+                          <span className="ml-2 text-sm font-semibold text-gray-900">
                             {new Date(selectedSurvey.due_date).toLocaleDateString()}
                           </span>
                         </div>
                       )}
                       <div className="flex items-center">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Created:</span>
-                        <span className="ml-2 text-sm text-gray-900 dark:text-gray-100">
+                        <span className="text-sm text-gray-600">Created:</span>
+                        <span className="ml-2 text-sm text-gray-900">
                           {selectedSurvey.created_at ? new Date(selectedSurvey.created_at).toLocaleDateString() : 'N/A'}
                         </span>
                       </div>
@@ -3198,7 +3198,7 @@ export default function Feedback360Dashboard({
                 {canSeeResults && (
                   <button
                     onClick={() => loadAndShowResults(selectedSurvey)}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white rounded-md hover:from-blue-700 hover:to-blue-800 dark:hover:from-blue-800 dark:hover:to-blue-900 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-md hover:from-blue-700 hover:to-blue-800 transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                   >
                     <Eye className="w-4 h-4" />
                     View Complete Review
@@ -3213,21 +3213,21 @@ export default function Feedback360Dashboard({
                       const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 0;
                       const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
                       return (
-                        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3">
                           Reviewers ({completedReviewers}/{totalReviewers} completed)
                         </h4>
                       );
                     })()}
                     {/* Only show reviewers list to admin, sponsor, or SLT (for in-progress surveys) */}
                     {(isAdmin || isSponsor || (isSLT && selectedSurvey.status === 'in_progress')) && (
-                      <div className="bg-gray-50 dark:bg-gray-900/30 rounded-md p-4 space-y-2 max-h-[240px] overflow-y-auto">
+                      <div className="bg-gray-50 rounded-md p-4 space-y-2 max-h-[240px] overflow-y-auto">
                         {surveyReviewers.length === 0 ? (
-                          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No reviewers added yet</p>
+                          <p className="text-sm text-gray-500 text-center py-2">No reviewers added yet</p>
                         ) : (
                           surveyReviewers.map((reviewer) => (
                             <div
                               key={reviewer.id}
-                              className="flex items-center justify-between p-3 bg-white dark:bg-gray-700/50 rounded border border-gray-200 dark:border-gray-600"
+                              className="flex items-center justify-between p-3 bg-white rounded border border-gray-200"
                             >
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
@@ -3236,18 +3236,18 @@ export default function Feedback360Dashboard({
                                     picture={undefined}
                                     size="sm"
                                   />
-                                  <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">{reviewer.reviewer_name}</span>
+                                  <span className="font-medium text-gray-900 text-sm">{reviewer.reviewer_name}</span>
                                   <span className={`px-2 py-0.5 text-xs rounded ${
                                     reviewer.status === 'completed'
-                                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                      ? 'bg-green-100 text-green-700'
                                       : reviewer.status === 'in_progress'
-                                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                      ? 'bg-yellow-100 text-yellow-700'
+                                      : 'bg-gray-100 text-gray-600'
                                   }`}>
                                     {reviewer.status === 'completed' ? 'Completed' : reviewer.status === 'in_progress' ? 'In Progress' : 'Pending'}
                                   </span>
                                 </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                <div className="text-xs text-gray-600 mt-1">
                                   {reviewer.reviewer_email} • {formatRelationship(reviewer.relationship)}
                                 </div>
                               </div>
@@ -3262,10 +3262,10 @@ export default function Feedback360Dashboard({
                 {/* Completion Message or Button - Only for reviewers, not for subject */}
                 {isReviewer && !isSubject && (
                   userCompletedReview ? (
-                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-md p-4 mt-4">
+                    <div className="bg-green-50 border border-green-200 rounded-md p-4 mt-4">
                       <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm font-medium text-green-900 dark:text-green-200">
+                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm font-medium text-green-900">
                           Your input towards the review is already complete. Thank you!
                         </p>
                       </div>
@@ -3289,25 +3289,25 @@ export default function Feedback360Dashboard({
         // Sponsor view - full management interface
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-md max-w-3xl w-full max-h-[90vh] overflow-y-auto relative">
+          <div className="bg-white rounded-md max-w-3xl w-full max-h-[90vh] overflow-y-auto relative">
             {/* Loading overlay when generating AI analysis */}
             {generatingSurveyId === selectedSurvey?.id && (
-              <div className="absolute inset-0 bg-white/90 dark:bg-gray-800/90 flex flex-col items-center justify-center z-50 rounded-md">
+              <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-50 rounded-md">
                 {/* Close button on loading overlay */}
                 <button
                   onClick={() => {
                     setIsDetailsModalOpen(false);
                     // Note: Generation continues in background, polling will stop due to cleanup
                   }}
-                  className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 z-50"
+                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-50"
                 >
                   <X className="w-6 h-6" />
                 </button>
                 <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                <p className="text-lg font-semibold text-gray-900 mb-2">
                   {selectedSurvey?.status === 'queued' ? 'Queued for AI Analysis...' : 'Generating AI Analysis...'}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4 mb-6">
+                <p className="text-sm text-gray-600 text-center max-w-md px-4 mb-6">
                   {selectedSurvey?.status === 'queued'
                     ? 'We will start as soon as a slot is available.'
                     : 'Report generation may take up to 15 minutes depending on number of reviewers'}
@@ -3316,15 +3316,15 @@ export default function Feedback360Dashboard({
                 <button
                   onClick={cancelReportGeneration}
                   disabled={isCancellingGeneration}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isCancellingGeneration ? 'Cancelling...' : (selectedSurvey?.status === 'queued' ? 'Remove from Queue' : 'Cancel')}
                 </button>
               </div>
             )}
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
+            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 leading-tight">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 leading-tight">
                   360° Feedback -
                   <Avatar
                     name={selectedSurvey.employee?.name || selectedSurvey.employee_name}
@@ -3335,7 +3335,7 @@ export default function Feedback360Dashboard({
                 </h2>
                 <button
                   onClick={() => setIsDetailsModalOpen(false)}
-                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -3344,18 +3344,18 @@ export default function Feedback360Dashboard({
 
             <div className="p-6 space-y-6">
               {/* Metadata line */}
-              <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between text-sm text-gray-600 pb-4 border-b border-gray-200">
                 <div className="flex items-center gap-6">
                   <div>
-                    <span className="text-gray-600 dark:text-gray-400">Created: </span>
-                    <span className="text-gray-900 dark:text-gray-100">
+                    <span className="text-gray-600">Created: </span>
+                    <span className="text-gray-900">
                       {selectedSurvey.created_at ? new Date(selectedSurvey.created_at).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                   {selectedSurvey.due_date && (
                     <div>
-                      <span className="text-gray-600 dark:text-gray-400">Due Date: </span>
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">
+                      <span className="text-gray-600">Due Date: </span>
+                      <span className="font-semibold text-gray-900">
                         {new Date(selectedSurvey.due_date).toLocaleDateString()}
                       </span>
                     </div>
@@ -3367,7 +3367,7 @@ export default function Feedback360Dashboard({
               {/* Reviewers */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-900">
                     Reviewers ({(() => {
                       const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 0;
                       const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
@@ -3377,7 +3377,7 @@ export default function Feedback360Dashboard({
                   {(isSponsor || isAdmin || isDelegatedSponsor) && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
                   <button
                     onClick={() => setIsAddingReviewer(!isAddingReviewer)}
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 font-medium"
+                    className="text-sm text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 font-medium"
                   >
                     <Plus className="w-4 h-4" />
                     Add Reviewer
@@ -3387,7 +3387,7 @@ export default function Feedback360Dashboard({
 
                 {isAddingReviewer && selectedSurvey.status !== 'completed' && selectedSurvey.status !== 'finalized' && (
                   <div className="mb-3 relative">
-                    <div className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-md">
+                    <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-md">
                       <select
                         value={newReviewerRelationship}
                         onChange={async (e) => {
@@ -3406,7 +3406,7 @@ export default function Feedback360Dashboard({
                             addReviewer();
                           }
                         }}
-                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-gray-900"
                       >
                         <option value="">Select relationship...</option>
                         <option value="manager">Manager</option>
@@ -3419,7 +3419,7 @@ export default function Feedback360Dashboard({
                       {!selectedReviewerEmployee ? (
                         <div className="flex-1 relative">
                           <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
                               type="text"
                               value={reviewerSearch}
@@ -3463,7 +3463,7 @@ export default function Feedback360Dashboard({
                                 }
                               }}
                               placeholder="Search employees..."
-                              className="w-full pl-9 pr-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
+                              className="w-full pl-9 pr-3 py-2 border-2 border-gray-300 rounded-md text-sm bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
                           </div>
                         </div>
@@ -3471,7 +3471,7 @@ export default function Feedback360Dashboard({
                         <div className="flex-1 flex items-center gap-2">
                           <div
                             ref={selectedReviewerDisplayRef}
-                            className="flex-1 flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 outline-none cursor-pointer"
+                            className="flex-1 flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cursor-pointer"
                             tabIndex={0}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
@@ -3491,8 +3491,8 @@ export default function Feedback360Dashboard({
                               size="sm"
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{(selectedReviewerEmployee as any).full_name || selectedReviewerEmployee.name}</div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400 truncate">{selectedReviewerEmployee.email}</div>
+                              <div className="font-medium text-sm text-gray-900">{(selectedReviewerEmployee as any).full_name || selectedReviewerEmployee.name}</div>
+                              <div className="text-xs text-gray-600 truncate">{selectedReviewerEmployee.email}</div>
                             </div>
                           </div>
                         </div>
@@ -3502,7 +3502,7 @@ export default function Feedback360Dashboard({
                       {selectedReviewerEmployee ? (
                         <button
                           onClick={addReviewer}
-                          className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                          className="px-3 py-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
                           title="Add & Send Invitation"
                         >
                           Add
@@ -3518,7 +3518,7 @@ export default function Feedback360Dashboard({
                           setNewReviewerRelationship('');
                           setEmployeesWithRelationships([]);
                         }}
-                        className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+                        className="p-2 text-red-600 hover:bg-red-50 rounded"
                         title="Cancel"
                       >
                         <X className="w-4 h-4" />
@@ -3536,12 +3536,12 @@ export default function Feedback360Dashboard({
                             setReviewerSearch('');
                           }}
                         />
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 max-h-80 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-80 overflow-y-auto">
                           <div className="p-2">
                             {isLoadingRelationships ? (
-                              <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                              <div className="p-4 text-center text-sm text-gray-500">
                                 <div className="flex items-center justify-center gap-2">
-                                  <div className="w-4 h-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                                   <span>Loading...</span>
                                 </div>
                               </div>
@@ -3566,8 +3566,8 @@ export default function Feedback360Dashboard({
                                     }}
                                     className={`w-full text-left p-2 rounded-md transition-colors flex items-center gap-2 ${
                                       isAlreadyAdded
-                                        ? 'opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-700'
-                                        : 'hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer'
+                                        ? 'opacity-60 cursor-not-allowed bg-gray-50'
+                                        : 'hover:bg-blue-50 cursor-pointer'
                                     }`}
                                     disabled={isAlreadyAdded}
                                   >
@@ -3578,18 +3578,18 @@ export default function Feedback360Dashboard({
                                     />
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2 flex-wrap">
-                                        <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">{emp.full_name || emp.name}</div>
+                                        <div className="font-semibold text-sm text-gray-900">{emp.full_name || emp.name}</div>
                                         {isAlreadyAdded && (
-                                          <span className="px-2 py-0.5 text-xs font-medium rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                          <span className="px-2 py-0.5 text-xs font-medium rounded bg-gray-200 text-gray-600">
                                             Already Added
                                           </span>
                                         )}
                                         {empWithRel.detected_relationship && !isAlreadyAdded && (
                                           <span className={`px-2 py-0.5 text-xs font-medium rounded ${
-                                            empWithRel.detected_relationship === 'manager' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
-                                            empWithRel.detected_relationship === 'slt' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
-                                            empWithRel.detected_relationship === 'direct_report' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
-                                            'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                            empWithRel.detected_relationship === 'manager' ? 'bg-purple-100 text-purple-700' :
+                                            empWithRel.detected_relationship === 'slt' ? 'bg-blue-100 text-blue-700' :
+                                            empWithRel.detected_relationship === 'direct_report' ? 'bg-green-100 text-green-700' :
+                                            'bg-gray-100 text-gray-700'
                                           }`}>
                                             {empWithRel.detected_relationship === 'manager' ? 'Manager' :
                                              empWithRel.detected_relationship === 'slt' ? 'SLT' :
@@ -3598,13 +3598,13 @@ export default function Feedback360Dashboard({
                                           </span>
                                         )}
                                       </div>
-                                      {emp.title && <div className="text-xs text-gray-600 dark:text-gray-400">{emp.title}</div>}
+                                      {emp.title && <div className="text-xs text-gray-600">{emp.title}</div>}
                                     </div>
                                   </button>
                                 );
                               })
                             ) : newReviewerRelationship && employeesWithRelationships.length === 0 && !isLoadingRelationships ? (
-                              <div className="p-4 text-center text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-md m-2">
+                              <div className="p-4 text-center text-sm text-red-700 bg-red-50 border border-red-200 rounded-md m-2">
                                 {selectedSurvey?.employee?.name} has no{' '}
                                 {newReviewerRelationship === 'manager' ? 'manager' :
                                  newReviewerRelationship === 'slt' ? 'SLT' :
@@ -3612,14 +3612,14 @@ export default function Feedback360Dashboard({
                                  'cross-functional colleagues'} in the system
                               </div>
                             ) : (
-                              <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">No employees found</div>
+                              <div className="p-4 text-center text-sm text-gray-500">No employees found</div>
                             )}
                             <button
                               onClick={() => {
                                 setShowReviewerPicker(false);
                                 setReviewerSearch('');
                               }}
-                              className="w-full mt-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                              className="w-full mt-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
                             >
                               Enter manually instead
                             </button>
@@ -3632,14 +3632,14 @@ export default function Feedback360Dashboard({
 
                 {/* Only show reviewers list to admin, sponsor, SLT (for in-progress surveys), or delegated sponsors */}
                 {(isAdmin || isSponsor || (isSLT && selectedSurvey.status === 'in_progress') || isDelegatedSponsor) ? (
-                  <div className="bg-gray-50 dark:bg-gray-900/30 rounded-md p-4 space-y-2 max-h-[240px] overflow-y-auto">
+                  <div className="bg-gray-50 rounded-md p-4 space-y-2 max-h-[240px] overflow-y-auto">
                     {surveyReviewers.length === 0 ? (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No reviewers added yet</p>
+                      <p className="text-sm text-gray-500 text-center py-2">No reviewers added yet</p>
                     ) : (
                       surveyReviewers.map((reviewer) => (
                         <div
                           key={reviewer.id}
-                          className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600"
+                          className="flex items-center justify-between p-3 bg-white rounded border border-gray-200"
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
@@ -3648,18 +3648,18 @@ export default function Feedback360Dashboard({
                                 picture={undefined}
                                 size="sm"
                               />
-                              <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">{reviewer.reviewer_name}</span>
+                              <span className="font-medium text-gray-900 text-sm">{reviewer.reviewer_name}</span>
                               <span className={`px-2 py-0.5 text-xs rounded ${
                                 reviewer.status === 'completed'
-                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                  ? 'bg-green-100 text-green-700'
                                   : reviewer.status === 'in_progress'
-                                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                  ? 'bg-yellow-100 text-yellow-700'
+                                  : 'bg-gray-100 text-gray-600'
                               }`}>
                                 {reviewer.status === 'completed' ? 'Completed' : reviewer.status === 'in_progress' ? 'In Progress' : 'Pending'}
                               </span>
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            <div className="text-xs text-gray-600 mt-1">
                               {reviewer.reviewer_email} • {formatRelationship(reviewer.relationship)}
                             </div>
                           </div>
@@ -3667,14 +3667,14 @@ export default function Feedback360Dashboard({
                           <div className="flex items-center gap-6">
                             {reviewer.status !== 'completed' && (
                               remindedReviewers.has(reviewer.id) ? (
-                                <span className="px-3 py-1.5 text-xs bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded flex items-center gap-1">
+                                <span className="px-3 py-1.5 text-xs bg-green-50 text-green-700 rounded flex items-center gap-1">
                                   <CheckCircle className="w-3 h-3" />
                                   Reminded
                                 </span>
                               ) : (
                                 <button
                                   onClick={() => sendReminderToReviewer(reviewer.id, reviewer.reviewer_email)}
-                                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 font-medium"
+                                  className="text-xs text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 font-medium"
                                   title="Send reminder email"
                                 >
                                   <Send className="w-3 h-3" />
@@ -3684,7 +3684,7 @@ export default function Feedback360Dashboard({
                             )}
                             <button
                               onClick={() => removeReviewer(reviewer.id)}
-                              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                              className="text-red-600 hover:text-red-700 transition-colors"
                               title="Remove reviewer"
                             >
                               <X className="w-4 h-4" />
@@ -3696,13 +3696,13 @@ export default function Feedback360Dashboard({
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">Reviewer details are only visible to admins, sponsors, and their delegates.</p>
+                  <p className="text-sm text-gray-500 text-center py-2">Reviewer details are only visible to admins, sponsors, and their delegates.</p>
                 )}
               </div>
 
               {/* Actions - Visible to sponsor, admins, and delegated sponsors */}
               {(isSponsor || isAdmin || isDelegatedSponsor) && (
-              <div className="flex items-center justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-end pt-4 border-t border-gray-200">
                 <div className="flex items-center gap-3">
                   {/* Complete with AI for in_progress - disabled if below 50% completion threshold */}
                   {/* Hide for delegated sponsors (EAs) - they can only manage, not complete */}
@@ -3812,25 +3812,25 @@ export default function Feedback360Dashboard({
 
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-md max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden relative">
+            <div className="bg-white rounded-md max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden relative">
               {/* Loading overlay when generating/reanalyzing AI analysis */}
               {generatingSurveyId === selectedSurvey?.id && (
-                <div className="absolute inset-0 bg-white/90 dark:bg-gray-800/90 flex flex-col items-center justify-center z-50 rounded-md">
+                <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-50 rounded-md">
                   {/* Close button on loading overlay */}
                   <button
                     onClick={() => {
                       setIsResultsModalOpen(false);
                       // Note: Generation continues in background, polling will stop due to cleanup
                     }}
-                    className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 z-50"
+                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-50"
                   >
                     <X className="w-6 h-6" />
                   </button>
                   <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
-                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  <p className="text-lg font-semibold text-gray-900 mb-2">
                     {selectedSurvey?.status === 'queued' ? 'Queued for Reanalysis...' : 'Regenerating AI Analysis...'}
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md px-4 mb-6">
+                  <p className="text-sm text-gray-600 text-center max-w-md px-4 mb-6">
                     {selectedSurvey?.status === 'queued'
                       ? 'We will start as soon as a slot is available.'
                       : 'Report generation may take up to 15 minutes depending on number of reviewers'}
@@ -3839,29 +3839,29 @@ export default function Feedback360Dashboard({
                   <button
                     onClick={cancelReportGeneration}
                     disabled={isCancellingGeneration}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {isCancellingGeneration ? 'Cancelling...' : (selectedSurvey?.status === 'queued' ? 'Remove from Queue' : 'Cancel')}
                   </button>
                 </div>
               )}
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+              <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <div className="flex items-center gap-3">
-                      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{selectedSurvey.survey_name}</h2>
+                      <h2 className="text-xl font-bold text-gray-900">{selectedSurvey.survey_name}</h2>
                       {/* Only show reviewer count to Admin, SLT, and survey sponsor */}
                       {(isAdmin || isSLT || isSponsor) && (() => {
                         const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 0;
                         const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
                         return (
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                          <span className="text-sm text-gray-600">
                             Reviewers: <span className="font-medium">{completedReviewers} of {totalReviewers} completed</span>
                           </span>
                         );
                       })()}
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-sm text-gray-500 mt-1">
                       {canSeeAdvanced
                         ? `Generated by ${surveyResults.generated_by || 'Claude AI'} on ${new Date(surveyResults.generated_at || Date.now()).toLocaleDateString()}`
                         : new Date(surveyResults.generated_at || Date.now()).toLocaleDateString()}
@@ -4000,7 +4000,7 @@ export default function Feedback360Dashboard({
             </div>
 
             <div
-              className="h-[500px] overflow-y-auto p-6 space-y-6 bg-gray-50 dark:bg-gray-900"
+              className="h-[500px] overflow-y-auto p-6 space-y-6 bg-gray-50"
               onClick={() => {
                 // Deselect all items when clicking blank space
                 setSelectedThemeIndex(null);
@@ -4012,14 +4012,14 @@ export default function Feedback360Dashboard({
               {/* Key Themes Tab */}
               {activeReportTab === 'themes' && surveyResults.themes && surveyResults.themes.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 italic">Themes are ordered by their prevalence</p>
+                  <p className="text-xs text-gray-500 italic">Themes are ordered by their prevalence</p>
                   {surveyResults.themes.map((theme: any, idx: number) => (
                     <div
                       key={idx}
-                      className="border rounded-md p-4 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                      className="border rounded-md p-4 border-gray-200 bg-white"
                     >
                       <div className="flex items-start justify-between mb-2">
-                        <h5 className="font-medium text-gray-900 dark:text-gray-100">{theme.theme}</h5>
+                        <h5 className="font-medium text-gray-900">{theme.theme}</h5>
                         <Tooltip content={
                           theme.sentiment === 'very_positive' ? 'Reviewers are strongly aligned — this is a clear strength' :
                           theme.sentiment === 'positive' ? 'Generally positive feedback from reviewers on this theme' :
@@ -4029,12 +4029,12 @@ export default function Feedback360Dashboard({
                           'Overall reviewer sentiment on this theme'
                         }>
                         <span className={`px-2 py-1 rounded text-xs font-medium cursor-help ${
-                          theme.sentiment === 'very_positive' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' :
-                          theme.sentiment === 'positive' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' :
-                          theme.sentiment === 'mixed' ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300' :
-                          theme.sentiment === 'needs_work' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300' :
-                          theme.sentiment === 'critical' ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' :
-                          'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                          theme.sentiment === 'very_positive' ? 'bg-emerald-100 text-emerald-700' :
+                          theme.sentiment === 'positive' ? 'bg-green-100 text-green-700' :
+                          theme.sentiment === 'mixed' ? 'bg-yellow-100 text-yellow-700' :
+                          theme.sentiment === 'needs_work' ? 'bg-orange-100 text-orange-700' :
+                          theme.sentiment === 'critical' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-700'
                         }`}>
                           {theme.sentiment === 'very_positive' ? 'Very Positive' :
                            theme.sentiment === 'positive' ? 'Positive' :
@@ -4046,7 +4046,7 @@ export default function Feedback360Dashboard({
                         </Tooltip>
                       </div>
                       {currentUser?.app_role === 'admin' && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        <p className="text-xs text-gray-500 mb-2">
                           Mentioned by {theme.frequency} reviewer{theme.frequency !== 1 ? 's' : ''}
                           {theme.relationships_mentioned && theme.relationships_mentioned.length > 0 && (
                             <span> ({theme.relationships_mentioned.join(', ')})</span>
@@ -4056,7 +4056,7 @@ export default function Feedback360Dashboard({
                       {theme.supporting_evidence && theme.supporting_evidence.length > 0 && (
                         <div className="mt-2 space-y-1">
                           {theme.supporting_evidence.map((evidence: string | { text: string; citations?: any[] }, qIdx: number) => (
-                            <p key={qIdx} className="text-sm text-gray-600 dark:text-gray-400 pl-3 border-l-2 border-gray-300 dark:border-gray-600">
+                            <p key={qIdx} className="text-sm text-gray-600 pl-3 border-l-2 border-gray-300">
                               {getStatementText(evidence)}
                               <InlineCitation
                                 citations={getCitations(evidence)}
@@ -4080,8 +4080,8 @@ export default function Feedback360Dashboard({
                 <ul className="space-y-1">
                   {surveyResults.overall_strengths.map((strength: string | { text: string; citations?: any[] }, idx: number) => (
                     <li key={idx} className="flex items-start gap-2 rounded-md p-2 border border-transparent">
-                      <span className="text-gray-700 dark:text-gray-300 mt-1">•</span>
-                      <span className="text-gray-700 dark:text-gray-300">
+                      <span className="text-gray-700 mt-1">•</span>
+                      <span className="text-gray-700">
                         {getStatementText(strength)}
                         <InlineCitation
                           citations={getCitations(strength)}
@@ -4101,8 +4101,8 @@ export default function Feedback360Dashboard({
                 <ul className="space-y-1">
                   {surveyResults.development_areas.map((area: string | { text: string; citations?: any[] }, idx: number) => (
                     <li key={idx} className="flex items-start gap-2 rounded-md p-2 border border-transparent">
-                      <span className="text-gray-700 dark:text-gray-300 mt-1">•</span>
-                      <span className="text-gray-700 dark:text-gray-300">
+                      <span className="text-gray-700 mt-1">•</span>
+                      <span className="text-gray-700">
                         {getStatementText(area)}
                         <InlineCitation
                           citations={getCitations(area)}
@@ -4127,10 +4127,10 @@ export default function Feedback360Dashboard({
                   <div>
                     {canSeeAdvanced && (
                       <div className="mb-4">
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        <h4 className="text-lg font-semibold text-gray-900">
                           Recommended Actions for {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'}
                           {canEdit && (
-                            <span className="text-xs text-gray-600 dark:text-gray-400 font-semibold ml-2">(Click to edit)</span>
+                            <span className="text-xs text-gray-600 font-semibold ml-2">(Click to edit)</span>
                           )}
                         </h4>
                       </div>
@@ -4140,7 +4140,7 @@ export default function Feedback360Dashboard({
                         const recText = getStatementText(rec);
                         return (
                         <li key={idx} className="flex items-start gap-3 group">
-                          <span className="text-gray-400 dark:text-gray-500 font-medium text-sm flex-shrink-0 mt-0.5">{idx + 1}.</span>
+                          <span className="text-gray-400 font-medium text-sm flex-shrink-0 mt-0.5">{idx + 1}.</span>
                           {editingRecommendationIndex === idx ? (
                             <input
                               type="text"
@@ -4154,15 +4154,15 @@ export default function Feedback360Dashboard({
                                   cancelEditingRecommendation();
                                 }
                               }}
-                              className="flex-1 px-2 py-1 border-b-2 border-blue-500 text-gray-700 dark:text-gray-300 text-sm focus:outline-none bg-transparent"
+                              className="flex-1 px-2 py-1 border-b-2 border-blue-500 text-gray-700 text-sm focus:outline-none bg-transparent"
                               autoFocus
                             />
                           ) : (
                             <div className="flex-1 flex items-start justify-between group">
                               <span
                                 onClick={() => canEdit && startEditingRecommendation(idx, recText)}
-                                className={`text-gray-700 dark:text-gray-300 text-sm flex-1 ${
-                                  canEdit ? 'cursor-pointer hover:text-gray-900 dark:hover:text-gray-100' : ''
+                                className={`text-gray-700 text-sm flex-1 ${
+                                  canEdit ? 'cursor-pointer hover:text-gray-900' : ''
                                 }`}
                               >
                                 {recText}
@@ -4214,14 +4214,14 @@ export default function Feedback360Dashboard({
                                   cancelEditingRecommendation();
                                 }
                               }}
-                              className="flex-1 px-2 py-1 border-b-2 border-blue-500 text-gray-700 dark:text-gray-300 text-sm focus:outline-none bg-transparent"
+                              className="flex-1 px-2 py-1 border-b-2 border-blue-500 text-gray-700 text-sm focus:outline-none bg-transparent"
                               placeholder="Type to add new action..."
                               autoFocus
                             />
                           ) : (
                             <span
                               onClick={() => startEditingRecommendation(-1, '')}
-                              className="flex-1 text-gray-400 dark:text-gray-500 text-sm cursor-pointer hover:text-gray-600 dark:hover:text-gray-400 italic"
+                              className="flex-1 text-gray-400 text-sm cursor-pointer hover:text-gray-600 italic"
                             >
                               Add new action...
                             </span>
@@ -4230,7 +4230,7 @@ export default function Feedback360Dashboard({
                       )}
 
                       {!canEdit && (!surveyResults.recommendations || surveyResults.recommendations.length === 0) && (
-                        <li className="text-gray-500 dark:text-gray-400 text-sm italic">No recommendations available.</li>
+                        <li className="text-gray-500 text-sm italic">No recommendations available.</li>
                       )}
                     </ul>
 
@@ -4256,14 +4256,14 @@ export default function Feedback360Dashboard({
                 return (
                   <>
                     {/* Privacy Notice Banner */}
-                    <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 dark:border-amber-600 p-4 mb-6">
+                    <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6">
                       <div className="flex items-start">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-500 mr-3 mt-0.5 flex-shrink-0" />
+                        <AlertTriangle className="w-5 h-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                          <p className="text-sm font-medium text-amber-800">
                             Sponsor/Admin Only Section
                           </p>
-                          <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                          <p className="text-sm text-amber-700 mt-1">
                             This group-level analysis is <strong>not visible to {subjectFirstName}</strong>.
                             Only survey sponsors and administrators can see how different reviewer groups perceive the subject.
                           </p>
@@ -4274,19 +4274,19 @@ export default function Feedback360Dashboard({
                     <div className="space-y-6">
                       {/* Section 1: Strong Consensus */}
                       {hasConsensus && (
-                        <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-5 border border-green-200 dark:border-green-700">
-                          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-                            <span className="text-green-600 dark:text-green-400">✓</span>
+                        <div className="bg-green-50 rounded-lg p-5 border border-green-200">
+                          <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <span className="text-green-600">✓</span>
                             Strong Consensus
                           </h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                          <p className="text-sm text-gray-500 mb-3">
                             Areas where multiple reviewer groups agree
                           </p>
                           <ul className="space-y-3">
                             {surveyResults.consensus_areas.map((area: any, idx: number) => (
-                              <li key={idx} className="text-gray-700 dark:text-gray-300">
+                              <li key={idx} className="text-gray-700">
                                 <div className="flex items-start gap-2">
-                                  <span className="text-green-600 dark:text-green-400 mt-0.5">•</span>
+                                  <span className="text-green-600 mt-0.5">•</span>
                                   <div className="flex-1">
                                     <span className="text-sm">{getStatementText(area)}</span>
                                     <InlineCitation
@@ -4302,7 +4302,7 @@ export default function Feedback360Dashboard({
                                         {area.groups_agreeing.map((group: string, gIdx: number) => (
                                           <span
                                             key={gIdx}
-                                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200"
+                                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
                                           >
                                             {getShortGroupLabel(group)}
                                           </span>
@@ -4319,21 +4319,21 @@ export default function Feedback360Dashboard({
 
                       {/* Section 2: Varied by Relationship */}
                       {hasVaried && (
-                        <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-5 border border-indigo-200 dark:border-indigo-700">
-                          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-                            <span className="text-indigo-600 dark:text-indigo-400">⟷</span>
+                        <div className="bg-indigo-50 rounded-lg p-5 border border-indigo-200">
+                          <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <span className="text-indigo-600">⟷</span>
                             Varied by Relationship
                           </h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                          <p className="text-sm text-gray-500 mb-4">
                             Topics where different groups perceive {subjectFirstName} differently
                           </p>
                           <div className="space-y-4">
                             {surveyResults.varied_by_relationship.map((item: any, idx: number) => (
                               <div
                                 key={idx}
-                                className="bg-white dark:bg-gray-800/50 rounded-md p-4 border border-indigo-100 dark:border-indigo-800"
+                                className="bg-white rounded-md p-4 border border-indigo-100"
                               >
-                                <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-3 text-sm uppercase tracking-wide">
+                                <h5 className="font-medium text-gray-900 mb-3 text-sm uppercase tracking-wide">
                                   {item.topic}
                                 </h5>
                                 <div className="space-y-2">
@@ -4342,10 +4342,10 @@ export default function Feedback360Dashboard({
                                       key={pIdx}
                                       className="flex items-start gap-3 text-sm"
                                     >
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-800/50 text-indigo-800 dark:text-indigo-200 whitespace-nowrap min-w-[100px]">
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 whitespace-nowrap min-w-[100px]">
                                         {getShortGroupLabel(perspective.group)}
                                       </span>
-                                      <span className="text-gray-700 dark:text-gray-300 flex-1">
+                                      <span className="text-gray-700 flex-1">
                                         {perspective.view}
                                         <InlineCitation
                                           citations={perspective.citations || []}
@@ -4367,19 +4367,19 @@ export default function Feedback360Dashboard({
 
                       {/* Section 3: Outliers (Individual Perspectives) */}
                       {(hasOutliers || hasOldOutliers) && (
-                        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-5 border border-amber-200 dark:border-amber-700">
-                          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-                            <span className="text-amber-600 dark:text-amber-400">💡</span>
+                        <div className="bg-amber-50 rounded-lg p-5 border border-amber-200">
+                          <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <span className="text-amber-600">💡</span>
                             Outliers
                           </h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                          <p className="text-sm text-gray-500 mb-3">
                             Unique perspectives mentioned by only one reviewer
                           </p>
                           <ul className="space-y-2">
                             {/* New format outliers */}
                             {surveyResults.outliers?.map((outlier: any, idx: number) => (
-                              <li key={`new-${idx}`} className="text-gray-700 dark:text-gray-300 flex items-start gap-2">
-                                <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
+                              <li key={`new-${idx}`} className="text-gray-700 flex items-start gap-2">
+                                <span className="text-amber-600 mt-0.5">•</span>
                                 <span className="text-sm">
                                   {getStatementText(outlier)}
                                   <InlineCitation
@@ -4394,8 +4394,8 @@ export default function Feedback360Dashboard({
                             ))}
                             {/* Old format outlier_opinions (backward compatibility) */}
                             {!hasOutliers && surveyResults.outlier_opinions?.map((opinion: any, idx: number) => (
-                              <li key={`old-${idx}`} className="text-gray-700 dark:text-gray-300 flex items-start gap-2">
-                                <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
+                              <li key={`old-${idx}`} className="text-gray-700 flex items-start gap-2">
+                                <span className="text-amber-600 mt-0.5">•</span>
                                 <span className="text-sm">
                                   {getStatementText(opinion)}
                                   <InlineCitation
@@ -4414,7 +4414,7 @@ export default function Feedback360Dashboard({
 
                       {/* Empty state when no divergence detected */}
                       {!hasVaried && hasConsensus && (
-                        <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+                        <div className="text-center py-4 text-gray-500 text-sm">
                           <p>All reviewer groups expressed similar views on all topics.</p>
                         </div>
                       )}
@@ -4428,12 +4428,12 @@ export default function Feedback360Dashboard({
                 <div className="space-y-6">
                   {/* Warning if narrative is outdated */}
                   {narrativeOutdated && finalNarrative && (
-                    <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 dark:border-amber-600 p-4">
+                    <div className="bg-amber-50 border-l-4 border-amber-400 p-4">
                       <div className="flex items-start">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-500 mr-3 mt-0.5 flex-shrink-0" />
+                        <AlertTriangle className="w-5 h-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
                         <div>
-                          <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">Narrative Outdated</h4>
-                          <p className="text-sm text-amber-700 dark:text-amber-400">
+                          <h4 className="text-sm font-semibold text-amber-800 mb-1">Narrative Outdated</h4>
+                          <p className="text-sm text-amber-700">
                             You have made changes to the report since the narrative was last generated.
                             Please regenerate the narrative to reflect your latest edits.
                           </p>
@@ -4445,18 +4445,18 @@ export default function Feedback360Dashboard({
                   {/* Narrative content or empty state */}
                   {finalNarrative ? (
                     <>
-                      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 border border-purple-200 dark:border-purple-700 rounded-md p-8">
+                      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-md p-8">
                         {canSeeAdvanced && (
                           <div className="mb-6">
-                            <h4 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Final Narrative</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            <h4 className="text-xl font-semibold text-gray-900">Final Narrative</h4>
+                            <p className="text-sm text-gray-600 mt-1">
                               This will be the first page of the final 360 report that{' '}
                               {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'} sees.
                             </p>
                           </div>
                         )}
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
-                          <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                        <div className="prose prose-sm max-w-none">
+                          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
                             {finalNarrative.replace(/^\*\*360-Degree Feedback Report:.*?\*\*\s*/i, '').trim()}
                           </p>
                         </div>
@@ -4488,10 +4488,10 @@ export default function Feedback360Dashboard({
                     </>
                   ) : (
                     /* Empty state - no narrative generated yet */
-                    <div className="bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md p-12 text-center">
-                      <FileText className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No Narrative Generated Yet</h4>
-                      <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-2xl mx-auto">
+                    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-md p-12 text-center">
+                      <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <h4 className="text-lg font-semibold text-gray-900 mb-2">No Narrative Generated Yet</h4>
+                      <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
                         Generate a comprehensive narrative that synthesizes all the feedback and insights from this 360 feedback.
                         This will be the first page of the final report that{' '}
                         {selectedSurvey.employee?.name?.split(' ')[0] || 'the subject'} sees.
@@ -4518,7 +4518,7 @@ export default function Feedback360Dashboard({
                       )}
 
                       {(!isSponsor && !isAdmin) && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+                        <p className="text-sm text-gray-500 mt-4">
                           Only the survey sponsor or an admin can generate the narrative.
                         </p>
                       )}
@@ -4529,7 +4529,7 @@ export default function Feedback360Dashboard({
             </div>
 
             {/* Actions Footer - Anchored at bottom */}
-            <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+            <div className="border-t border-gray-200 bg-white p-6">
               {/* Admin viewing flagged survey - special controls */}
               {currentUser?.app_role === 'admin' && (selectedSurvey.flagged_for_admin || selectedSurvey.flagged_for_reanalysis) ? (
                 <div className="space-y-4">
@@ -4649,9 +4649,9 @@ export default function Feedback360Dashboard({
       {isResultsModalOpen && surveyResults && selectedSurvey &&
        surveyResults.survey_id !== selectedSurvey.id && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-8">
+          <div className="bg-white rounded-lg p-8">
             <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">Loading report...</p>
+            <p className="text-gray-600">Loading report...</p>
           </div>
         </div>
       )}
@@ -4659,9 +4659,9 @@ export default function Feedback360Dashboard({
       {/* Raw Data Modal */}
       {showRawData && rawSurveyData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-md max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-white rounded-md max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Raw Survey Data</h2>
@@ -4715,7 +4715,7 @@ export default function Feedback360Dashboard({
                 <h3 className="font-semibold text-gray-900 mb-3">Reviewers</h3>
                 <div className="space-y-2">
                   {rawSurveyData.reviewers?.map((reviewer: any) => (
-                    <div key={reviewer.id} className="bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-md p-3">
+                    <div key={reviewer.id} className="bg-white border border-gray-200 rounded-md p-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-gray-900">{reviewer.reviewer_name}</p>
@@ -4757,7 +4757,7 @@ export default function Feedback360Dashboard({
                     return Object.entries(groupedByReviewer).map(([email, reviewerResponses]: [string, any[]]) => {
                       const reviewer = reviewerResponses[0]?.reviewer;
                       return (
-                        <div key={email} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+                        <div key={email} className="bg-white border border-gray-200 rounded-md overflow-hidden">
                           {/* Reviewer Header */}
                           <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
                             <div className="flex items-center justify-between">
@@ -4810,7 +4810,7 @@ export default function Feedback360Dashboard({
             </div>
 
             {/* Footer */}
-            <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+            <div className="border-t border-gray-200 bg-white p-6">
               <button
                 onClick={() => {
                   setShowRawData(false);
@@ -4828,8 +4828,8 @@ export default function Feedback360Dashboard({
       {/* Incomplete Reviewers Warning Dialog */}
       {showIncompleteWarning && selectedSurvey && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-md max-w-md w-full">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white rounded-md max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
@@ -4848,8 +4848,8 @@ export default function Feedback360Dashboard({
 
             <div className="p-6 space-y-4">
               <div className="bg-amber-50 rounded-md p-4 border border-amber-200">
-                <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-2">50% completion required</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-700 font-medium mb-2">50% completion required</p>
+                <p className="text-sm text-gray-600">
                   A minimum of 50% of reviewers must complete their feedback before the review can be closed. You currently have {(() => {
                     const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 1;
                     const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;

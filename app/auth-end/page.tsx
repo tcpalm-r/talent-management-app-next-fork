@@ -98,20 +98,20 @@ export default function AuthEndPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center max-w-md p-6">
         {status === 'processing' && (
           <>
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">{message}</p>
+            <p className="mt-4 text-gray-600">{message}</p>
           </>
         )}
 
         {status === 'success' && (
           <>
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto">
               <svg
-                className="w-6 h-6 text-green-600 dark:text-green-400"
+                className="w-6 h-6 text-green-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -124,15 +124,15 @@ export default function AuthEndPage() {
                 />
               </svg>
             </div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">{message}</p>
+            <p className="mt-4 text-gray-600">{message}</p>
           </>
         )}
 
         {status === 'error' && (
           <>
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto">
               <svg
-                className="w-6 h-6 text-red-600 dark:text-red-400"
+                className="w-6 h-6 text-red-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -145,8 +145,8 @@ export default function AuthEndPage() {
                 />
               </svg>
             </div>
-            <p className="mt-4 text-red-600 dark:text-red-400">{message}</p>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-500">
+            <p className="mt-4 text-red-600">{message}</p>
+            <p className="mt-2 text-sm text-gray-500">
               This window will close automatically.
             </p>
           </>

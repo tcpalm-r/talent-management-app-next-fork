@@ -144,8 +144,8 @@ export default function MyReportDashboard({
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto"></div>
-          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">Loading your reports...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-3 text-sm text-gray-600">Loading your reports...</p>
         </div>
       </div>
     );
@@ -164,12 +164,12 @@ export default function MyReportDashboard({
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-md max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+        <div className="bg-white rounded-md max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{selectedSurvey.survey_name}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <h2 className="text-xl font-bold text-gray-900">{selectedSurvey.survey_name}</h2>
+                <p className="text-sm text-gray-500 mt-1">
                   Generated on {new Date(surveyResults.generated_at || Date.now()).toLocaleDateString()}
                 </p>
               </div>
@@ -231,7 +231,7 @@ export default function MyReportDashboard({
                 </button>
                 <button
                   onClick={closeReportView}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -252,9 +252,9 @@ export default function MyReportDashboard({
             {activeReportTab === 'themes' && surveyResults.themes && surveyResults.themes.length > 0 && (
               <div className="space-y-3">
                 {surveyResults.themes.map((theme: any, idx: number) => (
-                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
+                  <div key={idx} className="border border-gray-200 rounded-md p-4">
                     <div className="flex items-start justify-between mb-2">
-                      <h5 className="font-medium text-gray-900 dark:text-gray-100">{theme.theme}</h5>
+                      <h5 className="font-medium text-gray-900">{theme.theme}</h5>
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
                         theme.sentiment === 'very_positive' ? 'bg-emerald-100 text-emerald-700' :
                         theme.sentiment === 'positive' ? 'bg-green-100 text-green-700' :
@@ -274,7 +274,7 @@ export default function MyReportDashboard({
                     {theme.supporting_evidence && theme.supporting_evidence.length > 0 && (
                       <div className="mt-2 space-y-1">
                         {theme.supporting_evidence.map((evidence: string, qIdx: number) => (
-                          <p key={qIdx} className="text-sm text-gray-600 dark:text-gray-400 pl-3 border-l-2 border-gray-300 dark:border-gray-600">
+                          <p key={qIdx} className="text-sm text-gray-600 pl-3 border-l-2 border-gray-300">
                             {evidence}
                           </p>
                         ))}
@@ -290,8 +290,8 @@ export default function MyReportDashboard({
               <ul className="space-y-1">
                 {surveyResults.overall_strengths.map((strength: CitedItem, idx: number) => (
                   <li key={idx} className="flex items-start gap-2 rounded-md p-2">
-                    <span className="text-green-600 dark:text-green-400 mt-1">•</span>
-                    <span className="text-gray-700 dark:text-gray-300">
+                    <span className="text-green-600 mt-1">•</span>
+                    <span className="text-gray-700">
                       {getStatementText(strength)}
                     </span>
                   </li>
@@ -304,8 +304,8 @@ export default function MyReportDashboard({
               <ul className="space-y-1">
                 {surveyResults.development_areas.map((area: CitedItem, idx: number) => (
                   <li key={idx} className="flex items-start gap-2 rounded-md p-2">
-                    <span className="text-amber-600 dark:text-amber-400 mt-1">•</span>
-                    <span className="text-gray-700 dark:text-gray-300">
+                    <span className="text-amber-600 mt-1">•</span>
+                    <span className="text-gray-700">
                       {getStatementText(area)}
                     </span>
                   </li>
@@ -317,8 +317,8 @@ export default function MyReportDashboard({
             {activeReportTab === 'insights' && surveyResults.key_insights && surveyResults.key_insights.length > 0 && (
               <div className="space-y-3">
                 {surveyResults.key_insights.map((insight: any, idx: number) => (
-                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{insight.insight || insight}</p>
+                  <div key={idx} className="border border-gray-200 rounded-md p-4">
+                    <p className="text-sm text-gray-700">{insight.insight || insight}</p>
                   </div>
                 ))}
               </div>
@@ -328,15 +328,15 @@ export default function MyReportDashboard({
             {activeReportTab === 'recommendations' && surveyResults.recommendations && surveyResults.recommendations.length > 0 && (
               <div>
                 <div className="mb-4">
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <h4 className="text-lg font-semibold text-gray-900">
                     Recommended Actions
                   </h4>
                 </div>
                 <ul className="space-y-3">
                   {surveyResults.recommendations.map((rec: CitedItem, idx: number) => (
                     <li key={idx} className="flex items-start gap-3">
-                      <span className="text-gray-400 dark:text-gray-500 font-medium text-sm flex-shrink-0 mt-0.5">{idx + 1}.</span>
-                      <span className="text-gray-700 dark:text-gray-300">{getStatementText(rec)}</span>
+                      <span className="text-gray-400 font-medium text-sm flex-shrink-0 mt-0.5">{idx + 1}.</span>
+                      <span className="text-gray-700">{getStatementText(rec)}</span>
                     </li>
                   ))}
                 </ul>
@@ -345,13 +345,13 @@ export default function MyReportDashboard({
 
             {/* Narrative Tab */}
             {activeReportTab === 'narrative' && (
-              <div className="border border-gray-200 dark:border-gray-700 rounded-md p-6">
+              <div className="border border-gray-200 rounded-md p-6">
                 {finalNarrative ? (
-                  <div className="prose dark:prose-invert max-w-none">
-                    <div className="whitespace-pre-wrap text-gray-700 dark:text-gray-300">{finalNarrative}</div>
+                  <div className="prose max-w-none">
+                    <div className="whitespace-pre-wrap text-gray-700">{finalNarrative}</div>
                   </div>
                 ) : (
-                  <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                  <p className="text-gray-500 text-center py-8">
                     No narrative available for this report.
                   </p>
                 )}
@@ -368,21 +368,21 @@ export default function MyReportDashboard({
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Performance Review</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Performance Review</h1>
           </div>
         </div>
 
         {/* 360° Review Report Section */}
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">My 360° Feedback</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">My 360° Feedback</h2>
           {finalizedSurveys.length === 0 ? (
             <Tooltip
               content="When all your 360 feedback is processed and your supervisor finalizes the report it will show up here"
               side="bottom"
             >
-              <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-md border-2 border-dashed border-gray-300 dark:border-gray-600 cursor-help">
-                <FileText className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                <p className="text-sm text-gray-500 dark:text-gray-400">No reports yet</p>
+              <div className="text-center py-12 bg-gray-50 rounded-md border-2 border-dashed border-gray-300 cursor-help">
+                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-sm text-gray-500">No reports yet</p>
               </div>
             </Tooltip>
           ) : (
@@ -390,21 +390,21 @@ export default function MyReportDashboard({
               {finalizedSurveys.map((survey) => (
               <div
                 key={survey.id}
-                className="border border-gray-200 dark:border-gray-700 rounded-md p-5 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
+                className="border border-gray-200 rounded-md p-5 hover:shadow-md transition-shadow bg-white"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                    <h3 className="font-medium text-gray-900 mb-1">
                       {survey.survey_name || 'Untitled Survey'}
                     </h3>
-                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
                       <Calendar className="w-3 h-3" />
                       <span>
                         Completed {survey.completed_at ? new Date(survey.completed_at).toLocaleDateString() : 'N/A'}
                       </span>
                     </div>
                   </div>
-                  <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-xs font-medium">
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
                     Finalized
                   </span>
                 </div>

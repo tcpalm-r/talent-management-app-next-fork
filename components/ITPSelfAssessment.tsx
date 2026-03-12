@@ -322,7 +322,7 @@ export function ITPSelfAssessment({
   if (!currentAssessment && isOwnAssessment && !isViewOnly) {
     return (
       <div className="text-center py-12">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
           No ITP Self-Assessment Yet
         </h3>
         <p className="text-gray-500 mb-6 max-w-md mx-auto">
