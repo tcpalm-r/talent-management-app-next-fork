@@ -926,9 +926,9 @@ export default function Feedback360Dashboard({
   const completeSurveyWithAI = async (proceedWithIncomplete: boolean = false) => {
     if (!selectedSurvey) return;
 
-    // Check if 70% of reviewers have completed (minimum completion requirement)
+    // Check if 50% of reviewers have completed (minimum completion requirement)
     const completionPercent = selectedSurvey.reviewers_count ? (selectedSurvey.completed_count ?? 0) / selectedSurvey.reviewers_count : 0;
-    const minCompletionMet = completionPercent >= 0.7;
+    const minCompletionMet = completionPercent >= 0.5;
     const isAdmin = currentUser?.app_role === 'admin';
 
     // If minimum completion not met and user hasn't confirmed, show warning
@@ -3024,7 +3024,7 @@ export default function Feedback360Dashboard({
                     <div className="mt-3">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-gray-600 dark:text-gray-400">
-                          Response Rate: {Math.round(((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) * 100)}% (70% required)
+                          Response Rate: {Math.round(((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) * 100)}% (50% required)
                         </span>
                         {(() => {
                           const completedCount = survey.completed_count ?? 0;
@@ -3044,15 +3044,15 @@ export default function Feedback360Dashboard({
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative">
                         <div
                           className={`h-2 rounded-full transition-all ${
-                            ((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) < 0.7 ? 'bg-orange-500 dark:bg-orange-600' : 'bg-green-600 dark:bg-green-500'
+                            ((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) < 0.5 ? 'bg-orange-500 dark:bg-orange-600' : 'bg-green-600 dark:bg-green-500'
                           }`}
                           style={{ width: `${((survey.completed_count ?? 0) / (survey.reviewers_count ?? 1)) * 100}%` }}
                         />
-                        {/* Show 70% requirement marker */}
+                        {/* Show 50% requirement marker */}
                         <div
                           className="absolute top-0 bottom-0 w-0.5 bg-gray-400 dark:bg-gray-500 opacity-50"
-                          style={{ left: '70%' }}
-                          title="70% of reviewers must complete feedback before you can generate an AI report"
+                          style={{ left: '50%' }}
+                          title="50% of reviewers must complete feedback before you can generate an AI report"
                         />
                       </div>
                     </div>
@@ -3704,14 +3704,14 @@ export default function Feedback360Dashboard({
               {(isSponsor || isAdmin || isDelegatedSponsor) && (
               <div className="flex items-center justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-3">
-                  {/* Complete with AI for in_progress - disabled if below 70% completion threshold */}
+                  {/* Complete with AI for in_progress - disabled if below 50% completion threshold */}
                   {/* Hide for delegated sponsors (EAs) - they can only manage, not complete */}
                   {selectedSurvey.status === 'in_progress' && !isDelegatedSponsor && (() => {
                     const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 1;
                     const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
                     const completionPercent = completedReviewers / totalReviewers;
                     const isAdmin = currentUser?.app_role === 'admin';
-                    const meetsThreshold = completionPercent >= 0.7;
+                    const meetsThreshold = completionPercent >= 0.5;
                     // SLT must meet threshold, admins can bypass with confirmation
                     const canComplete = meetsThreshold;
                     const canBypass = isAdmin && !meetsThreshold;
@@ -3721,7 +3721,7 @@ export default function Feedback360Dashboard({
                         onClick={() => {
                           if (!canComplete && !canBypass) {
                             notify({
-                              title: '>70% Reviewer completion required to complete 360°',
+                              title: '>50% Reviewer completion required to complete 360°',
                               variant: 'error',
                             });
                             return;
@@ -3729,7 +3729,7 @@ export default function Feedback360Dashboard({
                           // Admin bypass confirmation
                           if (canBypass) {
                             const confirmed = window.confirm(
-                              `Warning: Only ${completedReviewers}/${totalReviewers} reviewers (${Math.round(completionPercent * 100)}%) have completed their feedback.\n\nThe recommended threshold is 70%. Are you sure you want to proceed?`
+                              `Warning: Only ${completedReviewers}/${totalReviewers} reviewers (${Math.round(completionPercent * 100)}%) have completed their feedback.\n\nThe recommended threshold is 50%. Are you sure you want to proceed?`
                             );
                             if (!confirmed) return;
                           }
@@ -3741,7 +3741,7 @@ export default function Feedback360Dashboard({
                             ? 'from-purple-600 to-indigo-700 text-white hover:from-purple-700 hover:to-indigo-800'
                             : 'from-gray-400 to-gray-500 text-gray-200 cursor-not-allowed'
                         } disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
-                        title={!canComplete && !canBypass ? 'At least 70% of reviewers must submit feedback before you can generate the AI report. This ensures the analysis is representative and reliable.' : (canBypass ? 'Admin: Click to bypass threshold with confirmation' : 'Generate an AI-synthesized report from all reviewer feedback')}
+                        title={!canComplete && !canBypass ? 'At least 50% of reviewers must submit feedback before you can generate the AI report. This ensures the analysis is representative and reliable.' : (canBypass ? 'Admin: Click to bypass threshold with confirmation' : 'Generate an AI-synthesized report from all reviewer feedback')}
                       >
                         {generatingSurveyId === selectedSurvey?.id ? (
                           <>
@@ -4848,9 +4848,9 @@ export default function Feedback360Dashboard({
 
             <div className="p-6 space-y-4">
               <div className="bg-amber-50 rounded-md p-4 border border-amber-200">
-                <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-2">70% completion required</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-2">50% completion required</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  A minimum of 70% of reviewers must complete their feedback before the review can be closed. You currently have {(() => {
+                  A minimum of 50% of reviewers must complete their feedback before the review can be closed. You currently have {(() => {
                     const totalReviewers = selectedSurvey.reviewers?.length || selectedSurvey.reviewers_count || 1;
                     const completedReviewers = selectedSurvey.reviewers?.filter((r: any) => r.status === 'completed').length || selectedSurvey.completed_count || 0;
                     return Math.round((completedReviewers / totalReviewers) * 100);

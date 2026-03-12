@@ -8,7 +8,8 @@
    SONANCE BRAND DESIGN SYSTEM
    ======================================== */
 
-:root {
+:root, :root.dark {
+  color-scheme: light only;
   /* Sonance Brand Colors */
   --sonance-charcoal: #333F48;
   --sonance-charcoal-light: #4A5A66;
