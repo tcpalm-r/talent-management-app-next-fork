@@ -1,0 +1,22 @@
+Package                  Current   Wanted   Latest  Location  Depended by
+@anthropic-ai/sdk        MISSING   0.67.1  0.122.0  -         talent-management-app-next-fork
+@dnd-kit/core            MISSING    6.3.1    6.3.1  -         talent-management-app-next-fork
+@dnd-kit/sortable        MISSING   10.0.0   10.0.0  -         talent-management-app-next-fork
+@dnd-kit/utilities       MISSING    3.2.2    3.2.2  -         talent-management-app-next-fork
+@microsoft/teams-js      MISSING   2.55.0   2.55.0  -         talent-management-app-next-fork
+@radix-ui/react-tooltip  MISSING   1.2.16   1.2.16  -         talent-management-app-next-fork
+@supabase/supabase-js    MISSING  2.109.0  2.109.0  -         talent-management-app-next-fork
+html2canvas              MISSING    1.4.1    1.4.1  -         talent-management-app-next-fork
+jsonrepair               MISSING   3.15.0   3.15.0  -         talent-management-app-next-fork
+jspdf                    MISSING    3.0.4    4.2.1  -         talent-management-app-next-fork
+jszip                    MISSING   3.10.1   3.10.1  -         talent-management-app-next-fork
+lucide-react             MISSING  0.546.0   1.38.0  -         talent-management-app-next-fork
+next                     MISSING  14.2.33   16.3.3  -         talent-management-app-next-fork
+next-themes              MISSING    0.4.6    0.4.6  -         talent-management-app-next-fork
+papaparse                MISSING    5.7.0    5.7.0  -         talent-management-app-next-fork
+pg                       MISSING   8.23.0   8.23.0  -         talent-management-app-next-fork
+react                    MISSING   18.3.1   19.2.8  -         talent-management-app-next-fork
+react-dom                MISSING   18.3.1   19.2.8  -         talent-management-app-next-fork
+resend                   MISSING   6.25.0   6.25.0  -         talent-management-app-next-fork
+uuid                     MISSING   13.0.2   14.0.2  -         talent-management-app-next-fork
+zod                      MISSING    4.5.4    4.5.4  -         talent-management-app-next-fork
